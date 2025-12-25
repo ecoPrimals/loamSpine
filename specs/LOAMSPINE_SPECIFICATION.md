@@ -1,10 +1,15 @@
 # LoamSpine — Permanent Ledger Specification
 
-**Version:** 0.2.0 (Draft)  
-**Status:** Architectural Specification  
+**Version:** 1.1.0  
+**Status:** Active  
 **Author:** ecoPrimals Project  
 **Date:** December 2025  
-**License:** AGPL-3.0  
+**License:** AGPL-3.0
+
+> **Implementation Note**: The LoamSpine codebase uses capability-based discovery.
+> External primals are discovered at runtime via environment variables and the
+> `CapabilityRegistry`. No primal names are hardcoded in the source code.
+> This spec describes the *ecosystem architecture* for documentation purposes.  
 
 ---
 
@@ -1293,117 +1298,73 @@ pub trait SweetGrassClient {
 
 ## 8. API Specification
 
-### 8.1 gRPC Service Definition
+### 8.1 Pure Rust RPC Philosophy
 
-```protobuf
-syntax = "proto3";
+LoamSpine uses **pure Rust RPC**—no gRPC, no protobuf, no C++ tooling.
 
-package loamspine.v1;
+| ❌ What We Don't Use | ✅ What We Use |
+|---------------------|----------------|
+| gRPC | tarpc (pure Rust) |
+| protobuf/proto files | serde (native Rust) |
+| protoc (C++ compiler) | cargo build only |
+| tonic | jsonrpsee (JSON-RPC 2.0) |
 
-service LoamSpine {
+This aligns with the **Primal Sovereignty** principle: no external tooling, no vendor lock-in, no C++ dependencies.
+
+See [PURE_RUST_RPC.md](./PURE_RUST_RPC.md) for the full philosophy.
+
+### 8.2 tarpc Service Trait
+
+```rust
+#[tarpc::service]
+pub trait LoamSpineRpc {
     // Spine management
-    rpc CreateSpine(CreateSpineRequest) returns (CreateSpineResponse);
-    rpc GetSpine(GetSpineRequest) returns (GetSpineResponse);
-    rpc ListSpines(ListSpinesRequest) returns (ListSpinesResponse);
-    rpc SealSpine(SealSpineRequest) returns (SealSpineResponse);
+    async fn create_spine(request: CreateSpineRequest) -> Result<CreateSpineResponse, ApiError>;
+    async fn get_spine(request: GetSpineRequest) -> Result<GetSpineResponse, ApiError>;
+    async fn seal_spine(request: SealSpineRequest) -> Result<SealSpineResponse, ApiError>;
     
     // Entry operations
-    rpc AppendEntry(AppendEntryRequest) returns (AppendEntryResponse);
-    rpc GetEntry(GetEntryRequest) returns (GetEntryResponse);
-    rpc GetEntries(GetEntriesRequest) returns (GetEntriesResponse);
-    rpc StreamEntries(StreamEntriesRequest) returns (stream LoamEntry);
+    async fn append_entry(request: AppendEntryRequest) -> Result<AppendEntryResponse, ApiError>;
+    async fn get_entry(request: GetEntryRequest) -> Result<GetEntryResponse, ApiError>;
+    async fn get_tip(request: GetTipRequest) -> Result<GetTipResponse, ApiError>;
     
     // Certificate operations
-    rpc MintCertificate(MintCertificateRequest) returns (MintCertificateResponse);
-    rpc TransferCertificate(TransferCertificateRequest) returns (TransferCertificateResponse);
-    rpc LoanCertificate(LoanCertificateRequest) returns (LoanCertificateResponse);
-    rpc ReturnCertificate(ReturnCertificateRequest) returns (ReturnCertificateResponse);
-    rpc GetCertificate(GetCertificateRequest) returns (GetCertificateResponse);
-    rpc GetCertificateHistory(GetCertificateHistoryRequest) returns (GetCertificateHistoryResponse);
+    async fn mint_certificate(request: MintCertificateRequest) -> Result<MintCertificateResponse, ApiError>;
+    async fn transfer_certificate(request: TransferCertificateRequest) -> Result<TransferCertificateResponse, ApiError>;
+    async fn loan_certificate(request: LoanCertificateRequest) -> Result<LoanCertificateResponse, ApiError>;
+    async fn return_certificate(request: ReturnCertificateRequest) -> Result<ReturnCertificateResponse, ApiError>;
+    async fn get_certificate(request: GetCertificateRequest) -> Result<GetCertificateResponse, ApiError>;
     
-    // Verification
-    rpc VerifyChain(VerifyChainRequest) returns (VerifyChainResponse);
-    rpc GenerateInclusionProof(GenerateInclusionProofRequest) returns (GenerateInclusionProofResponse);
-    rpc VerifyInclusionProof(VerifyInclusionProofRequest) returns (VerifyInclusionProofResponse);
-    rpc GenerateCertificateProof(GenerateCertificateProofRequest) returns (GenerateCertificateProofResponse);
+    // Waypoint operations
+    async fn anchor_slice(request: AnchorSliceRequest) -> Result<AnchorSliceResponse, ApiError>;
+    async fn checkout_slice(request: CheckoutSliceRequest) -> Result<CheckoutSliceResponse, ApiError>;
     
-    // Sync
-    rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
-    rpc SyncEntries(stream SyncEntriesRequest) returns (stream SyncEntriesResponse);
+    // Integration
+    async fn commit_session(request: CommitSessionRequest) -> Result<CommitSessionResponse, ApiError>;
+    async fn commit_braid(request: CommitBraidRequest) -> Result<CommitBraidResponse, ApiError>;
+    
+    // Health
+    async fn health_check(request: HealthCheckRequest) -> Result<HealthCheckResponse, ApiError>;
 }
 ```
 
-### 8.2 REST API
+### 8.3 JSON-RPC 2.0 Endpoint
 
-```yaml
-openapi: 3.0.0
-info:
-  title: LoamSpine API
-  version: 1.0.0
+External clients use JSON-RPC 2.0 for universal access:
 
-paths:
-  /spines:
-    post:
-      summary: Create a new spine
-    get:
-      summary: List spines
+```bash
+# Health check
+curl -X POST http://localhost:8080/rpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "loamspine.healthCheck", "params": {}, "id": 1}'
 
-  /spines/{spine_id}:
-    get:
-      summary: Get spine details
-    
-  /spines/{spine_id}/entries:
-    post:
-      summary: Append entry
-    get:
-      summary: List entries
-
-  /spines/{spine_id}/entries/{entry_hash}:
-    get:
-      summary: Get entry by hash
-
-  /spines/{spine_id}/tip:
-    get:
-      summary: Get tip entry
-
-  /certificates:
-    post:
-      summary: Mint certificate
-    get:
-      summary: List certificates
-
-  /certificates/{cert_id}:
-    get:
-      summary: Get certificate
-    
-  /certificates/{cert_id}/transfer:
-    post:
-      summary: Transfer certificate
-
-  /certificates/{cert_id}/loan:
-    post:
-      summary: Loan certificate
-
-  /certificates/{cert_id}/return:
-    post:
-      summary: Return loaned certificate
-
-  /certificates/{cert_id}/history:
-    get:
-      summary: Get certificate history
-
-  /certificates/{cert_id}/proof:
-    get:
-      summary: Generate certificate proof
-
-  /proofs/inclusion:
-    post:
-      summary: Generate inclusion proof
-    
-  /proofs/verify:
-    post:
-      summary: Verify a proof
+# Create spine
+curl -X POST http://localhost:8080/rpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "loamspine.createSpine", "params": {"name": "my-spine", "owner": {"value": "did:key:z6Mk..."}}, "id": 2}'
 ```
+
+See [API_SPECIFICATION.md](./API_SPECIFICATION.md) for the full API reference.
 
 ---
 
@@ -1490,12 +1451,19 @@ paths:
 
 ## 12. References
 
+### ecoPrimals Specifications
+- [PURE_RUST_RPC.md](./PURE_RUST_RPC.md) — Pure Rust RPC philosophy (no gRPC)
+- [API_SPECIFICATION.md](./API_SPECIFICATION.md) — tarpc + JSON-RPC 2.0 API
+- [RhizoCrypt Specification](../../rhizoCrypt/specs/) — Ephemeral DAG
+- [SweetGrass Specification](../../sweetGrass/specs/) — Semantic attribution
+- [BearDog Specification](../../../phase1/bearDog/specs/) — Identity and signing
+
+### External Resources
 - [Merkle Trees](https://en.wikipedia.org/wiki/Merkle_tree) — Cryptographic verification
 - [Certificate Transparency](https://certificate.transparency.dev/) — Append-only log inspiration
 - [Git Object Model](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) — Content-addressed storage
-- [RhizoCrypt Specification](./RHIZOCRYPT_SPECIFICATION.md) — Ephemeral DAG
-- [SweetGrass Specification](./SWEETGRASS_SPECIFICATION.md) — Semantic attribution
-- [BearDog Specification](../beardog/specs/) — Identity and signing
+- [tarpc Documentation](https://docs.rs/tarpc/) — Pure Rust RPC framework
+- [jsonrpsee Documentation](https://docs.rs/jsonrpsee/) — Pure Rust JSON-RPC 2.0
 
 ---
 

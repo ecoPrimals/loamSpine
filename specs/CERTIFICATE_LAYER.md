@@ -1,7 +1,7 @@
 # LoamSpine — Certificate Layer Specification
 
-**Version**: 0.2.0  
-**Status**: Draft  
+**Version**: 1.0.0  
+**Status**: Active  
 **Last Updated**: December 22, 2025
 
 ---

@@ -1,0 +1,36 @@
+[package]
+name = "loam-spine-api"
+description = "Pure Rust RPC API for LoamSpine - tarpc + JSON-RPC"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Core crate
+loam-spine-core = { path = "../loam-spine-core" }
+
+# Pure Rust RPC - tarpc (no protobuf, no gRPC, no C++ tooling)
+tarpc = { version = "0.34", features = ["full"] }
+
+# JSON-RPC 2.0 for external clients (Python, JS, curl)
+jsonrpsee = { version = "0.24", features = ["server", "macros"] }
+
+# Workspace dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+
+# Additional utilities
+futures = "0.3"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true

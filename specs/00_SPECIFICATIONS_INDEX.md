@@ -1,8 +1,8 @@
 # 🦴 LoamSpine — Specifications Index
 
 **Last Updated**: December 22, 2025  
-**Version**: 0.2.0  
-**Status**: Active Development
+**Version**: 1.0.0  
+**Status**: Active
 
 ---
 
@@ -26,9 +26,10 @@ This directory contains the complete specification suite for LoamSpine, the perm
 
 | Document | Purpose | Status |
 |----------|---------|--------|
+| [PURE_RUST_RPC.md](./PURE_RUST_RPC.md) | **Pure Rust RPC philosophy** (no gRPC/protobuf) | ✅ Complete |
 | [WAYPOINT_SEMANTICS.md](./WAYPOINT_SEMANTICS.md) | Waypoint spines & slice anchoring | ✅ Complete |
 | [CERTIFICATE_LAYER.md](./CERTIFICATE_LAYER.md) | Loam Certificate Layer (memory-bound objects) | ✅ Complete |
-| [API_SPECIFICATION.md](./API_SPECIFICATION.md) | gRPC & REST API definitions | ✅ Complete |
+| [API_SPECIFICATION.md](./API_SPECIFICATION.md) | tarpc + JSON-RPC 2.0 API definitions | ✅ Complete |
 
 ### Integration Specifications
 
@@ -70,13 +71,13 @@ LoamSpine is named after **loam**—the slow, anaerobic soil layer:
 - [RhizoCrypt Specification](../../rhizoCrypt/specs/)
 - [SweetGrass Specification](../../sweetGrass/specs/)
 
-### Gen 1 Dependencies
-- [BearDog Specification](../../../beardog/specs/)
-- [Songbird Specification](../../../songbird/specs/)
-- [NestGate Specification](../../../nestgate/specs/)
+### Phase 1 Dependencies
+- [BearDog Specification](../../../phase1/bearDog/specs/) — Identity & signing
+- [Songbird Specification](../../../phase1/songBird/specs/) — Service discovery
+- [NestGate Specification](../../../phase1/nestGate/specs/) — Payload storage
 
-### Foundational
-- [sourDough Core](../../sourDough/)
+### Design Philosophy
+- [Pure Rust RPC](./PURE_RUST_RPC.md) — Primal sovereignty, no gRPC/protobuf
 - [Phase 2 Architecture](../../ARCHITECTURE.md)
 
 ---
@@ -85,13 +86,14 @@ LoamSpine is named after **loam**—the slow, anaerobic soil layer:
 
 For new developers, we recommend this reading order:
 
-1. **[ARCHITECTURE.md](./ARCHITECTURE.md)** — Understand the big picture
-2. **[DATA_MODEL.md](./DATA_MODEL.md)** — Learn the core data structures
-3. **[WAYPOINT_SEMANTICS.md](./WAYPOINT_SEMANTICS.md)** — Understand slice anchoring
-4. **[CERTIFICATE_LAYER.md](./CERTIFICATE_LAYER.md)** — Learn about memory-bound objects
-5. **[API_SPECIFICATION.md](./API_SPECIFICATION.md)** — See the external interfaces
-6. **[INTEGRATION_SPECIFICATION.md](./INTEGRATION_SPECIFICATION.md)** — Understand primal interactions
-7. **[LOAMSPINE_SPECIFICATION.md](./LOAMSPINE_SPECIFICATION.md)** — Full reference (read as needed)
+1. **[PURE_RUST_RPC.md](./PURE_RUST_RPC.md)** — Understand our philosophy (no gRPC, primal sovereignty)
+2. **[ARCHITECTURE.md](./ARCHITECTURE.md)** — Understand the big picture
+3. **[DATA_MODEL.md](./DATA_MODEL.md)** — Learn the core data structures
+4. **[WAYPOINT_SEMANTICS.md](./WAYPOINT_SEMANTICS.md)** — Understand slice anchoring
+5. **[CERTIFICATE_LAYER.md](./CERTIFICATE_LAYER.md)** — Learn about memory-bound objects
+6. **[API_SPECIFICATION.md](./API_SPECIFICATION.md)** — See the pure Rust APIs
+7. **[INTEGRATION_SPECIFICATION.md](./INTEGRATION_SPECIFICATION.md)** — Understand primal interactions
+8. **[LOAMSPINE_SPECIFICATION.md](./LOAMSPINE_SPECIFICATION.md)** — Full reference (read as needed)
 
 ---
 

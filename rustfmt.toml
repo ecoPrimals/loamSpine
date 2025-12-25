@@ -1,0 +1,25 @@
+# LoamSpine rustfmt configuration
+# Stable Rust formatting for idiomatic, readable code
+
+edition = "2021"
+
+# Indentation
+hard_tabs = false
+tab_spaces = 4
+
+# Line endings
+newline_style = "Unix"
+
+# Line width
+max_width = 100
+use_small_heuristics = "Default"
+
+# Imports
+reorder_imports = true
+reorder_modules = true
+
+# Derives
+merge_derives = true
+
+# ABI
+force_explicit_abi = true

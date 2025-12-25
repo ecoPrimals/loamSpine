@@ -1,0 +1,23 @@
+================================================================
+LoamSpine Showcase Demo Receipt
+================================================================
+
+Demo:        inter-primal-integration
+Status:      success
+Timestamp:   2025-12-24T18:58:10-05:00
+Hostname:    pop-os
+User:        strandgate
+Working Dir: /home/strandgate/Development/ecoPrimals/phase2/loamSpine
+
+Steps Completed:
+  ✓ Demonstrated inter-primal integration
+  ✓ CommitAcceptor (ephemeral → permanent)
+  ✓ BraidAcceptor (attribution → permanent)
+  ✓ Capability-based discovery patterns
+  ✓ **DISCOVERED Gap #4: Service lifecycle coordination**
+
+Environment:
+  PROJECT_ROOT: /home/strandgate/Development/ecoPrimals/phase2/loamSpine
+  LOGS_DIR:     /home/strandgate/Development/ecoPrimals/phase2/loamSpine/showcase/logs
+
+================================================================

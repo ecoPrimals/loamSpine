@@ -1,0 +1,178 @@
+//! In-memory storage implementations for testing and development.
+//!
+//! These implementations are fast but transient — data is lost when the process exits.
+//! Ideal for unit tests, integration tests, and development workflows.
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+use crate::entry::Entry;
+use crate::error::LoamSpineResult;
+use crate::spine::Spine;
+use crate::types::{EntryHash, SpineId};
+
+use super::{EntryStorage, SpineStorage};
+
+/// In-memory spine storage implementation.
+///
+/// Fast, thread-safe storage using `Arc<RwLock<HashMap>>`.
+/// All data is lost when dropped.
+#[derive(Debug, Clone, Default)]
+pub struct InMemorySpineStorage {
+    spines: Arc<RwLock<HashMap<SpineId, Spine>>>,
+}
+
+impl InMemorySpineStorage {
+    /// Create a new in-memory storage.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Get the number of stored spines.
+    ///
+    /// Useful for testing and debugging.
+    pub async fn spine_count(&self) -> usize {
+        self.spines.read().await.len()
+    }
+}
+
+impl SpineStorage for InMemorySpineStorage {
+    async fn get_spine(&self, id: SpineId) -> LoamSpineResult<Option<Spine>> {
+        let spines = self.spines.read().await;
+        Ok(spines.get(&id).cloned())
+    }
+
+    async fn save_spine(&self, spine: &Spine) -> LoamSpineResult<()> {
+        self.spines.write().await.insert(spine.id, spine.clone());
+        Ok(())
+    }
+
+    async fn delete_spine(&self, id: SpineId) -> LoamSpineResult<()> {
+        self.spines.write().await.remove(&id);
+        Ok(())
+    }
+
+    async fn list_spines(&self) -> LoamSpineResult<Vec<SpineId>> {
+        let spines = self.spines.read().await;
+        Ok(spines.keys().copied().collect())
+    }
+}
+
+/// In-memory entry storage implementation.
+///
+/// Fast, thread-safe storage with spine indexing for efficient queries.
+/// All data is lost when dropped.
+#[derive(Debug, Clone, Default)]
+pub struct InMemoryEntryStorage {
+    entries: Arc<RwLock<HashMap<EntryHash, Entry>>>,
+    /// Index: spine_id → entry hashes (in order)
+    spine_index: Arc<RwLock<HashMap<SpineId, Vec<EntryHash>>>>,
+}
+
+impl InMemoryEntryStorage {
+    /// Create a new in-memory storage.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Get the number of stored entries.
+    ///
+    /// Useful for testing and debugging.
+    pub async fn entry_count(&self) -> usize {
+        self.entries.read().await.len()
+    }
+}
+
+impl EntryStorage for InMemoryEntryStorage {
+    async fn get_entry(&self, hash: EntryHash) -> LoamSpineResult<Option<Entry>> {
+        let entries = self.entries.read().await;
+        Ok(entries.get(&hash).cloned())
+    }
+
+    async fn save_entry(&self, entry: &Entry) -> LoamSpineResult<EntryHash> {
+        let hash = entry.compute_hash();
+        let spine_id = entry.spine_id;
+
+        // Save entry
+        self.entries.write().await.insert(hash, entry.clone());
+
+        // Update spine index
+        {
+            let mut index = self.spine_index.write().await;
+            let hashes = index.entry(spine_id).or_default();
+            if !hashes.contains(&hash) {
+                hashes.push(hash);
+            }
+        }
+
+        Ok(hash)
+    }
+
+    async fn entry_exists(&self, hash: EntryHash) -> LoamSpineResult<bool> {
+        let entries = self.entries.read().await;
+        Ok(entries.contains_key(&hash))
+    }
+
+    async fn get_entries_for_spine(
+        &self,
+        spine_id: SpineId,
+        start_index: u64,
+        limit: u64,
+    ) -> LoamSpineResult<Vec<Entry>> {
+        let index = self.spine_index.read().await;
+        let entries = self.entries.read().await;
+
+        let Some(hashes) = index.get(&spine_id) else {
+            return Ok(Vec::new());
+        };
+
+        let start = usize::try_from(start_index).unwrap_or(usize::MAX);
+        let limit = usize::try_from(limit).unwrap_or(usize::MAX);
+
+        let result: Vec<Entry> = hashes
+            .iter()
+            .skip(start)
+            .take(limit)
+            .filter_map(|hash| entries.get(hash).cloned())
+            .collect();
+
+        Ok(result)
+    }
+}
+
+/// Combined in-memory storage for both spines and entries.
+///
+/// Convenience wrapper that implements both `SpineStorage` and `EntryStorage`.
+/// Ideal for simple use cases where you need both types of storage.
+///
+/// # Example
+///
+/// ```no_run
+/// use loam_spine_core::storage::{InMemoryStorage, SpineStorage, EntryStorage};
+///
+/// # async fn example() {
+/// let storage = InMemoryStorage::new();
+///
+/// // Use as both SpineStorage and EntryStorage
+/// // storage.save_spine(&spine).await.unwrap();
+/// // storage.save_entry(&entry).await.unwrap();
+/// # }
+/// ```
+#[derive(Debug, Clone, Default)]
+pub struct InMemoryStorage {
+    /// Spine storage component.
+    pub spines: InMemorySpineStorage,
+    /// Entry storage component.
+    pub entries: InMemoryEntryStorage,
+}
+
+impl InMemoryStorage {
+    /// Create a new combined in-memory storage.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+}

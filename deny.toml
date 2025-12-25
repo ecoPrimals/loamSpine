@@ -1,0 +1,111 @@
+# LoamSpine cargo-deny configuration
+# Security and dependency hygiene for pure Rust primal sovereignty
+#
+# Run with: cargo deny check
+
+# =============================================================================
+# Graph Configuration
+# =============================================================================
+
+[graph]
+targets = []
+all-features = true
+
+# =============================================================================
+# Output Configuration
+# =============================================================================
+
+[output]
+feature-depth = 1
+
+# =============================================================================
+# Bans - Crate restrictions
+# =============================================================================
+
+[bans]
+# Deny multiple versions of the same crate (reduce bloat)
+multiple-versions = "warn"
+# Allow wildcard versions for workspace path dependencies
+wildcards = "allow"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+
+# Explicitly denied crates (prefer pure Rust alternatives)
+deny = [
+    # Prefer pure Rust TLS (rustls over OpenSSL)
+    { crate = "openssl", reason = "Use rustls instead - pure Rust TLS" },
+    { crate = "openssl-sys", reason = "Use rustls instead - pure Rust TLS" },
+    { crate = "native-tls", reason = "Use rustls instead - pure Rust TLS" },
+    
+    # C++ dependencies we explicitly avoid (primal sovereignty)
+    # Note: protobuf/grpc are NOT used - we use tarpc/jsonrpsee
+]
+
+# Allow these duplicates (transitive deps we can't control)
+skip = []
+skip-tree = []
+
+# =============================================================================
+# Licenses - Allowed license expressions
+# =============================================================================
+
+[licenses]
+# LoamSpine is AGPL-3.0, allow compatible licenses
+# See https://spdx.org/licenses/ for SPDX identifiers
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "Zlib",
+    "CC0-1.0",
+    "MPL-2.0",
+    "AGPL-3.0",
+]
+
+# Confidence threshold for license detection
+confidence-threshold = 0.8
+
+# Exceptions for specific crates with unusual licensing
+exceptions = []
+
+[licenses.private]
+# Ignore private/unpublished workspace crates
+ignore = false
+registries = []
+
+# =============================================================================
+# Advisories - Security vulnerability checking
+# =============================================================================
+
+[advisories]
+# Security advisory checking via RustSec
+# 
+# NOTE: As of Dec 2025, the RustSec advisory database contains CVSSv4 entries
+# (e.g., RUSTSEC-2024-0445) which cargo-deny doesn't parse yet. This causes
+# database loading to fail. Until fixed upstream, run:
+#   cargo deny check licenses bans sources
+# instead of the full check.
+#
+# Track: https://github.com/EmbarkStudios/cargo-deny/issues/XXX
+ignore = []
+
+# =============================================================================
+# Sources - Allowed crate sources
+# =============================================================================
+
+[sources]
+# Only allow crates.io and trusted git sources
+unknown-registry = "deny"
+unknown-git = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[sources.allow-org]
+# Allow ecoPrimals GitHub organization
+github = ["ecoPrimals"]

@@ -1,0 +1,35 @@
+[package]
+name = "loam-spine-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+loam-spine-core = { path = "../crates/loam-spine-core" }
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1.3", features = ["derive"] }
+
+[[bin]]
+name = "fuzz_entry_parsing"
+path = "fuzz_targets/fuzz_entry_parsing.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_certificate"
+path = "fuzz_targets/fuzz_certificate.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_spine_operations"
+path = "fuzz_targets/fuzz_spine_operations.rs"
+test = false
+doc = false
+bench = false
+

@@ -1,0 +1,213 @@
+# LoamSpine Primal Capability Registry
+# 
+# Philosophy: "Each primal knows only itself. Everything else is discovered."
+#
+# LoamSpine advertises its capabilities for runtime discovery by other primals
+# and discovers other primals' capabilities through Songbird (universal adapter).
+
+[registry]
+version = "1.0.0"
+discovery_protocol = "capability-based"
+fallback_strategy = "best-available"
+
+# =============================================================================
+# LOAMSPINE - Permanence Layer & Selective Memory
+# =============================================================================
+[primals.loamspine]
+name = "loamspine"
+description = "Permanence layer providing selective memory and certificate management"
+primary_role = "permanence"
+version = "0.5.0"
+
+capabilities = [
+    # Core permanence capabilities
+    "permanence",
+    "selective-memory",
+    "spine-management",
+    "entry-chain",
+    "hash-chain-verification",
+    
+    # Certificate management
+    "certificate-management",
+    "certificate-minting",
+    "certificate-transfer",
+    "certificate-loan",
+    "certificate-verification",
+    "certificate-provenance",
+    
+    # Proof generation
+    "inclusion-proofs",
+    "certificate-proofs",
+    "provenance-proofs",
+    "waypoint-anchoring",
+    
+    # Storage
+    "persistent-storage",
+    "spine-storage",
+    "entry-storage",
+    "certificate-storage",
+    
+    # Backup & Recovery
+    "backup",
+    "restore",
+    "export",
+    "import",
+    "multi-spine-backup",
+    
+    # Integration capabilities
+    "session-commit",
+    "slice-checkout",
+    "slice-return",
+    "braid-commit",
+    
+    # Query capabilities
+    "spine-query",
+    "entry-query",
+    "certificate-query",
+    "proof-verification",
+]
+
+# RPC protocols
+protocols = ["tarpc", "jsonrpc"]
+default_tarpc_port = 9001
+default_jsonrpc_port = 8080
+health_endpoint = "/health"  # JSON-RPC endpoint
+
+# Service metadata
+[primals.loamspine.metadata]
+language = "rust"
+rpc_style = "pure-rust"  # No gRPC, no protobuf, no C++
+storage_backend = "sled"  # Pure Rust embedded database
+zero_copy = true  # Uses `bytes` crate
+unsafe_code = false  # Forbids unsafe code
+
+# =============================================================================
+# CAPABILITY DEPENDENCIES (What LoamSpine Discovers)
+# =============================================================================
+
+# LoamSpine discovers these capabilities at runtime (no hardcoding)
+[dependencies]
+# Optional capabilities that enhance functionality
+optional = [
+    "signing",                    # Signing service (e.g., BearDog)
+    "verification",               # Signature verification
+    "storage",                    # External storage (e.g., NestGate)
+    "session-management",         # Session management (e.g., RhizoCrypt)
+    "semantic-attribution",       # Semantic braids (e.g., SweetGrass)
+]
+
+# Required capabilities (must be available for full functionality)
+required = []  # LoamSpine is self-contained, all optional
+
+# =============================================================================
+# DISCOVERY CONFIGURATION
+# =============================================================================
+[discovery]
+# Discovery methods (in priority order)
+methods = [
+    "environment",      # Environment variables (LOAMSPINE_SIGNER_PATH, etc.)
+    "songbird",         # Songbird universal adapter (primary)
+    "mdns",            # Multicast DNS
+    "local-binaries",  # ../bins/ directory
+    "config-file",     # This file
+    "fallback",        # Graceful degradation
+]
+
+# Songbird integration
+songbird_enabled = true
+songbird_discovery_endpoint = "http://localhost:8082/discover"
+songbird_registry_endpoint = "http://localhost:8082/register"
+
+# Cache settings
+cache_enabled = true
+cache_ttl_seconds = 300  # 5 minutes
+
+# Retry settings
+retry_attempts = 3
+retry_delay_ms = 1000
+timeout_seconds = 30
+
+# Health check settings
+health_check_enabled = true
+health_check_interval_seconds = 30
+health_check_timeout_seconds = 5
+
+[discovery.preferences]
+# Prefer local services when available
+prefer_local = true
+
+# Prefer healthy services
+require_healthy = true
+
+# Load balancing strategy
+load_balance = "round-robin"  # or "random", "least-connections"
+
+# Fallback behavior
+fallback_to_any = true  # Use any available service if preferred not found
+
+# =============================================================================
+# SERVICE ADVERTISEMENT (What LoamSpine Advertises)
+# =============================================================================
+[advertisement]
+# Automatically advertise to Songbird on startup
+auto_advertise = true
+
+# Re-advertise interval (heartbeat)
+heartbeat_interval_seconds = 60
+
+# Include health status in advertisement
+include_health = true
+
+# Include capability list in advertisement
+include_capabilities = true
+
+# =============================================================================
+# INTEGRATION EXAMPLES
+# =============================================================================
+# 
+# Instead of hardcoding:
+#   let beardog = connect("http://localhost:8081").await?;
+#
+# LoamSpine discovers by capability:
+#   let registry = CapabilityRegistry::new();
+#   if let Some(signer) = registry.get_signer().await {
+#       let signature = signer.sign_boxed(data).await?;
+#   }
+#
+# With Songbird integration:
+#   let songbird = SongbirdClient::connect().await?;
+#   let services = songbird.discover_capability("signing").await?;
+#   for service in services {
+#       match try_connect(&service).await {
+#           Ok(signer) => {
+#               registry.register_signer(signer).await;
+#               break;
+#           }
+#           Err(e) => warn!("Service {} unavailable: {}", service.name, e),
+#       }
+#   }
+#
+# Benefits:
+# - Zero primal hardcoding (knows only itself)
+# - Runtime discovery (infant learning model)
+# - Automatic failover to alternatives
+# - Load balancing across instances
+# - Health-aware routing
+# - O(n) complexity instead of O(n²)
+
+# =============================================================================
+# ENVIRONMENT VARIABLE OVERRIDES
+# =============================================================================
+# 
+# All settings can be overridden via environment variables:
+#
+# LOAMSPINE_TARPC_PORT=9001
+# LOAMSPINE_JSONRPC_PORT=8080
+# LOAMSPINE_SIGNER_PATH=../bins/beardog
+# LOAMSPINE_STORAGE_PATH=./data
+# LOAMSPINE_SONGBIRD_ENDPOINT=http://localhost:8082
+# LOAMSPINE_DISCOVERY_METHODS=environment,songbird,mdns
+# LOAMSPINE_AUTO_ADVERTISE=true
+#
+# This allows zero-configuration deployment while maintaining flexibility.
+

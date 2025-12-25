@@ -1,8 +1,12 @@
 # LoamSpine — Architecture Specification
 
-**Version**: 0.2.0  
-**Status**: Draft  
-**Last Updated**: December 22, 2025
+**Version**: 1.1.0  
+**Status**: Active  
+**Last Updated**: December 24, 2025
+
+> **Implementation Note**: The LoamSpine codebase uses capability-based discovery.
+> External services are discovered at runtime via environment variables and the
+> `CapabilityRegistry`. No primal names are hardcoded in the source code.
 
 ---
 
@@ -303,43 +307,37 @@ Federation support:
 loamSpine/
 ├── Cargo.toml                    # Workspace manifest
 ├── crates/
-│   ├── loam-spine-core/          # Core library
+│   ├── loam-spine-core/          # Core library (pure Rust)
 │   │   ├── src/
 │   │   │   ├── lib.rs            # Main entry, re-exports
+│   │   │   ├── primal.rs         # Primal lifecycle traits (inlined, no sourdough)
 │   │   │   ├── config.rs         # Configuration types
 │   │   │   ├── error.rs          # Error types
+│   │   │   ├── types.rs          # Core types (Did, Hash, etc.)
 │   │   │   ├── entry.rs          # Entry data structure
 │   │   │   ├── spine.rs          # Spine management
-│   │   │   ├── chain.rs          # Hash chain operations
 │   │   │   ├── certificate.rs    # Certificate layer
-│   │   │   ├── waypoint.rs       # Waypoint semantics
-│   │   │   └── proof.rs          # Inclusion proofs
+│   │   │   ├── proof.rs          # Inclusion proofs
+│   │   │   ├── storage.rs        # Storage traits + in-memory impl
+│   │   │   ├── manager.rs        # Certificate manager
+│   │   │   └── integration.rs    # Primal integration (RhizoCrypt, SweetGrass)
 │   │   └── Cargo.toml
 │   │
-│   ├── loam-spine-store/         # Storage backends
+│   ├── loam-spine-api/           # Pure Rust RPC layer (NO gRPC/protobuf)
+│   │   ├── src/
+│   │   │   ├── lib.rs
+│   │   │   ├── service.rs        # LoamSpineRpcService
+│   │   │   ├── types.rs          # Request/Response types
+│   │   │   ├── tarpc_server.rs   # tarpc server (primal-to-primal)
+│   │   │   └── jsonrpc_server.rs # JSON-RPC 2.0 server (external clients)
+│   │   └── Cargo.toml
+│   │
+│   ├── loam-spine-store/         # Storage backends (future)
 │   │   ├── src/
 │   │   │   ├── lib.rs
 │   │   │   ├── traits.rs         # EntryStore, SpineStore traits
 │   │   │   ├── sqlite.rs         # SQLite implementation
-│   │   │   ├── postgres.rs       # PostgreSQL implementation
-│   │   │   └── rocksdb.rs        # RocksDB implementation
-│   │   └── Cargo.toml
-│   │
-│   ├── loam-spine-sync/          # Replication engine
-│   │   ├── src/
-│   │   │   ├── lib.rs
-│   │   │   ├── protocol.rs       # Sync protocol
-│   │   │   ├── peer.rs           # Peer management
-│   │   │   └── conflict.rs       # Conflict resolution
-│   │   └── Cargo.toml
-│   │
-│   ├── loam-spine-api/           # API layer
-│   │   ├── src/
-│   │   │   ├── lib.rs
-│   │   │   ├── grpc.rs           # gRPC service
-│   │   │   └── rest.rs           # REST handlers
-│   │   ├── proto/
-│   │   │   └── loamspine.proto   # gRPC definitions
+│   │   │   └── sled.rs           # Sled embedded implementation
 │   │   └── Cargo.toml
 │   │
 │   └── loam-spine-service/       # Runnable service
@@ -351,6 +349,20 @@ loamSpine/
 ├── showcase/                     # Demo applications
 └── tests/                        # Integration tests
 ```
+
+### 4.1 Why No gRPC/Protobuf?
+
+LoamSpine follows the **Primal Sovereignty** principle:
+
+| ❌ What We Don't Use | ✅ What We Use |
+|---------------------|----------------|
+| gRPC | tarpc (pure Rust) |
+| protobuf/proto files | serde (native Rust) |
+| protoc (C++ compiler) | cargo build only |
+| tonic | jsonrpsee (JSON-RPC 2.0) |
+| Generated code | Rust macros (compile-time safe) |
+
+See [PURE_RUST_RPC.md](./PURE_RUST_RPC.md) for the full rationale.
 
 ---
 
@@ -397,7 +409,7 @@ loamSpine/
 
 ### 6.1 Async Runtime
 
-LoamSpine uses Tokio as its async runtime:
+LoamSpine uses Tokio as its async runtime with pure Rust RPC:
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
@@ -405,13 +417,14 @@ LoamSpine uses Tokio as its async runtime:
 ├───────────────────────────────────────────────────────────────┤
 │                                                               │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
-│  │ gRPC Server │  │ REST Server │  │  Background Tasks   │   │
-│  │   (tonic)   │  │   (axum)    │  │                     │   │
-│  └──────┬──────┘  └──────┬──────┘  │  - Replication sync │   │
-│         │                │         │  - Rollup sweep     │   │
-│         │                │         │  - Archive move     │   │
-│         └────────┬───────┘         │  - Metrics emit     │   │
-│                  │                 └─────────────────────┘   │
+│  │tarpc Server │  │  JSON-RPC   │  │  Background Tasks   │   │
+│  │  (binary)   │  │ (jsonrpsee) │  │                     │   │
+│  │             │  │             │  │  - Replication sync │   │
+│  │Primal ↔ Prim│  │External API │  │  - Rollup sweep     │   │
+│  └──────┬──────┘  └──────┬──────┘  │  - Archive move     │   │
+│         │                │         │  - Metrics emit     │   │
+│         └────────┬───────┘         └─────────────────────┘   │
+│                  │                                            │
 │                  ▼                                            │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │              Request Handler Pool                       │  │
@@ -608,34 +621,66 @@ loam-spine-service \
 
 ### 10.3 Federated Mode
 
-Multiple LoamSpine instances replicate:
+Multiple LoamSpine instances replicate via tarpc:
 
 ```
-┌─────────────────┐     ┌─────────────────┐
-│   LoamSpine     │────▶│   LoamSpine     │
-│    Node A       │◀────│    Node B       │
-└────────┬────────┘     └────────┬────────┘
-         │                       │
-         └───────────┬───────────┘
-                     │
-                     ▼
-              ┌─────────────┐
-              │  Songbird   │
-              │  Discovery  │
-              └─────────────┘
+┌─────────────────┐  tarpc   ┌─────────────────┐
+│   LoamSpine     │─────────▶│   LoamSpine     │
+│    Node A       │◀─────────│    Node B       │
+└────────┬────────┘          └────────┬────────┘
+         │                            │
+         └─────────────┬──────────────┘
+                       │
+                       ▼
+                ┌─────────────┐
+                │  Songbird   │
+                │  Discovery  │
+                └─────────────┘
 ```
 
 ---
 
-## 11. References
+## 11. Design Principles
 
+### 11.1 Primal Sovereignty
+
+LoamSpine adheres to the **Primal Sovereignty** principle:
+
+| Principle | Application |
+|-----------|-------------|
+| **Self-Sovereign** | No external tooling (protoc, C++ compilers) |
+| **Pure Rust** | All dependencies are Rust-native |
+| **No Vendor Lock-in** | No Google/corporate protocol dependencies |
+| **Human Dignity** | Simple tools that humans can understand |
+| **Cargo-Only Builds** | `cargo build` is all you need |
+
+### 11.2 Pure Rust Stack
+
+```
+✅ tarpc     → Binary RPC (Rust-native)
+✅ jsonrpsee → JSON-RPC 2.0 (Rust-native)
+✅ serde     → Serialization (community standard)
+✅ blake3    → Hashing (Rust-native)
+✅ tokio     → Async runtime (Rust-native)
+
+❌ gRPC      → Requires protoc (C++ compiler)
+❌ protobuf  → Google-controlled protocol
+❌ tonic     → gRPC implementation (C++ deps)
+❌ prost     → Protobuf codegen (external tooling)
+```
+
+---
+
+## 12. References
+
+- [PURE_RUST_RPC.md](./PURE_RUST_RPC.md) — Pure Rust RPC philosophy
 - [LOAMSPINE_SPECIFICATION.md](./LOAMSPINE_SPECIFICATION.md) — Full specification
 - [DATA_MODEL.md](./DATA_MODEL.md) — Data structures
 - [WAYPOINT_SEMANTICS.md](./WAYPOINT_SEMANTICS.md) — Waypoint spines
 - [CERTIFICATE_LAYER.md](./CERTIFICATE_LAYER.md) — Memory-bound objects
-- [API_SPECIFICATION.md](./API_SPECIFICATION.md) — API definitions
+- [API_SPECIFICATION.md](./API_SPECIFICATION.md) — Pure Rust API definitions
 
 ---
 
-*LoamSpine: The permanent record that gives memory its meaning.*
+*LoamSpine: Pure Rust, Primal Sovereignty, Permanent History.*
 

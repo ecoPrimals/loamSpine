@@ -1,14 +1,24 @@
 # LoamSpine — Integration Specification
 
-**Version**: 0.2.0  
-**Status**: Draft  
-**Last Updated**: December 22, 2025
+**Version**: 1.1.0  
+**Status**: Active  
+**Last Updated**: December 24, 2025
 
 ---
 
 ## 1. Overview
 
-LoamSpine integrates with the ecoPrimals ecosystem as the permanent ledger layer. This document specifies how LoamSpine interacts with each primal.
+LoamSpine integrates with the ecoPrimals ecosystem as the permanent ledger layer. This document specifies how LoamSpine interacts with external services.
+
+### 1.1 Capability-Based Discovery
+
+**Key Principle**: LoamSpine code never hardcodes specific primal names. All external services are discovered at runtime via:
+
+- **Environment Variables**: `LOAMSPINE_SIGNER_PATH`, `LOAMSPINE_STORAGE_URL`, etc.
+- **Capability Registry**: Runtime registration of `Signer`, `Verifier`, and other capabilities
+- **Trait Abstractions**: Code depends on traits, not specific implementations
+
+The primal names in this document describe the *ecosystem architecture* for documentation purposes. The actual implementations use agnostic capability names like `CliSigner`, `CliVerifier`, `CommitAcceptor`, etc.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -435,16 +445,19 @@ pub async fn register_with_songbird(
         version: loamspine.version().to_string(),
         capabilities,
         endpoints: vec![
-            Endpoint::Grpc {
-                host: loamspine.grpc_host(),
-                port: loamspine.grpc_port(),
+            // Pure Rust RPC: tarpc for primal-to-primal
+            Endpoint::Tarpc {
+                host: loamspine.tarpc_host(),
+                port: loamspine.tarpc_port(),
             },
-            Endpoint::Rest {
-                base_url: loamspine.rest_url(),
+            // JSON-RPC 2.0 for external clients
+            Endpoint::JsonRpc {
+                base_url: loamspine.jsonrpc_url(),
             },
         ],
         health_check: Some(HealthCheck {
-            endpoint: "/health".to_string(),
+            endpoint: "/rpc".to_string(),
+            method: "loamspine.healthCheck".to_string(),
             interval: Duration::from_secs(30),
         }),
     };
@@ -639,13 +652,14 @@ pub enum IntegrationError {
 
 ## 10. References
 
+- [PURE_RUST_RPC.md](./PURE_RUST_RPC.md) — Pure Rust RPC philosophy
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture
-- [API_SPECIFICATION.md](./API_SPECIFICATION.md) — API definitions
-- [RhizoCrypt Integration](../../rhizoCrypt/specs/INTEGRATION_SPECIFICATION.md)
-- [BearDog Specification](../../../beardog/specs/)
-- [Songbird Specification](../../../songbird/specs/)
+- [API_SPECIFICATION.md](./API_SPECIFICATION.md) — tarpc + JSON-RPC API definitions
+- [RhizoCrypt Specification](../../rhizoCrypt/specs/)
+- [BearDog Specification](../../../phase1/bearDog/specs/)
+- [Songbird Specification](../../../phase1/songBird/specs/)
 
 ---
 
-*LoamSpine: The permanent record that gives memory its meaning.*
+*LoamSpine: Pure Rust, Primal Sovereignty, Permanent History.*
 

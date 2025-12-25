@@ -1,0 +1,24 @@
+================================================================
+LoamSpine Showcase Demo Receipt
+================================================================
+
+Demo:        entry-types
+Status:      success
+Timestamp:   2025-12-24T18:05:08-05:00
+Hostname:    pop-os
+User:        strandgate
+Working Dir: /home/strandgate/Development/ecoPrimals/phase2/loamSpine
+
+Steps Completed:
+  ✓ Demonstrated all 15+ entry types
+  ✓ Explained SessionCommit (ephemeral integration)
+  ✓ Explained BraidCommit (attribution integration)
+  ✓ Explained SliceAnchor/Return (state lending)
+  ✓ Explained Certificate operations
+  ✓ Showed integration patterns
+
+Environment:
+  PROJECT_ROOT: /home/strandgate/Development/ecoPrimals/phase2/loamSpine
+  LOGS_DIR:     /home/strandgate/Development/ecoPrimals/phase2/loamSpine/showcase/logs
+
+================================================================

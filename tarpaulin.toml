@@ -1,0 +1,34 @@
+# LoamSpine tarpaulin configuration
+# Coverage settings for cargo-tarpaulin
+
+[tarpaulin]
+# Test configuration
+test-threads = 1
+run-types = ["Tests", "Doctests"]
+all-features = true
+workspace = true
+
+# Coverage targets
+out = ["Html", "Lcov"]
+output-dir = "coverage"
+
+# Exclusions
+exclude-files = [
+    "benches/*",
+    "tests/*",
+    "examples/*",
+]
+
+# Thresholds
+fail-under = 80.0
+
+# Timing
+timeout = "120s"
+
+# Verbosity
+verbose = false
+debug = false
+
+# Engine (prefer llvm for accuracy)
+engine = "llvm"
+

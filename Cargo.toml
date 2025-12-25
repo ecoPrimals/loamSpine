@@ -2,19 +2,17 @@
 resolver = "2"
 members = [
     "crates/loam-spine-core",
+    "crates/loam-spine-api",
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.6.0"
 edition = "2021"
 license = "AGPL-3.0"
 repository = "https://github.com/ecoPrimals/loamSpine"
 authors = ["ecoPrimals Project"]
 
 [workspace.dependencies]
-# SourDough core traits
-sourdough-core = { path = "../sourDough/crates/sourdough-core" }
-
 # Async runtime
 tokio = { version = "1.40", features = ["full"] }
 
@@ -30,3 +28,35 @@ anyhow = "1.0"
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Content addressing
+blake3 = "1.5"
+
+# UUIDs
+uuid = { version = "1.11", features = ["v7", "serde"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+# Lint groups (lower priority, overridden by individual lints)
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Production code quality enforcement
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+clone_on_ref_ptr = "warn"          # Catch unnecessary Arc/Rc clones
+unnecessary_wraps = "warn"         # Catch Result<T, E> when E never used
+
+# Allow some pedantic lints that are overly strict
+module_name_repetitions = "allow"  # Acceptable for clarity (e.g., SpineConfig in spine mod)
+missing_const_for_fn = "allow"     # Some functions can't be const due to trait bounds
+significant_drop_tightening = "allow"  # Lock scopes are intentional in service code
+must_use_candidate = "allow"       # Will add incrementally
+multiple_crate_versions = "allow"  # Dependencies may have version conflicts
+option_if_let_else = "allow"       # Pattern matching is clearer sometimes
+redundant_pub_crate = "allow"      # pub(crate) is intentional for module boundaries
