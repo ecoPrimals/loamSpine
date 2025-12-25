@@ -1,0 +1,112 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s
+     Running `target/debug/examples/storage_backends`
+🦴 LoamSpine Storage Backends Demo
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💾 Backend 1: In-Memory Storage
+
+Characteristics:
+   • Fast: Direct memory access
+   • Ephemeral: Data lost on shutdown
+   • Simple: No configuration needed
+   • Thread-safe: Built-in Spine protection
+
+Created spine: 019b529f-2e88-7982-8b1e-3d398fdb77b6
+   Storage: In-Memory
+   Height: 1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💿 Backend 2: Sled Storage (Embedded DB)
+
+Note: Sled backend available via feature flag
+✅ Configuration: loam-spine-core with sled feature
+
+Characteristics:
+   • Persistent: Data survives restarts
+   • Embedded: No separate database server
+   • Transactional: ACID guarantees
+   • Concurrent: Multi-threaded access
+
+Usage in production:
+   // With sled feature enabled:
+   use loam_spine_core::storage::SledStorage;
+   let storage = SledStorage::open("/data/loamspine")?;
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ Performance Comparison
+
+Creating 100 entries in each backend...
+
+In-Memory Results:
+   Total time: 2.296374ms
+   Avg per entry: 22.963µs
+   Throughput: ~50000 entries/sec
+
+Sled Results (in-memory):
+   Total time: 2.296915ms
+   Avg per entry: 22.969µs
+   Throughput: ~50000 entries/sec
+
+Performance Ratio:
+   Sled vs In-Memory: 1.00x
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 Use Case Recommendations
+
+📋 In-Memory Storage - Use When:
+   ✅ Testing and development
+   ✅ Short-lived sessions
+   ✅ Maximum performance needed
+   ✅ Data can be regenerated
+   ❌ DON'T use for production data
+
+💾 Sled Storage - Use When:
+   ✅ Production deployments
+   ✅ Data must persist
+   ✅ ACID transactions needed
+   ✅ Multiple instances (file-based isolation)
+   ✅ Good balance of speed & durability
+
+🚀 Future Backends:
+   • PostgreSQL (multi-user, enterprise)
+   • SQLite (single-file, portable)
+   • RocksDB (high-throughput)
+   • S3-compatible (cloud-native)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 Backend Selection Guide
+
+Development:
+   → In-Memory (fastest iteration)
+
+Testing:
+   → In-Memory (isolated, fast)
+
+Production (Single Instance):
+   → Sled (embedded, no ops overhead)
+
+Production (Multi-Instance):
+   → PostgreSQL (future) or Sled with file-per-instance
+
+High Throughput:
+   → In-Memory with periodic Sled snapshots
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Demo Summary
+
+Demonstrated:
+   ✅ In-Memory storage
+   ✅ Sled embedded DB storage
+   ✅ Performance comparison
+   ✅ Use case recommendations
+
+Key Takeaways:
+   • In-Memory: Fast but ephemeral
+   • Sled: Persistent and performant
+   • Choose based on use case
+   • Easy to switch backends
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

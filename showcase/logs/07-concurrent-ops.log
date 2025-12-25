@@ -1,0 +1,112 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running `target/debug/examples/concurrent_ops`
+🦴 LoamSpine Concurrent Operations Demo
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Created spine: 019b529f-307c-76e3-8ef9-2691697088bb
+   Initial height: 1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Baseline: Sequential Operations
+
+✅ Sequential Results:
+   Entries added: 100
+   Final height: 101
+   Total time: 2.220735ms
+   Avg per entry: 22.207µs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ Concurrent: 4 Threads, 25 Entries Each
+
+✅ Concurrent Results:
+   Threads: 4
+   Entries per thread: 25
+   Total entries: 100
+   Final height: 101
+   Total time: 4.638258ms
+   Avg per entry: 46.382µs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📈 Performance Comparison
+
+Sequential:
+   Time: 2.220735ms
+   Throughput: 45030 ops/sec
+
+Concurrent (4 threads):
+   Time: 4.638258ms
+   Throughput: 21560 ops/sec
+
+Speedup: 0.48x
+
+⚠️  Note: Lock contention limits speedup
+   (Expected for append-heavy workloads)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔒 Thread Safety Guarantees
+
+LoamSpine ensures:
+   ✅ No data races
+   ✅ Sequential consistency
+   ✅ Chain integrity maintained
+   ✅ No lost updates
+
+How it works:
+   • Spine wrapped in Arc<Mutex<T>>
+   • Mutex ensures exclusive write access
+   • Each append is atomic
+   • Chain links always valid
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 Concurrency Best Practices
+
+DO ✅:
+   • Use Arc<Mutex<Spine>> for shared access
+   • Keep critical sections small
+   • Release locks between operations
+   • Handle errors gracefully
+   • Consider batching for high throughput
+
+DON'T ❌:
+   • Don't hold locks across async boundaries
+   • Don't share Spine without synchronization
+   • Don't ignore append errors
+   • Don't create excessive contention
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 Concurrent Use Cases
+
+Multi-User Systems:
+   • Multiple users appending to shared spine
+   • Example: Collaborative audit log
+
+High-Throughput Ingestion:
+   • Multiple data sources → single spine
+   • Example: IoT sensor aggregation
+
+Distributed Workers:
+   • Worker pool processing tasks
+   • Example: Job result logging
+
+Real-Time Analytics:
+   • Concurrent writes + reads
+   • Example: Live event tracking
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Demo Summary
+
+Demonstrated:
+   ✅ Sequential baseline
+   ✅ Concurrent operations (4 threads)
+   ✅ Thread-safety guarantees
+   ✅ Performance comparison
+   ✅ Best practices
+
+Key Takeaways:
+   • LoamSpine is thread-safe
+   • Use Arc<Mutex<T>> for sharing
+   • Lock contention is expected for writes
+   • Consider batching for high throughput
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

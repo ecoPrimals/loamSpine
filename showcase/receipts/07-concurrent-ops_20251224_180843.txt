@@ -1,0 +1,19 @@
+================================================================
+LoamSpine Showcase Demo Receipt
+================================================================
+
+Demo:        07-concurrent-ops
+Status:      success
+Timestamp:   2025-12-24T18:08:43-05:00
+Hostname:    builder
+User:        strandgate
+Working Dir: /path/to/ecoPrimals/phase2/loamSpine
+
+Steps Completed:
+  ✓ Ran concurrent_ops example
+
+Environment:
+  PROJECT_ROOT: /path/to/ecoPrimals/phase2/loamSpine
+  LOGS_DIR:     /path/to/ecoPrimals/phase2/loamSpine/showcase/logs
+
+================================================================

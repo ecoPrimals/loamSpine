@@ -1,0 +1,82 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running `/path/to/ecoPrimals/phase2/loamSpine/target/debug/examples/entry_types`
+🦴 LoamSpine Entry Types - Complete Reference
+
+✅ Spine created: 019b529b-c4a8-7222-bde2-dfeb3bf838f1
+
+📝 Category 1: Spine Lifecycle
+
+   1. Genesis - First entry in every spine
+      Created automatically on Spine::new()
+      Current entries: 1
+
+   2. MetadataUpdate - Update spine metadata
+      Example: Set status to 'active'
+
+   3. SpineSealed - Mark spine as sealed (no more entries)
+      Example: Spine closed due to completion
+
+📝 Category 2: Ephemeral Storage Integration
+
+   4. SessionCommit - Dehydrated ephemeral session
+      Example: Game save with 42 vertices
+
+   5. SliceCheckout - Slice checked out to ephemeral
+      Example: Data borrowed by another session
+
+   6. SliceReturn - Slice returned from ephemeral
+      Example: Data returned after processing
+
+📝 Category 3: Data Anchoring
+
+   7. DataAnchor - Content-addressed data
+      Example: PDF document (1MB)
+
+   8. BraidCommit - Semantic attribution braid
+      Example: Research paper attribution
+
+📝 Category 4: Certificate Operations (NFT-like)
+
+   9. CertificateMint - Create new certificate
+      Example: Achievement certificate
+
+   10. CertificateTransfer - Transfer ownership
+       Example: Alice → Bob
+
+   11. CertificateLoan - Temporary transfer
+       Example: Bob loans to Alice for 1 hour
+
+   12. CertificateReturn - Return loaned certificate
+       Example: Alice returns to Bob
+
+📝 Category 5: Slice Operations (Waypoints)
+
+   13. SliceAnchor - Slice anchored at waypoint
+       Example: Data snapshot at this spine
+
+   14. SliceOperation - Operation on slice
+       Example: Data transformation
+
+   15. SliceDeparture - Slice leaves waypoint
+       Example: Moving to next location
+
+═══════════════════════════════════════════════════════════
+
+🎉 Demo Complete!
+
+Summary:
+  Total entries: 14
+  Entry types demonstrated: 15
+  Categories:
+    • Spine Lifecycle: 3 types
+    • Ephemeral Integration: 3 types
+    • Data Anchoring: 2 types
+    • Certificates: 4 types
+    • Slice Operations: 3 types
+
+Key Insights:
+  ✅ Each entry type serves a specific purpose
+  ✅ Entries are immutable once added
+  ✅ Metadata adds context without changing structure
+  ✅ All entries are content-addressed (BLAKE3)
+
