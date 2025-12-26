@@ -145,10 +145,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start JSON-RPC server
     let jsonrpc_addr: SocketAddr = format!("0.0.0.0:{}", args.jsonrpc_port).parse()?;
-    let rpc_service_jsonrpc = rpc_service;
     let jsonrpc_handle = tokio::spawn(async move {
         info!("🌐 Starting JSON-RPC server on {}", jsonrpc_addr);
-        if let Err(e) = run_jsonrpc_server(jsonrpc_addr, rpc_service_jsonrpc).await {
+        if let Err(e) = run_jsonrpc_server(jsonrpc_addr, rpc_service).await {
             error!("JSON-RPC server error: {}", e);
         }
     });

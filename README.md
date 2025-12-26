@@ -39,31 +39,11 @@ LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Na
 
 ## Quick Start
 
-### Standalone Service Mode (NEW!)
-```bash
-# Build the standalone service
-cargo build --release --bin loamspine-service
-
-# Run with defaults (tarpc: 9001, JSON-RPC: 8080)
-./target/release/loamspine-service
-
-# With custom ports
-./loamspine-service --tarpc-port 9500 --jsonrpc-port 8500
-
-# With discovery service (BiomeOS)
-export DISCOVERY_ENDPOINT=http://songbird:8082
-./loamspine-service
-
-# See all options
-./loamspine-service --help
-```
-
-### Library Mode
 ```bash
 # Build
 cargo build --release
 
-# Test (372 tests, 100% pass rate)
+# Test (332 tests, 100% pass rate)
 cargo test
 
 # Check linting (0 warnings - all targets)
