@@ -366,10 +366,27 @@ mod tests {
     #[tokio::test]
     async fn health_status_tracks_uptime() {
         let checker = HealthChecker::new();
+
+        // First check - should be very recent
+        let health1 = checker.check_health().await.unwrap();
+        assert!(
+            health1.uptime_seconds < 60,
+            "Initial uptime should be less than a minute"
+        );
+
+        // Wait a bit (but use proper async sleep, not blocking)
         tokio::time::sleep(Duration::from_millis(100)).await;
-        let health = checker.check_health().await.unwrap();
-        // Uptime should be at least 100ms (0 seconds)
-        assert!(health.uptime_seconds < 60); // Sanity check: less than a minute
+
+        // Second check - uptime should have increased
+        let health2 = checker.check_health().await.unwrap();
+        assert!(
+            health2.uptime_seconds >= health1.uptime_seconds,
+            "Uptime should increase or stay the same"
+        );
+        assert!(
+            health2.uptime_seconds < 60,
+            "Uptime should still be less than a minute"
+        );
     }
 
     #[test]

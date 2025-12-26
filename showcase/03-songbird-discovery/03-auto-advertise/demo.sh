@@ -29,7 +29,7 @@ echo "=================================================================="
 echo ""
 
 # Configuration
-SONGBIRD_BIN="../bins/songbird-orchestrator"
+SONGBIRD_BIN="../../../../bins/songbird-orchestrator"
 SONGBIRD_PORT=8082
 SONGBIRD_ENDPOINT="http://localhost:${SONGBIRD_PORT}"
 

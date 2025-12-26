@@ -1,8 +1,8 @@
 # 🦴 LoamSpine — Integration Gaps & Evolution Tracker
 
-**Last Updated**: December 25, 2025 (Post-Infant Discovery)  
+**Last Updated**: December 26, 2025 (Post-Showcase Execution)  
 **Version**: 0.7.0-dev  
-**Status**: ✅ **ALL GAPS RESOLVED + INFANT DISCOVERY COMPLETE** — Production Ready
+**Status**: ✅ **PHASE 1 COMPLETE** + 🎯 **35 NEW ECOSYSTEM GAPS DISCOVERED** — Evolution Phase Ready
 
 ---
 
@@ -829,10 +829,658 @@ impl RetryPolicy {
 - **Gap Details**: `showcase/GAPS_AND_EVOLUTION.md`
 - **Status**: `STATUS.md`
 - **Roadmap**: `WHATS_NEXT.md`
+- **Showcase Gaps**: `showcase/REAL_INTEGRATION_PROGRESS_DEC_26_2025.md`
+- **Session Summary**: `showcase/SESSION_COMPLETE_INTER_PRIMAL_EXECUTION_DEC_26_2025.md`
+
+---
+
+## 🎯 NEW: Inter-Primal Integration Gaps (December 26, 2025)
+
+**Source**: Real binary integration testing via showcase demos  
+**Philosophy**: NO MOCKS — Real binaries reveal real gaps  
+**Total Gaps**: 35 (28 individual + 7 ecosystem-wide)
+
+### Phase 1 Resolution: Internal Gaps ✅ (Gaps #1-10)
+All internal LoamSpine gaps from initial audit have been resolved.
+
+### Phase 2 Discovery: Ecosystem Gaps 🎯 (Gaps #11-45)
+Through real inter-primal integration testing, we've discovered 35 new gaps that must be addressed for production-ready ecosystem integration.
+
+---
+
+## 🐕 BearDog Integration Gaps (4 gaps)
+
+### Gap #11: CLI Interface Discovery
+**Type**: Service Integration  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Need to discover BearDog's actual CLI interface at runtime
+**Current**: Trial and error, undocumented
+**Impact**: Cannot integrate signing without manual investigation
+**Evolution**: 
+- Document BearDog CLI interface
+- Create standard capability query mechanism
+- Add CLI help/version discovery
+
+---
+
+### Gap #12: Data Format Alignment
+**Type**: Protocol Mismatch  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: LoamSpine sends raw bytes, BearDog expects unknown format
+**Current**: Format expectations unclear
+**Impact**: Cannot successfully sign data
+**Evolution**:
+- Agree on serialization format (JSON, CBOR, raw bytes)
+- Document format specifications
+- Implement format negotiation
+
+---
+
+### Gap #13: Key Management Integration
+**Type**: Cryptography Integration  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to specify which key to use for signing?
+**Current**: Unclear key selection mechanism
+**Impact**: Cannot control signing keys
+**Evolution**:
+- Design key discovery mechanism
+- Implement key selection API
+- Support multiple signing keys
+
+---
+
+### Gap #14: Error Handling & Fallbacks
+**Type**: Resilience  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Hard failure when BearDog unavailable
+**Current**: No fallback strategy
+**Impact**: Service becomes unavailable
+**Evolution**:
+- Implement graceful degradation
+- Add operation queuing for later retry
+- Support multiple signing backends
+
+---
+
+## 🏰 NestGate Integration Gaps (6 gaps)
+
+### Gap #15: API Protocol Discovery
+**Type**: Service Integration  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: REST? Binary? File-based? Protocol unclear
+**Current**: Undocumented API
+**Impact**: Cannot integrate storage without reverse engineering
+**Evolution**:
+- Document NestGate's actual API
+- Create API specification
+- Implement API client library
+
+---
+
+### Gap #16: Storage Semantics Alignment
+**Type**: Data Model  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Key-value? Object? Filesystem? Storage model unclear
+**Current**: Unknown semantics
+**Impact**: Cannot design proper storage integration
+**Evolution**:
+- Understand NestGate storage model
+- Align LoamSpine expectations
+- Design mapping between models
+
+---
+
+### Gap #17: Retrieval Pattern Definition
+**Type**: API Design  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to retrieve stored spines?
+**Current**: No retrieval mechanism
+**Impact**: Cannot read back stored data
+**Evolution**:
+- Design retrieval interface
+- Implement get/list operations
+- Support query patterns
+
+---
+
+### Gap #18: Authentication Mechanism
+**Type**: Security  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: DIDs? Keys? Tokens? Auth mechanism unclear
+**Current**: No auth strategy
+**Impact**: Cannot secure storage operations
+**Evolution**:
+- Align auth mechanisms across primals
+- Implement DID-based auth
+- Support key-based access control
+
+---
+
+### Gap #19: Error Handling
+**Type**: Resilience  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Hard failure when NestGate unavailable
+**Current**: No fallback
+**Impact**: Loss of storage capability
+**Evolution**:
+- Implement graceful degradation
+- Support multiple storage backends
+- Add local caching
+
+---
+
+### Gap #20: Batch Operations
+**Type**: Performance  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Efficient multi-spine storage?
+**Current**: One at a time (inefficient)
+**Impact**: Poor performance for bulk operations
+**Evolution**:
+- Design batch API
+- Implement transaction support
+- Optimize network round-trips
+
+---
+
+## 🐿️ Squirrel Integration Gaps (8 gaps)
+
+### Gap #21: Service Discovery (Runtime)
+**Type**: Service Integration  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to locate Squirrel at runtime?
+**Current**: Hardcoded port assumption
+**Impact**: Cannot discover Squirrel dynamically
+**Evolution**:
+- Use Songbird for discovery
+- Implement infant discovery pattern
+- Support multiple Squirrel instances
+
+---
+
+### Gap #22: Commit API Format
+**Type**: Protocol Design  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: What format for session commits?
+**Current**: Undefined schema
+**Impact**: Cannot integrate AI sessions
+**Evolution**:
+- Design session commit schema
+- Document metadata fields
+- Implement commit validation
+
+---
+
+### Gap #23: Session Metadata Schema
+**Type**: Data Model  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: What metadata to store for AI sessions?
+**Current**: No standard schema
+**Impact**: Incomplete provenance
+**Evolution**:
+- Define comprehensive session schema
+- Include model, prompts, context, results
+- Support RAG source tracking
+
+---
+
+### Gap #24: Proof Handling Lifecycle
+**Type**: Cryptography  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to prove AI session integrity?
+**Current**: No proof mechanism
+**Impact**: Cannot verify session authenticity
+**Evolution**:
+- Design cryptographic session proofs
+- Integrate BearDog signing
+- Support proof chains
+
+---
+
+### Gap #25: Error Handling & Queuing
+**Type**: Resilience  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: What if commit fails during inference?
+**Current**: Unclear failure handling
+**Impact**: Loss of session data
+**Evolution**:
+- Implement async commit queue
+- Support retry with backoff
+- Add local buffering
+
+---
+
+### Gap #26: Batch Commit Pattern
+**Type**: Performance  
+**Priority**: LOW  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Many sessions, one commit each?
+**Current**: Inefficient one-at-a-time
+**Impact**: Poor performance for bulk experiments
+**Evolution**:
+- Design batch commit API
+- Support transaction batching
+- Optimize for bulk operations
+
+---
+
+### Gap #27: Query/Retrieval Interface
+**Type**: API Design  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to retrieve session history?
+**Current**: No query interface
+**Impact**: Cannot access historical sessions
+**Evolution**:
+- Design session query API
+- Support time-range queries
+- Enable experiment tracking
+
+---
+
+### Gap #28: Authentication Mechanism
+**Type**: Security  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Who can commit sessions?
+**Current**: No auth mechanism
+**Impact**: Cannot secure AI operations
+**Evolution**:
+- Implement DID-based session auth
+- Support researcher identities
+- Add access control
+
+---
+
+## 🍄 ToadStool Integration Gaps (10 gaps)
+
+### Gap #29: ComputeResult Entry Type
+**Type**: Core Feature  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Need dedicated entry type for compute results
+**Current**: Using Generic (not semantic)
+**Impact**: Loss of type safety and meaning
+**Evolution**:
+- Add ComputeResult variant to EntryType
+- Design compute metadata schema
+- Implement validation
+
+---
+
+### Gap #30: Storage Strategy
+**Type**: Architecture Decision  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Store full result or just hash?
+**Current**: Unclear strategy
+**Impact**: Cannot design proper integration
+**Evolution**:
+- Define storage strategy (hash + NestGate reference)
+- Implement content-addressed storage
+- Support large result handling
+
+---
+
+### Gap #31: Retrieval Pattern
+**Type**: API Design  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to fetch compute results?
+**Current**: No retrieval mechanism
+**Impact**: Cannot access computed data
+**Evolution**:
+- Design compute result query API
+- Support hash-based retrieval
+- Integrate with NestGate
+
+---
+
+### Gap #32: Waypoint Integration
+**Type**: Core Feature  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to handle long-running compute?
+**Current**: No waypoint support
+**Impact**: Cannot track progress
+**Evolution**:
+- Integrate waypoints for progress tracking
+- Support checkpoint commits
+- Enable resume from waypoints
+
+---
+
+### Gap #33: Service Discovery
+**Type**: Service Integration  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to locate ToadStool?
+**Current**: Hardcoded endpoint
+**Impact**: Cannot discover compute dynamically
+**Evolution**:
+- Use Songbird for discovery
+- Support multiple compute backends
+- Implement capability-based routing
+
+---
+
+### Gap #34: Batch Anchoring
+**Type**: Performance  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Many compute jobs, one anchor each?
+**Current**: Inefficient
+**Impact**: Poor performance for bulk compute
+**Evolution**:
+- Design batch anchor API
+- Support compute job batching
+- Optimize commit overhead
+
+---
+
+### Gap #35: Provenance Chain Design
+**Type**: Architecture  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Link related compute jobs?
+**Current**: No chaining mechanism
+**Impact**: Cannot represent compute DAGs
+**Evolution**:
+- Design compute DAG representation
+- Support job dependencies
+- Enable pipeline tracking
+
+---
+
+### Gap #36: Verification Mechanism
+**Type**: Cryptography  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: How to verify compute correctness?
+**Current**: Trust ToadStool (not zero-trust)
+**Impact**: Cannot cryptographically verify results
+**Evolution**:
+- Design cryptographic compute proofs
+- Integrate BearDog verification
+- Support result attestation
+
+---
+
+### Gap #37: Resource Accounting
+**Type**: Metadata  
+**Priority**: LOW  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Track compute resources used?
+**Current**: No tracking
+**Impact**: Cannot audit resource usage
+**Evolution**:
+- Design resource metadata schema
+- Track CPU, memory, GPU usage
+- Support cost accounting
+
+---
+
+### Gap #38: Error Handling
+**Type**: Resilience  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: What if compute fails?
+**Current**: Unclear failure handling
+**Impact**: Loss of failed job info
+**Evolution**:
+- Implement failed compute recording
+- Support retry with backoff
+- Add error classification
+
+---
+
+## 🌐 Ecosystem-Wide Gaps (7 gaps)
+
+### Gap #39: Service Discovery Standardization
+**Type**: Cross-Cutting Architecture  
+**Priority**: CRITICAL  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Inconsistent discovery mechanisms across primals
+**Current**: Mixed hardcoding, env vars, manual config
+**Impact**: Cannot build dynamic ecosystem
+**Evolution**:
+- Standardize on Songbird for all discovery
+- Implement infant discovery everywhere
+- Remove all hardcoded endpoints
+**Timeline**: Week 1 of Phase 1
+
+---
+
+### Gap #40: Authentication & Authorization
+**Type**: Security Infrastructure  
+**Priority**: CRITICAL  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: No unified auth mechanism
+**Current**: Unclear per primal
+**Impact**: Cannot secure ecosystem interactions
+**Evolution**:
+- Design DID-based auth protocol
+- Integrate BearDog for all signing
+- Implement role-based access control
+**Timeline**: Week 2 of Phase 1
+
+---
+
+### Gap #41: Error Handling Patterns
+**Type**: Resilience Infrastructure  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Hard failures everywhere
+**Current**: No graceful degradation
+**Impact**: Brittle ecosystem
+**Evolution**:
+- Implement fallback strategies
+- Add operation queuing
+- Support circuit breakers
+**Timeline**: Week 3 of Phase 1
+
+---
+
+### Gap #42: Data Format Standards
+**Type**: Protocol Specification  
+**Priority**: HIGH  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: Inconsistent serialization
+**Current**: Each primal uses different formats
+**Impact**: Cannot interoperate efficiently
+**Evolution**:
+- Agree on standard formats (JSON, CBOR, etc.)
+- Implement schema validation
+- Support format negotiation
+**Timeline**: Week 4-5 of Phase 2
+
+---
+
+### Gap #43: Batch Operation APIs
+**Type**: Performance Optimization  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: All operations one-at-a-time
+**Current**: Inefficient for bulk operations
+**Impact**: Poor ecosystem performance
+**Evolution**:
+- Design batch APIs for all operations
+- Implement transaction support
+- Optimize network usage
+**Timeline**: Week 6-7 of Phase 2
+
+---
+
+### Gap #44: Monitoring & Observability
+**Type**: Operations Infrastructure  
+**Priority**: MEDIUM  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: No unified monitoring
+**Current**: Per-primal metrics
+**Impact**: Cannot observe ecosystem health
+**Evolution**:
+- Design unified metrics format
+- Implement distributed tracing
+- Add centralized logging
+**Timeline**: Week 8-9 of Phase 3
+
+---
+
+### Gap #45: Version Compatibility
+**Type**: API Evolution  
+**Priority**: LOW  
+**Status**: 🎯 DISCOVERED
+
+**Issue**: No versioning strategy
+**Current**: Undefined
+**Impact**: Breaking changes will cause chaos
+**Evolution**:
+- Design API versioning strategy
+- Support multiple API versions
+- Implement compatibility testing
+**Timeline**: Week 10 of Phase 3
+
+---
+
+## 📊 Gap Summary
+
+### By Phase
+- **Phase 1 (Internal)**: 10 gaps — ✅ ALL RESOLVED
+- **Phase 2 (Ecosystem)**: 35 gaps — 🎯 DISCOVERED, EVOLUTION READY
+
+### By Primal
+- **🐕 BearDog**: 4 gaps (HIGH: 2, MEDIUM: 2)
+- **🏰 NestGate**: 6 gaps (HIGH: 3, MEDIUM: 3)
+- **🐿️ Squirrel**: 8 gaps (HIGH: 3, MEDIUM: 4, LOW: 1)
+- **🍄 ToadStool**: 10 gaps (HIGH: 4, MEDIUM: 5, LOW: 1)
+- **🌐 Ecosystem**: 7 gaps (CRITICAL: 2, HIGH: 2, MEDIUM: 2, LOW: 1)
+
+### By Priority
+- **CRITICAL**: 2 gaps (service discovery, authentication)
+- **HIGH**: 14 gaps (protocols, APIs, security)
+- **MEDIUM**: 16 gaps (performance, resilience)
+- **LOW**: 3 gaps (resource tracking, versioning)
+
+### Evolution Timeline
+- **Phase 1 (Foundation)**: 2-3 weeks — Critical & high priority gaps
+- **Phase 2 (Enhancement)**: 3-4 weeks — Medium priority gaps
+- **Phase 3 (Production)**: 2-3 weeks — Low priority & polish
+- **Total**: 8-10 weeks to production-ready ecosystem
+
+---
+
+## 🎯 Evolution Roadmap
+
+### Phase 1: Foundation (Weeks 1-3) — CRITICAL & HIGH Priority
+
+**Week 1: Service Discovery**
+- Gap #39: Standardize Songbird integration
+- Implement infant discovery everywhere
+- Remove all hardcoded endpoints
+- Test runtime discovery
+
+**Week 2: Authentication**
+- Gap #40: Implement DID-based auth
+- Integrate BearDog signing
+- Add auth to all RPC methods
+- Test end-to-end auth flows
+
+**Week 3: Error Handling**
+- Gap #41: Add graceful degradation
+- Implement fallback strategies
+- Add operation queuing
+- Test fault tolerance
+
+### Phase 2: Enhancement (Weeks 4-7) — MEDIUM Priority
+
+**Week 4-5: Data Standards**
+- Gap #42: Define standard schemas
+- Implement schema validation
+- Add format negotiation
+- Document all formats
+
+**Week 6-7: Batch Operations**
+- Gap #43: Design batch APIs
+- Implement efficient batching
+- Add transaction support
+- Performance testing
+
+### Phase 3: Production Ready (Weeks 8-10) — LOW Priority & Polish
+
+**Week 8-9: Monitoring**
+- Gap #44: Unified metrics format
+- Distributed tracing
+- Centralized logging
+- Alerting setup
+
+**Week 10: Optimization**
+- Gap #45: API versioning
+- Performance tuning
+- Load testing
+- Production deployment
+
+---
+
+## 📚 Related Documentation
+
+- **Main README**: `README.md`
+- **Status**: `STATUS.md`
+- **Roadmap**: `WHATS_NEXT.md`
+- **Showcase Gaps**: `showcase/REAL_INTEGRATION_PROGRESS_DEC_26_2025.md`
+- **Session Summary**: `showcase/SESSION_COMPLETE_INTER_PRIMAL_EXECUTION_DEC_26_2025.md`
 
 ---
 
 **This is a living document** — Updated as we discover and evolve!
 
-🦴 **LoamSpine: Continuous evolution through real-world testing**
+🦴 **LoamSpine: Phase 1 complete, Phase 2 discovered, ready for evolution!**
 
+**Next Action**: Begin Phase 1 Evolution — Week 1: Service Discovery Standardization 🚀

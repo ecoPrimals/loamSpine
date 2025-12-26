@@ -32,6 +32,12 @@ bytes = "1.9"
 # HTTP client for Songbird integration
 reqwest = { version = "0.12", features = ["json"] }
 
+# DNS resolution for service discovery
+hickory-resolver = "0.24"
+
+# mDNS for local network service discovery (optional, experimental)
+mdns = { version = "3.0", optional = true }
+
 [features]
 default = []
 # Enable testing utilities (MockSigner, MockVerifier) for use in downstream crates
