@@ -140,19 +140,19 @@ impl Default for DiscoveryConfig {
             discovery_enabled: true,
             // Don't hardcode endpoint - let it be discovered
             discovery_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
-            
+
             // Deprecated fields (for backward compatibility)
             #[allow(deprecated)]
             songbird_enabled: true,
             #[allow(deprecated)]
             songbird_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
-            
+
             // Our own endpoints - prefer OS-assigned ports in production
             tarpc_endpoint: std::env::var("TARPC_ENDPOINT")
                 .unwrap_or_else(|_| "http://0.0.0.0:9001".to_string()),
             jsonrpc_endpoint: std::env::var("JSONRPC_ENDPOINT")
                 .unwrap_or_else(|_| "http://0.0.0.0:8080".to_string()),
-            
+
             auto_advertise: true,
             heartbeat_interval_seconds: 60,
             heartbeat_retry: HeartbeatRetryConfig::default(),

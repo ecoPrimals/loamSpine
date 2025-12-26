@@ -272,22 +272,22 @@ mod tests {
     #[tokio::test]
     async fn environment_discovery_with_var() {
         std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
-        
+
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_environment_discovery();
-        
+
         assert_eq!(result, Some("http://test.example.com:8082".to_string()));
-        
+
         std::env::remove_var("DISCOVERY_ENDPOINT");
     }
 
     #[tokio::test]
     async fn environment_discovery_without_var() {
         std::env::remove_var("DISCOVERY_ENDPOINT");
-        
+
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_environment_discovery();
-        
+
         assert!(result.is_none());
     }
 
@@ -295,7 +295,7 @@ mod tests {
     async fn dns_srv_discovery_placeholder() {
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_dns_srv_discovery();
-        
+
         // Currently returns None (not implemented yet)
         assert!(result.is_none());
     }
@@ -304,7 +304,7 @@ mod tests {
     async fn mdns_discovery_placeholder() {
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_mdns_discovery();
-        
+
         // Currently returns None (not implemented yet)
         assert!(result.is_none());
     }
@@ -314,7 +314,7 @@ mod tests {
     async fn development_fallback_in_debug() {
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_development_fallback();
-        
+
         // Should return localhost in debug mode
         assert_eq!(result, Some("http://localhost:8082".to_string()));
     }
@@ -323,18 +323,17 @@ mod tests {
     async fn discovery_service_full_chain() {
         // Set environment variable to ensure test is deterministic
         std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
-        
+
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        
+
         // This will try to connect, which will fail in tests
         // but we're testing that the discovery chain works
         let result = infant.discover_discovery_service().await;
-        
+
         // Will fail to connect, but that's expected in tests
         // The important thing is the discovery chain executed
         assert!(result.is_err());
-        
+
         std::env::remove_var("DISCOVERY_ENDPOINT");
     }
 }
-
