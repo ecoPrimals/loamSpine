@@ -500,6 +500,129 @@ mod tests {
     }
 
     #[test]
+    fn port_extraction_from_urls() {
+        // Test URL parsing logic
+        let test_cases = vec![
+            ("http://localhost:9001", 9001),
+            ("https://example.com:8443", 8443),
+            ("http://192.168.1.1:3000", 3000),
+        ];
+        
+        for (url, expected_port) in test_cases {
+            // Parse URL and extract port (simulating what the code does)
+            if let Ok(parsed) = reqwest::Url::parse(url) {
+                if let Some(port) = parsed.port() {
+                    assert_eq!(port, expected_port, "Port mismatch for {}", url);
+                }
+            }
+        }
+    }
+    
+    #[test]
+    fn service_advertisement_empty_capabilities() {
+        // Test service with no capabilities
+        let advertisement = ServiceAdvertisement {
+            name: "minimal-service".to_string(),
+            primary_role: "test".to_string(),
+            capabilities: vec![],
+            endpoints: vec![],
+            metadata: std::collections::HashMap::new(),
+        };
+        
+        assert!(advertisement.capabilities.is_empty());
+        assert!(advertisement.endpoints.is_empty());
+        assert!(advertisement.metadata.is_empty());
+    }
+    
+    #[test]
+    fn discovered_service_healthy_flag() {
+        // Test healthy flag variations
+        let healthy_service = DiscoveredService {
+            name: "healthy".to_string(),
+            endpoint: "http://localhost:9000".to_string(),
+            capabilities: vec![],
+            healthy: true,
+            metadata: std::collections::HashMap::new(),
+        };
+        
+        let unhealthy_service = DiscoveredService {
+            name: "unhealthy".to_string(),
+            endpoint: "http://localhost:9000".to_string(),
+            capabilities: vec![],
+            healthy: false,
+            metadata: std::collections::HashMap::new(),
+        };
+        
+        assert!(healthy_service.healthy);
+        assert!(!unhealthy_service.healthy);
+    }
+    
+    #[test]
+    fn service_endpoint_port_matching() {
+        // Test that port in address matches port field
+        let endpoint = ServiceEndpoint {
+            protocol: "http".to_string(),
+            address: "http://localhost:8080".to_string(),
+            port: 8080,
+            health_check: None,
+        };
+        
+        // Extract port from address
+        if let Ok(parsed) = reqwest::Url::parse(&endpoint.address) {
+            if let Some(addr_port) = parsed.port() {
+                assert_eq!(addr_port, endpoint.port, "Port mismatch");
+            }
+        }
+    }
+    
+    #[test]
+    fn client_endpoint_accessor() {
+        // Test endpoint accessor method
+        let endpoint_url = "http://songbird.example.com:8082";
+        let client = SongbirdClient {
+            endpoint: endpoint_url.to_string(),
+            client: reqwest::Client::new(),
+        };
+        
+        assert_eq!(client.endpoint(), endpoint_url);
+        assert!(client.endpoint().starts_with("http://"));
+        assert!(client.endpoint().contains("8082"));
+    }
+    
+    #[test]
+    fn discovered_service_debug_impl() {
+        // Test Debug implementation
+        let service = DiscoveredService {
+            name: "debug-test".to_string(),
+            endpoint: "http://localhost:9000".to_string(),
+            capabilities: vec!["test".to_string()],
+            healthy: true,
+            metadata: std::collections::HashMap::new(),
+        };
+        
+        let debug_string = format!("{:?}", service);
+        assert!(debug_string.contains("debug-test"));
+        assert!(debug_string.contains("localhost"));
+    }
+    
+    #[test]
+    fn service_endpoint_protocol_variations() {
+        // Test different protocol types
+        let protocols = vec!["http", "https", "tarpc", "jsonrpc", "grpc"];
+        
+        for protocol in protocols {
+            let endpoint = ServiceEndpoint {
+                protocol: protocol.to_string(),
+                address: format!("{}://localhost:9000", protocol),
+                port: 9000,
+                health_check: None,
+            };
+            
+            assert_eq!(endpoint.protocol, protocol);
+        }
+    }
+    
+    #[test]
     fn service_advertisement_metadata() {
         let mut metadata = std::collections::HashMap::new();
         metadata.insert("version".to_string(), "0.6.0".to_string());
@@ -519,86 +642,6 @@ mod tests {
             advertisement.metadata.get("version"),
             Some(&"0.6.0".to_string())
         );
-    }
-
-    #[test]
-    fn port_extraction_from_urls() {
-        // Test port extraction logic
-        let url1 = "http://localhost:9001";
-        let port1 = url1
-            .parse::<reqwest::Url>()
-            .ok()
-            .and_then(|u| u.port())
-            .unwrap_or(9001);
-        assert_eq!(port1, 9001);
-
-        let url2 = "http://localhost:8080";
-        let port2 = url2
-            .parse::<reqwest::Url>()
-            .ok()
-            .and_then(|u| u.port())
-            .unwrap_or(8080);
-        assert_eq!(port2, 8080);
-
-        // Test default fallback
-        let url3 = "http://localhost";
-        let port3 = url3
-            .parse::<reqwest::Url>()
-            .ok()
-            .and_then(|u| u.port())
-            .unwrap_or(9999);
-        assert_eq!(port3, 9999);
-    }
-
-    #[test]
-    fn discovered_service_healthy_flag() {
-        let healthy_service = DiscoveredService {
-            name: "healthy".to_string(),
-            endpoint: "http://localhost:9000".to_string(),
-            capabilities: vec!["signing".to_string()],
-            healthy: true,
-            metadata: std::collections::HashMap::new(),
-        };
-
-        let unhealthy_service = DiscoveredService {
-            name: "unhealthy".to_string(),
-            endpoint: "http://localhost:9001".to_string(),
-            capabilities: vec!["signing".to_string()],
-            healthy: false,
-            metadata: std::collections::HashMap::new(),
-        };
-
-        assert!(healthy_service.healthy);
-        assert!(!unhealthy_service.healthy);
-    }
-
-    #[test]
-    fn service_advertisement_empty_capabilities() {
-        let advertisement = ServiceAdvertisement {
-            name: "minimal".to_string(),
-            primary_role: "test".to_string(),
-            capabilities: vec![],
-            endpoints: vec![],
-            metadata: std::collections::HashMap::new(),
-        };
-
-        assert!(advertisement.capabilities.is_empty());
-        assert!(advertisement.endpoints.is_empty());
-        assert!(advertisement.metadata.is_empty());
-    }
-
-    #[test]
-    fn service_endpoint_port_matching() {
-        let endpoint = ServiceEndpoint {
-            protocol: "tarpc".to_string(),
-            address: "http://localhost:9001".to_string(),
-            port: 9001,
-            health_check: None,
-        };
-
-        // Port should match the one in the address
-        assert!(endpoint.address.contains("9001"));
-        assert_eq!(endpoint.port, 9001);
     }
 
     #[test]

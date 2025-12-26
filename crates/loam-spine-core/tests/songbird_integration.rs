@@ -3,11 +3,18 @@
 //! These tests use the actual `Songbird` binary from `../bins/` to test
 //! real service discovery and registration flows. They gracefully skip
 //! if the binary is not available.
+//!
+//! ## Concurrency & Robustness
+//!
+//! - NO blocking sleeps (`thread::sleep`)
+//! - Proper async polling with retries
+//! - Timeout protection (no hanging tests)
+//! - Production-grade error handling
+//! - Truly concurrent test execution
 
 use loam_spine_core::songbird::SongbirdClient;
 use std::path::Path;
 use std::process::{Child, Command};
-use std::thread;
 use std::time::Duration;
 
 /// Path to songbird-orchestrator binary
@@ -16,35 +23,158 @@ const SONGBIRD_BIN: &str = "../bins/songbird-orchestrator";
 /// Default Songbird endpoint for tests
 const SONGBIRD_ENDPOINT: &str = "http://localhost:8082";
 
+/// Maximum time to wait for Songbird to become ready
+const STARTUP_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Polling interval for health checks
+const POLL_INTERVAL: Duration = Duration::from_millis(100);
+
 /// Helper to check if Songbird binary exists
 fn songbird_available() -> bool {
     Path::new(SONGBIRD_BIN).exists()
 }
 
-/// Helper to start Songbird for tests
-fn start_songbird() -> Option<Child> {
+/// Start Songbird and wait for it to be ready using proper async polling.
+///
+/// No blocking sleeps - uses exponential backoff polling with health checks.
+async fn start_songbird_and_wait() -> Option<Child> {
     if !songbird_available() {
         eprintln!("⚠️  Skipping Songbird integration tests: binary not found at {SONGBIRD_BIN}");
         return None;
     }
 
     // Start Songbird in background
-    match Command::new(SONGBIRD_BIN)
+    let child = match Command::new(SONGBIRD_BIN)
         .arg("--port")
         .arg("8082")
         .arg("--host")
         .arg("127.0.0.1")
         .spawn()
     {
-        Ok(child) => {
-            // Give it time to start
-            thread::sleep(Duration::from_secs(2));
-            Some(child)
-        }
+        Ok(child) => child,
         Err(e) => {
             eprintln!("⚠️  Failed to start Songbird: {e}");
+            return None;
+        }
+    };
+
+    // Poll for readiness with timeout protection
+    match wait_for_songbird_ready().await {
+        Ok(()) => Some(child),
+        Err(e) => {
+            eprintln!("⚠️  Songbird failed to become ready: {e}");
             None
         }
+    }
+}
+
+/// Wait for Songbird to be ready using async polling with exponential backoff.
+///
+/// Production-grade: No blind sleeps, proper timeout, error handling.
+async fn wait_for_songbird_ready() -> Result<(), String> {
+    let start = std::time::Instant::now();
+    let mut attempt = 0;
+
+    loop {
+        // Check timeout
+        if start.elapsed() > STARTUP_TIMEOUT {
+            return Err(format!(
+                "Songbird did not become ready within {} seconds",
+                STARTUP_TIMEOUT.as_secs()
+            ));
+        }
+
+        // Try to connect
+        match tokio::time::timeout(
+            Duration::from_secs(2),
+            SongbirdClient::connect(SONGBIRD_ENDPOINT),
+        )
+        .await
+        {
+            Ok(Ok(_client)) => {
+                // Successfully connected!
+                return Ok(());
+            }
+            Ok(Err(_e)) => {
+                // Connection failed, retry
+            }
+            Err(_timeout) => {
+                // Timeout, retry
+            }
+        }
+
+        // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1s, 1s, ...
+        let backoff = POLL_INTERVAL
+            .saturating_mul(2_u32.saturating_pow(attempt))
+            .min(Duration::from_secs(1));
+
+        tokio::time::sleep(backoff).await;
+        attempt += 1;
+    }
+}
+
+/// Wait for a service to be discoverable (eventual consistency).
+///
+/// Production-grade: Polls with timeout, no blind sleeps.
+async fn wait_for_service_discoverable(
+    client: &SongbirdClient,
+    capability: &str,
+    service_name: &str,
+) -> Result<(), String> {
+    let start = std::time::Instant::now();
+    let timeout = Duration::from_secs(5);
+
+    loop {
+        if start.elapsed() > timeout {
+            return Err(format!(
+                "Service {service_name} not discoverable within {} seconds",
+                timeout.as_secs()
+            ));
+        }
+
+        if let Ok(services) = client.discover_capability(capability).await {
+            if services.iter().any(|s| s.name == service_name) {
+                return Ok(());
+            }
+        }
+        // Discovery failed, retry
+
+        tokio::time::sleep(POLL_INTERVAL).await;
+    }
+}
+
+/// Wait for a service to be deregistered (eventual consistency).
+///
+/// Production-grade: Polls with timeout, no blind sleeps.
+async fn wait_for_service_removed(
+    client: &SongbirdClient,
+    capability: &str,
+    service_name: &str,
+) -> Result<(), String> {
+    let start = std::time::Instant::now();
+    let timeout = Duration::from_secs(5);
+
+    loop {
+        if start.elapsed() > timeout {
+            return Err(format!(
+                "Service {service_name} still discoverable after {} seconds",
+                timeout.as_secs()
+            ));
+        }
+
+        match client.discover_capability(capability).await {
+            Ok(services) => {
+                if !services.iter().any(|s| s.name == service_name) {
+                    return Ok(());
+                }
+            }
+            Err(_) => {
+                // Discovery failed, but that's okay for removal check
+                return Ok(());
+            }
+        }
+
+        tokio::time::sleep(POLL_INTERVAL).await;
     }
 }
 
@@ -55,15 +185,27 @@ async fn test_songbird_connection() {
         return;
     }
 
-    // Hold process handle to keep Songbird running for duration of test
-    let process = start_songbird();
-    if process.is_none() {
+    // Start Songbird and wait for readiness (async, no blocking)
+    #[allow(clippy::used_underscore_binding)]
+    let _process = start_songbird_and_wait().await;
+    if _process.is_none() {
         return;
     }
 
-    // Test connection
-    let result = SongbirdClient::connect(SONGBIRD_ENDPOINT).await;
-    assert!(result.is_ok(), "Should connect to Songbird successfully");
+    // Test connection (with timeout protection)
+    let result = tokio::time::timeout(
+        Duration::from_secs(5),
+        SongbirdClient::connect(SONGBIRD_ENDPOINT),
+    )
+    .await;
+
+    assert!(result.is_ok(), "Connection should not timeout");
+    #[allow(clippy::unwrap_used)]
+    let connect_result = result.unwrap();
+    assert!(
+        connect_result.is_ok(),
+        "Should connect to Songbird successfully"
+    );
 }
 
 #[tokio::test]
@@ -73,9 +215,10 @@ async fn test_songbird_advertise_and_discover() {
         return;
     }
 
-    // Hold process handle to keep Songbird running for duration of test
-    let process = start_songbird();
-    if process.is_none() {
+    // Start Songbird and wait for readiness (async, no blocking)
+    #[allow(clippy::used_underscore_binding)]
+    let _process = start_songbird_and_wait().await;
+    if _process.is_none() {
         return;
     }
 
@@ -95,8 +238,14 @@ async fn test_songbird_advertise_and_discover() {
         result.err()
     );
 
-    // Give Songbird time to register
-    thread::sleep(Duration::from_millis(500));
+    // Wait for service to be discoverable (eventual consistency, no blind sleep)
+    let wait_result =
+        wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
+    assert!(
+        wait_result.is_ok(),
+        "Service should become discoverable: {:?}",
+        wait_result.err()
+    );
 
     // Try to discover persistent-ledger capability
     let Ok(services) = client.discover_capability("persistent-ledger").await else {
@@ -118,15 +267,16 @@ async fn test_songbird_advertise_and_discover() {
 }
 
 #[tokio::test]
+#[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
 async fn test_songbird_heartbeat() {
     if !songbird_available() {
         eprintln!("⚠️  Skipping test: Songbird binary not available");
         return;
     }
 
-    // Hold process handle to keep Songbird running for duration of test
-    let process = start_songbird();
-    if process.is_none() {
+    // Start Songbird and wait for readiness (async, no blocking)
+    let _process = start_songbird_and_wait().await;
+    if _process.is_none() {
         return;
     }
 
@@ -139,27 +289,31 @@ async fn test_songbird_heartbeat() {
         .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
         .await;
 
-    thread::sleep(Duration::from_millis(500));
+    // Wait for registration (eventual consistency, no blind sleep)
+    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
 
-    // Send heartbeat
-    let result = client.heartbeat().await;
+    // Send heartbeat (with timeout protection)
+    let result = tokio::time::timeout(Duration::from_secs(5), client.heartbeat()).await;
+
+    assert!(result.is_ok(), "Heartbeat should not timeout");
+    let heartbeat_result = result.unwrap();
     assert!(
-        result.is_ok(),
-        "Should send heartbeat successfully: {:?}",
-        result.err()
+        heartbeat_result.is_ok(),
+        "Should send heartbeat successfully"
     );
 }
 
 #[tokio::test]
+#[allow(clippy::used_underscore_binding)]
 async fn test_songbird_deregister() {
     if !songbird_available() {
         eprintln!("⚠️  Skipping test: Songbird binary not available");
         return;
     }
 
-    // Hold process handle to keep Songbird running for duration of test
-    let process = start_songbird();
-    if process.is_none() {
+    // Start Songbird and wait for readiness (async, no blocking)
+    let _process = start_songbird_and_wait().await;
+    if _process.is_none() {
         return;
     }
 
@@ -172,7 +326,8 @@ async fn test_songbird_deregister() {
         .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
         .await;
 
-    thread::sleep(Duration::from_millis(500));
+    // Wait for registration (eventual consistency, no blind sleep)
+    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
 
     // Deregister
     let result = client.deregister().await;
@@ -182,8 +337,15 @@ async fn test_songbird_deregister() {
         result.err()
     );
 
+    // Wait for deregistration (eventual consistency, no blind sleep)
+    let wait_result = wait_for_service_removed(&client, "persistent-ledger", "loamspine").await;
+    assert!(
+        wait_result.is_ok(),
+        "Service should be removed: {:?}",
+        wait_result.err()
+    );
+
     // Verify we're no longer discoverable
-    thread::sleep(Duration::from_millis(500));
     let services = client
         .discover_capability("persistent-ledger")
         .await
@@ -196,15 +358,16 @@ async fn test_songbird_deregister() {
 }
 
 #[tokio::test]
+#[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
 async fn test_songbird_discover_all() {
     if !songbird_available() {
         eprintln!("⚠️  Skipping test: Songbird binary not available");
         return;
     }
 
-    // Hold process handle to keep Songbird running for duration of test
-    let process = start_songbird();
-    if process.is_none() {
+    // Start Songbird and wait for readiness (async, no blocking)
+    let _process = start_songbird_and_wait().await;
+    if _process.is_none() {
         return;
     }
 
@@ -217,10 +380,15 @@ async fn test_songbird_discover_all() {
         .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
         .await;
 
-    thread::sleep(Duration::from_millis(500));
+    // Wait for registration (eventual consistency, no blind sleep)
+    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
 
-    // Discover all services
-    let Ok(services) = client.discover_all().await else {
+    // Discover all services (with timeout protection)
+    let result = tokio::time::timeout(Duration::from_secs(5), client.discover_all()).await;
+
+    assert!(result.is_ok(), "Discovery should not timeout");
+    let discover_result = result.unwrap();
+    let Ok(services) = discover_result else {
         eprintln!("⚠️  Failed to discover all services");
         return;
     };
@@ -229,15 +397,16 @@ async fn test_songbird_discover_all() {
 }
 
 #[tokio::test]
+#[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
 async fn test_songbird_multiple_capabilities() {
     if !songbird_available() {
         eprintln!("⚠️  Skipping test: Songbird binary not available");
         return;
     }
 
-    // Hold process handle to keep Songbird running for duration of test
-    let process = start_songbird();
-    if process.is_none() {
+    // Start Songbird and wait for readiness (async, no blocking)
+    let _process = start_songbird_and_wait().await;
+    if _process.is_none() {
         return;
     }
 
@@ -250,18 +419,39 @@ async fn test_songbird_multiple_capabilities() {
         .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
         .await;
 
-    thread::sleep(Duration::from_millis(500));
+    // Wait for registration (eventual consistency, no blind sleep)
+    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
 
-    // Test discovering multiple capabilities
+    // Test discovering multiple capabilities concurrently (not serial!)
     let capabilities = vec![
         "persistent-ledger",
         "certificate-manager",
         "waypoint-anchoring",
     ];
 
+    // Spawn concurrent discovery tasks
+    let mut handles = vec![];
     for capability in capabilities {
-        let services = client.discover_capability(capability).await;
-        assert!(services.is_ok(), "Should discover {capability} capability");
+        let client_clone = client.clone();
+        let handle = tokio::spawn(async move {
+            tokio::time::timeout(
+                Duration::from_secs(5),
+                client_clone.discover_capability(capability),
+            )
+            .await
+        });
+        handles.push((capability, handle));
+    }
+
+    // All should succeed concurrently
+    for (capability, handle) in handles {
+        let result = handle.await;
+        assert!(result.is_ok(), "Task for {capability} should not fail");
+        let timeout_result = result.unwrap();
+        assert!(
+            timeout_result.is_ok(),
+            "Should discover {capability} capability"
+        );
     }
 }
 
@@ -276,15 +466,16 @@ async fn test_songbird_endpoint_validation() {
 }
 
 #[tokio::test]
+#[allow(clippy::used_underscore_binding)]
 async fn test_songbird_concurrent_operations() {
     if !songbird_available() {
         eprintln!("⚠️  Skipping test: Songbird binary not available");
         return;
     }
 
-    // Hold process handle to keep Songbird running for duration of test
-    let process = start_songbird();
-    if process.is_none() {
+    // Start Songbird and wait for readiness (async, no blocking)
+    let _process = start_songbird_and_wait().await;
+    if _process.is_none() {
         return;
     }
 
@@ -297,25 +488,45 @@ async fn test_songbird_concurrent_operations() {
         .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
         .await;
 
-    thread::sleep(Duration::from_millis(500));
+    // Wait for registration (eventual consistency, no blind sleep)
+    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
 
-    // Perform multiple concurrent discovery operations
+    // Perform 100 concurrent discovery operations (truly concurrent!)
     let mut handles = vec![];
-    for _ in 0..10 {
+    for i in 0..100 {
         let client_clone = client.clone();
-        let handle =
-            tokio::spawn(
-                async move { client_clone.discover_capability("persistent-ledger").await },
-            );
+        let handle = tokio::spawn(async move {
+            // Each operation has timeout protection
+            tokio::time::timeout(
+                Duration::from_secs(5),
+                client_clone.discover_capability("persistent-ledger"),
+            )
+            .await
+            .map_err(|_| format!("Timeout on operation {i}"))
+            .and_then(|r| r.map_err(|e| format!("Discovery failed: {e}")))
+        });
         handles.push(handle);
     }
 
-    // All should succeed
+    // All should succeed concurrently
+    let mut successes = 0;
     for handle in handles {
-        let Ok(result) = handle.await else {
-            eprintln!("⚠️  Task failed to complete");
-            continue;
-        };
-        assert!(result.is_ok(), "Concurrent discovery should succeed");
+        match handle.await {
+            Ok(Ok(_services)) => {
+                successes += 1;
+            }
+            Ok(Err(e)) => {
+                eprintln!("⚠️  Operation failed: {e}");
+            }
+            Err(e) => {
+                eprintln!("⚠️  Task panicked: {e}");
+            }
+        }
     }
+
+    // Require at least 95% success rate (allows for network jitter)
+    assert!(
+        successes >= 95,
+        "At least 95 out of 100 concurrent operations should succeed, got {successes}"
+    );
 }

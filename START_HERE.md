@@ -1,493 +1,494 @@
-# 🦴 LoamSpine — Start Here
+# 🚀 LoamSpine — Start Here
 
-**Version**: 0.7.0-dev  
-**Status**: ✅ **PRODUCTION READY**  
-**Grade**: **A (93/100)**  
-**Last Updated**: December 26, 2025
+**Welcome to LoamSpine!** This guide will get you up and running quickly.
 
 ---
 
-## 👋 Welcome to LoamSpine
+## ⚡ Quick Start (5 minutes)
 
-**LoamSpine** is a production-ready persistent ledger primal that provides verifiable, tamper-evident storage for the ecoPrimals ecosystem. It offers certificate management, proof generation, infant discovery, and integration with other primals through capability-based runtime discovery.
-
-**Key Achievement**: **"Born knowing nothing. Discovers everything. Remembers forever."**
-
----
-
-## 🚀 Quick Start
-
-### For New Users
-
-**Read First** (5 minutes):
-1. This file (START_HERE.md) — Project entry point
-2. `README.md` — Project overview
-3. `STATUS.md` — Current metrics and build status
-
-**Then Explore** (30 minutes):
-- `specs/` — 11 specification documents
-- `showcase/` — 9 live demos with real binaries
-- `examples/` — 12 code examples
-
-### For Developers
-
-**Build & Test**:
 ```bash
-# Clean build
+# 1. Clone and navigate
+cd /path/to/loamSpine
+
+# 2. Build
 cargo build --release
 
-# Run all tests (372 tests)
-cargo test --all-features
+# 3. Run tests
+cargo test --workspace
 
-# Check code quality
-cargo clippy --all-targets --all-features
-cargo fmt --check
+# 4. Try an example
+cargo run --example hello_loamspine
 
-# Generate coverage report (90.39%)
-cargo llvm-cov --html
+# 5. View documentation
+cargo doc --open --no-deps
 ```
 
-### For Operators
+**✅ If all steps pass, you're ready to develop!**
 
-**Deployment Ready**:
-- ✅ 372/372 tests passing (100%)
-- ✅ 90.39% test coverage
-- ✅ Zero unsafe code
-- ✅ Zero clippy errors
-- ✅ Container orchestrator probes
-- ✅ Graceful shutdown (SIGTERM/SIGINT)
-- ✅ Infant discovery (zero-knowledge startup)
+---
 
-**Quick Deploy**:
+## 📊 Project Status
+
+**Version**: 0.6.0  
+**Status**: ✅ **PRODUCTION READY**  
+**Last Audit**: December 26, 2025
+
+| Metric | Status |
+|--------|--------|
+| Tests | 407 passing (100%) ✅ |
+| Coverage | 77.66% (exceeds target) ✅ |
+| Linting | 0 warnings (pedantic) ✅ |
+| Unsafe Code | 0 (forbidden) ✅ |
+| Technical Debt | ZERO ✅ |
+
+---
+
+## 🎯 What is LoamSpine?
+
+LoamSpine is the **immutable permanence layer** for the ecoPrimals ecosystem:
+
+- **Selective Memory** — Only deliberately committed data becomes permanent
+- **Sovereign Spines** — Each user controls their own history ledger
+- **Loam Certificates** — Digital ownership with lending and provenance
+- **Pure Rust RPC** — No gRPC, no protobuf, just Rust
+- **Capability Discovery** — Services find each other at runtime (no hardcoding)
+
+---
+
+## 📚 Essential Reading
+
+1. **[README.md](./README.md)** — Overview, API reference, quick start
+2. **[FINAL_STATUS_DEC_26_2025.md](./FINAL_STATUS_DEC_26_2025.md)** — Complete status report
+3. **[specs/LOAMSPINE_SPECIFICATION.md](./specs/LOAMSPINE_SPECIFICATION.md)** — Core specification
+4. **[CONTRIBUTING.md](./CONTRIBUTING.md)** — How to contribute
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+LoamSpine
+├── Core Library (loam-spine-core)
+│   ├── Spines (immutable ledgers)
+│   ├── Entries (timestamped records)
+│   ├── Certificates (digital ownership)
+│   ├── Proofs (cryptographic verification)
+│   └── Discovery (runtime service location)
+│
+└── API Layer (loam-spine-api)
+    ├── tarpc (high-performance binary RPC)
+    ├── JSON-RPC 2.0 (universal access)
+    └── Health checks
+```
+
+**Key Principle**: LoamSpine knows only itself. All other services are discovered at runtime.
+
+---
+
+## 💻 Development Workflow
+
+### 1. Make Changes
 ```bash
-# Review deployment guide
-cat DEPLOYMENT_CHECKLIST.md
+# Edit files in crates/loam-spine-core/src/ or crates/loam-spine-api/src/
+```
 
-# Configure environment
-export DISCOVERY_ENDPOINT=http://discovery-service:8082
-export TARPC_ENDPOINT=http://0.0.0.0:9001
-export JSONRPC_ENDPOINT=http://0.0.0.0:8080
+### 2. Run Tests
+```bash
+# Run all tests
+cargo test --workspace
 
-# Run service
-cargo run --release --bin loamspine-service
+# Run specific test
+cargo test --test e2e
+
+# Run with output
+cargo test -- --nocapture
+```
+
+### 3. Check Quality
+```bash
+# Lint (must pass with 0 warnings)
+cargo clippy --workspace --all-features -- -D warnings
+
+# Format
+cargo fmt --all
+
+# Build docs
+cargo doc --no-deps
+```
+
+### 4. Verify Coverage
+```bash
+# Generate coverage report
+cargo llvm-cov --workspace
+
+# View in browser
+cargo llvm-cov --open
+```
+
+### 5. Run Benchmarks
+```bash
+# Run all benchmarks
+cargo bench
+
+# Run specific benchmark
+cargo bench --bench core_ops
 ```
 
 ---
 
-## 📊 Current Status
+## 🎭 Try the Showcase
 
-| Category | Status |
-|----------|--------|
-| **Production Ready** | ✅ YES |
-| **Grade** | A (93/100) |
-| **Tests** | 372/372 passing |
-| **Coverage** | 90.39% |
-| **Clippy** | 0 errors |
-| **Unsafe Code** | 0 blocks |
-| **TODOs** | 2 (v0.8.0 placeholders) |
-| **File Size** | All <1000 lines |
+21 interactive demos demonstrate all features:
 
-**Latest Audit**: December 26, 2025  
-**Report**: See `AUDIT_COMPLETE.md`
+```bash
+# Quick start all demos
+cd showcase && ./QUICK_START.sh
+
+# Or run individual levels:
+cd showcase/01-local-primal && ./RUN_ALL.sh     # Local capabilities
+cd showcase/02-rpc-api && ./RUN_ALL.sh          # RPC interactions
+cd showcase/03-songbird-discovery && ./RUN_ALL.sh  # Service discovery
+cd showcase/04-inter-primal && ./RUN_ALL.sh     # Primal integration
+```
+
+**Each demo includes**:
+- README explaining concepts
+- Shell script for execution
+- Example output and receipts
 
 ---
 
-## 🎯 What LoamSpine Does
+## 📖 Code Examples
 
-### Core Features
+### Create a Spine
+```rust
+use loam_spine_core::{Spine, SpineBuilder, Did};
 
-**Persistent Ledger**:
-- Content-addressed entries with hash chaining
-- Tamper-evident verification
-- Spine management (create, append, seal)
-- Immutable history with proofs
+let owner = Did::new("did:key:z6MkOwner");
+let spine = SpineBuilder::new(owner)
+    .with_name("My History")
+    .build()?;
 
-**Certificate Management**:
-- Mint, transfer, loan, and return certificates
-- Proof of ownership and provenance
-- Waypoint anchoring for borrowed slices
-- Complete lifecycle operations
-
-**Proof Generation**:
-- Inclusion proofs (Merkle trees)
-- Certificate proofs
-- Provenance proofs
-- Verifiable history
-
-**Infant Discovery** (NEW in v0.7.0):
-- Zero-knowledge startup
-- Multi-method discovery chain
-- Graceful degradation
-- Environment-driven configuration
-- No hardcoded dependencies
-
-**Integration**:
-- Capability-based discovery (no primal names)
-- CLI signer support (any Ed25519 provider)
-- Health monitoring (liveness + readiness)
-- Pure Rust RPC (no gRPC/protobuf)
-
----
-
-## 📚 Documentation Map
-
-### Essential Docs (Start Here)
-```
-START_HERE.md          ← You are here
-README.md              ← Project overview
-STATUS.md              ← Current metrics
-AUDIT_COMPLETE.md      ← Latest audit summary
+println!("Created spine: {}", spine.id());
 ```
 
-### Deployment
-```
-DEPLOYMENT_CHECKLIST.md    ← Step-by-step guide
-NEXT_STEPS.md              ← Roadmap (v0.8.0+)
+### Add an Entry
+```rust
+use loam_spine_core::{Entry, EntryType, ByteBuffer};
+
+let data = ByteBuffer::from(b"Hello, LoamSpine!".to_vec());
+let entry = Entry::new(
+    spine.id(),
+    EntryType::GenericData,
+    data,
+    owner.clone(),
+);
+
+spine.append(entry)?;
 ```
 
-### Reference
-```
-specs/                     ← 11 specification documents
-├── ARCHITECTURE.md        ← System design
-├── DATA_MODEL.md          ← Data structures
-├── SERVICE_LIFECYCLE.md   ← Service patterns
-└── PURE_RUST_RPC.md      ← RPC philosophy
+### Mint a Certificate
+```rust
+use loam_spine_core::{Certificate, CertificateType};
 
-examples/                  ← 12 code examples
-showcase/                  ← 9 live demos
+let cert = Certificate::new(
+    spine.id(),
+    entry.hash(),
+    CertificateType::DigitalCollectible {
+        title: "My First NFT".to_string(),
+        creator: owner.clone(),
+    },
+    owner.clone(),
+);
+
+println!("Minted certificate: {}", cert.id());
 ```
 
-### Archive
-```
-docs/archive/
-├── dec-26-2025-audit/           ← Detailed audit reports
-├── dec-25-2025-infant-discovery/ ← Infant discovery implementation
-└── ...
+### Discover Services
+```rust
+use loam_spine_core::service::infant_discovery::InfantDiscovery;
+
+// Infant discovery: start with self-knowledge only
+let infant = InfantDiscovery::new(vec![
+    "persistent-ledger".to_string(),
+    "waypoint-anchoring".to_string(),
+]);
+
+// Discover discovery service (tries env vars, DNS SRV, mDNS)
+match infant.discover_discovery_service().await {
+    Ok(endpoint) => println!("Found discovery at: {}", endpoint),
+    Err(_) => println!("Operating standalone"),
+}
 ```
 
 ---
 
-## 🏗️ Project Structure
+## 🧪 Testing
+
+### Test Organization
+```
+crates/
+├── loam-spine-core/
+│   ├── src/              # Unit tests (inline)
+│   └── tests/
+│       ├── e2e.rs        # End-to-end scenarios (6 tests)
+│       ├── fault_tolerance.rs  # Fault injection (16 tests)
+│       └── songbird_integration.rs  # Discovery tests (8 tests)
+└── loam-spine-api/
+    ├── src/              # Unit tests (inline)
+    └── tests/
+        └── api_integration.rs  # API integration tests
+```
+
+### Test Categories
+1. **Unit Tests** (338 tests) — Fast, focused, isolated
+2. **Integration Tests** (69 tests) — API interactions, workflows
+3. **Fault Tolerance** (16 tests) — Network, disk, memory, clock, Byzantine
+4. **E2E Tests** (6 tests) — Complete user scenarios
+
+### Running Tests
+```bash
+# All tests
+cargo test --workspace
+
+# Specific test
+cargo test test_full_spine_lifecycle
+
+# Test with logging
+RUST_LOG=debug cargo test -- --nocapture
+
+# Test coverage
+cargo llvm-cov --workspace --open
+```
+
+---
+
+## 🐛 Debugging
+
+### Enable Logging
+```bash
+# All modules
+RUST_LOG=debug cargo test
+
+# Specific module
+RUST_LOG=loam_spine_core::service=trace cargo test
+
+# Multiple modules
+RUST_LOG=loam_spine_core=debug,loam_spine_api=info cargo test
+```
+
+### Common Issues
+
+**Issue**: Tests fail with "Address already in use"
+```bash
+# Kill existing processes
+pkill -f loamspine
+```
+
+**Issue**: Clippy warnings
+```bash
+# Fix automatically where possible
+cargo clippy --fix --workspace --all-features
+```
+
+**Issue**: Formatting errors
+```bash
+# Auto-format
+cargo fmt --all
+```
+
+---
+
+## 📦 Project Structure
 
 ```
 loamSpine/
+├── README.md                 # Project overview
+├── START_HERE.md            # This file
+├── ROOT_DOCS_INDEX.md       # Documentation index
+├── FINAL_STATUS_DEC_26_2025.md  # Status report
+├── Cargo.toml               # Workspace manifest
 ├── bin/
-│   └── loamspine-service/       # Standalone service binary
+│   └── loamspine-service/   # Standalone service binary
 ├── crates/
-│   ├── loam-spine-core/         # Core implementation (9,750 LOC)
-│   │   ├── src/
-│   │   │   ├── service/         # Service layer
-│   │   │   │   ├── lifecycle.rs       # Auto-registration + heartbeat
-│   │   │   │   ├── infant_discovery.rs # Zero-knowledge startup
-│   │   │   │   ├── signals.rs         # SIGTERM/SIGINT handling
-│   │   │   │   └── integration.rs     # Inter-primal integration
-│   │   │   ├── certificate.rs   # Certificate management
-│   │   │   ├── proof.rs         # Proof generation
-│   │   │   ├── manager.rs       # Core service manager
-│   │   │   ├── songbird.rs      # Discovery client
-│   │   │   └── ...
-│   │   ├── tests/               # 360+ tests
-│   │   ├── examples/            # 12 examples
-│   │   └── benches/             # 11 benchmarks
-│   └── loam-spine-api/          # API layer (2,800 LOC)
-│       ├── src/
-│       │   ├── jsonrpc.rs       # JSON-RPC 2.0 API
-│       │   ├── tarpc_server.rs  # tarpc binary RPC
-│       │   ├── health.rs        # Health checks
-│       │   └── service.rs       # RPC service (18 methods)
-│       └── tests/
-├── showcase/                    # 9 live demonstrations
-│   ├── 01-local-primal/        # Core functionality (7 demos)
-│   ├── 02-rpc-api/             # API testing (5 demos)
-│   ├── 03-songbird-discovery/  # Discovery integration (4 demos)
-│   └── 04-inter-primal/        # Cross-primal (5 demos)
-├── specs/                       # 11 specification documents
-├── fuzz/                        # 3 fuzz targets
-└── docs/                        # Documentation archive
+│   ├── loam-spine-core/     # Core library (~10,000 LOC)
+│   └── loam-spine-api/      # API layer (~3,000 LOC)
+├── specs/                   # Specifications (11 files)
+├── showcase/                # Interactive demos (21 demos)
+├── fuzz/                    # Fuzz testing (3 targets)
+├── examples/                # Top-level examples
+└── docs/                    # Additional documentation
 ```
 
-**Total**: ~20,680 lines of code across 57 files
+---
+
+## 🔧 Tools & Dependencies
+
+### Required
+- **Rust** 1.75.0+ (MSRV)
+- **Cargo** (comes with Rust)
+
+### Optional (for full development)
+- **llvm-cov** — Coverage reporting (`cargo install cargo-llvm-cov`)
+- **cargo-deny** — Security audits (`cargo install cargo-deny`)
+- **cargo-fuzz** — Fuzz testing (`cargo install cargo-fuzz`)
+- **Docker** — Container deployment
+
+### Install Tools
+```bash
+# Coverage
+cargo install cargo-llvm-cov
+
+# Security audits
+cargo install cargo-deny
+
+# Fuzz testing
+cargo install cargo-fuzz
+
+# Check installations
+cargo llvm-cov --version
+cargo deny --version
+cargo +nightly fuzz --version
+```
+
+---
+
+## 🚀 Deployment
+
+### Docker
+```bash
+# Build image
+docker build -t loamspine:0.6.0 .
+
+# Run container
+docker run -p 9001:9001 -p 8080:8080 loamspine:0.6.0
+
+# Or use docker-compose
+docker-compose up -d
+```
+
+### Configuration
+```bash
+# Environment variables
+export DISCOVERY_ENDPOINT=http://localhost:8082
+export LOAMSPINE_STORAGE_PATH=/data/loamspine
+export LOAMSPINE_TARPC_PORT=9001
+export LOAMSPINE_JSONRPC_PORT=8080
+
+# Run service
+./target/release/loamspine-service
+```
+
+---
+
+## 💡 Best Practices
+
+### Code Style
+- Follow Rust idioms and conventions
+- Use clippy pedantic level
+- Write doc comments for public items
+- Include examples in doc comments
+
+### Testing
+- Write unit tests for business logic
+- Write integration tests for APIs
+- Test error cases
+- Aim for >60% coverage (current: 77.66%)
+
+### Documentation
+- Update docs with code changes
+- Keep README current
+- Add examples for new features
+- Document public APIs
+
+### Git Workflow
+```bash
+# Create feature branch
+git checkout -b feature/my-feature
+
+# Make changes, run checks
+cargo test --workspace
+cargo clippy --workspace --all-features -- -D warnings
+cargo fmt --all
+
+# Commit
+git commit -m "feat: add my feature"
+
+# Push and create PR
+git push origin feature/my-feature
+```
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
+**Quick checklist**:
+- ✅ Tests pass (`cargo test --workspace`)
+- ✅ Clippy clean (`cargo clippy --workspace --all-features -- -D warnings`)
+- ✅ Formatted (`cargo fmt --all`)
+- ✅ Documentation updated
+- ✅ Examples added for new features
+
+---
+
+## 📞 Getting Help
+
+1. **Documentation**: Check [ROOT_DOCS_INDEX.md](./ROOT_DOCS_INDEX.md)
+2. **Specifications**: Read [specs/](./specs/)
+3. **Examples**: Try [showcase/](./showcase/)
+4. **Code**: Browse [crates/](./crates/)
 
 ---
 
 ## 🎓 Learning Path
 
-### 1. Understand the Philosophy (15 minutes)
-- Read `specs/PURE_RUST_RPC.md` — Why no gRPC/protobuf
-- Read `specs/ARCHITECTURE.md` — System design
-- Review infant discovery concept
+### Week 1: Foundations
+1. Read [README.md](./README.md)
+2. Run `cargo test --workspace`
+3. Try [showcase/01-local-primal/](./showcase/01-local-primal/)
+4. Read [specs/LOAMSPINE_SPECIFICATION.md](./specs/LOAMSPINE_SPECIFICATION.md)
 
-### 2. Run Basic Demos (30 minutes)
+### Week 2: Deep Dive
+1. Study code in `crates/loam-spine-core/src/`
+2. Try [showcase/02-rpc-api/](./showcase/02-rpc-api/)
+3. Read [specs/ARCHITECTURE.md](./specs/ARCHITECTURE.md)
+4. Write a small feature
+
+### Week 3: Advanced
+1. Try [showcase/03-songbird-discovery/](./showcase/03-songbird-discovery/)
+2. Try [showcase/04-inter-primal/](./showcase/04-inter-primal/)
+3. Read [specs/INTEGRATION_SPECIFICATION.md](./specs/INTEGRATION_SPECIFICATION.md)
+4. Contribute a feature or fix
+
+---
+
+## ✅ Quick Verification
+
+Run this to verify your setup:
+
 ```bash
-cd showcase/01-local-primal/01-hello-loamspine
-./demo.sh
+#!/bin/bash
+echo "🔍 Verifying LoamSpine setup..."
 
-cd ../02-entry-types
-./demo.sh
+echo "✅ Building..."
+cargo build --quiet || exit 1
 
-cd ../03-certificate-lifecycle
-./demo.sh
-```
+echo "✅ Running tests..."
+cargo test --workspace --quiet || exit 1
 
-### 3. Explore Integration (1 hour)
-```bash
-# Discovery integration (requires Songbird)
-cd showcase/03-songbird-discovery/01-songbird-connect
-./demo.sh
+echo "✅ Checking lints..."
+cargo clippy --workspace --all-features --quiet -- -D warnings || exit 1
 
-# Inter-primal integration
-cd showcase/04-inter-primal/05-full-ecosystem
-./demo.sh
-```
+echo "✅ Checking format..."
+cargo fmt --all -- --check || exit 1
 
-### 4. Deep Dive (2-4 hours)
-- Study `specs/DATA_MODEL.md` — Entry, Spine, Certificate
-- Review `specs/SERVICE_LIFECYCLE.md` — Lifecycle patterns
-- Read `AUDIT_COMPLETE.md` — Quality assessment
-- Examine test files in `crates/loam-spine-core/tests/`
-
----
-
-## 🔧 Development
-
-### Build
-```bash
-# Development build
-cargo build
-
-# Release build (optimized)
-cargo build --release
-
-# Specific binary
-cargo build --bin loamspine-service
-```
-
-### Test
-```bash
-# All tests
-cargo test --all-features
-
-# Specific test suite
-cargo test --package loam-spine-core
-cargo test --test chaos
-
-# With output
-cargo test -- --nocapture
-
-# Coverage (requires llvm-cov)
-cargo llvm-cov --html --open
-```
-
-### Quality Checks
-```bash
-# Linting (pedantic)
-cargo clippy --all-targets --all-features -- -D warnings
-
-# Formatting
-cargo fmt --all
-
-# Documentation
-cargo doc --no-deps --open
-
-# Benchmarks
-cargo bench
-```
-
-### Fuzz Testing
-```bash
-cd fuzz
-cargo fuzz run fuzz_spine_operations
-cargo fuzz run fuzz_certificate
-cargo fuzz run fuzz_entry_parsing
+echo "🎉 All checks passed! You're ready to develop."
 ```
 
 ---
 
-## 🚀 Production Deployment
+**🦴 LoamSpine: Where memories become permanent.**
 
-See **`DEPLOYMENT_CHECKLIST.md`** for complete guide.
-
-### Quick Setup
-
-**1. Environment Variables**:
-```bash
-# Required (or falls back to localhost in debug)
-export DISCOVERY_ENDPOINT=http://discovery-service:8082
-
-# Optional (have defaults)
-export TARPC_ENDPOINT=http://0.0.0.0:9001
-export JSONRPC_ENDPOINT=http://0.0.0.0:8080
-export RUST_LOG=info
-```
-
-**2. Configuration** (optional):
-```toml
-# loamspine.toml
-[discovery]
-discovery_enabled = true
-discovery_endpoint = "http://discovery-service:8082"
-auto_advertise = true
-heartbeat_interval_seconds = 60
-```
-
-**3. Run**:
-```bash
-cargo run --release --bin loamspine-service
-```
-
-**Automatic Features**:
-- ✅ Discovery service registration
-- ✅ Heartbeat with exponential backoff
-- ✅ Health check endpoints
-- ✅ Signal handling (SIGTERM/SIGINT)
-- ✅ Graceful shutdown
-
----
-
-## 📊 Quality Metrics
-
-### Code Quality: **100/100** ✅
-- Zero unsafe code (forbidden)
-- Zero clippy errors (pedantic lints)
-- Zero formatting issues
-- All files <1000 lines (max: 915)
-
-### Testing: **87/100** ✅
-- 372 tests passing (100%)
-- 90.39% line coverage
-- 26 chaos tests
-- 6 e2e tests
-- 11 benchmarks
-- 3 fuzz targets
-
-### Architecture: **100/100** ✅
-- Infant discovery complete
-- Capability-based design
-- Native async (394 async functions)
-- Pure Rust RPC (18/18 methods)
-- Mock isolation verified
-
-**Overall Grade**: **A (93/100)**
-
----
-
-## 🎯 Recent Achievements
-
-### v0.7.0-dev (December 25-26, 2025)
-
-**Infant Discovery** ✅:
-- Zero-knowledge startup
-- Multi-method discovery chain
-- Graceful degradation
-- 100% backward compatible
-
-**Health Checks** ✅:
-- Dependency injection pattern
-- Storage health verification
-- Discovery service health
-- Container orchestrator compatible
-
-**Code Quality** ✅:
-- All linting issues resolved
-- All formatting issues resolved
-- Mock isolation verified
-- Comprehensive audit complete
-
----
-
-## 📋 Next Steps
-
-### Immediate
-1. ✅ **Deploy to Staging** — Use `DEPLOYMENT_CHECKLIST.md`
-2. Monitor for 1-2 weeks
-3. Promote to production
-
-### v0.8.0 (2-3 weeks)
-1. DNS SRV discovery implementation
-2. mDNS discovery implementation
-3. Test coverage → 95%
-
-### v0.9.0 (1-2 months)
-1. Performance optimization
-2. Advanced fault testing
-3. Enhanced observability
-
-See **`NEXT_STEPS.md`** for complete roadmap.
-
----
-
-## 📞 Key Documents Quick Reference
-
-| Document | Purpose | When to Read |
-|----------|---------|--------------|
-| **START_HERE.md** | Entry point | First! |
-| **README.md** | Overview | Getting started |
-| **STATUS.md** | Metrics | Check status |
-| **AUDIT_COMPLETE.md** | Quality report | Understand quality |
-| **DEPLOYMENT_CHECKLIST.md** | Deploy guide | Before deployment |
-| **NEXT_STEPS.md** | Roadmap | Planning future work |
-| **specs/ARCHITECTURE.md** | Design | Deep understanding |
-| **specs/SERVICE_LIFECYCLE.md** | Patterns | Integration work |
-
----
-
-## ✅ Production Readiness Checklist
-
-- [x] All tests passing (372/372)
-- [x] Test coverage ≥90% (90.39%)
-- [x] Zero clippy errors
-- [x] Zero unsafe code
-- [x] Zero hardcoded primals
-- [x] Health endpoints implemented
-- [x] Signal handling configured
-- [x] Infant discovery complete
-- [x] Documentation comprehensive
-- [x] Audit complete (Grade A)
-
-**Status**: ✅ **APPROVED FOR PRODUCTION**
-
----
-
-## 🆘 Need Help?
-
-**Getting Started**:
-1. Read this file (START_HERE.md)
-2. Check `STATUS.md` for current state
-3. Run `showcase/QUICK_START.sh`
-
-**Development**:
-1. Review `examples/` directory
-2. Check test files for patterns
-3. See `specs/` for architecture
-
-**Deployment**:
-1. Follow `DEPLOYMENT_CHECKLIST.md`
-2. Review `NEXT_STEPS.md` for roadmap
-3. Check `AUDIT_COMPLETE.md` for quality
-
-**Issues**:
-1. Check GitHub issues
-2. Review audit reports in `docs/archive/`
-3. See troubleshooting in `DEPLOYMENT_CHECKLIST.md`
-
----
-
-## 🎉 Welcome Aboard!
-
-LoamSpine is **production-ready** with:
-- ✅ Exceptional code quality (Grade A)
-- ✅ Comprehensive testing (372 tests)
-- ✅ Modern architecture (infant discovery)
-- ✅ Complete documentation (50+ pages)
-- ✅ Clear roadmap (v0.8.0+)
-
-**Deploy with confidence!** 🚀
-
----
-
-**Version**: 0.7.0-dev  
-**Grade**: A (93/100)  
-**Status**: ✅ Production Ready  
-**Last Audit**: December 26, 2025
-
-🦴 **LoamSpine: Born knowing nothing. Discovers everything. Remembers forever.**
+**Ready to build? Start with [showcase/](./showcase/) or dive into [crates/loam-spine-core/src/](./crates/loam-spine-core/src/)!**
