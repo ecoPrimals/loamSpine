@@ -3,17 +3,17 @@
 **Permanence Layer — Selective Memory & Loam Certificates**
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-332%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-90.72%25-brightgreen)]()
-[![Clippy](https://img.shields.io/badge/clippy-0%20warnings-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-372%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-90.39%25-brightgreen)]()
+[![Clippy](https://img.shields.io/badge/clippy-0%20errors-brightgreen)]()
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue)]()
-[![Version](https://img.shields.io/badge/version-0.6.1-blue)]()
-[![Songbird](https://img.shields.io/badge/songbird-integrated-purple)]()
-[![Grade](https://img.shields.io/badge/grade-A%2B%20(98%2F100)-gold)]()
+[![Version](https://img.shields.io/badge/version-0.7.0--dev-blue)]()
+[![Discovery](https://img.shields.io/badge/infant%20discovery-complete-purple)]()
+[![Grade](https://img.shields.io/badge/grade-A%20(93%2F100)-gold)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-forbidden-red)]()
-[![Hardcoding](https://img.shields.io/badge/hardcoded%20endpoints-0-green)]()
+[![Hardcoding](https://img.shields.io/badge/hardcoded%20primals-0-green)]()
 [![Status](https://img.shields.io/badge/status-production%20ready-success)]()
-[![Benchmarks](https://img.shields.io/badge/benchmarks-working-green)]()
+[![Audit](https://img.shields.io/badge/audit-2025--12--26-green)]()
 
 
 ---

@@ -62,46 +62,50 @@ impl LifecycleManager {
 
         // Check both new and deprecated fields for backward compatibility
         #[allow(deprecated)]
-        let discovery_enabled = self.config.discovery.discovery_enabled 
-            || self.config.discovery.songbird_enabled;
-        
+        let discovery_enabled =
+            self.config.discovery.discovery_enabled || self.config.discovery.songbird_enabled;
+
         #[allow(deprecated)]
-        let discovery_endpoint = self.config.discovery.discovery_endpoint.clone()
+        let discovery_endpoint = self
+            .config
+            .discovery
+            .discovery_endpoint
+            .clone()
             .or_else(|| self.config.discovery.songbird_endpoint.clone());
 
         // Connect to discovery service if enabled
         if discovery_enabled {
             // Try infant discovery if no endpoint configured
-            let endpoint = if let Some(ep) = discovery_endpoint {
-                ep
-            } else {
-                tracing::info!("📍 No discovery endpoint configured, attempting infant discovery...");
-                
+            let Some(endpoint) = discovery_endpoint else {
+                tracing::info!(
+                    "📍 No discovery endpoint configured, attempting infant discovery..."
+                );
+
                 // Use infant discovery to find the discovery service
                 let infant = crate::service::InfantDiscovery::new(vec![
                     "persistent-ledger".to_string(),
                     "waypoint-anchoring".to_string(),
                     "certificate-manager".to_string(),
                 ]);
-                
+
                 match infant.discover_discovery_service().await {
                     Ok(client) => {
                         tracing::info!("✅ Infant discovery successful!");
                         self.discovery_client = Some(client);
-                        
+
                         // Advertise and start heartbeat
                         if self.config.discovery.auto_advertise {
                             if let Some(ref client) = self.discovery_client {
                                 self.advertise_capabilities(client).await?;
                             }
                         }
-                        
+
                         if self.config.discovery.heartbeat_interval_seconds > 0 {
                             if let Some(client) = self.discovery_client.clone() {
                                 self.start_heartbeat_task(client);
                             }
                         }
-                        
+
                         tracing::info!("✅ LoamSpine service lifecycle started");
                         return Ok(());
                     }
@@ -109,12 +113,14 @@ impl LifecycleManager {
                         tracing::warn!(
                             "⚠️  Infant discovery failed: {e}. Continuing without discovery."
                         );
-                        tracing::info!("✅ LoamSpine service lifecycle started (without discovery)");
+                        tracing::info!(
+                            "✅ LoamSpine service lifecycle started (without discovery)"
+                        );
                         return Ok(());
                     }
                 }
             };
-            
+
             // We have an endpoint, try to connect
             tracing::info!("📡 Connecting to discovery service at {endpoint}...");
 

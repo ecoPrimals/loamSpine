@@ -7,6 +7,7 @@
 //! - `/health/ready` - Readiness probe (ready for traffic?)
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 /// Health status response.
@@ -86,18 +87,92 @@ pub struct ReadinessProbe {
     pub reason: Option<String>,
 }
 
+/// Health check function for storage backend.
+///
+/// This is a trait object that can check storage health without coupling
+/// to specific storage implementations.
+pub type StorageHealthCheck = Arc<dyn Fn() -> bool + Send + Sync>;
+
+/// Health check function for discovery service.
+///
+/// This is a trait object that can check discovery service health without
+/// coupling to specific discovery implementations.
+pub type DiscoveryHealthCheck = Arc<dyn Fn() -> Option<bool> + Send + Sync>;
+
 /// Health checker for `LoamSpine` service.
+///
+/// Uses dependency injection for health checks to maintain capability-based
+/// architecture without hardcoding specific implementations.
 pub struct HealthChecker {
     /// Service start time.
     start_time: SystemTime,
+
+    /// Storage health check function (optional).
+    storage_check: Option<StorageHealthCheck>,
+
+    /// Discovery service health check function (optional).
+    discovery_check: Option<DiscoveryHealthCheck>,
 }
 
 impl HealthChecker {
-    /// Create a new health checker.
+    /// Create a new health checker with no health check functions.
+    ///
+    /// This is suitable for basic health checks that only verify the process is alive.
     #[must_use]
     pub fn new() -> Self {
         Self {
             start_time: SystemTime::now(),
+            storage_check: None,
+            discovery_check: None,
+        }
+    }
+
+    /// Create a health checker with storage health check.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use loam_spine_api::health::HealthChecker;
+    /// use std::sync::Arc;
+    ///
+    /// let storage_health = Arc::new(|| {
+    ///     // Check if storage is accessible
+    ///     true  // Replace with actual storage ping
+    /// });
+    ///
+    /// let checker = HealthChecker::with_storage_check(storage_health);
+    /// ```
+    #[must_use]
+    pub fn with_storage_check(storage_check: StorageHealthCheck) -> Self {
+        Self {
+            start_time: SystemTime::now(),
+            storage_check: Some(storage_check),
+            discovery_check: None,
+        }
+    }
+
+    /// Create a health checker with both storage and discovery health checks.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use loam_spine_api::health::HealthChecker;
+    /// use std::sync::Arc;
+    ///
+    /// let storage_health = Arc::new(|| true);
+    /// let discovery_health = Arc::new(|| Some(true));
+    ///
+    /// let checker = HealthChecker::with_checks(storage_health, discovery_health);
+    /// ```
+    #[must_use]
+    pub fn with_checks(
+        storage_check: StorageHealthCheck,
+        discovery_check: DiscoveryHealthCheck,
+    ) -> Self {
+        Self {
+            start_time: SystemTime::now(),
+            storage_check: Some(storage_check),
+            discovery_check: Some(discovery_check),
         }
     }
 
@@ -178,20 +253,30 @@ impl HealthChecker {
     }
 
     /// Check storage backend health.
+    ///
+    /// Executes the configured storage health check function, or returns `true`
+    /// if no check function is configured (optimistic default).
     fn check_storage(&self) -> bool {
-        // TODO: Implement actual storage health check
-        // For now, assume storage is healthy if we can reach this code
-        let _ = self; // Use self to satisfy clippy
-        true
+        match &self.storage_check {
+            Some(check) => check(),
+            None => true, // No check configured, assume healthy
+        }
     }
 
     /// Check discovery service health (universal adapter).
+    ///
+    /// Executes the configured discovery health check function, or returns `None`
+    /// if no check function is configured (discovery not enabled).
+    ///
+    /// Returns:
+    /// - `None`: Discovery service not configured
+    /// - `Some(true)`: Discovery service is healthy
+    /// - `Some(false)`: Discovery service is unavailable
     fn check_discovery(&self) -> Option<bool> {
-        // TODO: Implement actual discovery service health check
-        // Return None if discovery is not configured
-        // Return Some(true/false) based on connectivity
-        let _ = self; // Use self to satisfy clippy
-        None
+        match &self.discovery_check {
+            Some(check) => check(),
+            None => None, // No check configured, discovery not enabled
+        }
     }
 }
 
@@ -200,6 +285,39 @@ impl Default for HealthChecker {
         Self::new()
     }
 }
+
+/// Example: Create health check functions from storage and discovery dependencies.
+///
+/// This shows how to integrate with actual storage backends and discovery clients
+/// while maintaining capability-based architecture.
+///
+/// # Example with Sled storage
+///
+/// ```no_run
+/// use loam_spine_api::health::HealthChecker;
+/// use std::sync::Arc;
+///
+/// // Example: Create storage health check
+/// // In production, you would pass the actual storage backend
+/// let storage_health = Arc::new(|| {
+///     // Try to verify storage is accessible
+///     // For Sled: check if database can be opened/pinged
+///     // For in-memory: always return true
+///     true
+/// });
+///
+/// // Example: Create discovery service health check
+/// let discovery_health = Arc::new(|| {
+///     // Try to ping discovery service
+///     // Return None if not configured
+///     // Return Some(true/false) based on connectivity
+///     Some(true)
+/// });
+///
+/// let checker = HealthChecker::with_checks(storage_health, discovery_health);
+/// ```
+#[cfg(doc)]
+pub fn example_health_checks() {}
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
