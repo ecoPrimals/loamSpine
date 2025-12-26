@@ -438,16 +438,16 @@ impl LoamSpineRpcService {
 
         Ok(HealthCheckResponse { status, report })
     }
-    
-    /// Liveness probe (Kubernetes-style).
+
+    /// Liveness probe (standard container orchestrator endpoint).
     ///
     /// Returns whether the process is alive.
     pub async fn liveness(&self) -> crate::health::LivenessProbe {
         // If we can execute this code, we're alive
         crate::health::LivenessProbe { alive: true }
     }
-    
-    /// Readiness probe (Kubernetes-style).
+
+    /// Readiness probe (standard container orchestrator endpoint).
     ///
     /// Returns whether the service is ready for traffic.
     ///
@@ -457,7 +457,7 @@ impl LoamSpineRpcService {
     pub async fn readiness(&self) -> ApiResult<crate::health::ReadinessProbe> {
         // Check if we can access core service
         let _core = self.core().await;
-        
+
         // If we got here, we're ready
         Ok(crate::health::ReadinessProbe {
             ready: true,

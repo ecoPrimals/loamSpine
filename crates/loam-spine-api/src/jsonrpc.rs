@@ -116,12 +116,12 @@ pub trait LoamSpineJsonRpcApi {
     /// Health check (detailed status).
     #[method(name = "loamspine.healthCheck")]
     async fn health_check(&self, request: HealthCheckRequest) -> RpcResult<HealthCheckResponse>;
-    
-    /// Liveness probe (Kubernetes-style).
+
+    /// Liveness probe (standard container orchestrator endpoint).
     #[method(name = "loamspine.liveness")]
     async fn liveness(&self) -> RpcResult<LivenessProbe>;
-    
-    /// Readiness probe (Kubernetes-style).
+
+    /// Readiness probe (standard container orchestrator endpoint).
     #[method(name = "loamspine.readiness")]
     async fn readiness(&self) -> RpcResult<ReadinessProbe>;
 
@@ -287,11 +287,11 @@ impl LoamSpineJsonRpcApiServer for LoamSpineJsonRpc {
             .await
             .map_err(to_rpc_error)
     }
-    
+
     async fn liveness(&self) -> RpcResult<crate::health::LivenessProbe> {
         Ok(self.service.liveness().await)
     }
-    
+
     async fn readiness(&self) -> RpcResult<crate::health::ReadinessProbe> {
         self.service.readiness().await.map_err(to_rpc_error)
     }

@@ -1,261 +1,306 @@
 # 📚 LoamSpine Documentation Index
 
-**Version**: 0.6.3  
+**Version**: 0.7.0-dev  
 **Last Updated**: December 25, 2025  
-**Status**: ✅ All documentation current and accurate
+**Status**: Production Ready
 
 ---
 
-## 🎯 Start Here
+## 🚀 GETTING STARTED
 
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| **START_HERE.md** | Project entry point | Everyone |
-| **EXECUTIVE_SUMMARY.md** | High-level status | Management, Ops |
-| **README.md** | Project overview | Developers |
-| **STATUS.md** | Detailed metrics | Developers, Ops |
+### For New Users
+1. **[START_HERE.md](START_HERE.md)** — Your first stop! Quick start guide
+2. **[README.md](README.md)** — Project overview, features, and architecture
+3. **[CONTRIBUTING.md](CONTRIBUTING.md)** — How to contribute to LoamSpine
 
----
-
-## 🏆 Achievement Reports
-
-| Document | What It Covers |
-|----------|----------------|
-| **COMPLETE_SUCCESS_DEC_25_2025.md** | Complete achievement summary (490 lines) |
-| **SESSION_FINAL_DEC_25_2025.md** | Final session report (417 lines) |
-| **IMPLEMENTATION_PROGRESS_DEC_25_2025.md** | Session 2 implementation details |
-| **SESSION_COMPLETE_DEC_25_2025.md** | Session 1 completion summary |
-| **SESSION_PROGRESS_DEC_25_2025.md** | Session progress tracking |
-
-**Recommendation**: Start with `COMPLETE_SUCCESS_DEC_25_2025.md` for full story.
+### Quick Navigation
+- 🎯 Current status → [STATUS.md](STATUS.md)
+- 🗺️ Future plans → [WHATS_NEXT.md](WHATS_NEXT.md) & [ROADMAP_V0.8.0.md](ROADMAP_V0.8.0.md)
+- 📊 Quality metrics → [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md)
+- 🔗 Integration status → [INTEGRATION_GAPS.md](INTEGRATION_GAPS.md)
 
 ---
 
-## 🔍 Gap Analysis & Solutions
+## 📊 CURRENT STATUS
 
-| Document | Focus |
-|----------|-------|
-| **INTEGRATION_GAPS.md** ⭐ | All 10 gaps discovered and resolved (803 lines) |
-| **CLIPPY_FIXES_DEEP_SOLUTIONS.md** | Deep solutions for 42 clippy errors |
-| **REFACTORING_RECOMMENDATIONS.md** | Smart refactoring strategies for large files |
+### Project Health (v0.7.0-dev)
+- **[STATUS.md](STATUS.md)** — Current project status and metrics
+- **[AUDIT_SUMMARY.md](AUDIT_SUMMARY.md)** — Latest quality audit (A grade, 95/100)
+- **[INTEGRATION_GAPS.md](INTEGRATION_GAPS.md)** — Integration gap tracking (all resolved)
 
-**Key Achievement**: 100% gap resolution (10/10)
-
----
-
-## 📐 Architecture & Specifications
-
-| Document | Coverage |
-|----------|----------|
-| **specs/ARCHITECTURE.md** | System design, patterns, principles |
-| **specs/DATA_MODEL.md** | Entry types, spine structure, certificates |
-| **specs/SERVICE_LIFECYCLE.md** | Lifecycle management, health checks |
-| **specs/PURE_RUST_RPC.md** | RPC implementation details |
-| **specs/API_SPECIFICATION.md** | JSON-RPC API reference |
-| **specs/INTEGRATION_SPECIFICATION.md** | Inter-primal integration patterns |
-| **specs/STORAGE_BACKENDS.md** | Storage implementation options |
+### Key Metrics
+- ✅ **372 tests** passing (90.39% coverage)
+- ✅ **Zero unsafe code**
+- ✅ **Zero clippy warnings**
+- ✅ **Infant discovery** complete
+- ✅ **30% hardcoding reduction**
 
 ---
 
-## 🎭 Showcase & Demonstrations
+## 🗺️ PLANNING & ROADMAP
 
-| Document | Purpose |
-|----------|---------|
-| **SHOWCASE_EVOLUTION_PLAN.md** | Demo roadmap and learning progression |
-| **SHOWCASE_STATUS.md** | Current demo implementation status |
-| **showcase/** (directory) | 10 live demos with real binaries |
+### Current & Future
+- **[ROADMAP_V0.8.0.md](ROADMAP_V0.8.0.md)** — v0.8.0 implementation plan (DNS SRV + mDNS)
+- **[WHATS_NEXT.md](WHATS_NEXT.md)** — High-level future direction
 
-**Demos Completed**: 10/10 (100%)
-
----
-
-## 🚀 Planning & Roadmap
-
-| Document | Type |
-|----------|------|
-| **ZERO_COPY_MIGRATION_PLAN.md** | Performance optimization plan |
-| **WHATS_NEXT.md** | Optional future enhancements |
-
-**Note**: All items optional. System is production-ready as-is.
+### Technical Planning
+All planning documents are in `docs/planning/`:
+- **[EXECUTIVE_SUMMARY.md](docs/planning/EXECUTIVE_SUMMARY.md)** — Project executive summary
+- **[KNOWN_ISSUES.md](docs/planning/KNOWN_ISSUES.md)** — Known issues and limitations
+- **[REFACTORING_RECOMMENDATIONS.md](docs/planning/REFACTORING_RECOMMENDATIONS.md)** — Future refactoring ideas
+- **[SHOWCASE_EVOLUTION_PLAN.md](docs/planning/SHOWCASE_EVOLUTION_PLAN.md)** — Showcase development plan
+- **[SHOWCASE_STATUS.md](docs/planning/SHOWCASE_STATUS.md)** — Current showcase status
+- **[ZERO_COPY_MIGRATION_PLAN.md](docs/planning/ZERO_COPY_MIGRATION_PLAN.md)** — Zero-copy RPC migration plan
 
 ---
 
-## 📝 Project Metadata
+## 📖 SPECIFICATIONS
 
-| Document | Content |
-|----------|---------|
-| **CHANGELOG.md** | Version history |
-| **RELEASE_NOTES_v0.6.0.md** | v0.6.0 release details |
-| **CONTRIBUTING.md** | Contribution guidelines |
-| **KNOWN_ISSUES.md** | Known issues (currently empty) |
+### Core Specifications (`specs/`)
+Complete technical specifications for LoamSpine:
+
+1. **[00_SPECIFICATIONS_INDEX.md](specs/00_SPECIFICATIONS_INDEX.md)** — Specs navigation
+2. **[LOAMSPINE_SPECIFICATION.md](specs/LOAMSPINE_SPECIFICATION.md)** — Core specification
+3. **[ARCHITECTURE.md](specs/ARCHITECTURE.md)** — System architecture
+4. **[DATA_MODEL.md](specs/DATA_MODEL.md)** — Data structures and models
+5. **[API_SPECIFICATION.md](specs/API_SPECIFICATION.md)** — RPC API specification
+6. **[PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md)** — Pure Rust RPC philosophy
+7. **[WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md)** — Waypoint system
+8. **[CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md)** — Certificate management
+9. **[SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md)** — Service lifecycle protocol
+10. **[INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md)** — Inter-primal integration
+11. **[STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md)** — Storage backend abstraction
+
+---
+
+## 🎯 SHOWCASES & EXAMPLES
+
+### Showcase Directory (`showcase/`)
+Practical examples and demonstrations:
+
+#### Level 0: Local Primal Operations
+**[showcase/01-local-primal/](showcase/01-local-primal/README.md)**
+- Basic operations without dependencies
+- Entry types, certificates, proofs
+- Storage backends, backup/restore
+- 7 complete demos
+
+#### Level 1: RPC API
+**[showcase/02-rpc-api/](showcase/02-rpc-api/README.md)**
+- tarpc and JSON-RPC basics
+- Health monitoring
+- Concurrent operations
+- Error handling
+- 5 complete demos
+
+#### Level 2: Service Discovery
+**[showcase/03-songbird-discovery/](showcase/03-songbird-discovery/README.md)**
+- Songbird integration
+- Capability discovery
+- Auto-advertisement
+- Heartbeat monitoring
+- 4 complete demos
+
+#### Level 3: Inter-Primal Integration
+**[showcase/04-inter-primal/](showcase/04-inter-primal/README.md)**
+- Session and braid commits
+- Signing and storage capabilities
+- Full ecosystem integration
+- 5 complete demos
+
+#### Showcase Documentation
+- **[00_SHOWCASE_INDEX.md](showcase/00_SHOWCASE_INDEX.md)** — Complete showcase navigation
+- **[SHOWCASE_PRINCIPLES.md](showcase/SHOWCASE_PRINCIPLES.md)** — Testing philosophy
+- **[README.md](showcase/README.md)** — Showcase overview
 
 ---
 
-## 📂 Documentation Organization
+## 📜 HISTORY & ARCHIVES
 
-### By Audience
+### Version History
+- **[CHANGELOG.md](CHANGELOG.md)** — Complete version history
+- **[RELEASE_NOTES_v0.6.0.md](RELEASE_NOTES_v0.6.0.md)** — v0.6.0 release notes
 
-**For Executives/Management**:
-1. `EXECUTIVE_SUMMARY.md` — High-level status
-2. `COMPLETE_SUCCESS_DEC_25_2025.md` — Achievement report
+### Historical Archives (`docs/archive/`)
+Complete session reports and evolution history:
 
-**For Operators/DevOps**:
-1. `STATUS.md` — Current metrics
-2. `START_HERE.md` — Deployment guide
-3. `specs/SERVICE_LIFECYCLE.md` — Operational patterns
+#### December 24, 2025: Foundation Evolution
+**[docs/archive/dec-24-2025-evolution/](docs/archive/)**
+- Initial comprehensive audit
+- Code quality improvements
+- Showcase development
+- Service lifecycle implementation
 
-**For Developers**:
-1. `START_HERE.md` — Getting started
-2. `README.md` — Project overview
-3. `specs/` — All specifications
-4. `INTEGRATION_GAPS.md` — Lessons learned
-5. `REFACTORING_RECOMMENDATIONS.md` — Code quality
+#### December 25, 2025: Infant Discovery
+**[docs/archive/dec-25-2025-infant-discovery/](docs/archive/dec-25-2025-infant-discovery/)**
+- Hardcoding elimination (18 detailed reports)
+- Infant discovery implementation
+- Capability-based architecture evolution
+- Zero-knowledge startup achievement
 
-**For Architects**:
-1. `specs/ARCHITECTURE.md` — System design
-2. `specs/DATA_MODEL.md` — Data structures
-3. `INTEGRATION_GAPS.md` — Integration patterns
+Key archived documents:
+- **PHASE_1_2_COMPLETE_DEC_25_2025.md** — Full completion report
+- **HARDCODING_ELIMINATION_PLAN.md** — Hardcoding cleanup strategy
+- **COMPREHENSIVE_AUDIT_DEC_25_2025.md** — Complete audit report
+- **SESSION_COMPLETE_DEC_25_2025.md** — Session summary
 
 ---
+
+## 🔍 FINDING INFORMATION
 
 ### By Topic
 
-**Status & Metrics**:
-- `STATUS.md`
-- `EXECUTIVE_SUMMARY.md`
-- `COMPLETE_SUCCESS_DEC_25_2025.md`
+#### Architecture & Design
+- Core architecture → [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md)
+- Data model → [specs/DATA_MODEL.md](specs/DATA_MODEL.md)
+- Pure Rust RPC → [specs/PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md)
+- Service lifecycle → [specs/SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md)
 
-**Implementation**:
-- `INTEGRATION_GAPS.md` (all gaps resolved)
-- `CLIPPY_FIXES_DEEP_SOLUTIONS.md`
-- `IMPLEMENTATION_PROGRESS_DEC_25_2025.md`
+#### Implementation
+- API specification → [specs/API_SPECIFICATION.md](specs/API_SPECIFICATION.md)
+- Integration patterns → [specs/INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md)
+- Storage backends → [specs/STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md)
+- Examples & demos → [showcase/](showcase/)
 
-**Architecture**:
-- `specs/ARCHITECTURE.md`
-- `specs/DATA_MODEL.md`
-- `specs/SERVICE_LIFECYCLE.md`
+#### Quality & Status
+- Current status → [STATUS.md](STATUS.md)
+- Audit results → [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md)
+- Integration gaps → [INTEGRATION_GAPS.md](INTEGRATION_GAPS.md)
+- Known issues → [docs/planning/KNOWN_ISSUES.md](docs/planning/KNOWN_ISSUES.md)
 
-**Demonstrations**:
-- `showcase/` (10 demos)
-- `SHOWCASE_EVOLUTION_PLAN.md`
-
-**Planning**:
-- `ZERO_COPY_MIGRATION_PLAN.md`
-- `REFACTORING_RECOMMENDATIONS.md`
-- `WHATS_NEXT.md`
-
----
-
-## 🎯 Reading Paths
-
-### Quick Start (15 minutes)
-1. `START_HERE.md`
-2. `EXECUTIVE_SUMMARY.md`
-3. `STATUS.md`
-
-### Comprehensive Overview (1 hour)
-1. `START_HERE.md`
-2. `EXECUTIVE_SUMMARY.md`
-3. `COMPLETE_SUCCESS_DEC_25_2025.md`
-4. `INTEGRATION_GAPS.md` (overview sections)
-
-### Deep Technical Dive (4+ hours)
-1. All of the above
-2. `specs/ARCHITECTURE.md`
-3. `specs/DATA_MODEL.md`
-4. `specs/SERVICE_LIFECYCLE.md`
-5. `INTEGRATION_GAPS.md` (complete)
-6. `REFACTORING_RECOMMENDATIONS.md`
-
-### Learning Through Examples (2+ hours)
-1. `START_HERE.md`
-2. Run all demos in `showcase/`
-3. Review `crates/loam-spine-core/examples/`
+#### Future & Planning
+- Next version → [ROADMAP_V0.8.0.md](ROADMAP_V0.8.0.md)
+- Long-term plans → [WHATS_NEXT.md](WHATS_NEXT.md)
+- Refactoring ideas → [docs/planning/REFACTORING_RECOMMENDATIONS.md](docs/planning/REFACTORING_RECOMMENDATIONS.md)
+- Zero-copy migration → [docs/planning/ZERO_COPY_MIGRATION_PLAN.md](docs/planning/ZERO_COPY_MIGRATION_PLAN.md)
 
 ---
 
-## 📊 Documentation Statistics
+## 📂 DIRECTORY STRUCTURE
 
-| Category | Count |
-|----------|-------|
-| **Root Documents** | 22 |
-| **Specifications** | 8 |
-| **Showcase Demos** | 10 |
-| **Code Examples** | 12 |
-| **Total Lines** | ~15,000+ |
-
----
-
-## ✅ Documentation Quality
-
-All documentation is:
-- ✅ Current (December 25, 2025)
-- ✅ Accurate (reflects actual implementation)
-- ✅ Comprehensive (covers all aspects)
-- ✅ Well-organized (clear structure)
-- ✅ Cross-referenced (easy navigation)
-
----
-
-## 🔄 Maintenance
-
-### When to Update
-
-**After Code Changes**:
-- Update `STATUS.md` if metrics change
-- Update `CHANGELOG.md` with changes
-- Update relevant `specs/` files
-
-**After Major Features**:
-- Add to achievement reports
-- Update gap analysis if new gaps found
-- Update showcase demos
-
-**Quarterly**:
-- Review `WHATS_NEXT.md`
-- Archive old session reports
-- Update `EXECUTIVE_SUMMARY.md`
-
----
-
-## 📁 Archive
-
-Old/superseded documents are in `archive/`:
-- `AUDIT_AND_SHOWCASE_ACTION_PLAN.md`
-- `AUDIT_FINDINGS_SUMMARY.md`
-- `COMPREHENSIVE_AUDIT_REPORT_DEC_24_2025.md`
-- `FINAL_SESSION_REPORT.md`
-- `DOCS_CLEANUP_SUMMARY.md`
-
-**Kept for historical reference only.**
+```
+loamSpine/
+├── README.md                  # Project overview
+├── START_HERE.md              # Quick start
+├── STATUS.md                  # Current status
+├── WHATS_NEXT.md              # Future plans
+├── ROADMAP_V0.8.0.md          # v0.8.0 roadmap
+├── AUDIT_SUMMARY.md           # Quality metrics
+├── INTEGRATION_GAPS.md        # Integration status
+├── CHANGELOG.md               # Version history
+├── CONTRIBUTING.md            # Contribution guide
+├── DOCS_INDEX.md              # This file!
+│
+├── specs/                     # Technical specifications
+│   ├── 00_SPECIFICATIONS_INDEX.md
+│   ├── LOAMSPINE_SPECIFICATION.md
+│   ├── ARCHITECTURE.md
+│   └── ... (8 more)
+│
+├── showcase/                  # Examples & demos
+│   ├── 00_SHOWCASE_INDEX.md
+│   ├── 01-local-primal/      # Level 0 demos
+│   ├── 02-rpc-api/           # Level 1 demos
+│   ├── 03-songbird-discovery/ # Level 2 demos
+│   └── 04-inter-primal/      # Level 3 demos
+│
+├── docs/
+│   ├── planning/             # Technical planning docs
+│   │   ├── EXECUTIVE_SUMMARY.md
+│   │   ├── KNOWN_ISSUES.md
+│   │   └── ... (4 more)
+│   │
+│   └── archive/              # Historical reports
+│       ├── dec-24-2025-evolution/
+│       └── dec-25-2025-infant-discovery/
+│
+├── crates/                   # Source code
+│   ├── loam-spine-core/
+│   └── loam-spine-api/
+│
+└── ... (other files)
+```
 
 ---
 
-## 🎯 Quick Links
+## 🎓 LEARNING PATHS
 
-**Must Read** (⭐ Priority):
-- ⭐ `START_HERE.md`
-- ⭐ `EXECUTIVE_SUMMARY.md`
-- ⭐ `STATUS.md`
-- ⭐ `INTEGRATION_GAPS.md`
+### Path 1: New Developer
+1. [START_HERE.md](START_HERE.md)
+2. [README.md](README.md)
+3. [showcase/01-local-primal/](showcase/01-local-primal/)
+4. [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md)
+5. [CONTRIBUTING.md](CONTRIBUTING.md)
 
-**Production Deployment**:
-- `STATUS.md` (deployment guide)
-- `specs/SERVICE_LIFECYCLE.md`
+### Path 2: Integration Developer
+1. [specs/INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md)
+2. [specs/API_SPECIFICATION.md](specs/API_SPECIFICATION.md)
+3. [showcase/03-songbird-discovery/](showcase/03-songbird-discovery/)
+4. [showcase/04-inter-primal/](showcase/04-inter-primal/)
+5. [INTEGRATION_GAPS.md](INTEGRATION_GAPS.md)
 
-**Development**:
-- `README.md`
-- `specs/ARCHITECTURE.md`
-- `showcase/` (live demos)
+### Path 3: Project Manager / Stakeholder
+1. [STATUS.md](STATUS.md)
+2. [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md)
+3. [docs/planning/EXECUTIVE_SUMMARY.md](docs/planning/EXECUTIVE_SUMMARY.md)
+4. [ROADMAP_V0.8.0.md](ROADMAP_V0.8.0.md)
+5. [WHATS_NEXT.md](WHATS_NEXT.md)
 
-**Lessons Learned**:
-- `INTEGRATION_GAPS.md`
-- `CLIPPY_FIXES_DEEP_SOLUTIONS.md`
-- `REFACTORING_RECOMMENDATIONS.md`
+### Path 4: Quality Assurance
+1. [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md)
+2. [INTEGRATION_GAPS.md](INTEGRATION_GAPS.md)
+3. [docs/planning/KNOWN_ISSUES.md](docs/planning/KNOWN_ISSUES.md)
+4. [showcase/](showcase/)
+5. [specs/](specs/)
+
+---
+
+## 🔗 EXTERNAL LINKS
+
+### Related Projects
+- **Phase 1 Primals**: `../../phase1/`
+  - BearDog (signing service)
+  - Songbird (discovery/orchestration)
+  - NestGate (data gateway)
+  - Squirrel (AI service)
+  - ToadStool (compute/encryption)
+
+### Dependencies
+- Rust: https://www.rust-lang.org/
+- tarpc: https://github.com/google/tarpc
+- tokio: https://tokio.rs/
+
+---
+
+## 📝 DOCUMENT CONVENTIONS
+
+### Naming
+- `UPPERCASE.md` — Root-level important documents
+- `CamelCase.md` — Subdirectory documents
+- `kebab-case/` — Directory names
+- `DEC_25_2025` suffix — Dated documents (archived)
+
+### Status Indicators
+- ✅ Complete/Working
+- 🟡 In Progress
+- ❌ Not Started/Broken
+- 📋 Planned
+- 🔵 Future Enhancement
+
+---
+
+## 🆘 NEED HELP?
+
+1. **Quick Start**: [START_HERE.md](START_HERE.md)
+2. **Current Status**: [STATUS.md](STATUS.md)
+3. **Known Issues**: [docs/planning/KNOWN_ISSUES.md](docs/planning/KNOWN_ISSUES.md)
+4. **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
+5. **Examples**: [showcase/](showcase/)
 
 ---
 
 **Last Updated**: December 25, 2025  
-**Documentation Status**: ✅ Complete and Current
+**Maintained By**: LoamSpine Development Team  
+**Version**: 0.7.0-dev (Infant Discovery Complete)
 
-🦴 **LoamSpine: Comprehensively documented, production-ready**
+🦴 **LoamSpine: Permanent ledger for ecoPrimals ecosystem**

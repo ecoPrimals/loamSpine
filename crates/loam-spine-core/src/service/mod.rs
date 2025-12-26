@@ -7,6 +7,7 @@
 //! - **Certificate**: Certificate lifecycle operations (mint, transfer, loan, return)
 //! - **Integration**: Trait implementations (CommitAcceptor, SliceManager, SpineQuery, BraidAcceptor)
 //! - **Waypoint**: Slice anchoring and proof generation
+//! - **Infant Discovery**: Zero-knowledge startup with runtime service discovery
 //!
 //! ## Capability-Based Design
 //!
@@ -15,12 +16,14 @@
 //! Other primals are discovered at runtime, not compile time.
 
 mod certificate;
+pub mod infant_discovery;
 mod integration;
 mod lifecycle;
 pub mod signals;
 mod waypoint;
 
-// Re-export lifecycle manager
+// Re-export lifecycle manager and infant discovery
+pub use infant_discovery::InfantDiscovery;
 pub use lifecycle::LifecycleManager;
 
 use std::collections::HashMap;

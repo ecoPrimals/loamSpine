@@ -27,24 +27,59 @@ pub struct LoamSpineConfig {
 }
 
 /// Discovery configuration for finding other primals.
+///
+/// **Infant Discovery Philosophy**: LoamSpine starts knowing only itself and discovers
+/// everything else at runtime through the universal adapter (discovery service).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DiscoveryConfig {
-    /// Enable Songbird discovery.
+    /// Enable discovery service (universal adapter).
+    ///
+    /// When enabled, LoamSpine will attempt to discover and register with a
+    /// discovery service using the configured endpoint or auto-discovery methods.
+    pub discovery_enabled: bool,
+
+    /// Discovery service endpoint (universal adapter).
+    ///
+    /// If `None`, will attempt auto-discovery via:
+    /// 1. `DISCOVERY_ENDPOINT` environment variable
+    /// 2. DNS SRV records (_discovery._tcp.local)
+    /// 3. mDNS (local network)
+    /// 4. Development fallback (localhost:8082, logged as warning)
+    pub discovery_endpoint: Option<String>,
+
+    /// DEPRECATED: Use `discovery_enabled` instead.
+    ///
+    /// This field is maintained for backward compatibility and will be removed in v1.0.0.
+    #[deprecated(since = "0.7.0", note = "Use discovery_enabled instead")]
+    #[serde(default)]
     pub songbird_enabled: bool,
 
-    /// Songbird discovery endpoint.
+    /// DEPRECATED: Use `discovery_endpoint` instead.
+    ///
+    /// This field is maintained for backward compatibility and will be removed in v1.0.0.
+    #[deprecated(since = "0.7.0", note = "Use discovery_endpoint instead")]
+    #[serde(default)]
     pub songbird_endpoint: Option<String>,
 
     /// tarpc endpoint for binary RPC (primal-to-primal communication).
+    ///
+    /// Set to `0.0.0.0:0` to let the OS assign an available port.
+    /// Can be overridden via `TARPC_ENDPOINT` environment variable.
     pub tarpc_endpoint: String,
 
     /// JSON-RPC 2.0 endpoint for external clients.
+    ///
+    /// Set to `0.0.0.0:0` to let the OS assign an available port.
+    /// Can be overridden via `JSONRPC_ENDPOINT` environment variable.
     pub jsonrpc_endpoint: String,
 
-    /// Auto-advertise to Songbird on startup.
+    /// Auto-advertise capabilities on startup.
+    ///
+    /// When enabled, LoamSpine will automatically register its capabilities
+    /// with the discovery service after successful connection.
     pub auto_advertise: bool,
 
-    /// Heartbeat interval for re-advertising (seconds).
+    /// Heartbeat interval for maintaining registration (seconds).
     pub heartbeat_interval_seconds: u64,
 
     /// Heartbeat retry configuration.
@@ -52,6 +87,8 @@ pub struct DiscoveryConfig {
     pub heartbeat_retry: HeartbeatRetryConfig,
 
     /// Discovery methods (in priority order).
+    ///
+    /// LoamSpine will attempt each method in order until successful.
     pub methods: Vec<DiscoveryMethod>,
 }
 
@@ -99,16 +136,29 @@ pub enum DiscoveryMethod {
 impl Default for DiscoveryConfig {
     fn default() -> Self {
         Self {
+            // New capability-based fields
+            discovery_enabled: true,
+            // Don't hardcode endpoint - let it be discovered
+            discovery_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
+            
+            // Deprecated fields (for backward compatibility)
+            #[allow(deprecated)]
             songbird_enabled: true,
-            songbird_endpoint: Some("http://localhost:8082".to_string()),
-            tarpc_endpoint: "http://localhost:9001".to_string(),
-            jsonrpc_endpoint: "http://localhost:8080".to_string(),
+            #[allow(deprecated)]
+            songbird_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
+            
+            // Our own endpoints - prefer OS-assigned ports in production
+            tarpc_endpoint: std::env::var("TARPC_ENDPOINT")
+                .unwrap_or_else(|_| "http://0.0.0.0:9001".to_string()),
+            jsonrpc_endpoint: std::env::var("JSONRPC_ENDPOINT")
+                .unwrap_or_else(|_| "http://0.0.0.0:8080".to_string()),
+            
             auto_advertise: true,
             heartbeat_interval_seconds: 60,
             heartbeat_retry: HeartbeatRetryConfig::default(),
             methods: vec![
                 DiscoveryMethod::Environment,
-                DiscoveryMethod::Songbird,
+                DiscoveryMethod::Songbird, // Still named Songbird for now
                 DiscoveryMethod::LocalBinaries,
                 DiscoveryMethod::Fallback,
             ],
@@ -167,12 +217,30 @@ impl LoamSpineConfig {
         self
     }
 
-    /// Enable Songbird discovery.
+    /// Enable discovery service (universal adapter).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use loam_spine_core::config::LoamSpineConfig;
+    ///
+    /// let config = LoamSpineConfig::new("MySpine")
+    ///     .with_discovery_service("http://discovery.example.com:8082");
+    /// ```
     #[must_use]
-    pub fn with_songbird(mut self, endpoint: impl Into<String>) -> Self {
-        self.discovery.songbird_enabled = true;
-        self.discovery.songbird_endpoint = Some(endpoint.into());
+    pub fn with_discovery_service(mut self, endpoint: impl Into<String>) -> Self {
+        self.discovery.discovery_enabled = true;
+        self.discovery.discovery_endpoint = Some(endpoint.into());
         self
+    }
+
+    /// DEPRECATED: Use `with_discovery_service` instead.
+    ///
+    /// Enable Songbird discovery.
+    #[deprecated(since = "0.7.0", note = "Use with_discovery_service instead")]
+    #[must_use]
+    pub fn with_songbird(self, endpoint: impl Into<String>) -> Self {
+        self.with_discovery_service(endpoint)
     }
 }
 
