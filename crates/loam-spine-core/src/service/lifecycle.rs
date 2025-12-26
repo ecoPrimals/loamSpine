@@ -15,14 +15,15 @@ use tokio::time::{interval, Duration};
 
 /// Lifecycle manager for LoamSpine service.
 ///
-/// Handles service startup, runtime tasks, and graceful shutdown.
+/// Handles service startup, runtime tasks, and graceful shutdown following
+/// the **infant discovery** philosophy: start with zero knowledge, discover everything.
 pub struct LifecycleManager {
     /// Service instance.
     service: LoamSpineService,
     /// Configuration.
     config: LoamSpineConfig,
-    /// Songbird client (if connected).
-    songbird_client: Option<crate::songbird::SongbirdClient>,
+    /// Discovery service client (universal adapter).
+    discovery_client: Option<crate::songbird::SongbirdClient>,
     /// Heartbeat task handle.
     heartbeat_task: Option<JoinHandle<()>>,
     /// Shutdown signal.
@@ -36,7 +37,7 @@ impl LifecycleManager {
         Self {
             service,
             config,
-            songbird_client: None,
+            discovery_client: None,
             heartbeat_task: None,
             shutdown: Arc::new(AtomicBool::new(false)),
         }
@@ -44,63 +45,116 @@ impl LifecycleManager {
 
     /// Start the service lifecycle.
     ///
+    /// **Infant Discovery**: LoamSpine starts knowing only itself and discovers
+    /// the discovery service (universal adapter) at runtime.
+    ///
     /// This performs:
-    /// 1. Songbird advertisement (if enabled)
-    /// 2. Capability discovery (if enabled)
+    /// 1. Discovery service connection (infant discovery if no endpoint configured)
+    /// 2. Capability advertisement (if enabled)
     /// 3. Background heartbeat task (if enabled)
     ///
     /// # Errors
     ///
     /// Returns an error if startup operations fail.
+    #[allow(clippy::option_if_let_else)]
     pub async fn start(&mut self) -> LoamSpineResult<()> {
-        tracing::info!("🦴 Starting LoamSpine service lifecycle...");
+        tracing::info!("🦴 Starting LoamSpine service lifecycle (infant discovery mode)...");
 
-        // Connect to Songbird if enabled
-        if self.config.discovery.songbird_enabled {
-            if let Some(ref endpoint) = self.config.discovery.songbird_endpoint {
-                tracing::info!("📡 Connecting to Songbird at {endpoint}...");
+        // Check both new and deprecated fields for backward compatibility
+        #[allow(deprecated)]
+        let discovery_enabled = self.config.discovery.discovery_enabled 
+            || self.config.discovery.songbird_enabled;
+        
+        #[allow(deprecated)]
+        let discovery_endpoint = self.config.discovery.discovery_endpoint.clone()
+            .or_else(|| self.config.discovery.songbird_endpoint.clone());
 
-                // Try to connect, but don't fail if Songbird is unavailable
-                match crate::songbird::SongbirdClient::connect(endpoint).await {
+        // Connect to discovery service if enabled
+        if discovery_enabled {
+            // Try infant discovery if no endpoint configured
+            let endpoint = if let Some(ep) = discovery_endpoint {
+                ep
+            } else {
+                tracing::info!("📍 No discovery endpoint configured, attempting infant discovery...");
+                
+                // Use infant discovery to find the discovery service
+                let infant = crate::service::InfantDiscovery::new(vec![
+                    "persistent-ledger".to_string(),
+                    "waypoint-anchoring".to_string(),
+                    "certificate-manager".to_string(),
+                ]);
+                
+                match infant.discover_discovery_service().await {
                     Ok(client) => {
-                        tracing::info!("✅ Connected to Songbird");
-
-                        // Advertise if enabled
+                        tracing::info!("✅ Infant discovery successful!");
+                        self.discovery_client = Some(client);
+                        
+                        // Advertise and start heartbeat
                         if self.config.discovery.auto_advertise {
-                            self.advertise_capabilities(&client).await?;
+                            if let Some(ref client) = self.discovery_client {
+                                self.advertise_capabilities(client).await?;
+                            }
                         }
-
-                        // Start background heartbeat
+                        
                         if self.config.discovery.heartbeat_interval_seconds > 0 {
-                            self.start_heartbeat_task(client.clone());
+                            if let Some(client) = self.discovery_client.clone() {
+                                self.start_heartbeat_task(client);
+                            }
                         }
-
-                        // Store client for shutdown
-                        self.songbird_client = Some(client);
+                        
+                        tracing::info!("✅ LoamSpine service lifecycle started");
+                        return Ok(());
                     }
                     Err(e) => {
                         tracing::warn!(
-                            "⚠️  Songbird unavailable at {endpoint}: {e}. Continuing without discovery."
+                            "⚠️  Infant discovery failed: {e}. Continuing without discovery."
                         );
+                        tracing::info!("✅ LoamSpine service lifecycle started (without discovery)");
+                        return Ok(());
                     }
                 }
-            } else {
-                tracing::debug!("Songbird enabled but no endpoint configured");
+            };
+            
+            // We have an endpoint, try to connect
+            tracing::info!("📡 Connecting to discovery service at {endpoint}...");
+
+            match crate::songbird::SongbirdClient::connect(&endpoint).await {
+                Ok(client) => {
+                    tracing::info!("✅ Connected to discovery service");
+
+                    // Advertise if enabled
+                    if self.config.discovery.auto_advertise {
+                        self.advertise_capabilities(&client).await?;
+                    }
+
+                    // Start background heartbeat
+                    if self.config.discovery.heartbeat_interval_seconds > 0 {
+                        self.start_heartbeat_task(client.clone());
+                    }
+
+                    // Store client for shutdown
+                    self.discovery_client = Some(client);
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "⚠️  Discovery service unavailable at {endpoint}: {e}. Continuing without discovery."
+                    );
+                }
             }
         } else {
-            tracing::debug!("Songbird discovery disabled");
+            tracing::debug!("Discovery service disabled");
         }
 
         tracing::info!("✅ LoamSpine service lifecycle started");
         Ok(())
     }
 
-    /// Advertise capabilities to Songbird.
+    /// Advertise capabilities to discovery service.
     async fn advertise_capabilities(
         &self,
         client: &crate::songbird::SongbirdClient,
     ) -> LoamSpineResult<()> {
-        tracing::info!("📢 Advertising LoamSpine capabilities to Songbird...");
+        tracing::info!("📢 Advertising LoamSpine capabilities to discovery service...");
 
         // Get endpoints from config
         let tarpc_endpoint = &self.config.discovery.tarpc_endpoint;
@@ -110,7 +164,7 @@ impl LifecycleManager {
             .advertise_loamspine(tarpc_endpoint, jsonrpc_endpoint)
             .await?;
 
-        tracing::info!("✅ Capabilities advertised to Songbird");
+        tracing::info!("✅ Capabilities advertised to discovery service");
         Ok(())
     }
 
@@ -137,12 +191,8 @@ impl LifecycleManager {
                 }
 
                 // Attempt heartbeat with retry logic
-                match Self::send_heartbeat_with_retry(
-                    &client,
-                    &retry_config,
-                    consecutive_failures,
-                )
-                .await
+                match Self::send_heartbeat_with_retry(&client, &retry_config, consecutive_failures)
+                    .await
                 {
                     Ok(()) => {
                         // Success - reset failure counter
@@ -198,12 +248,13 @@ impl LifecycleManager {
         base_failures: u32,
     ) -> LoamSpineResult<()> {
         // Try immediate send first
-        if let Ok(()) = client.heartbeat().await {
+        if matches!(client.heartbeat().await, Ok(())) {
             return Ok(());
         }
 
         // Retry with exponential backoff
         for (attempt, &backoff_secs) in retry_config.backoff_seconds.iter().enumerate() {
+            #[allow(clippy::cast_possible_truncation)]
             let attempt_num = base_failures + (attempt as u32) + 1;
 
             // Check if we've exceeded total failure limit
@@ -214,16 +265,11 @@ impl LifecycleManager {
             tracing::debug!("Retrying heartbeat in {backoff_secs}s (attempt {attempt_num})...");
             tokio::time::sleep(Duration::from_secs(backoff_secs)).await;
 
-            match client.heartbeat().await {
-                Ok(()) => {
-                    tracing::info!("✅ Heartbeat succeeded after retry (attempt {attempt_num})");
-                    return Ok(());
-                }
-                Err(e) => {
-                    tracing::debug!("Retry {attempt_num} failed: {e}");
-                    continue;
-                }
+            if matches!(client.heartbeat().await, Ok(())) {
+                tracing::info!("✅ Heartbeat succeeded after retry (attempt {attempt_num})");
+                return Ok(());
             }
+            tracing::debug!("Retry {attempt_num} failed");
         }
 
         // All retries exhausted
@@ -254,11 +300,11 @@ impl LifecycleManager {
             let _ = task.await; // Ignore errors on shutdown
         }
 
-        // Deregister from Songbird if connected
-        if let Some(ref client) = self.songbird_client {
-            tracing::info!("📢 Deregistering from Songbird...");
+        // Deregister from discovery service if connected
+        if let Some(ref client) = self.discovery_client {
+            tracing::info!("📢 Deregistering from discovery service...");
             match client.deregister().await {
-                Ok(()) => tracing::info!("✅ Deregistered from Songbird"),
+                Ok(()) => tracing::info!("✅ Deregistered from discovery service"),
                 Err(e) => tracing::warn!("⚠️  Deregister failed (non-fatal): {e}"),
             }
         }
@@ -302,6 +348,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(deprecated)]
     async fn lifecycle_start_without_songbird() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
@@ -314,6 +361,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(deprecated)]
     async fn lifecycle_stop() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
@@ -338,6 +386,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(deprecated)]
     async fn lifecycle_start_with_songbird_unavailable() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
@@ -348,9 +397,9 @@ mod tests {
         let mut manager = LifecycleManager::new(service, config);
         let result = manager.start().await;
 
-        // Should succeed even if Songbird is unavailable (graceful degradation)
+        // Should succeed even if discovery service is unavailable (graceful degradation)
         assert!(result.is_ok());
-        assert!(manager.songbird_client.is_none());
+        assert!(manager.discovery_client.is_none());
     }
 
     #[tokio::test]
@@ -374,6 +423,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(deprecated)]
     async fn lifecycle_multiple_stops() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
@@ -390,6 +440,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(deprecated)]
     async fn lifecycle_start_with_songbird_no_endpoint() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
@@ -400,10 +451,11 @@ mod tests {
         let result = manager.start().await;
 
         assert!(result.is_ok());
-        assert!(manager.songbird_client.is_none());
+        assert!(manager.discovery_client.is_none());
     }
 
     #[tokio::test]
+    #[allow(deprecated)]
     async fn lifecycle_start_with_heartbeat_disabled() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
@@ -427,6 +479,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(deprecated)]
     async fn shutdown_signal_after_stop() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();

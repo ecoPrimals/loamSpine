@@ -82,7 +82,7 @@ async fn test_cli_signer_invalid_binary_path() {
     let result = CliSigner::new("/nonexistent/path/to/binary", "test-key");
 
     assert!(result.is_err(), "Should fail with non-existent binary");
-    
+
     if let Err(err) = result {
         let err_msg = err.to_string();
         assert!(
@@ -183,7 +183,7 @@ async fn test_cli_signer_capability_pattern() {
     let Err(err) = result else {
         unreachable!();
     };
-    
+
     let err_msg = err.to_string();
     assert!(
         !err_msg.contains("beardog") && !err_msg.contains("BearDog"),
@@ -194,7 +194,7 @@ async fn test_cli_signer_capability_pattern() {
 #[tokio::test]
 async fn test_cli_signer_integration_with_entry() {
     use loam_spine_core::{entry::SpineConfig, SpineId};
-    
+
     if !beardog_available() {
         eprintln!("⚠️  Skipping test: BearDog binary not available");
         return;

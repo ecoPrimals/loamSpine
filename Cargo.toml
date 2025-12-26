@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/loam-spine-core",
     "crates/loam-spine-api",
+    "bin/loamspine-service",
 ]
 
 [workspace.package]

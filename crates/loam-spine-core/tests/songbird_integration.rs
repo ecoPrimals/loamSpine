@@ -24,9 +24,7 @@ fn songbird_available() -> bool {
 /// Helper to start Songbird for tests
 fn start_songbird() -> Option<Child> {
     if !songbird_available() {
-        eprintln!(
-            "⚠️  Skipping Songbird integration tests: binary not found at {SONGBIRD_BIN}"
-        );
+        eprintln!("⚠️  Skipping Songbird integration tests: binary not found at {SONGBIRD_BIN}");
         return None;
     }
 
@@ -226,7 +224,7 @@ async fn test_songbird_discover_all() {
         eprintln!("⚠️  Failed to discover all services");
         return;
     };
-    
+
     assert!(!services.is_empty(), "Should find at least one service");
 }
 
@@ -263,10 +261,7 @@ async fn test_songbird_multiple_capabilities() {
 
     for capability in capabilities {
         let services = client.discover_capability(capability).await;
-        assert!(
-            services.is_ok(),
-            "Should discover {capability} capability"
-        );
+        assert!(services.is_ok(), "Should discover {capability} capability");
     }
 }
 

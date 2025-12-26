@@ -5,7 +5,6 @@
 use crate::error::LoamSpineResult;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::signal;
 
 /// Signal handler for graceful shutdown.
 ///
@@ -205,4 +204,3 @@ mod tests {
         // Actual signal testing requires integration tests
     }
 }
-
