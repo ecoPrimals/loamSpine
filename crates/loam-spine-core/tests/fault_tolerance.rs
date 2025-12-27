@@ -5,6 +5,11 @@
 
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
+#![allow(clippy::panic)] // Tests use panic! for failure reporting
+#![allow(clippy::assertions_on_constants)] // Test framework uses assert!(true) for smoke tests
+#![allow(clippy::clone_on_ref_ptr)] // Tests intentionally clone Arc for concurrency demos
+#![allow(clippy::cast_possible_truncation)] // Test data uses i32 -> u8 for readability
+#![allow(clippy::cast_sign_loss)] // Test data uses i32 -> u8 for readability
 
 use loam_spine_core::{
     service::LoamSpineService,
