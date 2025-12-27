@@ -12,6 +12,7 @@
 //! Run: cargo run --example 07-02-service-lifecycle
 
 use loam_spine_core::config::{DiscoveryConfig, DiscoveryMethod, LoamSpineConfig};
+use loam_spine_core::constants::DEFAULT_DISCOVERY_PORT;
 use loam_spine_core::service::{LifecycleManager, LoamSpineService};
 use tokio::time::{sleep, Duration};
 
@@ -28,11 +29,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create configuration with Songbird enabled
     println!("🔧 Creating configuration with Songbird integration...");
+    let discovery_endpoint = format!("http://localhost:{DEFAULT_DISCOVERY_PORT}");
     let config = LoamSpineConfig::default()
-        .with_discovery_service("http://localhost:8082")
+        .with_discovery_service(&discovery_endpoint)
         .with_discovery(DiscoveryConfig {
             songbird_enabled: true,
-            songbird_endpoint: Some("http://localhost:8082".to_string()),
+            songbird_endpoint: Some(discovery_endpoint),
             auto_advertise: true,
             heartbeat_interval_seconds: 10, // Short interval for demo
             methods: vec![

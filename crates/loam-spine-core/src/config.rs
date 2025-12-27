@@ -148,10 +148,12 @@ impl Default for DiscoveryConfig {
             songbird_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
 
             // Our own endpoints - prefer OS-assigned ports in production
-            tarpc_endpoint: std::env::var("TARPC_ENDPOINT")
-                .unwrap_or_else(|_| "http://0.0.0.0:9001".to_string()),
-            jsonrpc_endpoint: std::env::var("JSONRPC_ENDPOINT")
-                .unwrap_or_else(|_| "http://0.0.0.0:8080".to_string()),
+            tarpc_endpoint: std::env::var("TARPC_ENDPOINT").unwrap_or_else(|_| {
+                format!("http://0.0.0.0:{}", crate::constants::DEFAULT_TARPC_PORT)
+            }),
+            jsonrpc_endpoint: std::env::var("JSONRPC_ENDPOINT").unwrap_or_else(|_| {
+                format!("http://0.0.0.0:{}", crate::constants::DEFAULT_JSONRPC_PORT)
+            }),
 
             auto_advertise: true,
             heartbeat_interval_seconds: 60,
