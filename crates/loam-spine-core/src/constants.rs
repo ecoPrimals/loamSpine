@@ -86,6 +86,40 @@ pub const DEFAULT_DISCOVERY_PORT: u16 = 8082;
 /// ```
 pub const OS_ASSIGNED_PORT: u16 = 0;
 
+/// Default bind address for all interfaces (IPv4).
+///
+/// Used for server endpoints that should accept connections from any network interface.
+/// In containerized environments, this allows external access to services.
+///
+/// # Example
+///
+/// ```rust
+/// use loam_spine_core::constants::{BIND_ALL_IPV4, DEFAULT_TARPC_PORT};
+///
+/// let endpoint = format!("http://{}:{}", BIND_ALL_IPV4, DEFAULT_TARPC_PORT);
+/// // Results in "http://0.0.0.0:9001"
+/// ```
+pub const BIND_ALL_IPV4: &str = "0.0.0.0";
+
+/// Localhost address (IPv4).
+///
+/// Used for local development and testing. Connections are restricted to the local machine.
+///
+/// # Example
+///
+/// ```rust
+/// use loam_spine_core::constants::{LOCALHOST, DEFAULT_DISCOVERY_PORT};
+///
+/// let endpoint = format!("http://{}:{}", LOCALHOST, DEFAULT_DISCOVERY_PORT);
+/// // Results in "http://localhost:8082" or "http://127.0.0.1:8082"
+/// ```
+pub const LOCALHOST: &str = "localhost";
+
+/// Localhost IP address (IPv4).
+///
+/// Numeric form of localhost, useful when DNS resolution should be avoided.
+pub const LOCALHOST_IP: &str = "127.0.0.1";
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,6 +141,11 @@ mod tests {
 
         // OS assigned is always 0
         assert_eq!(OS_ASSIGNED_PORT, 0);
+
+        // Addresses have expected lengths
+        assert!(BIND_ALL_IPV4.len() > 6); // "0.0.0.0"
+        assert!(LOCALHOST.len() > 5); // "localhost"
+        assert!(LOCALHOST_IP.len() > 6); // "127.0.0.1"
     }
 
     #[test]
@@ -116,5 +155,18 @@ mod tests {
         assert_ne!(DEFAULT_TARPC_PORT, DEFAULT_DISCOVERY_PORT);
         assert_ne!(DEFAULT_JSONRPC_PORT, DEFAULT_DISCOVERY_PORT);
     }
+
+    #[test]
+    fn localhost_forms_are_valid() {
+        // Both forms should be valid for use in URLs
+        assert!(LOCALHOST.chars().all(|c| c.is_alphanumeric() || c == '.'));
+        assert!(LOCALHOST_IP
+            .chars()
+            .all(|c| c.is_numeric() || c == '.'));
+
+        // Bind all should be valid
+        assert!(BIND_ALL_IPV4.chars().all(|c| c.is_numeric() || c == '.'));
+    }
 }
+
 

@@ -314,7 +314,8 @@ impl InfantDiscovery {
     #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
     fn try_development_fallback(&self) -> Option<String> {
         tracing::debug!(
-            "🔍 Attempting development fallback (localhost:{})...",
+            "🔍 Attempting development fallback ({}:{})...",
+            crate::constants::LOCALHOST,
             crate::constants::DEFAULT_DISCOVERY_PORT
         );
 
@@ -322,7 +323,8 @@ impl InfantDiscovery {
         #[cfg(any(debug_assertions, test))]
         {
             let endpoint = format!(
-                "http://localhost:{}",
+                "http://{}:{}",
+                crate::constants::LOCALHOST,
                 crate::constants::DEFAULT_DISCOVERY_PORT
             );
             tracing::debug!("🔍 Development fallback available: {}", endpoint);
@@ -416,7 +418,8 @@ mod tests {
 
         // Should return localhost in debug mode
         let expected_endpoint = format!(
-            "http://localhost:{}",
+            "http://{}:{}",
+            crate::constants::LOCALHOST,
             crate::constants::DEFAULT_DISCOVERY_PORT
         );
         assert_eq!(result, Some(expected_endpoint));
