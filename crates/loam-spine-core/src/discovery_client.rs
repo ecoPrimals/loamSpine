@@ -182,12 +182,12 @@ impl DiscoveryClient {
             .parse::<reqwest::Url>()
             .ok()
             .and_then(|u| u.port())
-            .unwrap_or(9001);
+            .unwrap_or(crate::constants::DEFAULT_TARPC_PORT);
         let jsonrpc_port = jsonrpc_endpoint
             .parse::<reqwest::Url>()
             .ok()
             .and_then(|u| u.port())
-            .unwrap_or(8080);
+            .unwrap_or(crate::constants::DEFAULT_JSONRPC_PORT);
 
         let advertisement = ServiceAdvertisement {
             name: "loamspine".to_string(),

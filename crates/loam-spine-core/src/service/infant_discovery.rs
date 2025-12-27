@@ -313,12 +313,18 @@ impl InfantDiscovery {
     /// This should only be used in development and will log a warning.
     #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
     fn try_development_fallback(&self) -> Option<String> {
-        tracing::debug!("🔍 Attempting development fallback (localhost:8082)...");
+        tracing::debug!(
+            "🔍 Attempting development fallback (localhost:{})...",
+            crate::constants::DEFAULT_DISCOVERY_PORT
+        );
 
         // Only in development/test mode
         #[cfg(any(debug_assertions, test))]
         {
-            let endpoint = "http://localhost:8082".to_string();
+            let endpoint = format!(
+                "http://localhost:{}",
+                crate::constants::DEFAULT_DISCOVERY_PORT
+            );
             tracing::debug!("🔍 Development fallback available: {}", endpoint);
             Some(endpoint)
         }
@@ -409,7 +415,11 @@ mod tests {
         let result = infant.try_development_fallback();
 
         // Should return localhost in debug mode
-        assert_eq!(result, Some("http://localhost:8082".to_string()));
+        let expected_endpoint = format!(
+            "http://localhost:{}",
+            crate::constants::DEFAULT_DISCOVERY_PORT
+        );
+        assert_eq!(result, Some(expected_endpoint));
     }
 
     #[tokio::test]
