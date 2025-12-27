@@ -91,6 +91,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::assertions_on_constants)] // Validating const values is appropriate in tests
     fn constants_are_reasonable() {
         // Tarpc port should be in user range
         assert!(DEFAULT_TARPC_PORT >= 1024);
