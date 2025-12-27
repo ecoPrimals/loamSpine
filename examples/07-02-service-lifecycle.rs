@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create configuration with Songbird enabled
     println!("🔧 Creating configuration with Songbird integration...");
     let config = LoamSpineConfig::default()
-        .with_songbird("http://localhost:8082")
+        .with_discovery_service("http://localhost:8082")
         .with_discovery(DiscoveryConfig {
             songbird_enabled: true,
             songbird_endpoint: Some("http://localhost:8082".to_string()),

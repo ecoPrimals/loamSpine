@@ -12,7 +12,7 @@
 //! - Production-grade error handling
 //! - Truly concurrent test execution
 
-use loam_spine_core::songbird::SongbirdClient;
+use loam_spine_core::discovery_client::DiscoveryClient;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::time::Duration;
@@ -87,7 +87,7 @@ async fn wait_for_songbird_ready() -> Result<(), String> {
         // Try to connect
         match tokio::time::timeout(
             Duration::from_secs(2),
-            SongbirdClient::connect(SONGBIRD_ENDPOINT),
+            DiscoveryClient::connect(SONGBIRD_ENDPOINT),
         )
         .await
         {
@@ -117,7 +117,7 @@ async fn wait_for_songbird_ready() -> Result<(), String> {
 ///
 /// Production-grade: Polls with timeout, no blind sleeps.
 async fn wait_for_service_discoverable(
-    client: &SongbirdClient,
+    client: &DiscoveryClient,
     capability: &str,
     service_name: &str,
 ) -> Result<(), String> {
@@ -147,7 +147,7 @@ async fn wait_for_service_discoverable(
 ///
 /// Production-grade: Polls with timeout, no blind sleeps.
 async fn wait_for_service_removed(
-    client: &SongbirdClient,
+    client: &DiscoveryClient,
     capability: &str,
     service_name: &str,
 ) -> Result<(), String> {
@@ -195,7 +195,7 @@ async fn test_songbird_connection() {
     // Test connection (with timeout protection)
     let result = tokio::time::timeout(
         Duration::from_secs(5),
-        SongbirdClient::connect(SONGBIRD_ENDPOINT),
+        DiscoveryClient::connect(SONGBIRD_ENDPOINT),
     )
     .await;
 
@@ -222,7 +222,7 @@ async fn test_songbird_advertise_and_discover() {
         return;
     }
 
-    let Ok(client) = SongbirdClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
         eprintln!("⚠️  Failed to connect to Songbird");
         return;
     };
@@ -280,7 +280,7 @@ async fn test_songbird_heartbeat() {
         return;
     }
 
-    let Ok(client) = SongbirdClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
         return;
     };
 
@@ -317,7 +317,7 @@ async fn test_songbird_deregister() {
         return;
     }
 
-    let Ok(client) = SongbirdClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
         return;
     };
 
@@ -371,7 +371,7 @@ async fn test_songbird_discover_all() {
         return;
     }
 
-    let Ok(client) = SongbirdClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
         return;
     };
 
@@ -410,7 +410,7 @@ async fn test_songbird_multiple_capabilities() {
         return;
     }
 
-    let Ok(client) = SongbirdClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
         return;
     };
 
@@ -458,7 +458,7 @@ async fn test_songbird_multiple_capabilities() {
 #[tokio::test]
 async fn test_songbird_endpoint_validation() {
     // Test that invalid endpoints are handled gracefully
-    let result = SongbirdClient::connect("http://invalid-host:99999").await;
+    let result = DiscoveryClient::connect("http://invalid-host:99999").await;
     assert!(
         result.is_err(),
         "Should fail to connect to invalid endpoint"
@@ -479,7 +479,7 @@ async fn test_songbird_concurrent_operations() {
         return;
     }
 
-    let Ok(client) = SongbirdClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
         return;
     };
 

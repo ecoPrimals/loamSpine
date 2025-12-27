@@ -47,7 +47,7 @@
 //! ```
 
 use crate::error::{LoamSpineError, LoamSpineResult};
-use crate::songbird::SongbirdClient;
+use crate::discovery_client::DiscoveryClient;
 
 /// Infant discovery - discovers the discovery service at runtime.
 ///
@@ -113,25 +113,25 @@ impl InfantDiscovery {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn discover_discovery_service(&self) -> LoamSpineResult<SongbirdClient> {
+    pub async fn discover_discovery_service(&self) -> LoamSpineResult<DiscoveryClient> {
         tracing::info!("🔍 Starting infant discovery (zero knowledge → full knowledge)...");
 
         // Method 1: Environment variable (highest priority)
         if let Some(endpoint) = self.try_environment_discovery() {
             tracing::info!("✅ Discovery service found via environment: {}", endpoint);
-            return SongbirdClient::connect(&endpoint).await;
+            return DiscoveryClient::connect(&endpoint).await;
         }
 
         // Method 2: DNS SRV records (production)
         if let Some(endpoint) = self.try_dns_srv_discovery() {
             tracing::info!("✅ Discovery service found via DNS SRV: {}", endpoint);
-            return SongbirdClient::connect(&endpoint).await;
+            return DiscoveryClient::connect(&endpoint).await;
         }
 
         // Method 3: mDNS (local network)
         if let Some(endpoint) = self.try_mdns_discovery() {
             tracing::info!("✅ Discovery service found via mDNS: {}", endpoint);
-            return SongbirdClient::connect(&endpoint).await;
+            return DiscoveryClient::connect(&endpoint).await;
         }
 
         // Method 4: Development fallback (lowest priority, logged as warning)
@@ -140,7 +140,7 @@ impl InfantDiscovery {
                 "⚠️  Using development fallback: {}. Set DISCOVERY_ENDPOINT for production!",
                 endpoint
             );
-            return SongbirdClient::connect(&endpoint).await;
+            return DiscoveryClient::connect(&endpoint).await;
         }
 
         // All methods failed
@@ -192,19 +192,21 @@ impl InfantDiscovery {
         #[cfg(test)]
         {
             tracing::debug!("🔍 DNS SRV discovery disabled in test mode, trying next method");
-            return None;
+            None
         }
 
         #[cfg(not(test))]
         {
             // Use hickory-resolver for DNS SRV lookup
-            use hickory_resolver::TokioAsyncResolver;
             use hickory_resolver::config::{ResolverConfig, ResolverOpts};
+            use hickory_resolver::TokioAsyncResolver;
 
             // Check if we have a runtime available
             let Some(handle) = tokio::runtime::Handle::try_current().ok() else {
                 // No runtime available, skip DNS discovery
-                tracing::debug!("🔍 No tokio runtime available for DNS resolution, trying next method");
+                tracing::debug!(
+                    "🔍 No tokio runtime available for DNS resolution, trying next method"
+                );
                 return None;
             };
 
@@ -213,11 +215,11 @@ impl InfantDiscovery {
                 tokio::task::spawn_blocking(|| {
                     // Create a new runtime for the DNS lookup
                     let rt = tokio::runtime::Runtime::new().ok()?;
-                    
+
                     rt.block_on(async {
                         let resolver = TokioAsyncResolver::tokio(
                             ResolverConfig::default(),
-                            ResolverOpts::default()
+                            ResolverOpts::default(),
                         );
 
                         // Query for _discovery._tcp.local SRV record
@@ -228,23 +230,33 @@ impl InfantDiscovery {
                                 if let Some(srv) = response.iter().next() {
                                     let target = srv.target().to_utf8();
                                     let port = srv.port();
-                                    
+
                                     // Construct endpoint URL
-                                    let endpoint = format!("http://{}:{}", target.trim_end_matches('.'), port);
+                                    let endpoint =
+                                        format!("http://{}:{}", target.trim_end_matches('.'), port);
                                     tracing::info!("✅ DNS SRV discovery successful: {}", endpoint);
                                     Some(endpoint)
                                 } else {
-                                    tracing::debug!("🔍 No SRV records found for {}, trying next method", srv_query);
+                                    tracing::debug!(
+                                        "🔍 No SRV records found for {}, trying next method",
+                                        srv_query
+                                    );
                                     None
                                 }
                             }
                             Err(e) => {
-                                tracing::debug!("🔍 DNS SRV lookup failed: {}, trying next method", e);
+                                tracing::debug!(
+                                    "🔍 DNS SRV lookup failed: {}, trying next method",
+                                    e
+                                );
                                 None
                             }
                         }
                     })
-                }).await.ok().flatten()
+                })
+                .await
+                .ok()
+                .flatten()
             });
 
             result
@@ -270,7 +282,7 @@ impl InfantDiscovery {
             // NOTE: The mdns crate's Discovery API doesn't provide direct synchronous
             // iteration over responses. The stream-based API requires careful handling
             // of async traits that are complex to integrate with both tokio and sync code.
-            // 
+            //
             // This is marked as experimental and currently returns None.
             // Future versions may provide a more robust implementation using async streams
             // or an alternative mDNS library with better sync APIs.
@@ -279,16 +291,20 @@ impl InfantDiscovery {
             // 1. Environment variables (DISCOVERY_ENDPOINT)
             // 2. DNS SRV records (_discovery._tcp.local)
             // 3. Configuration files
-            
+
             tracing::debug!("🔍 mDNS discovery experimental - API integration pending");
-            tracing::debug!("🔍 For local development, use DISCOVERY_ENDPOINT environment variable");
+            tracing::debug!(
+                "🔍 For local development, use DISCOVERY_ENDPOINT environment variable"
+            );
         }
-        
+
         #[cfg(not(feature = "mdns"))]
         {
-            tracing::debug!("🔍 mDNS discovery not enabled (requires 'mdns' feature), trying next method");
+            tracing::debug!(
+                "🔍 mDNS discovery not enabled (requires 'mdns' feature), trying next method"
+            );
         }
-        
+
         None
     }
 
