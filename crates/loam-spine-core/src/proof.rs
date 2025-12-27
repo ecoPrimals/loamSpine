@@ -349,7 +349,7 @@ mod tests {
         let spine_id = SpineId::now_v7();
         let tip = entry.compute_hash();
 
-        let signature = Signature::new(vec![1, 2, 3, 4, 5]);
+        let signature = Signature::from_vec(vec![1, 2, 3, 4, 5]);
         let proof = InclusionProof::new(entry, spine_id, tip).with_attestation(signature);
 
         assert!(proof.owner_attestation.is_some());

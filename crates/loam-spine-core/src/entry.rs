@@ -455,7 +455,7 @@ mod tests {
             EntryType::SpineSealed { reason: None },
         )
         .with_metadata("key", "value")
-        .with_signature(Signature::new(vec![1, 2, 3]));
+        .with_signature(Signature::from_vec(vec![1, 2, 3]));
 
         assert_eq!(entry.metadata.get("key"), Some(&"value".to_string()));
         assert!(!entry.signature.is_empty());

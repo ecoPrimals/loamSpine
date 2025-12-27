@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn braid_summary_with_signature() {
         let braid_id = BraidId::now_v7();
-        let sig = Signature::new(vec![1, 2, 3, 4]);
+        let sig = Signature::from_vec(vec![1, 2, 3, 4]);
         let summary =
             BraidSummary::new(braid_id, "signed", [0u8; 32], [0u8; 32]).with_signature(sig);
 
@@ -166,7 +166,7 @@ mod tests {
     fn braid_summary_chained_builders() {
         let braid_id = BraidId::now_v7();
         let agent = Did::new("did:key:z6MkAgent");
-        let sig = Signature::new(vec![5, 6, 7]);
+        let sig = Signature::from_vec(vec![5, 6, 7]);
 
         let summary = BraidSummary::new(braid_id, "full", [3u8; 32], [4u8; 32])
             .with_agent(agent)

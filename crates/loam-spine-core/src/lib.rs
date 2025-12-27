@@ -64,6 +64,7 @@ pub mod primal;
 pub mod proof;
 pub mod spine;
 pub mod storage;
+pub mod temporal;
 pub mod types;
 
 // New architecture modules

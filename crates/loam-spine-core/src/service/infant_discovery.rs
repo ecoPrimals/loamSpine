@@ -46,8 +46,8 @@
 //! # }
 //! ```
 
-use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::discovery_client::DiscoveryClient;
+use crate::error::{LoamSpineError, LoamSpineResult};
 
 /// Infant discovery - discovers the discovery service at runtime.
 ///
@@ -392,7 +392,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn dns_srv_discovery_placeholder() {
+    async fn dns_srv_discovery_no_records() {
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_dns_srv_discovery();
 
@@ -402,11 +402,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn mdns_discovery_placeholder() {
+    async fn mdns_discovery_not_configured() {
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_mdns_discovery();
 
-        // Currently returns None (not implemented yet)
+        // Currently returns None (experimental/not fully implemented)
         assert!(result.is_none());
     }
 

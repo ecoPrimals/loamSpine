@@ -142,7 +142,7 @@ pub mod testing {
         async fn sign(&self, data: &[u8]) -> LoamSpineResult<Signature> {
             // Simple mock: hash the data as signature
             let hash = crate::types::hash_bytes(data);
-            Ok(Signature::new(hash.to_vec()))
+            Ok(Signature::from_vec(hash.to_vec()))
         }
 
         fn did(&self) -> &Did {
@@ -263,7 +263,7 @@ mod tests {
 
         let verifier = MockVerifier::permissive();
         let data = b"test";
-        let sig = Signature::new(vec![1, 2, 3]);
+        let sig = Signature::from_vec(vec![1, 2, 3]);
         let did = Did::new("did:key:test");
 
         let result = verifier
@@ -279,7 +279,7 @@ mod tests {
 
         let verifier = MockVerifier::strict();
         let data = b"test";
-        let sig = Signature::new(vec![1, 2, 3]);
+        let sig = Signature::from_vec(vec![1, 2, 3]);
         let did = Did::new("did:key:test");
 
         let result = verifier

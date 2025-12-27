@@ -88,25 +88,33 @@ impl From<&str> for Did {
 }
 
 /// Cryptographic signature.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Signature(pub Vec<u8>);
+///
+/// Uses `Bytes` for zero-copy sharing of signature data.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Signature(pub ByteBuffer);
 
 impl Signature {
-    /// Create a new signature from bytes.
+    /// Create a new signature from zero-copy bytes.
     #[must_use]
-    pub const fn new(bytes: Vec<u8>) -> Self {
+    pub fn new(bytes: ByteBuffer) -> Self {
         Self(bytes)
+    }
+
+    /// Create a signature from a `Vec<u8>` (convenience method).
+    #[must_use]
+    pub fn from_vec(bytes: Vec<u8>) -> Self {
+        Self(bytes.into_byte_buffer())
     }
 
     /// Create an empty signature (for unsigned entries).
     #[must_use]
-    pub const fn empty() -> Self {
-        Self(Vec::new())
+    pub fn empty() -> Self {
+        Self(ByteBuffer::new())
     }
 
     /// Check if the signature is empty.
     #[must_use]
-    pub const fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
@@ -114,6 +122,32 @@ impl Signature {
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+
+    /// Get the underlying ByteBuffer for zero-copy sharing.
+    #[must_use]
+    pub fn as_byte_buffer(&self) -> &ByteBuffer {
+        &self.0
+    }
+}
+
+// Custom serde implementation for zero-copy Bytes
+impl serde::Serialize for Signature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(&self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = serde::Deserialize::deserialize(deserializer)?;
+        Ok(Self::from_vec(bytes))
     }
 }
 
@@ -294,7 +328,7 @@ mod tests {
         let sig = Signature::empty();
         assert!(sig.is_empty());
 
-        let sig = Signature::new(vec![1, 2, 3]);
+        let sig = Signature::from_vec(vec![1, 2, 3]);
         assert!(!sig.is_empty());
         assert_eq!(sig.as_bytes(), &[1, 2, 3]);
     }

@@ -215,7 +215,7 @@ impl Signer for CliSigner {
         // Clean up signature file
         let _ = std::fs::remove_file(&sig_file);
 
-        Ok(Signature::new(sig_bytes))
+        Ok(Signature::from_vec(sig_bytes))
     }
 
     fn did(&self) -> &Did {
