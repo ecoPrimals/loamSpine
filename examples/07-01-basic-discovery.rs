@@ -10,7 +10,7 @@
 //!
 //! Run: cargo run --example 07-01-basic-discovery
 
-use loam_spine_core::songbird::SongbirdClient;
+use loam_spine_core::discovery_client::DiscoveryClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Connect to Songbird
     println!("🔍 Connecting to Songbird at http://localhost:8082...");
-    let client = match SongbirdClient::connect("http://localhost:8082").await {
+    let client = match DiscoveryClient::connect("http://localhost:8082").await {
         Ok(c) => {
             println!("✅ Connected to Songbird\n");
             c

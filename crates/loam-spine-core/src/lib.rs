@@ -55,12 +55,13 @@
 pub mod backup;
 pub mod certificate;
 pub mod config;
+pub mod constants;
+pub mod discovery_client;
 pub mod entry;
 pub mod error;
 pub mod manager;
 pub mod primal;
 pub mod proof;
-pub mod songbird;
 pub mod spine;
 pub mod storage;
 pub mod types;
@@ -69,6 +70,13 @@ pub mod types;
 pub mod discovery;
 pub mod service;
 pub mod traits;
+
+// Backward compatibility: deprecated re-export (remove in v1.0.0)
+#[deprecated(
+    since = "0.7.0",
+    note = "Use discovery_client module instead. This alias will be removed in v1.0.0"
+)]
+pub use discovery_client as songbird;
 
 // NOTE: The `integration` module was removed in v0.3.0.
 // Use `traits` and `service` modules instead.

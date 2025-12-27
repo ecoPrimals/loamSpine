@@ -13,11 +13,11 @@
 //! ## Example
 //!
 //! ```rust,no_run
-//! use loam_spine_core::songbird::SongbirdClient;
+//! use loam_spine_core::discovery_client::DiscoveryClient;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Connect to Songbird
-//! let client = SongbirdClient::connect("http://localhost:8082").await?;
+//! let client = DiscoveryClient::connect("http://localhost:8082").await?;
 //!
 //! // Discover signing capability
 //! let services = client.discover_capability("signing").await?;
@@ -40,7 +40,7 @@ use std::time::Duration;
 /// This client connects to a Songbird instance to discover other primals'
 /// capabilities and advertise LoamSpine's own capabilities.
 #[derive(Clone, Debug)]
-pub struct SongbirdClient {
+pub struct DiscoveryClient {
     /// Songbird endpoint.
     endpoint: String,
     /// HTTP client.
@@ -83,7 +83,7 @@ struct ServiceEndpoint {
     health_check: Option<String>,
 }
 
-impl SongbirdClient {
+impl DiscoveryClient {
     /// Connect to a Songbird instance.
     ///
     /// # Errors
@@ -386,7 +386,7 @@ mod tests {
     #[test]
     fn songbird_client_endpoint_getter() {
         let endpoint = "http://localhost:8082";
-        let client = SongbirdClient {
+        let client = DiscoveryClient {
             endpoint: endpoint.to_string(),
             client: reqwest::Client::new(),
         };
@@ -396,7 +396,7 @@ mod tests {
 
     #[test]
     fn songbird_client_is_cloneable() {
-        let client = SongbirdClient {
+        let client = DiscoveryClient {
             endpoint: "http://localhost:8082".to_string(),
             client: reqwest::Client::new(),
         };
@@ -507,17 +507,17 @@ mod tests {
             ("https://example.com:8443", 8443),
             ("http://192.0.2.1:3000", 3000),
         ];
-        
+
         for (url, expected_port) in test_cases {
             // Parse URL and extract port (simulating what the code does)
             if let Ok(parsed) = reqwest::Url::parse(url) {
                 if let Some(port) = parsed.port() {
-                    assert_eq!(port, expected_port, "Port mismatch for {}", url);
+                    assert_eq!(port, expected_port, "Port mismatch for {url}");
                 }
             }
         }
     }
-    
+
     #[test]
     fn service_advertisement_empty_capabilities() {
         // Test service with no capabilities
@@ -528,12 +528,12 @@ mod tests {
             endpoints: vec![],
             metadata: std::collections::HashMap::new(),
         };
-        
+
         assert!(advertisement.capabilities.is_empty());
         assert!(advertisement.endpoints.is_empty());
         assert!(advertisement.metadata.is_empty());
     }
-    
+
     #[test]
     fn discovered_service_healthy_flag() {
         // Test healthy flag variations
@@ -544,7 +544,7 @@ mod tests {
             healthy: true,
             metadata: std::collections::HashMap::new(),
         };
-        
+
         let unhealthy_service = DiscoveredService {
             name: "unhealthy".to_string(),
             endpoint: "http://localhost:9000".to_string(),
@@ -552,11 +552,11 @@ mod tests {
             healthy: false,
             metadata: std::collections::HashMap::new(),
         };
-        
+
         assert!(healthy_service.healthy);
         assert!(!unhealthy_service.healthy);
     }
-    
+
     #[test]
     fn service_endpoint_port_matching() {
         // Test that port in address matches port field
@@ -566,7 +566,7 @@ mod tests {
             port: 8080,
             health_check: None,
         };
-        
+
         // Extract port from address
         if let Ok(parsed) = reqwest::Url::parse(&endpoint.address) {
             if let Some(addr_port) = parsed.port() {
@@ -574,21 +574,21 @@ mod tests {
             }
         }
     }
-    
+
     #[test]
     fn client_endpoint_accessor() {
         // Test endpoint accessor method
         let endpoint_url = "http://songbird.example.com:8082";
-        let client = SongbirdClient {
+        let client = DiscoveryClient {
             endpoint: endpoint_url.to_string(),
             client: reqwest::Client::new(),
         };
-        
+
         assert_eq!(client.endpoint(), endpoint_url);
         assert!(client.endpoint().starts_with("http://"));
         assert!(client.endpoint().contains("8082"));
     }
-    
+
     #[test]
     fn discovered_service_debug_impl() {
         // Test Debug implementation
@@ -599,29 +599,29 @@ mod tests {
             healthy: true,
             metadata: std::collections::HashMap::new(),
         };
-        
-        let debug_string = format!("{:?}", service);
+
+        let debug_string = format!("{service:?}");
         assert!(debug_string.contains("debug-test"));
         assert!(debug_string.contains("localhost"));
     }
-    
+
     #[test]
     fn service_endpoint_protocol_variations() {
         // Test different protocol types
         let protocols = vec!["http", "https", "tarpc", "jsonrpc", "grpc"];
-        
+
         for protocol in protocols {
             let endpoint = ServiceEndpoint {
                 protocol: protocol.to_string(),
-                address: format!("{}://localhost:9000", protocol),
+                address: format!("{protocol}://localhost:9000"),
                 port: 9000,
                 health_check: None,
             };
-            
+
             assert_eq!(endpoint.protocol, protocol);
         }
     }
-    
+
     #[test]
     fn service_advertisement_metadata() {
         let mut metadata = std::collections::HashMap::new();

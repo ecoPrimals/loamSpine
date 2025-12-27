@@ -515,7 +515,7 @@ mod tests {
             assert!(did.as_str().starts_with("did:"));
         }
     }
-    
+
     #[test]
     fn binary_path_normalization() {
         // Test different path formats
@@ -524,83 +524,89 @@ mod tests {
             "./relative/signer",
             "../relative/../signer",
         ];
-        
+
         for path_str in paths {
             let path = PathBuf::from(path_str);
             // Just verify path handling doesn't panic
             let _ = path.exists();
         }
     }
-    
+
     #[test]
     fn cli_signer_capability_pattern() {
         // Test that CLI signer follows capability pattern
         // (no hardcoded primal names in struct)
         let _binary = PathBuf::from("/tmp/test");
-        
+
         // Structure should not contain primal names
         let struct_name = std::any::type_name::<CliSigner>();
-        assert!(!struct_name.contains("beardog"), "Should not hardcode primal names");
-        assert!(!struct_name.contains("nestgate"), "Should not hardcode primal names");
+        assert!(
+            !struct_name.contains("beardog"),
+            "Should not hardcode primal names"
+        );
+        assert!(
+            !struct_name.contains("nestgate"),
+            "Should not hardcode primal names"
+        );
     }
-    
+
     #[test]
     fn environment_variable_priority() {
         // Test that env vars are checked first (highest priority)
         let original = env::var(ENV_SIGNER_PATH).ok();
-        
+
         // Set a test path
         env::set_var(ENV_SIGNER_PATH, "/test/priority/path");
-        
+
         // Discovery should check this first
         let result = CliSigner::discover_binary();
-        
+
         // Restore original
         if let Some(val) = original {
             env::set_var(ENV_SIGNER_PATH, val);
         } else {
             env::remove_var(ENV_SIGNER_PATH);
         }
-        
+
         // Should return None (path doesn't exist) but proved it checked env var
         assert!(result.is_none());
     }
-    
+
     #[test]
     fn binary_discovery_searches_multiple_locations() {
         // Clear env to test fallback locations
         let original = env::var(ENV_SIGNER_PATH).ok();
         env::remove_var(ENV_SIGNER_PATH);
-        
+
         // Discovery should search multiple locations without panicking
         let result = CliSigner::discover_binary();
-        
+
         // Restore
         if let Some(val) = original {
             env::set_var(ENV_SIGNER_PATH, val);
         }
-        
+
         // Result depends on environment, but shouldn't panic
         let _ = result;
     }
-    
+
     #[test]
     fn cli_signer_did_format() {
         // Test DID format construction
         let key_id = "test-key-123";
         let expected_prefix = "did:key:";
-        
+
         // DID should follow did:key: format
         let did_string = format!("did:key:{}", key_id);
         assert!(did_string.starts_with(expected_prefix));
         assert!(did_string.contains(key_id));
     }
-    
+
     #[test]
     fn error_messages_are_descriptive() {
         // Test that error messages contain useful information
         let result = CliSigner::new("/nonexistent/binary", "key");
-        
+
         if let Err(e) = result {
             let msg = e.to_string();
             // Should mention binary not found
@@ -611,39 +617,37 @@ mod tests {
             );
         }
     }
-    
+
     #[test]
     fn binary_path_validation() {
         // Test various invalid paths
         let invalid_paths = vec![
-            "",
-            "/",
-            "/tmp",  // directory, not file
+            "", "/", "/tmp", // directory, not file
         ];
-        
+
         for path in invalid_paths {
             let result = CliSigner::new(path, "key");
             // Should fail gracefully (error, not panic)
             assert!(result.is_err(), "Should reject invalid path: {}", path);
         }
     }
-    
+
     #[test]
     fn verifier_handles_nonexistent_binary() {
         // Verifier should fail gracefully with missing binary
         let result = CliVerifier::new("/absolutely/does/not/exist/binary");
-        
+
         assert!(result.is_err());
         if let Err(e) = result {
             assert!(matches!(e, LoamSpineError::Config(_)));
         }
     }
-    
+
     #[test]
     fn concurrent_signer_creation() {
         // Test that signer creation is thread-safe
         use std::thread;
-        
+
         let handles: Vec<_> = (0..10)
             .map(|i| {
                 thread::spawn(move || {
@@ -654,7 +658,7 @@ mod tests {
                 })
             })
             .collect();
-        
+
         for handle in handles {
             handle.join().unwrap();
         }

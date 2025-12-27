@@ -23,7 +23,7 @@ pub struct LifecycleManager {
     /// Configuration.
     config: LoamSpineConfig,
     /// Discovery service client (universal adapter).
-    discovery_client: Option<crate::songbird::SongbirdClient>,
+    discovery_client: Option<crate::discovery_client::DiscoveryClient>,
     /// Heartbeat task handle.
     heartbeat_task: Option<JoinHandle<()>>,
     /// Shutdown signal.
@@ -124,7 +124,7 @@ impl LifecycleManager {
             // We have an endpoint, try to connect
             tracing::info!("📡 Connecting to discovery service at {endpoint}...");
 
-            match crate::songbird::SongbirdClient::connect(&endpoint).await {
+            match crate::discovery_client::DiscoveryClient::connect(&endpoint).await {
                 Ok(client) => {
                     tracing::info!("✅ Connected to discovery service");
 
@@ -158,7 +158,7 @@ impl LifecycleManager {
     /// Advertise capabilities to discovery service.
     async fn advertise_capabilities(
         &self,
-        client: &crate::songbird::SongbirdClient,
+        client: &crate::discovery_client::DiscoveryClient,
     ) -> LoamSpineResult<()> {
         tracing::info!("📢 Advertising LoamSpine capabilities to discovery service...");
 
@@ -175,7 +175,7 @@ impl LifecycleManager {
     }
 
     /// Start background heartbeat task with retry logic.
-    fn start_heartbeat_task(&mut self, client: crate::songbird::SongbirdClient) {
+    fn start_heartbeat_task(&mut self, client: crate::discovery_client::DiscoveryClient) {
         let interval_secs = self.config.discovery.heartbeat_interval_seconds;
         let shutdown = Arc::clone(&self.shutdown);
         let retry_config = self.config.discovery.heartbeat_retry.clone();
@@ -249,7 +249,7 @@ impl LifecycleManager {
 
     /// Send heartbeat with exponential backoff retry logic.
     async fn send_heartbeat_with_retry(
-        client: &crate::songbird::SongbirdClient,
+        client: &crate::discovery_client::DiscoveryClient,
         retry_config: &crate::config::HeartbeatRetryConfig,
         base_failures: u32,
     ) -> LoamSpineResult<()> {

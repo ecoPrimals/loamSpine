@@ -165,7 +165,7 @@ pub struct CapabilityRegistry {
 struct RegistryInner {
     signer: Option<BoxedSigner>,
     verifier: Option<BoxedVerifier>,
-    songbird_client: Option<Arc<crate::songbird::SongbirdClient>>,
+    songbird_client: Option<Arc<crate::discovery_client::DiscoveryClient>>,
 }
 
 impl CapabilityRegistry {
@@ -181,7 +181,7 @@ impl CapabilityRegistry {
     ///
     /// Returns an error if Songbird connection fails.
     pub async fn with_songbird(songbird_endpoint: &str) -> LoamSpineResult<Self> {
-        let client = crate::songbird::SongbirdClient::connect(songbird_endpoint).await?;
+        let client = crate::discovery_client::DiscoveryClient::connect(songbird_endpoint).await?;
         let registry = Self::new();
         {
             let mut inner = registry.inner.write().await;
