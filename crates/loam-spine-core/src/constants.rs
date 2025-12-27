@@ -160,13 +160,9 @@ mod tests {
     fn localhost_forms_are_valid() {
         // Both forms should be valid for use in URLs
         assert!(LOCALHOST.chars().all(|c| c.is_alphanumeric() || c == '.'));
-        assert!(LOCALHOST_IP
-            .chars()
-            .all(|c| c.is_numeric() || c == '.'));
+        assert!(LOCALHOST_IP.chars().all(|c| c.is_numeric() || c == '.'));
 
         // Bind all should be valid
         assert!(BIND_ALL_IPV4.chars().all(|c| c.is_numeric() || c == '.'));
     }
 }
-
-

@@ -589,7 +589,7 @@ mod tests {
         let boxed: BoxedVerifier = Arc::new(verifier);
 
         let data = b"test data".to_vec();
-        let sig = Signature::new(vec![1, 2, 3]);
+        let sig = Signature::from_vec(vec![1, 2, 3]);
         let did = Did::new("did:key:test");
 
         let result = boxed.verify_boxed(data, sig, did).await;
@@ -627,7 +627,7 @@ mod tests {
         let boxed: BoxedVerifier = Arc::new(verifier);
 
         let data = b"test data".to_vec();
-        let sig = Signature::new(vec![1, 2, 3]);
+        let sig = Signature::from_vec(vec![1, 2, 3]);
         let did = Did::new("did:key:test");
 
         let result = boxed.verify_boxed(data, sig, did).await;

@@ -1,0 +1,19 @@
+================================================================
+LoamSpine Showcase Demo Receipt
+================================================================
+
+Demo:        06-storage-backends
+Status:      success
+Timestamp:   2025-12-27T13:35:53-05:00
+Hostname:    pop-os
+User:        strandgate
+Working Dir: /home/strandgate/Development/ecoPrimals/phase2/loamSpine
+
+Steps Completed:
+  ✓ Ran storage_backends example
+
+Environment:
+  PROJECT_ROOT: /home/strandgate/Development/ecoPrimals/phase2/loamSpine
+  LOGS_DIR:     /home/strandgate/Development/ecoPrimals/phase2/loamSpine/showcase/logs
+
+================================================================

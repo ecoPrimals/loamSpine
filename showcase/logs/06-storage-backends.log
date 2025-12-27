@@ -1,4 +1,126 @@
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:59:9
+   |
+59 |         message: String,
+   |         ^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> crates/loam-spine-core/src/lib.rs:43:9
+   |
+43 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:60:9
+   |
+60 |         tree_hash: ContentHash,  // From NestGate
+   |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:65:9
+   |
+65 |         title: String,
+   |         ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:66:9
+   |
+66 |         medium: String,
+   |         ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:67:9
+   |
+67 |         content_hash: ContentHash,  // From NestGate
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:72:9
+   |
+72 |         event_type: String,
+   |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:73:9
+   |
+73 |         participants: Vec<String>,  // DIDs
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:74:9
+   |
+74 |         description: String,
+   |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:79:9
+   |
+79 |         venue: String,
+   |         ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:80:9
+   |
+80 |         duration_seconds: u64,
+   |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:81:9
+   |
+81 |         recording_hash: Option<ContentHash>,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:86:9
+   |
+86 |         hypothesis: String,
+   |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:87:9
+   |
+87 |         result: String,
+   |         ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:88:9
+   |
+88 |         data_hash: ContentHash,
+   |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:93:9
+   |
+93 |         achievement: String,
+   |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:94:9
+   |
+94 |         metrics: HashMap<String, f64>,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> crates/loam-spine-core/src/temporal/moment.rs:99:9
+   |
+99 |         category: String,
+   |         ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/loam-spine-core/src/temporal/moment.rs:100:9
+    |
+100 |         metadata: HashMap<String, String>,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> crates/loam-spine-core/src/temporal/moment.rs:101:9
+    |
+101 |         content_hash: Option<ContentHash>,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `loam-spine-core` (lib) generated 19 warnings
+   Compiling loam-spine-core v0.6.0 (/home/strandgate/Development/ecoPrimals/phase2/loamSpine/crates/loam-spine-core)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.02s
      Running `target/debug/examples/storage_backends`
 🦴 LoamSpine Storage Backends Demo
 
@@ -13,7 +135,7 @@ Characteristics:
    • Simple: No configuration needed
    • Thread-safe: Built-in Spine protection
 
-Created spine: 019b529f-2e88-7982-8b1e-3d398fdb77b6
+Created spine: 019b6118-7d9e-7fe0-bd65-d090f7b6e7cc
    Storage: In-Memory
    Height: 1
 
@@ -40,17 +162,17 @@ Usage in production:
 Creating 100 entries in each backend...
 
 In-Memory Results:
-   Total time: 2.296374ms
-   Avg per entry: 22.963µs
+   Total time: 2.326783ms
+   Avg per entry: 23.267µs
    Throughput: ~50000 entries/sec
 
 Sled Results (in-memory):
-   Total time: 2.296915ms
-   Avg per entry: 22.969µs
+   Total time: 2.259203ms
+   Avg per entry: 22.592µs
    Throughput: ~50000 entries/sec
 
 Performance Ratio:
-   Sled vs In-Memory: 1.00x
+   Sled vs In-Memory: 0.97x
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💡 Use Case Recommendations
