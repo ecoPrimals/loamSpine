@@ -149,10 +149,18 @@ impl Default for DiscoveryConfig {
 
             // Our own endpoints - prefer OS-assigned ports in production
             tarpc_endpoint: std::env::var("TARPC_ENDPOINT").unwrap_or_else(|_| {
-                format!("http://0.0.0.0:{}", crate::constants::DEFAULT_TARPC_PORT)
+                format!(
+                    "http://{}:{}",
+                    crate::constants::BIND_ALL_IPV4,
+                    crate::constants::DEFAULT_TARPC_PORT
+                )
             }),
             jsonrpc_endpoint: std::env::var("JSONRPC_ENDPOINT").unwrap_or_else(|_| {
-                format!("http://0.0.0.0:{}", crate::constants::DEFAULT_JSONRPC_PORT)
+                format!(
+                    "http://{}:{}",
+                    crate::constants::BIND_ALL_IPV4,
+                    crate::constants::DEFAULT_JSONRPC_PORT
+                )
             }),
 
             auto_advertise: true,
