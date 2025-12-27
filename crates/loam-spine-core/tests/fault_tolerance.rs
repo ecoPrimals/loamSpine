@@ -1,7 +1,7 @@
 //! Fault Tolerance Tests
 //!
 //! Comprehensive fault injection tests for network, disk, memory, and Byzantine scenarios.
-//! These tests verify LoamSpine's resilience under adverse conditions.
+//! These tests verify `LoamSpine`'s resilience under adverse conditions.
 
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
@@ -181,7 +181,7 @@ async fn test_memory_pressure_concurrent_operations() {
 
             // Perform commit on each spine
             let summary =
-                DehydrationSummary::new(SessionId::now_v7(), &format!("test-{i}"), [0u8; 32]);
+                DehydrationSummary::new(SessionId::now_v7(), format!("test-{i}"), [0u8; 32]);
             service_clone.commit_session(spine_id, owner, summary).await
         });
         handles.push(handle);
@@ -210,7 +210,7 @@ async fn test_memory_leak_detection_cycles() {
 
     // Rapid create/seal cycles
     for cycle in 0..200 {
-        let owner = Did::new(format!("did:key:z6MkLeak{}", cycle));
+        let owner = Did::new(format!("did:key:z6MkLeak{cycle}"));
         let spine_id = service
             .ensure_spine(owner, None)
             .await
@@ -218,7 +218,7 @@ async fn test_memory_leak_detection_cycles() {
 
         // Seal spine (finalization)
         service
-            .seal_spine(spine_id, Some(format!("Cycle {}", cycle)))
+            .seal_spine(spine_id, Some(format!("Cycle {cycle}")))
             .await
             .ok(); // Ignore seal errors
     }
@@ -241,7 +241,7 @@ async fn test_memory_burst_spine_creation() {
     let start_count = service.spine_count().await;
 
     for i in 0..500 {
-        let owner = Did::new(format!("did:key:z6MkBurst{}", i));
+        let owner = Did::new(format!("did:key:z6MkBurst{i}"));
         service.ensure_spine(owner, None).await.ok();
     }
 
@@ -250,8 +250,7 @@ async fn test_memory_burst_spine_creation() {
 
     assert!(
         created >= 400,
-        "Should handle burst creation: created {}",
-        created
+        "Should handle burst creation: created {created}"
     );
 }
 
@@ -275,7 +274,7 @@ async fn test_clock_skew_rapid_consecutive_commits() {
     // Perform rapid consecutive commits (tests timestamp precision)
     for i in 0..10 {
         let summary =
-            DehydrationSummary::new(SessionId::now_v7(), &format!("commit-{}", i), [i as u8; 32]);
+            DehydrationSummary::new(SessionId::now_v7(), format!("commit-{i}"), [i as u8; 32]);
 
         service
             .commit_session(spine_id, owner.clone(), summary)
@@ -313,7 +312,7 @@ async fn test_clock_skew_concurrent_timestamp_ordering() {
         let handle = tokio::spawn(async move {
             let summary = DehydrationSummary::new(
                 SessionId::now_v7(),
-                &format!("concurrent-{}", i),
+                format!("concurrent-{i}"),
                 [i as u8; 32],
             );
             service_clone
@@ -369,7 +368,7 @@ async fn test_byzantine_malformed_dids() {
 
         // Should either accept or reject gracefully, not crash
         match result {
-            Ok(_) => println!("Accepted DID: {}", bad_did),
+            Ok(_) => println!("Accepted DID: {bad_did}"),
             Err(e) => println!("Rejected DID '{bad_did}': {e:?}"),
         }
     }
@@ -423,7 +422,7 @@ async fn test_byzantine_concurrent_conflicts() {
         let handle = tokio::spawn(async move {
             let summary = DehydrationSummary::new(
                 SessionId::now_v7(),
-                &format!("conflict-{}", i),
+                format!("conflict-{i}"),
                 [i as u8; 32],
             );
             service_clone
@@ -439,7 +438,7 @@ async fn test_byzantine_concurrent_conflicts() {
         match handle.await {
             Ok(Ok(_)) => successes += 1,
             Ok(Err(_)) => {} // Expected conflicts
-            Err(e) => panic!("Task panicked: {:?}", e),
+            Err(e) => panic!("Task panicked: {e:?}"),
         }
     }
 
