@@ -28,6 +28,15 @@ fi
 DEMOS=(
     "01-hello-loamspine"
     # "02-entry-types"  # Rust example complete, needs demo.sh wrapper
+    # "03-certificate-lifecycle"  # Rust example complete
+    # "04-proofs"  # Rust example complete
+    # "05-backup-restore"  # Rust example complete
+    # "06-storage-backends"  # Rust example complete
+    # "07-concurrent-ops"  # Rust example complete
+    "08-temporal-moments"  # NEW v0.7.0 - Universal time tracking
+    "09-waypoint-anchoring"  # NEW - Slice lending patterns
+    "10-recursive-spines"  # NEW - Spine composition
+)
     # More demos coming...
 )
 
