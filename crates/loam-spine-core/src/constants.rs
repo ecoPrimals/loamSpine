@@ -10,6 +10,8 @@
 //! - Using environment variables for explicit configuration
 //! - Leveraging service discovery instead of hardcoded ports
 
+pub mod network;
+
 /// Default tarpc port for primal-to-primal communication.
 ///
 /// This is a sensible default for development, but production deployments should:
