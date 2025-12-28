@@ -10,9 +10,11 @@
 //!
 //! ## Examples
 //!
-//! ```rust
+//! ```rust,no_run
 //! use loam_spine_core::capabilities::*;
+//! use loam_spine_core::infant_discovery::InfantDiscovery;
 //!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // LoamSpine advertises its capabilities
 //! let my_capabilities = vec![
 //!     LoamSpineCapability::PermanentLedger {
@@ -29,7 +31,12 @@
 //!
 //! // LoamSpine discovers services by capability (not by name!)
 //! // "Who can sign?" not "Where is BearDog?"
-//! let signing_services = discovery.find_capability(CAPABILITY_SIGNING).await?;
+//! let discovery = InfantDiscovery::new().await?;
+//! let signing_services = discovery
+//!     .find_capability(identifiers::external::SIGNING)
+//!     .await?;
+//! # Ok(())
+//! # }
 //! ```
 
 use serde::{Deserialize, Serialize};
