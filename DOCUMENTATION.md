@@ -12,7 +12,7 @@
 
 1. **[README.md](README.md)** — Overview, features, and quick start
 2. **[START_HERE.md](START_HERE.md)** — Getting started guide
-3. **[showcase/RUN_ME_FIRST.sh](showcase/RUN_ME_FIRST.sh)** — Interactive demos (21 scenarios)
+3. **[showcase/RUN_ME_FIRST.sh](showcase/RUN_ME_FIRST.sh)** — Interactive demos (30 production scenarios)
 
 ---
 
@@ -29,13 +29,13 @@
 
 ### Release Documentation (v0.7.0)
 
-| Document | Purpose |
-|----------|---------|
-| **[RELEASE_NOTES_v0.7.0.md](RELEASE_NOTES_v0.7.0.md)** | What's new in v0.7.0 |
-| **[DEPLOYMENT_GUIDE_v0.7.0.md](DEPLOYMENT_GUIDE_v0.7.0.md)** | Deployment instructions |
-| **[DEPLOYMENT_SUCCESS_v0.7.0.md](DEPLOYMENT_SUCCESS_v0.7.0.md)** | Deployment verification |
-| **[FINAL_VERIFICATION_v0.7.0.md](FINAL_VERIFICATION_v0.7.0.md)** | Final quality checks |
-| **[RELEASE_READY_v0.7.0.md](RELEASE_READY_v0.7.0.md)** | Release readiness report |
+All release documentation has been archived for cleaner root directory:
+
+| Document | Location |
+|----------|----------|
+| **Release Notes v0.7.0** | [archive/release-notes/RELEASE_NOTES_v0.7.0.md](archive/release-notes/RELEASE_NOTES_v0.7.0.md) |
+| **Deployment Guide** | [archive/release-notes/DEPLOYMENT_GUIDE_v0.7.0.md](archive/release-notes/DEPLOYMENT_GUIDE_v0.7.0.md) |
+| **Final Verification** | [archive/release-notes/FINAL_VERIFICATION_v0.7.0.md](archive/release-notes/FINAL_VERIFICATION_v0.7.0.md) |
 
 ### Planning & Roadmap
 
@@ -74,32 +74,44 @@ Complete technical specifications (11 documents, 9,159 lines):
 
 **Quick Start**: `./showcase/RUN_ME_FIRST.sh`
 
-21 interactive demonstrations organized in 4 categories:
+30 production demonstrations organized in 4 categories:
 
 #### 1. Local Primal Operations (`01-local-primal/`)
 - Create spines
-- Append entries
-- Sign certificates
-- Verify integrity
-- 8 scenarios
+- Entry types (all 15 types!)
+- Certificate lifecycle
+- Proofs and verification
+- Backup & restore
+- Storage backends
+- Concurrent operations
+- **NEW**: Temporal moments
+- **NEW**: Waypoint anchoring
+- **NEW**: Recursive spines
+- 10 scenarios
 
 #### 2. RPC API (`02-rpc-api/`)
-- HTTP and binary RPC
-- JSON-RPC 2.0
-- Streaming operations
-- 5 scenarios
+- JSON-RPC basics
+- Service management
+- Health monitoring
+- Lifecycle operations
+- Performance testing
+- 8 scenarios
 
 #### 3. Songbird Discovery (`03-songbird-discovery/`)
+- Capability registration
+- Service discovery
 - Universal adapter pattern
-- Service registration
-- Capability discovery
+- Zero-config mesh
 - 4 scenarios
 
 #### 4. Inter-Primal Integration (`04-inter-primal/`)
-- Multi-primal workflows
-- Cross-spine operations
-- End-to-end scenarios
-- 4 scenarios
+- **Real BearDog** cryptographic signing
+- **Real NestGate** content storage
+- **Full Ecosystem** workflow (all 6 primals!)
+- Multi-primal data flows
+- 7 scenarios
+
+**No Mocks!** All demos use real primal binaries.
 
 **See**: [showcase/00_START_HERE.md](showcase/00_START_HERE.md)
 
@@ -174,8 +186,8 @@ cargo bench
 cd fuzz && cargo fuzz run fuzz_spine_operations
 ```
 
-**Current Coverage**: 77.62% (exceeds 60% target)  
-**Tests**: 416 passing (100%)
+**Current Coverage**: 77.68% (exceeds 60% target)  
+**Tests**: 403 passing (100%)
 
 ### Code Quality Standards
 
@@ -184,7 +196,7 @@ cd fuzz && cargo fuzz run fuzz_spine_operations
 - ✅ **Full documentation** (0 doc warnings)
 - ✅ **Rustfmt** (consistent formatting)
 - ✅ **Max 1000 lines/file** (largest: 915 lines)
-- ✅ **Zero hardcoding** (100% capability-based)
+- ✅ **Zero hardcoding** (infrastructure - infant discovery pattern)
 
 ---
 
@@ -205,7 +217,7 @@ docker-compose logs -f loamspine
 
 ### Production Deployment
 
-See **[DEPLOYMENT_GUIDE_v0.7.0.md](DEPLOYMENT_GUIDE_v0.7.0.md)** for:
+See **[archive/release-notes/DEPLOYMENT_GUIDE_v0.7.0.md](archive/release-notes/DEPLOYMENT_GUIDE_v0.7.0.md)** for:
 - Environment configuration
 - Service deployment
 - Health checks
@@ -214,12 +226,21 @@ See **[DEPLOYMENT_GUIDE_v0.7.0.md](DEPLOYMENT_GUIDE_v0.7.0.md)** for:
 
 ### Configuration
 
-**Environment Variables**:
+**Environment Variables** (all optional - sensible defaults!):
 ```bash
-LOAMSPINE_PORT=8080
+# Port configuration
+LOAMSPINE_JSONRPC_PORT=8080  # Default: 8080
+LOAMSPINE_TARPC_PORT=9001    # Default: 9001
+USE_OS_ASSIGNED_PORTS=true   # For production K8s
+
+# Capability discovery (auto-discovered if not set)
+CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT="http://localhost:8001"
+CAPABILITY_CONTENT_STORAGE_ENDPOINT="http://localhost:7070"
+CAPABILITY_SERVICE_DISCOVERY_ENDPOINT="http://localhost:8082"
+
+# Storage & logging
 LOAMSPINE_STORAGE_PATH=/data/loamspine
 LOAMSPINE_LOG_LEVEL=info
-SONGBIRD_DISCOVERY_URL=http://songbird:9090
 ```
 
 **Capabilities** (`primal-capabilities.toml`):
@@ -254,11 +275,11 @@ requires = [
 ╠═══════════════════════════════════════════════╣
 ║                                               ║
 ║  Grade:          A+ (100/100) 🏆             ║
-║  Tests:          416 passing ✅               ║
-║  Coverage:       77.62% ✅                    ║
+║  Tests:          403 passing ✅               ║
+║  Coverage:       77.68% ✅                    ║
 ║  Unsafe Code:    0 blocks ✅                  ║
 ║  Clippy:         0 warnings ✅                ║
-║  Hardcoding:     100% eliminated ✅           ║
+║  Hardcoding:     0% (infrastructure) ✅       ║
 ║  Max File Size:  915 lines (<1000) ✅        ║
 ║  Status:         Production Ready ✅          ║
 ║                                               ║
@@ -270,7 +291,7 @@ requires = [
 - **Total LOC**: ~13,000 lines
 - **Crates**: 2 (core + api)
 - **Examples**: 13
-- **Showcase Scenarios**: 21
+- **Showcase Scenarios**: 30 (real integrations!)
 - **RPC Methods**: 19
 - **Specifications**: 11 documents (9,159 lines)
 
@@ -279,7 +300,7 @@ requires = [
 - **Excellent (>90%)**: `proof.rs`, `primal.rs`, `storage/memory.rs`, trait modules
 - **Good (80-90%)**: `integration.rs`, `service.rs`, `spine.rs`, `discovery.rs`
 - **Adequate (60-80%)**: `certificate.rs`, `waypoint.rs`, `rpc/`
-- **Overall**: 77.62% (target: 60%)
+- **Overall**: 77.68% (target: 60%)
 
 ---
 
@@ -291,14 +312,15 @@ requires = [
 2. **Permanence** — No deletion, only sealing
 3. **Verification** — Cryptographic proofs at every level
 4. **Recursion** — Spines can reference other spines
-5. **Zero Hardcoding** — Runtime discovery by capability
+5. **Infant Discovery** — Start with zero knowledge, discover at runtime
 6. **Time as Primitive** — Universal temporal tracking
 
 ### Architecture Highlights
 
-- **Infant Discovery**: Start with zero knowledge, discover at runtime
-- **Universal Adapter**: O(n) discovery via Songbird
-- **Capability-Based**: Services discovered by what they can do
+- **Infant Discovery**: Born with zero external knowledge, discovers services by capability at runtime
+- **Capability-Based**: "Who can sign?" not "Where is BearDog?"
+- **O(n) Scaling**: Universal adapter (not O(n²) primal-to-primal connections)
+- **Environment-Driven**: Configuration via env vars with sensible defaults
 - **Zero-Copy**: `bytes::Bytes` for efficient buffer sharing
 - **Pure Rust RPC**: `tarpc` for binary, JSON-RPC 2.0 for external
 - **RAII & Type Safety**: `Arc<RwLock<>>` and newtypes everywhere
@@ -385,12 +407,27 @@ lsof -i :8080
 
 ## 📁 Archive
 
-Historical reports and session documentation moved to `archive/`:
+Historical documentation has been organized for easier navigation:
 
-- **`archive/audit-reports/`** — Comprehensive audit reports
-- **`archive/session-reports/`** — Development session reports
+### Session Reports
+Development session summaries and achievements:
+- **[archive/session-reports/COMPLETE_SESSION_SUMMARY.md](archive/session-reports/COMPLETE_SESSION_SUMMARY.md)** — Full session report
+- **[archive/session-reports/FINAL_VERIFICATION_COMPLETE.md](archive/session-reports/FINAL_VERIFICATION_COMPLETE.md)** — Production verification
+- **[archive/session-reports/SHOWCASE_MISSION_COMPLETE.md](archive/session-reports/SHOWCASE_MISSION_COMPLETE.md)** — Showcase achievements
 
-These documents provide valuable context but are not needed for daily development.
+### Planning Documents
+Completed planning and execution reports:
+- **[archive/planning/HARDCODING_ELIMINATION_PLAN.md](archive/planning/HARDCODING_ELIMINATION_PLAN.md)** — Infrastructure evolution strategy
+- **[archive/planning/HARDCODING_STATUS.md](archive/planning/HARDCODING_STATUS.md)** — Implementation status
+- **[archive/planning/SHOWCASE_EVOLUTION_PLAN_v2.md](archive/planning/SHOWCASE_EVOLUTION_PLAN_v2.md)** — Showcase development plan
+
+### Release Notes
+Version-specific release documentation:
+- **[archive/release-notes/RELEASE_NOTES_v0.7.0.md](archive/release-notes/RELEASE_NOTES_v0.7.0.md)** — What's new
+- **[archive/release-notes/DEPLOYMENT_GUIDE_v0.7.0.md](archive/release-notes/DEPLOYMENT_GUIDE_v0.7.0.md)** — Deployment instructions
+- **[archive/release-notes/FINAL_VERIFICATION_v0.7.0.md](archive/release-notes/FINAL_VERIFICATION_v0.7.0.md)** — Quality verification
+
+These provide valuable historical context but are not needed for daily development.
 
 ---
 
