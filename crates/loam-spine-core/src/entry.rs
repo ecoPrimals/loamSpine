@@ -7,6 +7,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::temporal::{Moment, MomentId};
 use crate::types::{
     hash_bytes, BraidId, CertificateId, ContentHash, Did, EntryHash, PayloadRef, SessionId,
     Signature, SliceId, SpineId, Timestamp,
@@ -320,6 +321,15 @@ pub enum EntryType {
         reason: String,
     },
 
+    // === Temporal Moments ===
+    /// Temporal moment (universal time tracking).
+    TemporalMoment {
+        /// Unique moment identifier.
+        moment_id: MomentId,
+        /// Moment data (boxed to reduce enum size).
+        moment: Box<Moment>,
+    },
+
     // === Custom ===
     /// Custom entry type.
     Custom {
@@ -350,6 +360,7 @@ impl EntryType {
             Self::SliceAnchor { .. }
             | Self::SliceOperation { .. }
             | Self::SliceDeparture { .. } => "slice",
+            Self::TemporalMoment { .. } => "temporal",
             Self::Custom { .. } => "custom",
         }
     }

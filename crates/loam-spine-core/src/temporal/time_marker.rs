@@ -13,21 +13,21 @@ use super::MomentId;
 pub struct TimeMarker {
     /// Human-readable name
     pub name: String,
-    
+
     /// Which moment does this marker point to?
     pub moment: MomentId,
-    
+
     /// Can this marker move?
     pub marker_type: MarkerType,
-    
+
     /// Optional description
     pub description: Option<String>,
-    
+
     /// When was this marker created?
     pub created_at: std::time::SystemTime,
-    
+
     /// Who created this marker?
-    pub created_by: String,  // DID
+    pub created_by: String, // DID
 }
 
 /// Whether a marker can move or is fixed.
@@ -35,7 +35,7 @@ pub struct TimeMarker {
 pub enum MarkerType {
     /// Can be updated to point to different moments (like Git branches)
     Mutable,
-    
+
     /// Fixed to a specific moment (like Git tags)
     Immutable,
 }
@@ -52,7 +52,7 @@ impl TimeMarker {
             created_by,
         }
     }
-    
+
     /// Create a new immutable marker (tag-like).
     pub fn tag(
         name: String,
@@ -69,7 +69,7 @@ impl TimeMarker {
             created_by,
         }
     }
-    
+
     /// Can this marker be updated?
     pub fn is_mutable(&self) -> bool {
         self.marker_type == MarkerType::Mutable
@@ -80,7 +80,7 @@ impl TimeMarker {
 mod tests {
     use super::*;
     use crate::types::ContentHash;
-    
+
     #[test]
     fn create_branch_marker() {
         let marker = TimeMarker::branch(
@@ -88,11 +88,11 @@ mod tests {
             ContentHash::default(),
             "did:example:alice".to_string(),
         );
-        
+
         assert_eq!(marker.name, "main");
         assert!(marker.is_mutable());
     }
-    
+
     #[test]
     fn create_tag_marker() {
         let marker = TimeMarker::tag(
@@ -101,10 +101,9 @@ mod tests {
             "did:example:alice".to_string(),
             Some("First release".to_string()),
         );
-        
+
         assert_eq!(marker.name, "v1.0.0");
         assert!(!marker.is_mutable());
         assert_eq!(marker.description, Some("First release".to_string()));
     }
 }
-

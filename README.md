@@ -10,6 +10,7 @@
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue)]()
 [![Version](https://img.shields.io/badge/version-0.7.0-blue)]()
 [![Hardcoding](https://img.shields.io/badge/zero%20hardcoding-100%25-brightgreen)]()
+[![Discovery](https://img.shields.io/badge/discovery-capability--based-purple)]()
 [![Discovery](https://img.shields.io/badge/discovery-DNS%20SRV%20%2B%20mDNS-purple)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 [![Debt](https://img.shields.io/badge/technical%20debt-ZERO-green)]()
@@ -325,17 +326,20 @@ client.advertise_loamspine(
 | **Status** | ✅ **PRODUCTION READY** |
 
 ### Test Breakdown
-- **Unit Tests**: 271
-- **Integration Tests**: 69
+- **Unit Tests**: 314 (40 API + 274 Core)
+- **Integration Tests**: 13 (API integration)
+- **Chaos Tests**: 26
 - **Fault Tolerance**: 16
 - **E2E Scenarios**: 6
-- **Songbird Integration**: 8
+- **Discovery Integration**: 8
+- **CLI Signer Integration**: 11
+- **Doctests**: 25 (3 API + 22 Core)
 - **Total**: 416 tests
 
 ### Coverage By Category
 - **Excellent (>90%)**: proof.rs, primal.rs, storage/memory.rs, all trait modules
 - **Good (80-90%)**: integration.rs, service.rs, spine.rs, discovery.rs
-- **Adequate (60-80%)**: tarpc_server.rs, jsonrpc.rs, songbird.rs
+- **Adequate (60-80%)**: tarpc_server.rs, jsonrpc.rs, discovery_client.rs
 - **Lower**: cli_signer.rs (57%), signals.rs (44%, hard to test)
 
 ---

@@ -10,13 +10,13 @@ use serde::{Deserialize, Serialize};
 pub enum Anchor {
     /// Anchored to blockchain consensus (ETH, BTC, etc.)
     Crypto(CryptoAnchor),
-    
+
     /// Anchored to atomic time (NIST, GPS, etc.)
     Atomic(AtomicAnchor),
-    
+
     /// Anchored to causal event order (not clock time!)
     Causal(CausalAnchor),
-    
+
     /// Anchored to group consensus (social time)
     Consensus(ConsensusAnchor),
 }
@@ -26,13 +26,13 @@ pub enum Anchor {
 pub struct CryptoAnchor {
     /// Which chain (ethereum, bitcoin, etc.)
     pub chain: String,
-    
+
     /// Block height
     pub block_height: u64,
-    
+
     /// Block hash
     pub block_hash: String,
-    
+
     /// Transaction hash (optional)
     pub tx_hash: Option<String>,
 }
@@ -42,10 +42,10 @@ pub struct CryptoAnchor {
 pub struct AtomicAnchor {
     /// UTC timestamp
     pub timestamp: std::time::SystemTime,
-    
+
     /// Precision (nanosecond, microsecond, etc.)
     pub precision: TimePrecision,
-    
+
     /// Source (NIST, GPS, local, etc.)
     pub source: String,
 }
@@ -53,10 +53,15 @@ pub struct AtomicAnchor {
 /// Time precision level.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum TimePrecision {
+    /// Nanosecond precision (10^-9 seconds)
     Nanosecond,
+    /// Microsecond precision (10^-6 seconds)
     Microsecond,
+    /// Millisecond precision (10^-3 seconds)
     Millisecond,
+    /// Second precision
     Second,
+    /// Minute precision
     Minute,
 }
 
@@ -65,10 +70,10 @@ pub enum TimePrecision {
 pub struct CausalAnchor {
     /// Sequence number in causal chain
     pub sequence: u64,
-    
+
     /// Causal parents (events that happened before)
     pub causal_parents: Vec<String>,
-    
+
     /// Lamport clock (optional)
     pub lamport_clock: Option<u64>,
 }
@@ -78,10 +83,10 @@ pub struct CausalAnchor {
 pub struct ConsensusAnchor {
     /// Agents who agreed on this ordering
     pub agreed_by: Vec<String>,
-    
+
     /// When consensus was reached
     pub consensus_timestamp: std::time::SystemTime,
-    
+
     /// Consensus mechanism used
     pub mechanism: String,
 }
@@ -103,11 +108,10 @@ impl Anchor {
     /// Get the type of this anchor.
     pub fn anchor_type(&self) -> AnchorType {
         match self {
-            Anchor::Crypto(_) => AnchorType::Crypto,
-            Anchor::Atomic(_) => AnchorType::Atomic,
-            Anchor::Causal(_) => AnchorType::Causal,
-            Anchor::Consensus(_) => AnchorType::Consensus,
+            Self::Crypto(_) => AnchorType::Crypto,
+            Self::Atomic(_) => AnchorType::Atomic,
+            Self::Causal(_) => AnchorType::Causal,
+            Self::Consensus(_) => AnchorType::Consensus,
         }
     }
 }
-
