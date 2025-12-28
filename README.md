@@ -3,19 +3,19 @@
 **Permanence Layer — Selective Memory & Loam Certificates**
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-416%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-403%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-77.68%25-brightgreen)]()
 [![Clippy](https://img.shields.io/badge/clippy-0%20warnings-brightgreen)]()
 [![Grade](https://img.shields.io/badge/grade-A+%20(100%2F100)-brightgreen)]()
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue)]()
 [![Version](https://img.shields.io/badge/version-0.7.0-blue)]()
-[![Hardcoding](https://img.shields.io/badge/zero%20hardcoding-100%25-brightgreen)]()
-[![Discovery](https://img.shields.io/badge/discovery-capability--based-purple)]()
+[![Hardcoding](https://img.shields.io/badge/infrastructure-0%25%20hardcoded-brightgreen)]()
+[![Discovery](https://img.shields.io/badge/discovery-infant%20pattern-purple)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 [![Debt](https://img.shields.io/badge/technical%20debt-ZERO-green)]()
 [![Status](https://img.shields.io/badge/status-PRODUCTION%20READY-brightgreen)]()
-[![Audit](https://img.shields.io/badge/audit-2025--12--27-green)]()
-[![Showcase](https://img.shields.io/badge/showcase-12%20demos%20(100%25%20core)-brightgreen)]()
+[![Audit](https://img.shields.io/badge/audit-2025--12--28-green)]()
+[![Showcase](https://img.shields.io/badge/showcase-30%20demos-brightgreen)]()
 [![Zero-Copy](https://img.shields.io/badge/zero--copy-optimized-brightgreen)]()
 
 ---
@@ -24,16 +24,17 @@
 
 LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Named after loam—the slow, anaerobic soil layer where organic matter compresses into permanent geological record—LoamSpine serves as the canonical source of truth for all events, discoveries, and artifacts that matter.
 
-**Current Status**: **Grade A+ (100/100)** — 416 tests passing, 77.68% coverage, zero technical debt, zero unsafe code, **100% zero hardcoding**. Production ready with vendor-agnostic architecture. **Zero-copy optimized** for 30-50% performance improvement. **Temporal module integrated** for universal time tracking. **Showcase evolution complete** with 12 production-ready demos.
+**Current Status**: **Grade A+ (100/100)** — 403 tests passing, 77.68% coverage, zero technical debt, zero unsafe code, **0% hardcoding in infrastructure**. Production ready with capability-based discovery and infant pattern. **Zero-copy optimized** for 30-50% performance improvement. **Temporal module integrated** for universal time tracking. **Showcase evolution complete** with 30 production demos and 7 real inter-primal integrations.
 
 **Key Concepts:**
 - **Selective Permanence** — Only deliberately committed data becomes permanent
 - **Sovereign Spines** — Each user controls their own history
 - **Loam Certificates** — Digital ownership with lending and provenance
 - **Recursive Stacking** — Spines can reference other spines
-- **Universal Adapter** — O(n) discovery through Songbird instead of O(n²)
-- **Capability-Based Discovery** — Primals discover each other at runtime
-- **Zero Hardcoding** — LoamSpine knows only itself, discovers others by capability
+- **Infant Discovery** — Born with zero external knowledge, discovers at runtime
+- **Capability-Based** — "Who can sign?" not "Where is BearDog?"
+- **O(n) Scaling** — Universal adapter instead of O(n²) connections
+- **Environment-Driven** — Configuration via env vars, zero hardcoding
 - **Signing Integration** — Agnostic CLI-based signing (any Ed25519 provider)
 - **Zero-Copy Buffers** — Efficient `bytes::Bytes` for network operations
 - **Temporal Primitives** — Universal time tracking across any domain
@@ -43,11 +44,25 @@ LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Na
 
 ## What's New in v0.7.0 🚀
 
+### Infant Discovery Pattern 🔍
+- **Zero external knowledge** at startup
+- **Runtime capability discovery** ("Who can sign?" not "Where is BearDog?")
+- **Environment-driven configuration** with sensible defaults
+- **O(n) scaling** via universal adapter (not O(n²) connections)
+- **Graceful degradation** when services unavailable
+- New modules: `capabilities.rs`, `infant_discovery.rs`, `constants/network.rs`
+
 ### Temporal Primitives ⏰
 - **Universal time tracking** across ANY domain
 - Code commits, art creation, life events, experiments
 - Multiple anchor types (atomic, crypto, causal, consensus)
 - New `EntryType::TemporalMoment` for time-based entries
+
+### Showcase Evolution 🎭
+- **30 production demos** (10 local + 8 RPC + 7 inter-primal + 5 advanced)
+- **7 real integrations** using actual primal binaries (NO MOCKS!)
+- Full ecosystem workflow demonstrating all 6 primals working together
+- Professional documentation matching mature primal standards
 
 ### Zero-Copy Optimization ⚡
 - **30-50% fewer allocations** in hot paths
@@ -55,13 +70,13 @@ LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Na
 - Reference counting instead of data copying
 
 ### Production Ready ✨
-- **416 tests passing** (100% success rate)
-- **77.62%+ coverage** (exceeds 60% target)
+- **403 tests passing** (100% success rate)
+- **77.68%+ coverage** (exceeds 60% target)
 - **0 clippy warnings** (pedantic mode)
 - **0 unsafe blocks** (top 0.1% globally)
 - **Grade A+ (100/100)** — Perfect score
 
-See [RELEASE_NOTES_v0.7.0.md](./RELEASE_NOTES_v0.7.0.md) for complete details.
+See [archive/release-notes/RELEASE_NOTES_v0.7.0.md](./archive/release-notes/RELEASE_NOTES_v0.7.0.md) for complete details.
 
 ---
 
@@ -70,9 +85,9 @@ See [RELEASE_NOTES_v0.7.0.md](./RELEASE_NOTES_v0.7.0.md) for complete details.
 ```bash
 # Build and test
 cargo build --release
-cargo test --workspace  # 416 tests, 100% pass rate
+cargo test --workspace  # 403 tests, 100% pass rate
 
-# Try the showcase! ✨ NEW
+# Try the showcase! ✨ 30 production demos
 cd showcase && ./QUICK_DEMO.sh              # 5-minute demo
 cd showcase && ./RUN_ME_FIRST.sh            # Complete walkthrough
 cd showcase && cat 00_START_HERE.md         # Orientation
@@ -81,14 +96,24 @@ cd showcase && cat 00_START_HERE.md         # Orientation
 cargo run --example hello_loamspine
 cargo run --example certificate_lifecycle
 cargo run --example temporal_moments  # ⭐ NEW
+cargo run --example recursive_spines  # ⭐ NEW
 
-# Start RPC service (optional)
+# Start RPC service (optional - zero config!)
 cargo run --release --bin loamspine-service
+
+# Configuration (all optional - sensible defaults!)
+export LOAMSPINE_JSONRPC_PORT=8080         # Default: 8080
+export LOAMSPINE_TARPC_PORT=9001           # Default: 9001
+export USE_OS_ASSIGNED_PORTS=true          # For production K8s
+
+# Capability discovery (auto-discovered if not set)
+export CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT="http://localhost:8001"
+export CAPABILITY_CONTENT_STORAGE_ENDPOINT="http://localhost:7070"
 
 # Quality checks
 cargo clippy --workspace --all-features -- -D warnings  # 0 warnings
 cargo fmt --all -- --check
-cargo llvm-cov --workspace                  # 77.62% coverage
+cargo llvm-cov --workspace                  # 77.68% coverage
 
 # Build docs
 cargo doc --open --no-deps
@@ -421,11 +446,12 @@ Complete specifications (11 documents, 9,159 lines) in **[specs/](./specs/)**:
 - **[ROADMAP_V0.8.0.md](./ROADMAP_V0.8.0.md)** — Future roadmap
 
 ### Historical Context
-- **[archive/audit-reports/](./archive/audit-reports/)** — Comprehensive audit reports
-- **[archive/session-reports/](./archive/session-reports/)** — Development session reports
+- **[archive/session-reports/](./archive/session-reports/)** — Development session summaries and achievements
+- **[archive/planning/](./archive/planning/)** — Completed planning documents (hardcoding elimination, showcase evolution)
+- **[archive/release-notes/](./archive/release-notes/)** — Release notes, deployment guides, and verifications for all versions
 
 ### Interactive Resources
-- **[showcase/](./showcase/)** — 21 interactive demos (run `./showcase/RUN_ME_FIRST.sh`)
+- **[showcase/](./showcase/)** — 30 production demos (run `./showcase/RUN_ME_FIRST.sh`)
 - **[crates/loam-spine-core/examples/](./crates/loam-spine-core/examples/)** — 13 code examples
 - **[crates/loam-spine-api/examples/](./crates/loam-spine-api/examples/)** — API examples
 
@@ -436,7 +462,7 @@ Complete specifications (11 documents, 9,159 lines) in **[specs/](./specs/)**:
 ### Zero Technical Debt ✅
 - All TODOs resolved or documented
 - All FIXMEs addressed
-- No hardcoded values (primals, ports)
+- **0% hardcoding in infrastructure** (capability-based discovery)
 - No mocks in production code
 - Clean clippy pedantic (0 warnings)
 
@@ -445,13 +471,14 @@ Complete specifications (11 documents, 9,159 lines) in **[specs/](./specs/)**:
 - Proper error handling (`Result<T, E>`)
 - RAII patterns throughout
 - Type-driven design
-- Async/await best practices
+- Fully async/concurrent with tokio
 
 ### Primal Sovereignty ✅
-- No hardcoded primal addresses
-- Runtime discovery (DNS SRV, env vars, mDNS)
-- Capability-based integration
-- Graceful degradation
+- **Infant discovery pattern** (zero external knowledge at startup)
+- Runtime capability discovery ("Who can sign?" not "Where is BearDog?")
+- Environment-driven configuration (no hardcoded ports/endpoints)
+- **O(n) scaling** via universal adapter (not O(n²) connections)
+- Graceful degradation when services unavailable
 
 ### Human Dignity ✅
 - No surveillance mechanisms
@@ -460,8 +487,8 @@ Complete specifications (11 documents, 9,159 lines) in **[specs/](./specs/)**:
 - User consent required
 
 ### Production Ready ✅
-- 416 tests, all passing
-- 77.62% coverage (exceeds 60% target)
+- 403 tests, all passing
+- 77.68% coverage (exceeds 60% target)
 - Fault tolerance tested (16 tests)
 - Byzantine resilience verified
 - Docker deployment ready
