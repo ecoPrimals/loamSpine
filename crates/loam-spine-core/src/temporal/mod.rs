@@ -24,7 +24,7 @@ mod anchor;
 mod moment;
 mod time_marker;
 
-pub use anchor::{Anchor, AnchorType};
+pub use anchor::{Anchor, AnchorType, AtomicAnchor, CausalAnchor, ConsensusAnchor, CryptoAnchor, TimePrecision};
 pub use moment::{Moment, MomentContext, MomentId};
 pub use time_marker::{MarkerType, TimeMarker};
 
@@ -35,13 +35,13 @@ pub use time_marker::{MarkerType, TimeMarker};
 pub struct EphemeralProvenance {
     /// rhizoCrypt session ID
     pub session_id: String,
-    
+
     /// Merkle root from rhizoCrypt DAG
     pub merkle_root: crate::types::ContentHash,
-    
+
     /// Attestations from all agents involved
     pub attestations: Vec<Attestation>,
-    
+
     /// When dehydration occurred
     pub dehydration_timestamp: std::time::SystemTime,
 }
@@ -51,11 +51,10 @@ pub struct EphemeralProvenance {
 pub struct Attestation {
     /// Agent DID
     pub agent: String,
-    
+
     /// Signature over the session
     pub signature: crate::types::Signature,
-    
+
     /// When this agent signed
     pub timestamp: std::time::SystemTime,
 }
-
