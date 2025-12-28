@@ -60,6 +60,7 @@ pub mod constants;
 pub mod discovery_client;
 pub mod entry;
 pub mod error;
+pub mod infant_discovery;
 pub mod manager;
 pub mod primal;
 pub mod proof;
