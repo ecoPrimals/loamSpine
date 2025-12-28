@@ -15,7 +15,7 @@
 [![Debt](https://img.shields.io/badge/technical%20debt-ZERO-green)]()
 [![Status](https://img.shields.io/badge/status-PRODUCTION%20READY-brightgreen)]()
 [![Audit](https://img.shields.io/badge/audit-2025--12--27-green)]()
-[![Showcase](https://img.shields.io/badge/showcase-21%20demos-blue)]()
+[![Showcase](https://img.shields.io/badge/showcase-12%20demos%20(100%25%20core)-brightgreen)]()
 [![Zero-Copy](https://img.shields.io/badge/zero--copy-optimized-brightgreen)]()
 
 ---
@@ -24,7 +24,7 @@
 
 LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Named after loam—the slow, anaerobic soil layer where organic matter compresses into permanent geological record—LoamSpine serves as the canonical source of truth for all events, discoveries, and artifacts that matter.
 
-**Current Status**: **Grade A+ (100/100)** — 416 tests passing, 77.62% coverage, zero technical debt, zero unsafe code, **100% zero hardcoding**. Production ready with vendor-agnostic architecture. **Zero-copy optimized** for 30-50% performance improvement. **Temporal module integrated** for universal time tracking.
+**Current Status**: **Grade A+ (100/100)** — 416 tests passing, 77.68% coverage, zero technical debt, zero unsafe code, **100% zero hardcoding**. Production ready with vendor-agnostic architecture. **Zero-copy optimized** for 30-50% performance improvement. **Temporal module integrated** for universal time tracking. **Showcase evolution complete** with 12 production-ready demos.
 
 **Key Concepts:**
 - **Selective Permanence** — Only deliberately committed data becomes permanent
