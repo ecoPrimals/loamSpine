@@ -53,6 +53,7 @@
 
 // Core modules
 pub mod backup;
+pub mod capabilities;
 pub mod certificate;
 pub mod config;
 pub mod constants;
