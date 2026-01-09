@@ -36,6 +36,9 @@ blake3 = "1.5"
 # UUIDs
 uuid = { version = "1.11", features = ["v7", "serde"] }
 
+# Testing
+serial_test = "3.0"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"
