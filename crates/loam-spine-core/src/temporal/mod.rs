@@ -24,7 +24,9 @@ mod anchor;
 mod moment;
 mod time_marker;
 
-pub use anchor::{Anchor, AnchorType, AtomicAnchor, CausalAnchor, ConsensusAnchor, CryptoAnchor, TimePrecision};
+pub use anchor::{
+    Anchor, AnchorType, AtomicAnchor, CausalAnchor, ConsensusAnchor, CryptoAnchor, TimePrecision,
+};
 pub use moment::{Moment, MomentContext, MomentId};
 pub use time_marker::{MarkerType, TimeMarker};
 

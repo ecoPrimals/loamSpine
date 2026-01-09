@@ -146,10 +146,7 @@ impl InfantDiscovery {
         info!("Initializing infant discovery (zero external knowledge)");
 
         let own_capabilities = LoamSpineCapability::introspect();
-        info!(
-            "Self-knowledge: {} capabilities",
-            own_capabilities.len()
-        );
+        info!("Self-knowledge: {} capabilities", own_capabilities.len());
 
         Ok(Self {
             own_capabilities,
@@ -182,8 +179,14 @@ impl InfantDiscovery {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn find_capability(&self, capability: &str) -> LoamSpineResult<Vec<DiscoveredService>> {
-        info!("Infant discovery: searching for capability '{}'", capability);
+    pub async fn find_capability(
+        &self,
+        capability: &str,
+    ) -> LoamSpineResult<Vec<DiscoveredService>> {
+        info!(
+            "Infant discovery: searching for capability '{}'",
+            capability
+        );
 
         // Check cache first
         {
@@ -212,9 +215,7 @@ impl InfantDiscovery {
             debug!("Trying discovery method: {:?}", method);
 
             let services = match method {
-                DiscoveryMethod::Environment => {
-                    self.discover_via_environment(capability).await?
-                }
+                DiscoveryMethod::Environment => self.discover_via_environment(capability).await?,
                 DiscoveryMethod::MDns => {
                     // TODO: Implement mDNS discovery
                     warn!("mDNS discovery not yet implemented");
@@ -371,7 +372,7 @@ mod tests {
         env::remove_var("SIGNING_SERVICE_URL");
 
         let discovery = InfantDiscovery::new().await.unwrap();
-        
+
         // Should NOT find anything initially
         let services = discovery
             .find_capability("cryptographic-signing")
@@ -384,10 +385,10 @@ mod tests {
             "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
             "http://localhost:8001",
         );
-        
+
         // Clear cache to force rediscovery
         discovery.clear_cache().await;
-        
+
         let services = discovery
             .find_capability("cryptographic-signing")
             .await
@@ -407,10 +408,7 @@ mod tests {
         env::remove_var("CAPABILITY_STORAGE_ENDPOINT");
 
         let discovery = InfantDiscovery::new().await.unwrap();
-        let services = discovery
-            .find_capability("content-storage")
-            .await
-            .unwrap();
+        let services = discovery.find_capability("content-storage").await.unwrap();
 
         // Should return empty, not error (graceful degradation)
         assert!(services.is_empty());
@@ -452,4 +450,3 @@ mod tests {
         env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
     }
 }
-
