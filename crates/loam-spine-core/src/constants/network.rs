@@ -241,53 +241,85 @@ pub fn actual_tarpc_port() -> u16 {
 /// ```
 pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -> String {
     match path {
-        Some(p) => format!("{}://{}:{}{}", scheme, host, port, p),
-        None => format!("{}://{}:{}", scheme, host, port),
+        Some(p) => format!("{scheme}://{host}:{port}{p}"),
+        None => format!("{scheme}://{host}:{port}"),
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 mod tests {
     use super::*;
 
+    /// Clean up all environment variables that might affect tests
+    fn cleanup_env_vars() {
+        env::remove_var("LOAMSPINE_JSONRPC_PORT");
+        env::remove_var("JSONRPC_PORT");
+        env::remove_var("LOAMSPINE_TARPC_PORT");
+        env::remove_var("TARPC_PORT");
+        env::remove_var("USE_OS_ASSIGNED_PORTS");
+        env::remove_var("LOAMSPINE_USE_OS_ASSIGNED_PORTS");
+    }
+
     #[test]
     fn test_jsonrpc_port_from_env() {
+        cleanup_env_vars();
         env::set_var("LOAMSPINE_JSONRPC_PORT", "8888");
         assert_eq!(jsonrpc_port(), 8888);
-        env::remove_var("LOAMSPINE_JSONRPC_PORT");
+        cleanup_env_vars();
     }
 
     #[test]
     fn test_jsonrpc_port_default() {
-        env::remove_var("LOAMSPINE_JSONRPC_PORT");
-        env::remove_var("JSONRPC_PORT");
+        cleanup_env_vars();
         assert_eq!(jsonrpc_port(), DEFAULT_JSONRPC_PORT);
+        cleanup_env_vars();
     }
 
     #[test]
     fn test_tarpc_port_from_env() {
+        cleanup_env_vars();
         env::set_var("LOAMSPINE_TARPC_PORT", "9999");
         assert_eq!(tarpc_port(), 9999);
-        env::remove_var("LOAMSPINE_TARPC_PORT");
+        cleanup_env_vars();
     }
 
     #[test]
     fn test_os_assigned_ports() {
-        env::set_var("USE_OS_ASSIGNED_PORTS", "true");
+        cleanup_env_vars();
+        env::set_var("USE_OS_ASSIGNED_PORTS", "1");
         assert!(use_os_assigned_ports());
-        env::remove_var("USE_OS_ASSIGNED_PORTS");
+        cleanup_env_vars();
 
-        env::set_var("USE_OS_ASSIGNED_PORTS", "false");
+        env::set_var("USE_OS_ASSIGNED_PORTS", "0");
         assert!(!use_os_assigned_ports());
-        env::remove_var("USE_OS_ASSIGNED_PORTS");
+        cleanup_env_vars();
     }
 
     #[test]
     fn test_actual_ports_with_os_assignment() {
-        env::set_var("USE_OS_ASSIGNED_PORTS", "true");
-        assert_eq!(actual_jsonrpc_port(), 0);
-        assert_eq!(actual_tarpc_port(), 0);
-        env::remove_var("USE_OS_ASSIGNED_PORTS");
+        cleanup_env_vars();
+        env::set_var("USE_OS_ASSIGNED_PORTS", "1");
+
+        // Verify the env var is set correctly
+        assert!(
+            use_os_assigned_ports(),
+            "use_os_assigned_ports() should return true when USE_OS_ASSIGNED_PORTS=1"
+        );
+
+        let json_port = actual_jsonrpc_port();
+        let tarpc_port_val = actual_tarpc_port();
+
+        assert_eq!(
+            json_port, 0,
+            "actual_jsonrpc_port() should return 0 when OS assignment is enabled"
+        );
+        assert_eq!(
+            tarpc_port_val, 0,
+            "actual_tarpc_port() should return 0 when OS assignment is enabled"
+        );
+
+        cleanup_env_vars();
     }
 
     #[test]

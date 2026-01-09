@@ -357,7 +357,7 @@ pub enum BackupError {
         /// Spine ID.
         spine_id: SpineId,
         /// The underlying error.
-        error: Box<BackupError>,
+        error: Box<Self>,
     },
 }
 

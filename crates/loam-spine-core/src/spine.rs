@@ -317,9 +317,10 @@ impl SpineBuilder {
 }
 
 /// Spine state.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum SpineState {
     /// Actively accepting entries.
+    #[default]
     Active,
 
     /// Temporarily frozen.
@@ -364,12 +365,6 @@ impl SpineState {
     #[must_use]
     pub const fn is_terminal(&self) -> bool {
         matches!(self, Self::Sealed { .. } | Self::Archived { .. })
-    }
-}
-
-impl Default for SpineState {
-    fn default() -> Self {
-        Self::Active
     }
 }
 

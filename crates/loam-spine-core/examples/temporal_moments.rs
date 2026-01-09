@@ -3,6 +3,8 @@
 //! This demonstrates how to use the temporal module to track universal time
 //! across any domain: code commits, art creation, life events, etc.
 
+#![allow(clippy::unwrap_used)] // Examples use unwrap for clarity
+
 use loam_spine_core::{
     entry::EntryType,
     temporal::{Anchor, AtomicAnchor, Moment, MomentContext, TimePrecision},

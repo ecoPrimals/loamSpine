@@ -121,21 +121,16 @@ pub trait EntryStorage: Send + Sync {
 /// Storage backend type.
 ///
 /// Used to select between in-memory (testing) and persistent (production) storage.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StorageBackend {
     /// In-memory storage (for testing and development).
     ///
     /// Fast but transient — data is lost when the process exits.
+    #[default]
     InMemory,
 
     /// Sled-backed persistent storage (for production).
     ///
     /// Slower but persistent — data survives process restarts.
     Sled,
-}
-
-impl Default for StorageBackend {
-    fn default() -> Self {
-        Self::InMemory
-    }
 }
