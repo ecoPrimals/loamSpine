@@ -106,6 +106,7 @@ pub enum AnchorType {
 
 impl Anchor {
     /// Get the type of this anchor.
+    #[must_use]
     pub fn anchor_type(&self) -> AnchorType {
         match self {
             Self::Crypto(_) => AnchorType::Crypto,
@@ -113,5 +114,181 @@ impl Anchor {
             Self::Causal(_) => AnchorType::Causal,
             Self::Consensus(_) => AnchorType::Consensus,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::SystemTime;
+
+    #[test]
+    fn crypto_anchor_creation() {
+        let anchor = CryptoAnchor {
+            chain: "ethereum".to_string(),
+            block_height: 18_000_000,
+            block_hash: "0xabc123".to_string(),
+            tx_hash: Some("0xdef456".to_string()),
+        };
+
+        assert_eq!(anchor.chain, "ethereum");
+        assert_eq!(anchor.block_height, 18_000_000);
+        assert!(anchor.tx_hash.is_some());
+    }
+
+    #[test]
+    fn atomic_anchor_creation() {
+        let anchor = AtomicAnchor {
+            timestamp: SystemTime::now(),
+            precision: TimePrecision::Nanosecond,
+            source: "NIST".to_string(),
+        };
+
+        assert_eq!(anchor.source, "NIST");
+        assert!(matches!(anchor.precision, TimePrecision::Nanosecond));
+    }
+
+    #[test]
+    fn causal_anchor_creation() {
+        let anchor = CausalAnchor {
+            sequence: 42,
+            causal_parents: vec!["event1".to_string(), "event2".to_string()],
+            lamport_clock: Some(100),
+        };
+
+        assert_eq!(anchor.sequence, 42);
+        assert_eq!(anchor.causal_parents.len(), 2);
+        assert_eq!(anchor.lamport_clock, Some(100));
+    }
+
+    #[test]
+    fn consensus_anchor_creation() {
+        let anchor = ConsensusAnchor {
+            agreed_by: vec!["alice".to_string(), "bob".to_string()],
+            consensus_timestamp: SystemTime::now(),
+            mechanism: "raft".to_string(),
+        };
+
+        assert_eq!(anchor.agreed_by.len(), 2);
+        assert_eq!(anchor.mechanism, "raft");
+    }
+
+    #[test]
+    fn anchor_type_detection() {
+        let crypto = Anchor::Crypto(CryptoAnchor {
+            chain: "bitcoin".to_string(),
+            block_height: 800_000,
+            block_hash: "0x123".to_string(),
+            tx_hash: None,
+        });
+        assert_eq!(crypto.anchor_type(), AnchorType::Crypto);
+
+        let atomic = Anchor::Atomic(AtomicAnchor {
+            timestamp: SystemTime::now(),
+            precision: TimePrecision::Microsecond,
+            source: "GPS".to_string(),
+        });
+        assert_eq!(atomic.anchor_type(), AnchorType::Atomic);
+
+        let causal = Anchor::Causal(CausalAnchor {
+            sequence: 1,
+            causal_parents: vec![],
+            lamport_clock: None,
+        });
+        assert_eq!(causal.anchor_type(), AnchorType::Causal);
+
+        let consensus = Anchor::Consensus(ConsensusAnchor {
+            agreed_by: vec!["node1".to_string()],
+            consensus_timestamp: SystemTime::now(),
+            mechanism: "paxos".to_string(),
+        });
+        assert_eq!(consensus.anchor_type(), AnchorType::Consensus);
+    }
+
+    #[test]
+    fn anchor_type_equality() {
+        assert_eq!(AnchorType::Crypto, AnchorType::Crypto);
+        assert_eq!(AnchorType::Atomic, AnchorType::Atomic);
+        assert_ne!(AnchorType::Crypto, AnchorType::Atomic);
+    }
+
+    #[test]
+    fn time_precision_variants() {
+        let precisions = [
+            TimePrecision::Nanosecond,
+            TimePrecision::Microsecond,
+            TimePrecision::Millisecond,
+            TimePrecision::Second,
+            TimePrecision::Minute,
+        ];
+
+        for precision in &precisions {
+            let debug_str = format!("{precision:?}");
+            assert!(!debug_str.is_empty());
+        }
+    }
+
+    #[test]
+    fn anchor_serialization() {
+        let anchor = Anchor::Atomic(AtomicAnchor {
+            timestamp: SystemTime::UNIX_EPOCH,
+            precision: TimePrecision::Second,
+            source: "test".to_string(),
+        });
+
+        let json = serde_json::to_string(&anchor).expect("serialization failed");
+        let deserialized: Anchor = serde_json::from_str(&json).expect("deserialization failed");
+
+        assert_eq!(anchor.anchor_type(), deserialized.anchor_type());
+    }
+
+    #[test]
+    fn crypto_anchor_clone() {
+        let anchor = CryptoAnchor {
+            chain: "ethereum".to_string(),
+            block_height: 1_000_000,
+            block_hash: "0xabc".to_string(),
+            tx_hash: None,
+        };
+
+        let cloned = anchor.clone();
+        assert_eq!(anchor.chain, cloned.chain);
+        assert_eq!(anchor.block_height, cloned.block_height);
+    }
+
+    #[test]
+    fn causal_anchor_empty_parents() {
+        let anchor = CausalAnchor {
+            sequence: 0,
+            causal_parents: vec![],
+            lamport_clock: None,
+        };
+
+        assert!(anchor.causal_parents.is_empty());
+        assert!(anchor.lamport_clock.is_none());
+    }
+
+    #[test]
+    fn crypto_anchor_without_tx() {
+        let anchor = CryptoAnchor {
+            chain: "bitcoin".to_string(),
+            block_height: 500_000,
+            block_hash: "0x000".to_string(),
+            tx_hash: None,
+        };
+
+        assert!(anchor.tx_hash.is_none());
+    }
+
+    #[test]
+    fn anchor_debug_impl() {
+        let anchor = Anchor::Atomic(AtomicAnchor {
+            timestamp: SystemTime::UNIX_EPOCH,
+            precision: TimePrecision::Millisecond,
+            source: "local".to_string(),
+        });
+
+        let debug_str = format!("{anchor:?}");
+        assert!(debug_str.contains("Atomic"));
     }
 }

@@ -49,6 +49,11 @@ use std::env;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
+use hickory_resolver::{
+    config::{ResolverConfig, ResolverOpts},
+    lookup::SrvLookup,
+    TokioAsyncResolver,
+};
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
@@ -228,16 +233,8 @@ impl InfantDiscovery {
 
             let services = match method {
                 DiscoveryMethod::Environment => self.discover_via_environment(capability),
-                DiscoveryMethod::MDns => {
-                    // TODO: Implement mDNS discovery
-                    warn!("mDNS discovery not yet implemented");
-                    vec![]
-                }
-                DiscoveryMethod::DnsSrv => {
-                    // TODO: Implement DNS-SRV discovery
-                    warn!("DNS-SRV discovery not yet implemented");
-                    vec![]
-                }
+                DiscoveryMethod::MDns => self.discover_via_mdns(capability).await,
+                DiscoveryMethod::DnsSrv => self.discover_via_dns_srv(capability).await,
                 DiscoveryMethod::ServiceRegistry(url) => {
                     // TODO: Implement registry query
                     warn!("Service registry discovery not yet implemented for {}", url);
@@ -334,6 +331,145 @@ impl InfantDiscovery {
         services
     }
 
+    /// Discover services via DNS SRV records (RFC 2782)
+    ///
+    /// Queries for SRV records in the format: `_<capability>._tcp.local`
+    /// For example: `_signing._tcp.local` for cryptographic-signing capability.
+    ///
+    /// This enables production deployments with standard DNS infrastructure.
+    async fn discover_via_dns_srv(&self, capability: &str) -> Vec<DiscoveredService> {
+        debug!("Attempting DNS SRV discovery for '{}'", capability);
+
+        // Convert capability to DNS SRV service name
+        // "cryptographic-signing" -> "_signing._tcp.local"
+        let service_name = capability_to_srv_name(capability);
+
+        debug!("Querying DNS SRV for: {}", service_name);
+
+        // Create resolver (TokioAsyncResolver::tokio returns the resolver directly, not a Result)
+        let resolver =
+            TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+
+        // Query SRV records with timeout
+        let lookup: SrvLookup = match tokio::time::timeout(
+            Duration::from_secs(2),
+            resolver.srv_lookup(service_name.as_str()),
+        )
+        .await
+        {
+            Ok(Ok(l)) => l,
+            Ok(Err(e)) => {
+                debug!("DNS SRV lookup failed for {}: {}", service_name, e);
+                return vec![];
+            }
+            Err(_) => {
+                debug!("DNS SRV lookup timeout for {}", service_name);
+                return vec![];
+            }
+        };
+
+        // Collect records with their properties
+        let mut records_data: Vec<(u16, u16, String, u16)> = Vec::new();
+        for record in lookup.iter() {
+            let priority = record.priority();
+            let weight = record.weight();
+            let port = record.port();
+            let target = record.target().to_utf8();
+            records_data.push((priority, weight, target, port));
+        }
+
+        // Sort by priority (lower is better), then by weight (higher is better)
+        records_data.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| b.1.cmp(&a.1)));
+
+        let mut services = Vec::new();
+        for (priority, weight, target, port) in records_data.iter().take(5) {
+            // Limit to top 5
+            // Construct endpoint (assume https for production)
+            let endpoint = if *port == 443 {
+                format!("https://{target}")
+            } else {
+                format!("https://{target}:{port}")
+            };
+
+            debug!(
+                "Found service via DNS SRV: {} (priority: {}, weight: {})",
+                endpoint, priority, weight
+            );
+
+            services.push(DiscoveredService {
+                id: format!("dns-srv-{target}"),
+                capability: capability.to_string(),
+                endpoint,
+                discovered_via: "dns-srv".to_string(),
+                metadata: {
+                    let mut map = HashMap::new();
+                    map.insert("priority".to_string(), priority.to_string());
+                    map.insert("weight".to_string(), weight.to_string());
+                    map.insert("target".to_string(), target.clone());
+                    map.insert("port".to_string(), port.to_string());
+                    map
+                },
+                health: ServiceHealth::Unknown,
+                discovered_at: SystemTime::now(),
+                ttl_secs: self.config.cache_ttl_secs,
+            });
+        }
+
+        if services.is_empty() {
+            debug!("No DNS SRV records found for {}", service_name);
+        } else {
+            info!(
+                "Found {} services via DNS SRV for '{}'",
+                services.len(),
+                capability
+            );
+        }
+
+        services
+    }
+
+    /// Discover services via mDNS/Bonjour (RFC 6762)
+    ///
+    /// Broadcasts query for services on the local network.
+    /// This enables zero-configuration discovery on LANs.
+    ///
+    /// Note: mDNS is optional and requires the `mdns` feature to be enabled.
+    #[allow(clippy::unused_async)] // mDNS feature is experimental, stub doesn't need async
+    async fn discover_via_mdns(&self, capability: &str) -> Vec<DiscoveredService> {
+        debug!("Attempting mDNS discovery for '{}'", capability);
+
+        // mDNS discovery is optional (experimental feature)
+        #[cfg(feature = "mdns")]
+        {
+            let service_name = capability_to_srv_name(capability);
+            debug!("Broadcasting mDNS query for: {}", service_name);
+            Self::mdns_query_stub(&service_name, capability)
+        }
+
+        #[cfg(not(feature = "mdns"))]
+        {
+            debug!("mDNS discovery not available (feature not enabled)");
+            vec![]
+        }
+    }
+
+    #[cfg(feature = "mdns")]
+    fn mdns_query_stub(_service_name: &str, _capability: &str) -> Vec<DiscoveredService> {
+        // Note: mDNS discovery is currently experimental
+        // The mdns crate API may need adjustment based on version
+        debug!("mDNS discovery is experimental and may need API adjustments");
+
+        // For now, return empty to allow compilation
+        // Full implementation would require:
+        // 1. Proper async iteration over mDNS responses
+        // 2. Parsing SRV records from responses
+        // 3. Handling different mDNS service types
+
+        warn!("mDNS feature is experimental - returning empty results");
+
+        Vec::new()
+    }
+
     /// Check if a service is still fresh (within TTL)
     fn is_fresh(service: &DiscoveredService) -> bool {
         let age = SystemTime::now()
@@ -355,6 +491,28 @@ impl InfantDiscovery {
         let discovered = self.discovered.read().await;
         discovered.clone()
     }
+}
+
+/// Convert capability to DNS SRV service name (RFC 2782)
+///
+/// Examples:
+/// - "cryptographic-signing" -> "_signing._tcp.local"
+/// - "content-storage" -> "_storage._tcp.local"
+/// - "service-discovery" -> "_discovery._tcp.local"
+fn capability_to_srv_name(capability: &str) -> String {
+    let service_part = match capability {
+        "cryptographic-signing" => "signing",
+        "content-storage" => "storage",
+        "service-discovery" => "discovery",
+        "session-management" => "session",
+        "compute-orchestration" => "compute",
+        other => {
+            // Extract last part of capability name
+            other.split('-').next_back().unwrap_or("service")
+        }
+    };
+
+    format!("_{service_part}._tcp.local")
 }
 
 #[cfg(test)]

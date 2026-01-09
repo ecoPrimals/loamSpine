@@ -1,9 +1,11 @@
-//! Example: Creating and committing temporal moments to LoamSpine.
+//! Example: Creating and committing temporal moments to `LoamSpine`.
 //!
 //! This demonstrates how to use the temporal module to track universal time
 //! across any domain: code commits, art creation, life events, etc.
 
 #![allow(clippy::unwrap_used)] // Examples use unwrap for clarity
+#![allow(clippy::too_many_lines)] // Examples are educational and comprehensive
+#![allow(clippy::uninlined_format_args)] // Older style for clarity
 
 use loam_spine_core::{
     entry::EntryType,
