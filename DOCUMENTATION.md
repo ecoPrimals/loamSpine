@@ -1,7 +1,7 @@
 # 📚 LoamSpine Documentation Index
 
-**Version**: 0.7.0  
-**Last Updated**: December 28, 2025  
+**Version**: 0.7.1  
+**Last Updated**: January 9, 2026  
 **Status**: Production Ready
 
 ---
@@ -23,19 +23,19 @@
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | **[README.md](README.md)** | Project overview, metrics, architecture | Everyone |
-| **[STATUS.md](STATUS.md)** | Current status dashboard | Everyone |
+| **[STATUS.md](STATUS.md)** | Current status dashboard (A+ 99/100) | Everyone |
 | **[CHANGELOG.md](CHANGELOG.md)** | Version history and changes | Developers |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | How to contribute | Contributors |
 
-### Release Documentation (v0.7.0)
+### Release Documentation (v0.7.1)
 
-All release documentation has been archived for cleaner root directory:
-
-| Document | Location |
-|----------|----------|
-| **Release Notes v0.7.0** | [archive/release-notes/RELEASE_NOTES_v0.7.0.md](archive/release-notes/RELEASE_NOTES_v0.7.0.md) |
-| **Deployment Guide** | [archive/release-notes/DEPLOYMENT_GUIDE_v0.7.0.md](archive/release-notes/DEPLOYMENT_GUIDE_v0.7.0.md) |
-| **Final Verification** | [archive/release-notes/FINAL_VERIFICATION_v0.7.0.md](archive/release-notes/FINAL_VERIFICATION_v0.7.0.md) |
+| Document | Purpose |
+|----------|---------|
+| **[RELEASE_NOTES_v0.7.1.md](RELEASE_NOTES_v0.7.1.md)** | Complete v0.7.1 release notes |
+| **[DEPLOYMENT_READY.md](DEPLOYMENT_READY.md)** | Quick start deployment guide |
+| **[COMPREHENSIVE_CODE_AUDIT_JAN_2026.md](COMPREHENSIVE_CODE_AUDIT_JAN_2026.md)** | Complete audit (630 lines) |
+| **[AUDIT_EXECUTION_COMPLETE_JAN_2026.md](AUDIT_EXECUTION_COMPLETE_JAN_2026.md)** | Implementation details (436 lines) |
+| **[PRODUCTION_CERTIFICATION_JAN_2026.md](PRODUCTION_CERTIFICATION_JAN_2026.md)** | Certification report (458 lines) |
 
 ### Planning & Roadmap
 
