@@ -28,7 +28,7 @@
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Create with ZERO external knowledge
-//! let discovery = InfantDiscovery::new().await?;
+//! let discovery = InfantDiscovery::new()?;
 //!
 //! // Discover signing service (NOT "BearDog"!)
 //! let signers = discovery
@@ -137,12 +137,20 @@ impl InfantDiscovery {
     ///
     /// Only knows its own capabilities via introspection.
     /// All external services will be discovered at runtime.
-    pub async fn new() -> LoamSpineResult<Self> {
-        Self::with_config(DiscoveryConfig::from_env_or_default()).await
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if initialization fails (currently infallible).
+    pub fn new() -> LoamSpineResult<Self> {
+        Self::with_config(DiscoveryConfig::from_env_or_default())
     }
 
     /// Create with custom configuration
-    pub async fn with_config(config: DiscoveryConfig) -> LoamSpineResult<Self> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if initialization fails (currently infallible).
+    pub fn with_config(config: DiscoveryConfig) -> LoamSpineResult<Self> {
         info!("Initializing infant discovery (zero external knowledge)");
 
         let own_capabilities = LoamSpineCapability::introspect();
@@ -179,6 +187,10 @@ impl InfantDiscovery {
     /// # Ok(())
     /// # }
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if discovery methods fail critically.
     pub async fn find_capability(
         &self,
         capability: &str,
@@ -196,7 +208,7 @@ impl InfantDiscovery {
                     // Verify services are still fresh
                     let fresh: Vec<_> = services
                         .iter()
-                        .filter(|s| self.is_fresh(s))
+                        .filter(|s| Self::is_fresh(s))
                         .cloned()
                         .collect();
 
@@ -215,7 +227,7 @@ impl InfantDiscovery {
             debug!("Trying discovery method: {:?}", method);
 
             let services = match method {
-                DiscoveryMethod::Environment => self.discover_via_environment(capability).await?,
+                DiscoveryMethod::Environment => self.discover_via_environment(capability),
                 DiscoveryMethod::MDns => {
                     // TODO: Implement mDNS discovery
                     warn!("mDNS discovery not yet implemented");
@@ -242,17 +254,17 @@ impl InfantDiscovery {
         }
 
         // Update cache
-        if !all_services.is_empty() {
+        if all_services.is_empty() {
+            warn!(
+                "No services found for capability '{}', operating in degraded mode",
+                capability
+            );
+        } else {
             let mut discovered = self.discovered.write().await;
             discovered.insert(capability.to_string(), all_services.clone());
             info!(
                 "Discovered {} services for capability '{}'",
                 all_services.len(),
-                capability
-            );
-        } else {
-            warn!(
-                "No services found for capability '{}', operating in degraded mode",
                 capability
             );
         }
@@ -265,10 +277,7 @@ impl InfantDiscovery {
     /// Looks for patterns:
     /// - `CAPABILITY_<TYPE>_ENDPOINT` - e.g., `CAPABILITY_SIGNING_ENDPOINT`
     /// - `<TYPE>_SERVICE_URL` - e.g., `SIGNING_SERVICE_URL`
-    async fn discover_via_environment(
-        &self,
-        capability: &str,
-    ) -> LoamSpineResult<Vec<DiscoveredService>> {
+    fn discover_via_environment(&self, capability: &str) -> Vec<DiscoveredService> {
         let mut services = Vec::new();
 
         // Pattern 1: CAPABILITY_<TYPE>_ENDPOINT
@@ -284,7 +293,7 @@ impl InfantDiscovery {
             );
 
             services.push(DiscoveredService {
-                id: format!("env-{}", capability),
+                id: format!("env-{capability}"),
                 capability: capability.to_string(),
                 endpoint,
                 discovered_via: "environment".to_string(),
@@ -294,7 +303,7 @@ impl InfantDiscovery {
                 ttl_secs: self.config.cache_ttl_secs,
             });
 
-            return Ok(services);
+            return services;
         }
 
         // Pattern 2: <TYPE>_SERVICE_URL
@@ -308,10 +317,10 @@ impl InfantDiscovery {
         );
 
         if let Ok(endpoint) = env::var(&service_key) {
-            debug!("Found service URL: {} = {}", service_key, endpoint);
+            debug!("Found service URL: {service_key} = {endpoint}");
 
             services.push(DiscoveredService {
-                id: format!("env-{}", capability),
+                id: format!("env-{capability}"),
                 capability: capability.to_string(),
                 endpoint,
                 discovered_via: "environment".to_string(),
@@ -322,11 +331,11 @@ impl InfantDiscovery {
             });
         }
 
-        Ok(services)
+        services
     }
 
     /// Check if a service is still fresh (within TTL)
-    fn is_fresh(&self, service: &DiscoveredService) -> bool {
+    fn is_fresh(service: &DiscoveredService) -> bool {
         let age = SystemTime::now()
             .duration_since(service.discovered_at)
             .unwrap_or(Duration::from_secs(u64::MAX));
@@ -349,12 +358,13 @@ impl InfantDiscovery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 mod tests {
     use super::*;
 
     #[tokio::test]
     async fn test_infant_starts_with_zero_knowledge() {
-        let discovery = InfantDiscovery::new().await.unwrap();
+        let discovery = InfantDiscovery::new().unwrap();
 
         // Should know only its own capabilities
         assert!(!discovery.own_capabilities().is_empty());
@@ -371,7 +381,7 @@ mod tests {
         env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
         env::remove_var("SIGNING_SERVICE_URL");
 
-        let discovery = InfantDiscovery::new().await.unwrap();
+        let discovery = InfantDiscovery::new().unwrap();
 
         // Should NOT find anything initially
         let services = discovery
@@ -407,7 +417,7 @@ mod tests {
         // Don't set any environment variables
         env::remove_var("CAPABILITY_STORAGE_ENDPOINT");
 
-        let discovery = InfantDiscovery::new().await.unwrap();
+        let discovery = InfantDiscovery::new().unwrap();
         let services = discovery.find_capability("content-storage").await.unwrap();
 
         // Should return empty, not error (graceful degradation)
@@ -416,12 +426,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_cache_functionality() {
+        // Clean up any existing env vars first
+        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
+        env::remove_var("SIGNING_SERVICE_URL");
+
         env::set_var(
             "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
             "http://localhost:8001",
         );
 
-        let discovery = InfantDiscovery::new().await.unwrap();
+        let discovery = InfantDiscovery::new().unwrap();
 
         // First discovery
         let services1 = discovery
@@ -447,6 +462,7 @@ mod tests {
             .unwrap();
         assert_eq!(services3.len(), 1);
 
+        // Clean up
         env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
     }
 }

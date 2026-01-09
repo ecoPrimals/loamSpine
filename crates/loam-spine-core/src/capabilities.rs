@@ -31,7 +31,7 @@
 //!
 //! // LoamSpine discovers services by capability (not by name!)
 //! // "Who can sign?" not "Where is BearDog?"
-//! let discovery = InfantDiscovery::new().await?;
+//! let discovery = InfantDiscovery::new()?;
 //! let signing_services = discovery
 //!     .find_capability(identifiers::external::SIGNING)
 //!     .await?;
@@ -205,7 +205,7 @@ pub struct DiscoveredService {
 }
 
 /// Service health status
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum ServiceHealth {
     /// Service is healthy and responding
     Healthy,
@@ -214,6 +214,7 @@ pub enum ServiceHealth {
     /// Service is unreachable
     Unreachable,
     /// Health status unknown
+    #[default]
     Unknown,
 }
 
@@ -289,12 +290,6 @@ impl ExternalCapability {
             Self::SessionManagement { .. } => external::SESSION_MANAGEMENT,
             Self::Compute { .. } => external::COMPUTE,
         }
-    }
-}
-
-impl Default for ServiceHealth {
-    fn default() -> Self {
-        Self::Unknown
     }
 }
 
