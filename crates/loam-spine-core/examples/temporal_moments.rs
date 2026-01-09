@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // === Example 1: Code Commit Moment ===
     println!("📝 Example 1: Code Commit");
-    
+
     let code_moment = Moment {
         id: ContentHash::default(), // Would be computed from content
         timestamp: std::time::SystemTime::now(),
@@ -51,14 +51,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         moment: Box::new(code_moment.clone()),
     });
     let hash = spine.append(entry)?;
-    
+
     println!("   Committed code change moment");
     println!("   Category: {}", code_moment.context.category());
     println!("   Entry hash: {:?}\n", hash);
 
     // === Example 2: Art Creation Moment ===
     println!("🎨 Example 2: Art Creation");
-    
+
     let art_moment = Moment {
         id: ContentHash::default(),
         timestamp: std::time::SystemTime::now(),
@@ -84,10 +84,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         moment: Box::new(art_moment.clone()),
     });
     spine.append(entry)?;
-    
+
     println!("   Created art moment");
     println!("   Category: {}", art_moment.context.category());
-    println!("   Title: {:?}\n", 
+    println!(
+        "   Title: {:?}\n",
         if let MomentContext::ArtCreation { title, .. } = &art_moment.context {
             title
         } else {
@@ -97,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // === Example 3: Life Event Moment ===
     println!("🎓 Example 3: Life Event");
-    
+
     let life_moment = Moment {
         id: ContentHash::default(),
         timestamp: std::time::SystemTime::now(),
@@ -123,14 +124,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         moment: Box::new(life_moment.clone()),
     });
     spine.append(entry)?;
-    
+
     println!("   Recorded life event");
     println!("   Category: {}", life_moment.context.category());
     println!("   Type: graduation\n");
 
     // === Example 4: Scientific Experiment Moment ===
     println!("🔬 Example 4: Scientific Experiment");
-    
+
     let experiment_moment = Moment {
         id: ContentHash::default(),
         timestamp: std::time::SystemTime::now(),
@@ -156,7 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         moment: Box::new(experiment_moment.clone()),
     });
     spine.append(entry)?;
-    
+
     println!("   Documented experiment");
     println!("   Category: {}", experiment_moment.context.category());
     println!("   Result: Success!\n");
@@ -164,20 +165,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // === Verify the spine ===
     println!("🔍 Verifying spine integrity...");
     let verification = spine.verify();
-    
+
     if verification.valid {
         println!("✅ Spine verification passed!");
     } else {
-        println!("❌ Spine verification failed: {} errors", verification.errors.len());
+        println!(
+            "❌ Spine verification failed: {} errors",
+            verification.errors.len()
+        );
     }
-    
+
     println!("\n📊 Spine stats:");
     println!("   Height: {} entries", spine.height);
     println!("   State: {:?}", spine.state);
-    
+
     // Show all moment categories
     println!("\n🎯 Moment categories tracked:");
-    let moments = spine.entries()
+    let moments = spine
+        .entries()
         .iter()
         .filter_map(|e| {
             if let EntryType::TemporalMoment { moment, .. } = &e.entry_type {
@@ -187,7 +192,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         })
         .collect::<Vec<_>>();
-    
+
     for category in moments {
         println!("   - {}", category);
     }
@@ -197,4 +202,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-

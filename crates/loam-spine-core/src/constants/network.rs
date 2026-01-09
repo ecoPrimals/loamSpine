@@ -37,7 +37,10 @@ pub fn jsonrpc_port() -> u16 {
             debug!("Using JSON-RPC port from LOAMSPINE_JSONRPC_PORT: {}", port);
             return port;
         }
-        warn!("Invalid LOAMSPINE_JSONRPC_PORT value: {}, using default", port_str);
+        warn!(
+            "Invalid LOAMSPINE_JSONRPC_PORT value: {}, using default",
+            port_str
+        );
     }
 
     // Try generic env var
@@ -82,7 +85,10 @@ pub fn tarpc_port() -> u16 {
             debug!("Using tarpc port from LOAMSPINE_TARPC_PORT: {}", port);
             return port;
         }
-        warn!("Invalid LOAMSPINE_TARPC_PORT value: {}, using default", port_str);
+        warn!(
+            "Invalid LOAMSPINE_TARPC_PORT value: {}, using default",
+            port_str
+        );
     }
 
     // Try generic env var
@@ -270,7 +276,7 @@ mod tests {
         env::set_var("USE_OS_ASSIGNED_PORTS", "true");
         assert!(use_os_assigned_ports());
         env::remove_var("USE_OS_ASSIGNED_PORTS");
-        
+
         env::set_var("USE_OS_ASSIGNED_PORTS", "false");
         assert!(!use_os_assigned_ports());
         env::remove_var("USE_OS_ASSIGNED_PORTS");
@@ -290,11 +296,10 @@ mod tests {
             build_endpoint("http", "localhost", 8080, None),
             "http://localhost:8080"
         );
-        
+
         assert_eq!(
             build_endpoint("http", "localhost", 8080, Some("/api")),
             "http://localhost:8080/api"
         );
     }
 }
-

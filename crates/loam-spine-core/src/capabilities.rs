@@ -307,7 +307,7 @@ mod tests {
         // Verify identifiers are lowercase-kebab-case
         assert_eq!(loamspine::PERMANENT_LEDGER, "permanent-ledger");
         assert_eq!(external::SIGNING, "cryptographic-signing");
-        
+
         // Verify no spaces or underscores
         assert!(!loamspine::PERMANENT_LEDGER.contains(' '));
         assert!(!loamspine::PERMANENT_LEDGER.contains('_'));
@@ -316,14 +316,18 @@ mod tests {
     #[test]
     fn test_introspection() {
         let capabilities = LoamSpineCapability::introspect();
-        
+
         // We should know our own capabilities
         assert!(!capabilities.is_empty());
         assert!(capabilities.len() >= 5);
-        
+
         // Verify we have core capabilities
-        assert!(capabilities.iter().any(|c| matches!(c, LoamSpineCapability::PermanentLedger { .. })));
-        assert!(capabilities.iter().any(|c| matches!(c, LoamSpineCapability::TemporalTracking { .. })));
+        assert!(capabilities
+            .iter()
+            .any(|c| matches!(c, LoamSpineCapability::PermanentLedger { .. })));
+        assert!(capabilities
+            .iter()
+            .any(|c| matches!(c, LoamSpineCapability::TemporalTracking { .. })));
     }
 
     #[test]
@@ -333,7 +337,7 @@ mod tests {
             max_spine_size: None,
             supports_sealing: true,
         };
-        
+
         assert_eq!(cap.identifier(), "permanent-ledger");
     }
 
@@ -343,4 +347,3 @@ mod tests {
         assert_eq!(health, ServiceHealth::Unknown);
     }
 }
-
