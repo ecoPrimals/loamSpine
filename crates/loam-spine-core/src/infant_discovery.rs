@@ -361,6 +361,7 @@ impl InfantDiscovery {
 #[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[tokio::test]
     async fn test_infant_starts_with_zero_knowledge() {
@@ -375,6 +376,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_discover_via_environment() {
         // Clean environment first
         env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
@@ -413,6 +415,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_degraded_mode_when_no_services() {
         // Don't set any environment variables
         env::remove_var("CAPABILITY_STORAGE_ENDPOINT");
@@ -425,6 +428,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_cache_functionality() {
         // Clean up any existing env vars first
         env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");

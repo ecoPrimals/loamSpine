@@ -250,6 +250,7 @@ pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -
 #[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     /// Clean up all environment variables that might affect tests
     fn cleanup_env_vars() {
@@ -262,6 +263,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_jsonrpc_port_from_env() {
         cleanup_env_vars();
         env::set_var("LOAMSPINE_JSONRPC_PORT", "8888");
@@ -270,6 +272,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_jsonrpc_port_default() {
         cleanup_env_vars();
         assert_eq!(jsonrpc_port(), DEFAULT_JSONRPC_PORT);
@@ -277,6 +280,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_tarpc_port_from_env() {
         cleanup_env_vars();
         env::set_var("LOAMSPINE_TARPC_PORT", "9999");
@@ -285,6 +289,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_os_assigned_ports() {
         cleanup_env_vars();
         env::set_var("USE_OS_ASSIGNED_PORTS", "1");
@@ -297,6 +302,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_actual_ports_with_os_assignment() {
         cleanup_env_vars();
         env::set_var("USE_OS_ASSIGNED_PORTS", "1");

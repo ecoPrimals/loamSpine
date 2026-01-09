@@ -48,6 +48,7 @@ testing = []
 tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 chrono = "0.4"
+serial_test = { workspace = true }
 
 [[bench]]
 name = "core_ops"
