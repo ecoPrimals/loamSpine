@@ -229,17 +229,18 @@ mod tests {
     }
 
     #[test]
-    fn anchor_serialization() {
+    fn anchor_serialization() -> Result<(), Box<dyn std::error::Error>> {
         let anchor = Anchor::Atomic(AtomicAnchor {
             timestamp: SystemTime::UNIX_EPOCH,
             precision: TimePrecision::Second,
             source: "test".to_string(),
         });
 
-        let json = serde_json::to_string(&anchor).expect("serialization failed");
-        let deserialized: Anchor = serde_json::from_str(&json).expect("deserialization failed");
+        let json = serde_json::to_string(&anchor)?;
+        let deserialized: Anchor = serde_json::from_str(&json)?;
 
         assert_eq!(anchor.anchor_type(), deserialized.anchor_type());
+        Ok(())
     }
 
     #[test]

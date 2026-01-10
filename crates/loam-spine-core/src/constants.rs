@@ -14,10 +14,15 @@ pub mod network;
 
 /// Default tarpc port for primal-to-primal communication.
 ///
-/// This is a sensible default for development, but production deployments should:
-/// - Set port to `0` for OS assignment, or
-/// - Configure via `TARPC_PORT` environment variable, or
+/// **Development default only** - Never hardcode this in production logic!
+///
+/// Production deployments should:
+/// - Set port to `0` for OS assignment (recommended), or
+/// - Configure via `TARPC_PORT` or `LOAMSPINE_TARPC_PORT` environment variable, or
 /// - Use service discovery to find available endpoints
+///
+/// This constant exists solely for development convenience, similar to how
+/// HTTP uses port 80 or SSH uses port 22 as conventional defaults.
 ///
 /// # Example
 ///
@@ -33,10 +38,15 @@ pub const DEFAULT_TARPC_PORT: u16 = 9001;
 
 /// Default JSON-RPC port for external clients.
 ///
-/// This is a sensible default for development, but production deployments should:
-/// - Set port to `0` for OS assignment, or
-/// - Configure via `JSONRPC_PORT` environment variable, or
+/// **Development default only** - Never hardcode this in production logic!
+///
+/// Production deployments should:
+/// - Set port to `0` for OS assignment (recommended), or
+/// - Configure via `JSONRPC_PORT` or `LOAMSPINE_JSONRPC_PORT` environment variable, or
 /// - Use service discovery to find available endpoints
+///
+/// This constant exists solely for development convenience, similar to how
+/// HTTP uses port 80 or HTTPS uses port 443 as conventional defaults.
 ///
 /// # Example
 ///
@@ -57,8 +67,14 @@ pub const DEFAULT_JSONRPC_PORT: u16 = 8080;
 /// - DNS SRV lookup fails
 /// - mDNS discovery fails
 ///
-/// Production deployments should **never** rely on this fallback.
-/// Always configure discovery explicitly via environment variables or service discovery.
+/// **Production deployments should NEVER rely on this fallback.**
+/// Always configure discovery explicitly via:
+/// - Environment variables (`DISCOVERY_ENDPOINT`)
+/// - DNS SRV records (`_discovery._tcp.local`)
+/// - Service registry configuration
+///
+/// This constant only exists for local development convenience. Using it in
+/// production will generate warning logs.
 ///
 /// # Example
 ///

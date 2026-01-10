@@ -3,7 +3,13 @@
 # Philosophy: "Each primal knows only itself. Everything else is discovered."
 #
 # LoamSpine advertises its capabilities for runtime discovery by other primals
-# and discovers other primals' capabilities through Songbird (universal adapter).
+# and discovers other primals' capabilities through a universal adapter (service registry).
+#
+# The service registry can be any RFC 2782 compliant system:
+# - Songbird (reference implementation for ecoPrimals)
+# - Consul
+# - etcd  
+# - Custom implementations
 
 [registry]
 version = "1.0.0"
@@ -105,15 +111,27 @@ required = []  # LoamSpine is self-contained, all optional
 [discovery]
 # Discovery methods (in priority order)
 methods = [
-    "environment",      # Environment variables (LOAMSPINE_SIGNER_PATH, etc.)
-    "songbird",         # Songbird universal adapter (primary)
-    "mdns",            # Multicast DNS
-    "local-binaries",  # ../bins/ directory
-    "config-file",     # This file
-    "fallback",        # Graceful degradation
+    "environment",        # Environment variables (LOAMSPINE_SIGNER_PATH, etc.)
+    "service-registry",   # Service registry / universal adapter (Songbird, Consul, etcd, etc.)
+    "mdns",              # Multicast DNS
+    "local-binaries",    # ../bins/ directory
+    "config-file",       # This file
+    "fallback",          # Graceful degradation
 ]
 
-# Songbird integration
+# Note: "songbird" is aliased to "service-registry" for backward compatibility
+
+# Service registry integration (universal adapter)
+#
+# Compatible with any RFC 2782 compliant service discovery system:
+# - Songbird (reference implementation for ecoPrimals)
+# - Consul
+# - etcd
+# - Custom implementations
+service_registry_enabled = true
+service_registry_endpoint = "http://localhost:8082"
+
+# Legacy: Songbird-specific fields (deprecated, use service_registry_* instead)
 songbird_enabled = true
 songbird_discovery_endpoint = "http://localhost:8082/discover"
 songbird_registry_endpoint = "http://localhost:8082/register"
@@ -149,7 +167,7 @@ fallback_to_any = true  # Use any available service if preferred not found
 # SERVICE ADVERTISEMENT (What LoamSpine Advertises)
 # =============================================================================
 [advertisement]
-# Automatically advertise to Songbird on startup
+# Automatically advertise to service registry on startup
 auto_advertise = true
 
 # Re-advertise interval (heartbeat)
@@ -174,9 +192,9 @@ include_capabilities = true
 #       let signature = signer.sign_boxed(data).await?;
 #   }
 #
-# With Songbird integration:
-#   let songbird = SongbirdClient::connect().await?;
-#   let services = songbird.discover_capability("signing").await?;
+# With service registry integration (universal adapter):
+#   let registry = ServiceRegistry::connect().await?;
+#   let services = registry.discover_capability("signing").await?;
 #   for service in services {
 #       match try_connect(&service).await {
 #           Ok(signer) => {
@@ -205,9 +223,12 @@ include_capabilities = true
 # LOAMSPINE_JSONRPC_PORT=8080
 # LOAMSPINE_SIGNER_PATH=../bins/beardog
 # LOAMSPINE_STORAGE_PATH=./data
-# LOAMSPINE_SONGBIRD_ENDPOINT=http://localhost:8082
-# LOAMSPINE_DISCOVERY_METHODS=environment,songbird,mdns
+# LOAMSPINE_DISCOVERY_ENDPOINT=http://localhost:8082
+# LOAMSPINE_DISCOVERY_METHODS=environment,service-registry,mdns
 # LOAMSPINE_AUTO_ADVERTISE=true
+#
+# Legacy (deprecated, use LOAMSPINE_DISCOVERY_ENDPOINT instead):
+# LOAMSPINE_SONGBIRD_ENDPOINT=http://localhost:8082
 #
 # This allows zero-configuration deployment while maintaining flexibility.
 

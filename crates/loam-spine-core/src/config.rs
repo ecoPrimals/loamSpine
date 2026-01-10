@@ -29,7 +29,13 @@ pub struct LoamSpineConfig {
 /// Discovery configuration for finding other primals.
 ///
 /// **Infant Discovery Philosophy**: LoamSpine starts knowing only itself and discovers
-/// everything else at runtime through the universal adapter (discovery service).
+/// everything else at runtime through the universal adapter (service registry).
+///
+/// The service registry can be any RFC 2782 compliant system:
+/// - Songbird (reference implementation for ecoPrimals)
+/// - Consul
+/// - etcd
+/// - Custom implementations following the protocol
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DiscoveryConfig {
     /// Enable discovery service (universal adapter).
@@ -39,6 +45,12 @@ pub struct DiscoveryConfig {
     pub discovery_enabled: bool,
 
     /// Discovery service endpoint (universal adapter).
+    ///
+    /// Compatible with any RFC 2782 compliant service discovery system:
+    /// - Songbird (reference implementation)
+    /// - Consul
+    /// - etcd
+    /// - Custom implementations
     ///
     /// If `None`, will attempt auto-discovery via:
     /// 1. `DISCOVERY_ENDPOINT` environment variable
@@ -121,8 +133,15 @@ impl Default for HeartbeatRetryConfig {
 pub enum DiscoveryMethod {
     /// Environment variables (e.g., LOAMSPINE_SIGNER_PATH).
     Environment,
-    /// Songbird universal adapter.
-    Songbird,
+    /// Service registry (universal adapter).
+    ///
+    /// Compatible with any RFC 2782 compliant service discovery system:
+    /// - Songbird (reference implementation)
+    /// - Consul
+    /// - etcd
+    /// - Custom implementations
+    #[serde(alias = "songbird")] // Backward compatibility
+    ServiceRegistry,
     /// Multicast DNS.
     Mdns,
     /// Local binaries (../bins/).
@@ -131,6 +150,20 @@ pub enum DiscoveryMethod {
     ConfigFile,
     /// Fallback defaults.
     Fallback,
+}
+
+impl DiscoveryMethod {
+    /// Backward compatibility alias for Songbird.
+    ///
+    /// # Deprecated
+    ///
+    /// Use `ServiceRegistry` instead. This constant will be removed in v1.0.0.
+    #[deprecated(
+        since = "0.8.0",
+        note = "Use ServiceRegistry instead. Songbird is now one implementation of the generic ServiceRegistry pattern."
+    )]
+    #[allow(non_upper_case_globals)]
+    pub const Songbird: Self = Self::ServiceRegistry;
 }
 
 impl Default for DiscoveryConfig {
@@ -168,7 +201,7 @@ impl Default for DiscoveryConfig {
             heartbeat_retry: HeartbeatRetryConfig::default(),
             methods: vec![
                 DiscoveryMethod::Environment,
-                DiscoveryMethod::Songbird, // Still named Songbird for now
+                DiscoveryMethod::ServiceRegistry, // Generic service registry (Songbird, Consul, etcd, etc.)
                 DiscoveryMethod::LocalBinaries,
                 DiscoveryMethod::Fallback,
             ],
