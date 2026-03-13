@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Network configuration helpers with environment-first discovery
 //!
 //! This module provides functions to resolve network configuration at runtime,
@@ -140,8 +142,11 @@ pub fn bind_address() -> String {
     }
 
     // Default to all interfaces
-    debug!("Using default bind address: 0.0.0.0");
-    "0.0.0.0".to_string()
+    debug!(
+        "Using default bind address: {}",
+        crate::constants::BIND_ALL_IPV4
+    );
+    crate::constants::BIND_ALL_IPV4.to_string()
 }
 
 /// Check if we should use OS-assigned ports (recommended for production)
@@ -259,7 +264,10 @@ mod tests {
         env::remove_var("LOAMSPINE_TARPC_PORT");
         env::remove_var("TARPC_PORT");
         env::remove_var("USE_OS_ASSIGNED_PORTS");
+        env::remove_var("LOAMSPINE_OS_PORTS");
         env::remove_var("LOAMSPINE_USE_OS_ASSIGNED_PORTS");
+        env::remove_var("LOAMSPINE_BIND_ADDRESS");
+        env::remove_var("BIND_ADDRESS");
     }
 
     #[test]
@@ -339,5 +347,138 @@ mod tests {
             build_endpoint("http", "localhost", 8080, Some("/api")),
             "http://localhost:8080/api"
         );
+    }
+
+    #[test]
+    #[serial]
+    fn test_jsonrpc_port_invalid_loamspine_falls_back_to_generic() {
+        cleanup_env_vars();
+        env::set_var("LOAMSPINE_JSONRPC_PORT", "invalid");
+        env::set_var("JSONRPC_PORT", "7777");
+
+        assert_eq!(jsonrpc_port(), 7777);
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_jsonrpc_port_invalid_both_falls_back_to_default() {
+        cleanup_env_vars();
+        env::set_var("LOAMSPINE_JSONRPC_PORT", "not-a-number");
+        env::set_var("JSONRPC_PORT", "also-invalid");
+
+        assert_eq!(jsonrpc_port(), DEFAULT_JSONRPC_PORT);
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_jsonrpc_port_generic_env_var() {
+        cleanup_env_vars();
+        env::remove_var("LOAMSPINE_JSONRPC_PORT");
+        env::set_var("JSONRPC_PORT", "5555");
+
+        assert_eq!(jsonrpc_port(), 5555);
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_tarpc_port_invalid_loamspine_falls_back_to_generic() {
+        cleanup_env_vars();
+        env::set_var("LOAMSPINE_TARPC_PORT", "invalid");
+        env::set_var("TARPC_PORT", "8888");
+
+        assert_eq!(tarpc_port(), 8888);
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_tarpc_port_generic_env_var() {
+        cleanup_env_vars();
+        env::remove_var("LOAMSPINE_TARPC_PORT");
+        env::set_var("TARPC_PORT", "7777");
+
+        assert_eq!(tarpc_port(), 7777);
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_tarpc_port_invalid_both_falls_back_to_default() {
+        cleanup_env_vars();
+        env::set_var("LOAMSPINE_TARPC_PORT", "bad");
+        env::set_var("TARPC_PORT", "worse");
+
+        assert_eq!(tarpc_port(), DEFAULT_TARPC_PORT);
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_use_os_assigned_ports_yes() {
+        cleanup_env_vars();
+        env::set_var("USE_OS_ASSIGNED_PORTS", "yes");
+        assert!(use_os_assigned_ports());
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_use_os_assigned_ports_true() {
+        cleanup_env_vars();
+        env::set_var("USE_OS_ASSIGNED_PORTS", "true");
+        assert!(use_os_assigned_ports());
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_use_os_assigned_ports_loamspine_os_ports() {
+        cleanup_env_vars();
+        env::remove_var("USE_OS_ASSIGNED_PORTS");
+        env::set_var("LOAMSPINE_OS_PORTS", "true");
+        assert!(use_os_assigned_ports());
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_bind_address_loamspine_specific() {
+        cleanup_env_vars();
+        env::set_var("LOAMSPINE_BIND_ADDRESS", "127.0.0.1");
+        assert_eq!(bind_address(), "127.0.0.1");
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_bind_address_generic() {
+        cleanup_env_vars();
+        env::remove_var("LOAMSPINE_BIND_ADDRESS");
+        env::set_var("BIND_ADDRESS", "192.0.2.1");
+        assert_eq!(bind_address(), "192.0.2.1");
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_bind_address_default() {
+        cleanup_env_vars();
+        assert_eq!(bind_address(), crate::constants::BIND_ALL_IPV4);
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_actual_ports_without_os_assignment() {
+        cleanup_env_vars();
+        env::set_var("LOAMSPINE_JSONRPC_PORT", "3333");
+        env::set_var("LOAMSPINE_TARPC_PORT", "4444");
+
+        assert_eq!(actual_jsonrpc_port(), 3333);
+        assert_eq!(actual_tarpc_port(), 4444);
+        cleanup_env_vars();
     }
 }

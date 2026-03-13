@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Capability-based primal discovery.
 //!
 //! This module provides runtime discovery of primal capabilities. Rather than
@@ -396,6 +398,7 @@ impl std::fmt::Debug for CapabilityRegistry {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 
@@ -664,5 +667,66 @@ mod tests {
         // Both should have the signer
         assert!(registry.get_signer().await.is_some());
         assert!(cloned.get_signer().await.is_some());
+    }
+
+    #[tokio::test]
+    async fn discover_from_songbird_fails_when_not_configured() {
+        let registry = CapabilityRegistry::new();
+
+        let result = registry.discover_from_songbird().await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Songbird") || err.to_string().contains("unavailable"));
+    }
+
+    #[tokio::test]
+    async fn advertise_to_songbird_fails_when_not_configured() {
+        let registry = CapabilityRegistry::new();
+
+        let result = registry
+            .advertise_to_songbird("http://localhost:9001", "http://localhost:8080")
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Songbird") || err.to_string().contains("unavailable"));
+    }
+
+    #[tokio::test]
+    async fn heartbeat_songbird_fails_when_not_configured() {
+        let registry = CapabilityRegistry::new();
+
+        let result = registry.heartbeat_songbird().await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Songbird") || err.to_string().contains("unavailable"));
+    }
+
+    #[tokio::test]
+    async fn with_songbird_fails_for_unreachable_endpoint() {
+        let result = CapabilityRegistry::with_songbird("http://127.0.0.1:1").await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("unavailable") || err.to_string().contains("Songbird"),
+            "Expected connection error: {err}",
+        );
+    }
+
+    #[test]
+    fn capability_status_degraded_variant() {
+        let degraded = CapabilityStatus::Degraded {
+            reason: "heartbeat failed".to_string(),
+        };
+        assert!(matches!(degraded, CapabilityStatus::Degraded { .. }));
+        assert_eq!(
+            degraded,
+            CapabilityStatus::Degraded {
+                reason: "heartbeat failed".to_string(),
+            }
+        );
     }
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Health check endpoints for `LoamSpine`.
 //!
 //! Provides standard health check endpoints compatible with container orchestrators
@@ -402,5 +404,60 @@ mod tests {
         let status = ServiceStatus::Error;
         let json = serde_json::to_string(&status).unwrap();
         assert_eq!(json, "\"error\"");
+    }
+
+    #[tokio::test]
+    async fn health_checker_with_storage_check() {
+        let storage = Arc::new(|| true);
+        let checker = HealthChecker::with_storage_check(storage);
+        let health = checker.check_health().await.unwrap();
+        assert_eq!(health.status, ServiceStatus::Healthy);
+        assert!(health.dependencies.storage);
+    }
+
+    #[tokio::test]
+    async fn health_checker_with_checks_all_healthy() {
+        let storage = Arc::new(|| true);
+        let discovery = Arc::new(|| Some(true));
+        let checker = HealthChecker::with_checks(storage, discovery);
+        let health = checker.check_health().await.unwrap();
+        assert_eq!(health.status, ServiceStatus::Healthy);
+        assert!(health.dependencies.storage);
+        assert_eq!(health.dependencies.discovery, Some(true));
+    }
+
+    #[tokio::test]
+    async fn health_checker_degraded_when_discovery_unavailable() {
+        let storage = Arc::new(|| true);
+        let discovery = Arc::new(|| Some(false));
+        let checker = HealthChecker::with_checks(storage, discovery);
+        let health = checker.check_health().await.unwrap();
+        assert_eq!(health.status, ServiceStatus::Degraded);
+        assert_eq!(health.dependencies.discovery, Some(false));
+    }
+
+    #[tokio::test]
+    async fn health_checker_error_when_storage_unavailable() {
+        let storage = Arc::new(|| false);
+        let checker = HealthChecker::with_storage_check(storage);
+        let health = checker.check_health().await.unwrap();
+        assert_eq!(health.status, ServiceStatus::Error);
+        assert!(!health.dependencies.storage);
+    }
+
+    #[tokio::test]
+    async fn readiness_not_ready_when_storage_down() {
+        let storage = Arc::new(|| false);
+        let checker = HealthChecker::with_storage_check(storage);
+        let readiness = checker.check_readiness().await.unwrap();
+        assert!(!readiness.ready);
+        assert!(readiness.reason.is_some());
+    }
+
+    #[test]
+    fn health_checker_default_same_as_new() {
+        let checker = HealthChecker::default();
+        let liveness = checker.check_liveness();
+        assert!(liveness.alive);
     }
 }

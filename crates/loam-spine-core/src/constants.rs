@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Well-known constants for LoamSpine.
 //!
 //! These provide sensible defaults but can always be overridden via

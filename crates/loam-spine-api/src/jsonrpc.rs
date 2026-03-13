@@ -1,13 +1,24 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! JSON-RPC 2.0 server for `LoamSpine`.
 //!
 //! Universal, language-agnostic RPC for external clients.
 //! Works with Python, JavaScript, curl, etc.
 
-#![allow(clippy::wildcard_imports)]
-
 use crate::health::{LivenessProbe, ReadinessProbe};
 use crate::service::LoamSpineRpcService;
-use crate::types::*;
+use crate::types::{
+    AnchorSliceRequest, AnchorSliceResponse, AppendEntryRequest, AppendEntryResponse,
+    CheckoutSliceRequest, CheckoutSliceResponse, CommitBraidRequest, CommitBraidResponse,
+    CommitSessionRequest, CommitSessionResponse, CreateSpineRequest, CreateSpineResponse,
+    GenerateInclusionProofRequest, GenerateInclusionProofResponse, GetCertificateRequest,
+    GetCertificateResponse, GetEntryRequest, GetEntryResponse, GetSpineRequest, GetSpineResponse,
+    GetTipRequest, GetTipResponse, HealthCheckRequest, HealthCheckResponse, LoanCertificateRequest,
+    LoanCertificateResponse, MintCertificateRequest, MintCertificateResponse,
+    ReturnCertificateRequest, ReturnCertificateResponse, SealSpineRequest, SealSpineResponse,
+    TransferCertificateRequest, TransferCertificateResponse, VerifyInclusionProofRequest,
+    VerifyInclusionProofResponse,
+};
 use jsonrpsee::core::RpcResult;
 use jsonrpsee::proc_macros::rpc;
 use jsonrpsee::server::{Server, ServerHandle};
@@ -43,67 +54,67 @@ pub trait LoamSpineJsonRpcApi {
     // ========================================================================
 
     /// Create a new spine.
-    #[method(name = "loamspine.createSpine")]
+    #[method(name = "spine.create")]
     async fn create_spine(&self, request: CreateSpineRequest) -> RpcResult<CreateSpineResponse>;
 
     /// Get a spine by ID.
-    #[method(name = "loamspine.getSpine")]
+    #[method(name = "spine.get")]
     async fn get_spine(&self, request: GetSpineRequest) -> RpcResult<GetSpineResponse>;
 
-    /// Seal a spine.
-    #[method(name = "loamspine.sealSpine")]
+    /// Seal a spine (make immutable).
+    #[method(name = "spine.seal")]
     async fn seal_spine(&self, request: SealSpineRequest) -> RpcResult<SealSpineResponse>;
 
     // ========================================================================
     // Entry Operations
     // ========================================================================
 
-    /// Append an entry.
-    #[method(name = "loamspine.appendEntry")]
+    /// Append an entry to a spine.
+    #[method(name = "entry.append")]
     async fn append_entry(&self, request: AppendEntryRequest) -> RpcResult<AppendEntryResponse>;
 
     /// Get an entry by hash.
-    #[method(name = "loamspine.getEntry")]
+    #[method(name = "entry.get")]
     async fn get_entry(&self, request: GetEntryRequest) -> RpcResult<GetEntryResponse>;
 
-    /// Get the tip entry.
-    #[method(name = "loamspine.getTip")]
+    /// Get the tip entry of a spine.
+    #[method(name = "entry.get_tip")]
     async fn get_tip(&self, request: GetTipRequest) -> RpcResult<GetTipResponse>;
 
     // ========================================================================
     // Certificate Operations
     // ========================================================================
 
-    /// Mint a certificate.
-    #[method(name = "loamspine.mintCertificate")]
+    /// Mint a new certificate.
+    #[method(name = "certificate.mint")]
     async fn mint_certificate(
         &self,
         request: MintCertificateRequest,
     ) -> RpcResult<MintCertificateResponse>;
 
-    /// Transfer a certificate.
-    #[method(name = "loamspine.transferCertificate")]
+    /// Transfer a certificate to a new owner.
+    #[method(name = "certificate.transfer")]
     async fn transfer_certificate(
         &self,
         request: TransferCertificateRequest,
     ) -> RpcResult<TransferCertificateResponse>;
 
-    /// Loan a certificate.
-    #[method(name = "loamspine.loanCertificate")]
+    /// Loan a certificate temporarily.
+    #[method(name = "certificate.loan")]
     async fn loan_certificate(
         &self,
         request: LoanCertificateRequest,
     ) -> RpcResult<LoanCertificateResponse>;
 
     /// Return a loaned certificate.
-    #[method(name = "loamspine.returnCertificate")]
+    #[method(name = "certificate.return")]
     async fn return_certificate(
         &self,
         request: ReturnCertificateRequest,
     ) -> RpcResult<ReturnCertificateResponse>;
 
-    /// Get a certificate.
-    #[method(name = "loamspine.getCertificate")]
+    /// Get a certificate by ID.
+    #[method(name = "certificate.get")]
     async fn get_certificate(
         &self,
         request: GetCertificateRequest,
@@ -114,15 +125,15 @@ pub trait LoamSpineJsonRpcApi {
     // ========================================================================
 
     /// Health check (detailed status).
-    #[method(name = "loamspine.healthCheck")]
+    #[method(name = "health.check")]
     async fn health_check(&self, request: HealthCheckRequest) -> RpcResult<HealthCheckResponse>;
 
-    /// Liveness probe (standard container orchestrator endpoint).
-    #[method(name = "loamspine.liveness")]
+    /// Liveness probe (container orchestrator endpoint).
+    #[method(name = "health.liveness")]
     async fn liveness(&self) -> RpcResult<LivenessProbe>;
 
-    /// Readiness probe (standard container orchestrator endpoint).
-    #[method(name = "loamspine.readiness")]
+    /// Readiness probe (container orchestrator endpoint).
+    #[method(name = "health.readiness")]
     async fn readiness(&self) -> RpcResult<ReadinessProbe>;
 
     // ========================================================================
@@ -130,7 +141,7 @@ pub trait LoamSpineJsonRpcApi {
     // ========================================================================
 
     /// Commit a session from an ephemeral storage primal.
-    #[method(name = "loamspine.commitSession")]
+    #[method(name = "session.commit")]
     async fn commit_session(
         &self,
         request: CommitSessionRequest,
@@ -141,7 +152,7 @@ pub trait LoamSpineJsonRpcApi {
     // ========================================================================
 
     /// Commit a braid from a semantic attribution primal.
-    #[method(name = "loamspine.commitBraid")]
+    #[method(name = "braid.commit")]
     async fn commit_braid(&self, request: CommitBraidRequest) -> RpcResult<CommitBraidResponse>;
 
     // ========================================================================
@@ -149,11 +160,11 @@ pub trait LoamSpineJsonRpcApi {
     // ========================================================================
 
     /// Anchor a slice on a waypoint spine.
-    #[method(name = "loamspine.anchorSlice")]
+    #[method(name = "slice.anchor")]
     async fn anchor_slice(&self, request: AnchorSliceRequest) -> RpcResult<AnchorSliceResponse>;
 
     /// Checkout a slice from a waypoint.
-    #[method(name = "loamspine.checkoutSlice")]
+    #[method(name = "slice.checkout")]
     async fn checkout_slice(
         &self,
         request: CheckoutSliceRequest,
@@ -164,14 +175,14 @@ pub trait LoamSpineJsonRpcApi {
     // ========================================================================
 
     /// Generate an inclusion proof.
-    #[method(name = "loamspine.generateInclusionProof")]
+    #[method(name = "proof.generate_inclusion")]
     async fn generate_inclusion_proof(
         &self,
         request: GenerateInclusionProofRequest,
     ) -> RpcResult<GenerateInclusionProofResponse>;
 
     /// Verify an inclusion proof.
-    #[method(name = "loamspine.verifyInclusionProof")]
+    #[method(name = "proof.verify_inclusion")]
     async fn verify_inclusion_proof(
         &self,
         request: VerifyInclusionProofRequest,
@@ -373,6 +384,7 @@ pub async fn run_jsonrpc_server(
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
+    use crate::types::{CertificateType, Did, EntryType};
 
     #[test]
     fn test_jsonrpc_creation() {
@@ -523,5 +535,193 @@ mod tests {
 
         let result = LoamSpineJsonRpcApiServer::commit_session(&server, commit_request).await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_jsonrpc_append_entry() {
+        let server = LoamSpineJsonRpc::default_server();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Entry Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let append_request = AppendEntryRequest {
+            spine_id: create_response.spine_id,
+            entry_type: EntryType::DataAnchor {
+                data_hash: [1u8; 32],
+                mime_type: Some("text/plain".to_string()),
+                size: 50,
+            },
+            committer: owner.clone(),
+            payload: None,
+        };
+        let result = LoamSpineJsonRpcApiServer::append_entry(&server, append_request).await;
+        assert!(result.is_ok());
+        let response = result.unwrap_or_else(|_| panic!("append failed"));
+        assert!(!response.entry_hash.iter().all(|&b| b == 0));
+    }
+
+    #[tokio::test]
+    async fn test_jsonrpc_get_entry_and_tip() {
+        let server = LoamSpineJsonRpc::default_server();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Get Entry Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let append_request = AppendEntryRequest {
+            spine_id: create_response.spine_id,
+            entry_type: EntryType::DataAnchor {
+                data_hash: [2u8; 32],
+                mime_type: Some("text/plain".to_string()),
+                size: 10,
+            },
+            committer: owner.clone(),
+            payload: None,
+        };
+        let append_response = LoamSpineJsonRpcApiServer::append_entry(&server, append_request)
+            .await
+            .unwrap_or_else(|_| panic!("append failed"));
+
+        let get_entry_request = GetEntryRequest {
+            spine_id: create_response.spine_id,
+            entry_hash: append_response.entry_hash,
+        };
+        let result = LoamSpineJsonRpcApiServer::get_entry(&server, get_entry_request).await;
+        assert!(result.is_ok());
+        let response = result.unwrap_or_else(|_| panic!("get_entry failed"));
+        assert!(response.found);
+
+        let get_tip_request = GetTipRequest {
+            spine_id: create_response.spine_id,
+        };
+        let result = LoamSpineJsonRpcApiServer::get_tip(&server, get_tip_request).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_jsonrpc_liveness_and_readiness() {
+        let server = LoamSpineJsonRpc::default_server();
+
+        let liveness = LoamSpineJsonRpcApiServer::liveness(&server).await;
+        assert!(liveness.is_ok());
+
+        let readiness = LoamSpineJsonRpcApiServer::readiness(&server).await;
+        assert!(readiness.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_jsonrpc_commit_braid() {
+        let server = LoamSpineJsonRpc::default_server();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Braid Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let braid_request = CommitBraidRequest {
+            spine_id: create_response.spine_id,
+            committer: owner,
+            braid_id: uuid::Uuid::now_v7(),
+            braid_hash: [3u8; 32],
+            subjects: vec![],
+        };
+        let result = LoamSpineJsonRpcApiServer::commit_braid(&server, braid_request).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_jsonrpc_anchor_slice() {
+        let server = LoamSpineJsonRpc::default_server();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let waypoint_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Waypoint".to_string(),
+            config: None,
+        };
+        let waypoint_response = LoamSpineJsonRpcApiServer::create_spine(&server, waypoint_request)
+            .await
+            .unwrap_or_else(|_| panic!("create waypoint failed"));
+
+        let origin_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Origin".to_string(),
+            config: None,
+        };
+        let origin_response = LoamSpineJsonRpcApiServer::create_spine(&server, origin_request)
+            .await
+            .unwrap_or_else(|_| panic!("create origin failed"));
+
+        let anchor_request = AnchorSliceRequest {
+            waypoint_spine_id: waypoint_response.spine_id,
+            slice_id: uuid::Uuid::now_v7(),
+            origin_spine_id: origin_response.spine_id,
+            committer: owner,
+        };
+        let result = LoamSpineJsonRpcApiServer::anchor_slice(&server, anchor_request).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_jsonrpc_generate_and_verify_inclusion_proof() {
+        let server = LoamSpineJsonRpc::default_server();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Proof Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let append_request = AppendEntryRequest {
+            spine_id: create_response.spine_id,
+            entry_type: EntryType::DataAnchor {
+                data_hash: [4u8; 32],
+                mime_type: Some("text/plain".to_string()),
+                size: 20,
+            },
+            committer: owner,
+            payload: None,
+        };
+        let append_response = LoamSpineJsonRpcApiServer::append_entry(&server, append_request)
+            .await
+            .unwrap_or_else(|_| panic!("append failed"));
+
+        let gen_request = GenerateInclusionProofRequest {
+            spine_id: create_response.spine_id,
+            entry_hash: append_response.entry_hash,
+        };
+        let gen_result =
+            LoamSpineJsonRpcApiServer::generate_inclusion_proof(&server, gen_request).await;
+        assert!(gen_result.is_ok());
+
+        let proof = gen_result.unwrap_or_else(|_| panic!("generate failed"));
+        let verify_request = VerifyInclusionProofRequest { proof: proof.proof };
+        let verify_result =
+            LoamSpineJsonRpcApiServer::verify_inclusion_proof(&server, verify_request).await;
+        assert!(verify_result.is_ok());
+        let response = verify_result.unwrap_or_else(|_| panic!("verify failed"));
+        assert!(response.valid);
     }
 }

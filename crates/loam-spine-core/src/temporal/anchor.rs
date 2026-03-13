@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Temporal anchors - what defines order in the linear past.
 //!
 //! The same DAG can collapse to different linear orderings depending on

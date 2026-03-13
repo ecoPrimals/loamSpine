@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Proofs Example
 //!
 //! Demonstrates cryptographic proof generation in `LoamSpine`:

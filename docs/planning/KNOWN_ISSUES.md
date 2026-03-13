@@ -1,155 +1,62 @@
 # Known Issues - LoamSpine
 
-**Date**: January 9, 2026  
-**Version**: 0.7.1  
-**Status**: ✅ Production Ready - No Known Issues
+**Date**: March 12, 2026
+**Version**: 0.8.0
+**Status**: Production Ready
 
 ---
 
-## ✅ ALL ISSUES RESOLVED
+## Current State
 
-As of January 9, 2026 (v0.7.1), there are **no known issues** in the LoamSpine codebase.
-
-### Current Status
-
-**Tests**: 402/402 passing (100%)  
-**Coverage**: 77-90% (exceeds 60% target)  
-**Clippy**: 0 warnings (library code)  
-**Unsafe Code**: 0 blocks  
-**Technical Debt**: ZERO  
-**Hardcoding**: 0%
-
----
-
-## 📝 Recent Quality Improvements (v0.7.1)
-
-### January 9, 2026 Release
-
-**Modern Idiomatic Rust Patterns**:
-- ✅ Derived `Default` traits with `#[default]` attribute
-- ✅ Inline format arguments throughout
-- ✅ Async hygiene (removed unnecessary `async` keywords)
-- ✅ Comprehensive `# Errors` documentation
-
-**Perfect Test Isolation**:
-- ✅ Added `serial_test` crate for environment-dependent tests
-- ✅ All 402 tests pass with concurrent execution
-- ✅ Comprehensive cleanup helpers prevent test pollution
-
-**Production Certification**:
-- ✅ Grade: A+ (99/100)
-- ✅ Comprehensive audit documentation (2,400+ lines)
-- ✅ Deep solutions applied (no quick fixes)
-
----
-
-## 🔍 Verification Commands
-
-All verification commands pass successfully:
-
-```bash
-# Build
-cargo build --release
-✅ SUCCESS
-
-# Tests (concurrent execution)
-cargo test --workspace --all-features
-✅ 402/402 PASSING (100%)
-
-# Linting (library only)
-cargo clippy --workspace --lib -- -D warnings
-✅ 0 WARNINGS
-
-# Formatting
-cargo fmt --all -- --check
-✅ CLEAN
-
-# Documentation
-cargo doc --no-deps
-✅ 100% DOCUMENTED
-
-# Coverage
-cargo llvm-cov --workspace --all-features
-✅ 77-90% COVERAGE
-```
-
----
-
-## 🚀 PRODUCTION STATUS
-
-### Status: ✅ **PRODUCTION CERTIFIED** (A+ 99/100)
-
-**Certification Date**: January 9, 2026  
-**Certification Authority**: Comprehensive Audit & Execution System  
-**Confidence Level**: VERY HIGH (99%)
-
-All critical systems operational:
-- ✅ **Core library** — All tests passing
-- ✅ **API library** — All tests passing
-- ✅ **Integration tests** — All passing
-- ✅ **Chaos tests** — All passing
-- ✅ **E2E tests** — All passing
-- ✅ **Doc tests** — All passing
-- ✅ **Examples** — All compile and run
-- ✅ **Benchmarks** — All compile and run
-- ✅ **Release build** — Succeeds
-- ✅ **Docker build** — Succeeds
-
----
-
-## 📋 Planned Features (Not Issues)
-
-The following are **planned features** for future releases (documented in `ROADMAP_V0.8.0.md`):
-
-### v0.8.0 Planned Features
-
-1. **DNS SRV Discovery** - RFC 2782 service discovery (code stubs in place)
-2. **mDNS Discovery** - RFC 6762 local network discovery (code stubs in place)
-3. **Additional Storage Backends** - PostgreSQL, RocksDB support
-4. **Enhanced Query Capabilities** - Advanced entry filtering
-
-**Note**: These are architectural TODOs for future work, not bugs or issues.
-
----
-
-## 📊 Quality Metrics
+As of v0.8.0, the codebase passes all quality gates:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Test Pass Rate | 100% | 100% (402/402) | ✅ |
-| Code Coverage | 60% | 77-90% | ✅ EXCEEDS |
-| Clippy Warnings | 0 | 0 | ✅ |
-| Unsafe Code | 0 | 0 | ✅ |
-| Hardcoding | 0% | 0% | ✅ |
-| Tech Debt | 0 | 0 | ✅ |
-| File Size | <1000 lines | 915 max | ✅ |
-| Known Issues | 0 | 0 | ✅ |
+| Tests | 400+ | 510+ | PASS |
+| Line Coverage | 90% | 90.08% | PASS |
+| Clippy (all targets, all features) | 0 warnings | 0 | PASS |
+| Formatting | clean | clean | PASS |
+| Documentation | compiles | compiles | PASS |
+| Unsafe Code | 0 | 0 | PASS |
+| Max File Size | <1000 lines | 863 max | PASS |
+| License | AGPL-3.0-only | AGPL-3.0-only | PASS |
+| SPDX Headers | all files | all files | PASS |
+| cargo deny (bans, licenses, sources) | pass | pass | PASS |
+| Pure Rust deps (no openssl/native-tls) | pass | pass | PASS |
 
 ---
 
-## 📚 Related Documentation
+## Remaining Technical Debt
 
-For comprehensive documentation, see:
-- **[DEPLOYMENT_READY.md](../../DEPLOYMENT_READY.md)** - Quick start deployment guide
-- **[PRODUCTION_CERTIFICATION_JAN_2026.md](../../PRODUCTION_CERTIFICATION_JAN_2026.md)** - Full certification
-- **[STATUS.md](../../STATUS.md)** - Live metrics dashboard
-- **[ROADMAP_V0.8.0.md](../../ROADMAP_V0.8.0.md)** - Future roadmap
+### Minor
 
----
+1. **Deprecated config fields**: `songbird_enabled`, `songbird_endpoint` in `DiscoveryConfig` -- scheduled for removal in v1.0.0.
+2. **mDNS experimental**: Feature-gated behind `mdns` feature; stub implementation returns empty when feature enabled.
+3. **`main.rs` 0% coverage**: Binary entry point; tested via integration/showcase demos, not unit tests.
+4. **`thiserror` duplicate versions**: v1 and v2 coexist via transitive deps (non-blocking, `cargo deny` warns).
 
-## 🎓 Philosophy Realized
+### None Critical
 
-All architectural philosophies have been fully realized in v0.7.1:
-
-- ✅ **"Deep Solutions, Not Quick Fixes"** - Comprehensive, not workarounds
-- ✅ **"Modern Idiomatic Rust Throughout"** - Latest patterns applied
-- ✅ **"Smart Refactoring"** - Cohesive modules, not arbitrary splits
-- ✅ **"Capability-Based Discovery"** - Zero hardcoding
-- ✅ **"Fast AND Safe Rust"** - Zero unsafe, zero-copy optimized
+No critical issues, blockers, or security concerns.
 
 ---
 
-**Last Updated**: January 9, 2026  
-**Status**: ✅ **NO KNOWN ISSUES**  
-**Grade**: A+ (99/100)  
-**Next Step**: PRODUCTION DEPLOYMENT or v0.8.0 DEVELOPMENT
+## v0.8.0 Changes (This Release)
+
+- UniBin compliance: binary renamed to `loamspine`, subcommand structure (`loamspine server`)
+- AGPL-3.0-only LICENSE file, SPDX headers on all source files
+- Semantic JSON-RPC method naming (`spine.create`, `certificate.mint`, etc.)
+- DNS-SRV discovery activated in default config
+- `service.rs` refactored into domain-focused modules
+- `#[allow]` cleanup and `cast_possible_truncation` evolved to `try_into()`
+- Service registry discovery evolved from warning stub to real HTTP-based implementation
+- `reqwest` switched from `native-tls` to `rustls-tls` for pure Rust TLS (ecoBin compliance)
+- `deny.toml` updated: `AGPL-3.0-only`, `CDLA-Permissive-2.0` licenses allowed
+- Environment-touching tests serialized with `#[serial]` to prevent race conditions
+- Coverage pushed from 87% to 90.08% with targeted tests across 8 files
+- 510+ tests (up from 495), 90.08% line coverage (up from 87%)
+- Version aligned to 0.8.0 across workspace
+
+---
+
+**Last Updated**: March 12, 2026

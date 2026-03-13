@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! End-to-end integration tests for `LoamSpine`.
 //!
 //! These tests exercise the full flow from spine creation through

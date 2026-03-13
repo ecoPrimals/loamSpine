@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Trait implementations for primal integration.
 //!
 //! This module provides implementations of integration traits that allow

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! CLI-based signer integration for real cryptographic signing.
 //!
 //! This module provides a real `Signer` implementation that uses an external
@@ -321,12 +323,63 @@ impl Verifier for CliVerifier {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::uninlined_format_args)]
 mod tests {
     use super::*;
     use std::env;
     use std::path::PathBuf;
+
+    /// Helper to get the path to a standard Unix binary (true/false) for error-path tests.
+    fn get_test_binary_for_error_paths() -> Option<(PathBuf, PathBuf)> {
+        let candidates = ["/usr/bin/true", "/bin/true", "true"];
+        let mut true_path = None;
+        for c in candidates {
+            let p = if c.starts_with('/') {
+                PathBuf::from(c)
+            } else {
+                let output = Command::new("which").arg(c).output().ok()?;
+                if output.status.success() {
+                    let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                    if s.is_empty() {
+                        continue;
+                    }
+                    PathBuf::from(s)
+                } else {
+                    continue;
+                }
+            };
+            if p.exists() {
+                true_path = Some(p);
+                break;
+            }
+        }
+        let true_path = true_path?;
+        let false_candidates = ["/usr/bin/false", "/bin/false", "false"];
+        let mut false_path = None;
+        for c in false_candidates {
+            let p = if c.starts_with('/') {
+                PathBuf::from(c)
+            } else {
+                let output = Command::new("which").arg(c).output().ok()?;
+                if output.status.success() {
+                    let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                    if s.is_empty() {
+                        continue;
+                    }
+                    PathBuf::from(s)
+                } else {
+                    continue;
+                }
+            };
+            if p.exists() {
+                false_path = Some(p);
+                break;
+            }
+        }
+        let false_path = false_path?;
+        Some((true_path, false_path))
+    }
 
     /// Helper to get the beardog binary path if it exists.
     fn get_test_binary() -> Option<PathBuf> {
@@ -441,6 +494,27 @@ mod tests {
     fn env_constants_are_defined() {
         assert_eq!(ENV_SIGNER_PATH, "LOAMSPINE_SIGNER_PATH");
         assert_eq!(ENV_SIGNER_KEY, "LOAMSPINE_SIGNER_KEY");
+    }
+
+    #[test]
+    fn signer_key_id_accessor() {
+        let key_id = "test-key-123";
+        let result = CliSigner::new("/nonexistent/binary", key_id);
+        assert!(result.is_err());
+        if let Some(signer) = get_test_binary().and_then(|b| CliSigner::new(b, key_id).ok()) {
+            assert_eq!(signer.key_id(), key_id);
+        }
+    }
+
+    #[test]
+    fn signer_binary_path_accessor() {
+        let result = CliSigner::new("/nonexistent/binary", "key");
+        assert!(result.is_err());
+        if let Some(binary) = get_test_binary() {
+            if let Ok(signer) = CliSigner::new(&binary, "default") {
+                assert_eq!(signer.binary_path(), binary.as_path());
+            }
+        }
     }
 
     #[test]
@@ -662,5 +736,69 @@ mod tests {
         for handle in handles {
             handle.join().unwrap();
         }
+    }
+
+    #[tokio::test]
+    async fn sign_fails_when_binary_does_not_produce_output_file() {
+        // Use `true` as binary: it succeeds (exit 0) but doesn't create the output file,
+        // so we hit the "Failed to read signature" error path.
+        let Some((true_path, _)) = get_test_binary_for_error_paths() else {
+            eprintln!("⚠️  Skipping: true/false binaries not found (non-Unix?)");
+            return;
+        };
+
+        let signer = CliSigner::new(&true_path, "any-key").expect("true accepts key info");
+        let result = signer.sign(b"test data").await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("read") || err.to_string().contains("signature"),
+            "Expected read/signature error: {}",
+            err
+        );
+    }
+
+    #[tokio::test]
+    async fn verify_returns_invalid_when_binary_fails() {
+        // Use `false` as binary: it always exits non-zero, so we hit the invalid verification path.
+        let Some((_, false_path)) = get_test_binary_for_error_paths() else {
+            eprintln!("⚠️  Skipping: true/false binaries not found (non-Unix?)");
+            return;
+        };
+
+        let verifier = CliVerifier::new(&false_path).expect("false exists");
+        let data = b"test data";
+        let sig = crate::types::Signature::from_vec(vec![1, 2, 3]);
+        let did = crate::types::Did::new("did:key:test");
+
+        let result = verifier.verify(data, &sig, &did).await;
+
+        assert!(result.is_ok());
+        let verification = result.unwrap();
+        assert!(!verification.valid);
+        assert!(verification.error.is_some());
+    }
+
+    #[tokio::test]
+    async fn verify_entry_returns_invalid_when_binary_fails() {
+        let Some((_, false_path)) = get_test_binary_for_error_paths() else {
+            eprintln!("⚠️  Skipping: true/false binaries not found (non-Unix?)");
+            return;
+        };
+
+        let verifier = CliVerifier::new(&false_path).expect("false exists");
+        let entry = crate::entry::Entry::new(
+            0,
+            None,
+            crate::types::Did::new("did:test"),
+            crate::entry::EntryType::SpineSealed { reason: None },
+        );
+
+        let result = verifier.verify_entry(&entry).await;
+
+        assert!(result.is_ok());
+        let verification = result.unwrap();
+        assert!(!verification.valid);
     }
 }

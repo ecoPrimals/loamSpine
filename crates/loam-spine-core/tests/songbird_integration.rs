@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Integration tests for Songbird client with real binary.
 //!
 //! These tests use the actual `Songbird` binary from `../bins/` to test

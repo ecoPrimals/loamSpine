@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Moments - the fundamental unit of time tracking.
 
 use serde::{Deserialize, Serialize};
@@ -137,6 +139,7 @@ impl MomentContext {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -154,5 +157,53 @@ mod tests {
             content_hash: ContentHash::default(),
         };
         assert_eq!(art.category(), "art");
+    }
+
+    #[test]
+    fn moment_context_all_categories() {
+        let life = MomentContext::LifeEvent {
+            event_type: "graduation".into(),
+            participants: vec!["did:eco:alice".into()],
+            description: "Finished school".into(),
+        };
+        assert_eq!(life.category(), "life");
+
+        let perf = MomentContext::Performance {
+            venue: "Hall A".into(),
+            duration_seconds: 3600,
+            recording_hash: None,
+        };
+        assert_eq!(perf.category(), "performance");
+
+        let exp = MomentContext::Experiment {
+            hypothesis: "H0".into(),
+            result: "confirmed".into(),
+            data_hash: ContentHash::default(),
+        };
+        assert_eq!(exp.category(), "experiment");
+
+        let ms = MomentContext::Milestone {
+            achievement: "1M users".into(),
+            metrics: HashMap::from([("users".into(), 1_000_000.0)]),
+        };
+        assert_eq!(ms.category(), "milestone");
+
+        let generic = MomentContext::Generic {
+            category: "custom".into(),
+            metadata: HashMap::new(),
+            content_hash: None,
+        };
+        assert_eq!(generic.category(), "custom");
+    }
+
+    #[test]
+    fn moment_context_serde_roundtrip() {
+        let ctx = MomentContext::CodeChange {
+            message: "fix bug".into(),
+            tree_hash: ContentHash::default(),
+        };
+        let json = serde_json::to_string(&ctx).unwrap();
+        let parsed: MomentContext = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.category(), "code");
     }
 }

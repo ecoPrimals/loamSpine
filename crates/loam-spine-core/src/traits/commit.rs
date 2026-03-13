@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Commit acceptor traits for DAG session commits.
 //!
 //! These traits define the interface for accepting commits from ephemeral DAG primals

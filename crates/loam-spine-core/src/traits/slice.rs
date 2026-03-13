@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Slice management traits for waypoint operations.
 //!
 //! These traits define the interface for checking out and resolving slices

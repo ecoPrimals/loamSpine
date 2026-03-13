@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Sled-backed persistent storage for production use.
 //!
 //! Uses [Sled](https://github.com/spacejam/sled), a pure Rust embedded database,

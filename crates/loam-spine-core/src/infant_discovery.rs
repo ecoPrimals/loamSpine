@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Infant Discovery - Start with Zero Knowledge
 //!
 //! This module implements the "infant discovery" pattern where LoamSpine
@@ -65,11 +67,9 @@ use crate::error::LoamSpineResult;
 pub enum DiscoveryMethod {
     /// Environment variables (highest priority)
     Environment,
-    /// mDNS/Bonjour for local network
-    #[allow(dead_code)]
+    /// mDNS/Bonjour for local network (requires `mdns` feature)
     MDns,
-    /// DNS SRV records for production
-    #[allow(dead_code)]
+    /// DNS SRV records for production (RFC 2782)
     DnsSrv,
     /// Service registry/universal adapter
     ServiceRegistry(String),
@@ -90,12 +90,18 @@ pub struct DiscoveryConfig {
 
 impl Default for DiscoveryConfig {
     fn default() -> Self {
+        let mut methods = vec![DiscoveryMethod::Environment];
+
+        // DNS-SRV is production-grade; always available as fallback
+        methods.push(DiscoveryMethod::DnsSrv);
+
+        // mDNS for zero-config LAN discovery when feature-enabled
+        #[cfg(feature = "mdns")]
+        methods.push(DiscoveryMethod::MDns);
+
         Self {
-            methods: vec![
-                DiscoveryMethod::Environment,
-                // mDNS and DNS-SRV would be added when implemented
-            ],
-            cache_ttl_secs: 300, // 5 minutes
+            methods,
+            cache_ttl_secs: 300,
             retry_attempts: 3,
             discovery_timeout: Duration::from_secs(5),
         }
@@ -236,9 +242,7 @@ impl InfantDiscovery {
                 DiscoveryMethod::MDns => self.discover_via_mdns(capability).await,
                 DiscoveryMethod::DnsSrv => self.discover_via_dns_srv(capability).await,
                 DiscoveryMethod::ServiceRegistry(url) => {
-                    // TODO: Implement registry query
-                    warn!("Service registry discovery not yet implemented for {}", url);
-                    vec![]
+                    self.discover_via_registry(url, capability).await
                 }
             };
 
@@ -428,13 +432,63 @@ impl InfantDiscovery {
         services
     }
 
+    /// Discover services via a service registry (universal adapter).
+    ///
+    /// Queries the registry's HTTP API for services providing the given capability.
+    /// Compatible with any registry exposing a `/discover?capability=...` endpoint
+    /// (Songbird, Consul adapter, etcd adapter, etc.).
+    async fn discover_via_registry(
+        &self,
+        registry_url: &str,
+        capability: &str,
+    ) -> Vec<DiscoveredService> {
+        debug!(
+            "Querying service registry at {} for '{}'",
+            registry_url, capability
+        );
+
+        let client = match crate::discovery_client::DiscoveryClient::connect(registry_url).await {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("Cannot reach service registry at {registry_url}: {e}");
+                return vec![];
+            }
+        };
+
+        let services = match client.discover_capability(capability).await {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("Registry query failed for '{capability}': {e}");
+                return vec![];
+            }
+        };
+
+        services
+            .into_iter()
+            .map(|svc| DiscoveredService {
+                id: format!("registry-{}", svc.name),
+                capability: capability.to_string(),
+                endpoint: svc.endpoint,
+                discovered_via: format!("service-registry:{registry_url}"),
+                metadata: svc.metadata,
+                health: if svc.healthy {
+                    ServiceHealth::Healthy
+                } else {
+                    ServiceHealth::Unknown
+                },
+                discovered_at: SystemTime::now(),
+                ttl_secs: self.config.cache_ttl_secs,
+            })
+            .collect()
+    }
+
     /// Discover services via mDNS/Bonjour (RFC 6762)
     ///
     /// Broadcasts query for services on the local network.
     /// This enables zero-configuration discovery on LANs.
     ///
     /// Note: mDNS is optional and requires the `mdns` feature to be enabled.
-    #[allow(clippy::unused_async)] // mDNS feature is experimental, stub doesn't need async
+    #[allow(clippy::unused_async)] // async required for uniform dispatch in find_capability
     async fn discover_via_mdns(&self, capability: &str) -> Vec<DiscoveredService> {
         debug!("Attempting mDNS discovery for '{}'", capability);
 
@@ -626,5 +680,152 @@ mod tests {
 
         // Clean up
         env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_discover_via_signing_service_url() {
+        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
+        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+        env::remove_var("SIGNING_SERVICE_URL");
+
+        let discovery = InfantDiscovery::new().unwrap();
+        let services = discovery
+            .find_capability("cryptographic-signing")
+            .await
+            .unwrap();
+        assert!(services.is_empty());
+
+        env::set_var("SIGNING_SERVICE_URL", "http://localhost:8002");
+        discovery.clear_cache().await;
+
+        let services = discovery
+            .find_capability("cryptographic-signing")
+            .await
+            .unwrap();
+        assert_eq!(services.len(), 1);
+        assert_eq!(services[0].endpoint, "http://localhost:8002");
+
+        env::remove_var("SIGNING_SERVICE_URL");
+    }
+
+    #[test]
+    fn test_discovery_config_default() {
+        let config = DiscoveryConfig::default();
+        assert!(!config.methods.is_empty());
+        assert!(config.cache_ttl_secs > 0);
+        assert!(config.retry_attempts > 0);
+    }
+
+    #[test]
+    #[serial]
+    fn test_discovery_config_from_env() {
+        env::set_var("SERVICE_REGISTRY_URL", "http://registry.example.com");
+        env::set_var("DISCOVERY_CACHE_TTL", "600");
+
+        let config = DiscoveryConfig::from_env_or_default();
+        assert!(config.methods.iter().any(|m| matches!(
+            m,
+            DiscoveryMethod::ServiceRegistry(url) if url == "http://registry.example.com"
+        )));
+        assert_eq!(config.cache_ttl_secs, 600);
+
+        env::remove_var("SERVICE_REGISTRY_URL");
+        env::remove_var("DISCOVERY_CACHE_TTL");
+    }
+
+    #[test]
+    fn test_capability_to_srv_name_indirect() {
+        let discovery = InfantDiscovery::new().unwrap();
+        let capabilities = discovery.own_capabilities();
+        assert!(!capabilities.is_empty());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_service_registry_discovery_returns_empty() {
+        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
+        env::remove_var("SIGNING_SERVICE_URL");
+        env::set_var("SERVICE_REGISTRY_URL", "http://registry.test");
+
+        let config = DiscoveryConfig::from_env_or_default();
+        let discovery = InfantDiscovery::with_config(config).unwrap();
+        discovery.clear_cache().await;
+
+        let services = discovery.find_capability("signing").await.unwrap();
+        assert!(services.is_empty());
+
+        env::remove_var("SERVICE_REGISTRY_URL");
+    }
+
+    #[tokio::test]
+    async fn test_dns_srv_discovery_no_records() {
+        let discovery = InfantDiscovery::new().unwrap();
+        let services = discovery
+            .discover_via_dns_srv("nonexistent-capability")
+            .await;
+        assert!(services.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_registry_discovery_unreachable() {
+        let discovery = InfantDiscovery::new().unwrap();
+        let services = discovery
+            .discover_via_registry("http://127.0.0.1:1", "signing")
+            .await;
+        assert!(services.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_is_fresh_with_recent_service() {
+        let service = DiscoveredService {
+            id: "test".to_string(),
+            capability: "signing".to_string(),
+            endpoint: "http://localhost:8001".to_string(),
+            discovered_via: "test".to_string(),
+            metadata: HashMap::new(),
+            health: ServiceHealth::Healthy,
+            discovered_at: SystemTime::now(),
+            ttl_secs: 300,
+        };
+        assert!(InfantDiscovery::is_fresh(&service));
+    }
+
+    #[tokio::test]
+    async fn test_is_fresh_with_expired_service() {
+        let service = DiscoveredService {
+            id: "test".to_string(),
+            capability: "signing".to_string(),
+            endpoint: "http://localhost:8001".to_string(),
+            discovered_via: "test".to_string(),
+            metadata: HashMap::new(),
+            health: ServiceHealth::Healthy,
+            discovered_at: SystemTime::now() - std::time::Duration::from_secs(600),
+            ttl_secs: 300,
+        };
+        assert!(!InfantDiscovery::is_fresh(&service));
+    }
+
+    #[test]
+    fn test_capability_to_srv_name() {
+        assert_eq!(
+            capability_to_srv_name("cryptographic-signing"),
+            "_signing._tcp.local"
+        );
+        assert_eq!(
+            capability_to_srv_name("content-storage"),
+            "_storage._tcp.local"
+        );
+        assert_eq!(capability_to_srv_name("simple"), "_simple._tcp.local");
+    }
+
+    #[test]
+    fn test_own_capabilities_are_loamspine_specific() {
+        let discovery = InfantDiscovery::new().unwrap();
+        let caps = discovery.own_capabilities();
+        let identifiers: Vec<&str> = caps.iter().map(LoamSpineCapability::identifier).collect();
+        assert!(identifiers
+            .iter()
+            .any(|id| id.contains("ledger") || id.contains("permanence")));
     }
 }

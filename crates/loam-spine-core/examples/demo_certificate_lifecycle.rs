@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! # 🦴 Demo: Certificate Lifecycle
 //!
 //! Full ownership model: mint → transfer → loan → return.

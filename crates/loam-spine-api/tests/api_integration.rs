@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! API integration tests for `LoamSpine`.
 //!
 //! Tests the RPC service implementation directly.

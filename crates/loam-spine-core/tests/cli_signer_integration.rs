@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Integration tests for CLI signer with real `BearDog` binary.
 //!
 //! These tests use the actual `BearDog` binary from `../bins/` to test

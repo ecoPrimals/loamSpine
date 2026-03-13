@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! # 🦴 Demo: RPC Service
 //!
 //! Demonstrates the Pure Rust RPC API.

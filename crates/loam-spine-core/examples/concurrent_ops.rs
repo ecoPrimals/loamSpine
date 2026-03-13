@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Concurrent Operations Example
 //!
 //! Demonstrates thread-safe concurrent operations in LoamSpine:

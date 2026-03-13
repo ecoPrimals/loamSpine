@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Storage Backends Example
 //!
 //! Demonstrates different storage backends in `LoamSpine`:

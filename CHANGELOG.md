@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-03-12
+
+### Added
+- **Service registry discovery**: `ServiceRegistry` evolved from stub to real HTTP-based implementation querying any `/discover?capability=...` endpoint
+- **Pure Rust TLS**: `reqwest` switched from `native-tls` to `rustls-tls` -- no more OpenSSL/native-tls in dependency tree
+- **UniBin compliance**: Binary renamed to `loamspine`, CLI uses `clap` with subcommand structure (`loamspine server`)
+- **Semantic JSON-RPC naming**: Methods renamed to `{domain}.{operation}` convention (`spine.create`, `certificate.mint`, `health.check`, etc.)
+- **AGPL-3.0-only LICENSE** file at project root, SPDX headers on all 66 source files
+- **cargo deny** configuration: bans openssl/native-tls, enforces license compliance
+- **90%+ line coverage** with targeted tests across cli_signer, discovery_client, lifecycle, infant_discovery, config, health, moment
+
+### Changed
+- `service.rs` monolith (915 lines) refactored into domain-focused `service/` modules (spine_ops, entry_ops, certificate_ops, proof_ops, integration_ops)
+- DNS-SRV discovery activated in default `DiscoveryConfig`
+- `cast_possible_truncation` lints replaced with `try_into()` throughout
+- All `#[allow]` annotations justified or removed
+- Environment-touching tests serialized with `#[serial]` to prevent race conditions
+- `deny.toml` updated with `AGPL-3.0-only`, `CDLA-Permissive-2.0` licenses
+- Root docs cleaned: 10 dated Jan 2026 docs archived to `phase2/archive/`
+- `primal-capabilities.toml` updated to v0.8.0, deprecated songbird fields removed
+
+### Removed
+- `openssl`, `openssl-sys`, `native-tls` from dependency tree
+- Deprecated songbird fields from `primal-capabilities.toml`
+- 10 stale root documentation files (archived as fossil record)
+
+### Metrics
+- Tests: 495 -> 510+
+- Line coverage: 87% -> 90.08%
+- Version: 0.7.1 -> 0.8.0
+- File sizes: All < 1000 lines (largest: backup.rs at 863)
+- Clippy: 0 warnings (all targets)
+- Unsafe: 0 blocks (maintained)
+
+---
+
 ## [0.7.1] - 2026-01-09
 
 ### Added - Phase 2: Deep Debt Solutions (Latest)

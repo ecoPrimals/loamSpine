@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Fault Tolerance Tests
 //!
 //! Comprehensive fault injection tests for network, disk, memory, and Byzantine scenarios.

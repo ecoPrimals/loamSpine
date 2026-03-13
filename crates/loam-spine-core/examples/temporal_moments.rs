@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Example: Creating and committing temporal moments to `LoamSpine`.
 //!
 //! This demonstrates how to use the temporal module to track universal time

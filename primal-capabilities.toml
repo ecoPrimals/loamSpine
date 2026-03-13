@@ -23,7 +23,7 @@ fallback_strategy = "best-available"
 name = "loamspine"
 description = "Permanence layer providing selective memory and certificate management"
 primary_role = "permanence"
-version = "0.5.0"
+version = "0.8.0"
 
 capabilities = [
     # Core permanence capabilities
@@ -131,10 +131,7 @@ methods = [
 service_registry_enabled = true
 service_registry_endpoint = "http://localhost:8082"
 
-# Legacy: Songbird-specific fields (deprecated, use service_registry_* instead)
-songbird_enabled = true
-songbird_discovery_endpoint = "http://localhost:8082/discover"
-songbird_registry_endpoint = "http://localhost:8082/register"
+# Legacy Songbird fields removed in v0.8.0 (use service_registry_* instead)
 
 # Cache settings
 cache_enabled = true
@@ -226,9 +223,6 @@ include_capabilities = true
 # LOAMSPINE_DISCOVERY_ENDPOINT=http://localhost:8082
 # LOAMSPINE_DISCOVERY_METHODS=environment,service-registry,mdns
 # LOAMSPINE_AUTO_ADVERTISE=true
-#
-# Legacy (deprecated, use LOAMSPINE_DISCOVERY_ENDPOINT instead):
-# LOAMSPINE_SONGBIRD_ENDPOINT=http://localhost:8082
 #
 # This allows zero-configuration deployment while maintaining flexibility.
 

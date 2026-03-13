@@ -1,5 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::module_inception)]
 mod tests {
     use std::sync::Arc;
@@ -11,6 +13,7 @@ mod tests {
         SledSpineStorage, SledStorage, SpineStorage,
     };
     use crate::types::{Did, SpineId};
+    use serial_test::serial;
 
     fn create_test_spine() -> Spine {
         let owner = Did::new("did:key:z6MkOwner");
@@ -467,35 +470,44 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn sled_storage_persistence() {
         let temp_dir =
             std::env::temp_dir().join(format!("loamspine-test-{}", uuid::Uuid::now_v7()));
 
-        // Create storage and save data
+        // Create storage, save data, then explicitly drop to release sled lock
         {
-            let storage = SledStorage::open(&temp_dir).unwrap_or_else(|_| unreachable!());
+            let storage = SledStorage::open(&temp_dir)
+                .unwrap_or_else(|e| unreachable!("sled open failed: {e}"));
             let spine = create_test_spine();
             storage
                 .spines
                 .save_spine(&spine)
                 .await
-                .unwrap_or_else(|_| unreachable!());
-            storage.flush().unwrap_or_else(|_| unreachable!());
+                .unwrap_or_else(|e| unreachable!("save spine failed: {e}"));
+            storage
+                .flush()
+                .unwrap_or_else(|e| unreachable!("flush failed: {e}"));
         }
+
+        // Yield to allow sled's background threads to finalize lock release
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
         // Reopen storage and verify data persists
         {
-            let storage = SledStorage::open(&temp_dir).unwrap_or_else(|_| unreachable!());
+            let storage = SledStorage::open(&temp_dir)
+                .unwrap_or_else(|e| unreachable!("sled reopen failed: {e}"));
             assert_eq!(storage.spines.spine_count(), 1);
         }
 
-        // Cleanup
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
     #[tokio::test]
     async fn sled_concurrent_operations() {
-        let storage = Arc::new(SledStorage::temporary().unwrap_or_else(|_| unreachable!()));
+        let storage = Arc::new(
+            SledStorage::temporary().unwrap_or_else(|e| unreachable!("temporary sled failed: {e}")),
+        );
 
         // Concurrent spine saves
         let mut handles = vec![];

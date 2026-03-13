@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Signing and verification traits with runtime discovery.
 //!
 //! These traits define the interface for cryptographic signing and verification.

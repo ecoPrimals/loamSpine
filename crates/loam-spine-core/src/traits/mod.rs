@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Integration traits for `LoamSpine`.
 //!
 //! This module defines capability-based interfaces for integrating with other primals.

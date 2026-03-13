@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Temporal primitives for universal time tracking.
 //!
 //! This module provides the core types for tracking time across any domain:

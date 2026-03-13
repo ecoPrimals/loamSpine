@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Benchmarks for core `LoamSpine` operations.
 //!
 //! Run with: `cargo bench`

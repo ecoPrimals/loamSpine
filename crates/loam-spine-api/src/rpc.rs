@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! RPC trait definition for `LoamSpine`.
 //!
 //! This module defines the `LoamSpineRpc` trait using tarpc macros

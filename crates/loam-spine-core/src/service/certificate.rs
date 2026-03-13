@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Certificate lifecycle operations.
 //!
 //! This module provides certificate management functionality:
@@ -57,8 +59,8 @@ impl LoamSpineService {
             authority: None,
         };
 
-        let certificate = Certificate::new(cert_id, cert_type.clone(), &owner, &mint_info);
         let cert_type_str = format!("{cert_type:?}");
+        let certificate = Certificate::new(cert_id, cert_type, &owner, &mint_info);
 
         let entry = spine.create_entry(EntryType::CertificateMint {
             cert_id,

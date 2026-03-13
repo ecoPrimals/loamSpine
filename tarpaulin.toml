@@ -20,7 +20,7 @@ exclude-files = [
 ]
 
 # Thresholds
-fail-under = 80.0
+fail-under = 90.0
 
 # Timing
 timeout = "120s"

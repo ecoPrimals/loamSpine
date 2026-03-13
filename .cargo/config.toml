@@ -1,0 +1,4 @@
+# Local override: global target-dir is on a noexec mount.
+# Build artifacts go to a path on the exec-capable root filesystem.
+[build]
+target-dir = "/path/to/.cargo-build/loamSpine/target"

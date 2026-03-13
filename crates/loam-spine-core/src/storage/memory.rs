@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! In-memory storage implementations for testing and development.
 //!
 //! These implementations are fast but transient — data is lost when the process exits.

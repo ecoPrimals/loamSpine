@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Core types for LoamSpine.
 //!
 //! This module defines the fundamental types used throughout LoamSpine:
@@ -164,12 +166,11 @@ pub struct Timestamp(pub u64);
 impl Timestamp {
     /// Create a timestamp for now.
     #[must_use]
-    #[allow(clippy::cast_possible_truncation)]
     pub fn now() -> Self {
-        // Truncation is acceptable: u128 nanoseconds won't overflow u64 until year 2554
+        // u128 nanoseconds won't overflow u64 until year 2554
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos() as u64)
+            .map(|d| d.as_nanos().try_into().unwrap_or(u64::MAX))
             .unwrap_or(0);
         Self(nanos)
     }

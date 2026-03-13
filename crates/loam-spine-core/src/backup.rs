@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Backup and restore functionality for LoamSpine.
 //!
 //! Provides export/import capabilities for disaster recovery
@@ -80,9 +82,7 @@ impl SpineBackup {
         }
 
         // Verify entry count matches spine height
-        // Note: On 32-bit systems, very large spines (>4B entries) would truncate
-        #[allow(clippy::cast_possible_truncation)]
-        let expected_entries = self.spine.height as usize;
+        let expected_entries = self.spine.height.try_into().unwrap_or(usize::MAX);
         if self.entries.len() != expected_entries {
             errors.push(BackupError::EntryCountMismatch {
                 expected: expected_entries,
@@ -180,9 +180,9 @@ impl SpineBackup {
         reader
             .read_exact(&mut len_bytes)
             .map_err(|e| LoamSpineError::Internal(format!("Failed to read length: {e}")))?;
-        // Note: On 32-bit systems, backups >4GB would fail
-        #[allow(clippy::cast_possible_truncation)]
-        let len = u64::from_le_bytes(len_bytes) as usize;
+        let len: usize = u64::from_le_bytes(len_bytes).try_into().map_err(|_| {
+            LoamSpineError::Internal("Backup size exceeds platform address space".into())
+        })?;
 
         // Read data
         let mut data = vec![0u8; len];

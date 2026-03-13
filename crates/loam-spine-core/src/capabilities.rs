@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Capability definitions for LoamSpine
 //!
 //! This module defines capabilities in the ecoPrimals ecosystem using

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Chaos and fault injection tests for `LoamSpine`.
 //!
 //! These tests verify system behavior under adverse conditions like

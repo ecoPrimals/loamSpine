@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! tarpc server implementation for `LoamSpine`.
 //!
 //! High-performance binary RPC for primal-to-primal communication.
@@ -455,5 +457,269 @@ mod tests {
 
         let result = LoamSpineRpc::commit_braid(server, ctx, braid_request).await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_tarpc_get_entry() {
+        let server = LoamSpineTarpcServer::default_server();
+        let ctx = tarpc::context::current();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Entry Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineRpc::create_spine(server.clone(), ctx, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let append_request = AppendEntryRequest {
+            spine_id: create_response.spine_id,
+            entry_type: EntryType::DataAnchor {
+                data_hash: [1u8; 32],
+                mime_type: Some("text/plain".to_string()),
+                size: 50,
+            },
+            committer: owner.clone(),
+            payload: None,
+        };
+        let append_response = LoamSpineRpc::append_entry(server.clone(), ctx, append_request)
+            .await
+            .unwrap_or_else(|_| panic!("append failed"));
+
+        let get_request = GetEntryRequest {
+            spine_id: create_response.spine_id,
+            entry_hash: append_response.entry_hash,
+        };
+        let result = LoamSpineRpc::get_entry(server.clone(), ctx, get_request).await;
+        assert!(result.is_ok());
+        let response = result.unwrap_or_else(|_| panic!("get_entry failed"));
+        assert!(response.found);
+
+        let get_nonexistent = GetEntryRequest {
+            spine_id: create_response.spine_id,
+            entry_hash: [99u8; 32],
+        };
+        let result = LoamSpineRpc::get_entry(server, ctx, get_nonexistent).await;
+        assert!(result.is_ok());
+        let response = result.unwrap_or_else(|_| panic!("get_entry failed"));
+        assert!(!response.found);
+    }
+
+    #[tokio::test]
+    async fn test_tarpc_get_tip() {
+        let server = LoamSpineTarpcServer::default_server();
+        let ctx = tarpc::context::current();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Tip Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineRpc::create_spine(server.clone(), ctx, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let get_tip_request = GetTipRequest {
+            spine_id: create_response.spine_id,
+        };
+        let result = LoamSpineRpc::get_tip(server, ctx, get_tip_request).await;
+        assert!(result.is_ok());
+        let response = result.unwrap_or_else(|_| panic!("get_tip failed"));
+        assert!(!response.tip_hash.iter().all(|&b| b == 0));
+    }
+
+    #[tokio::test]
+    async fn test_tarpc_transfer_certificate() {
+        let server = LoamSpineTarpcServer::default_server();
+        let ctx = tarpc::context::current();
+        let owner = Did::new("did:key:z6MkTest");
+        let new_owner = Did::new("did:key:z6MkNewOwner");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Transfer Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineRpc::create_spine(server.clone(), ctx, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let mint_request = MintCertificateRequest {
+            spine_id: create_response.spine_id,
+            cert_type: CertificateType::DigitalGame {
+                platform: "steam".to_string(),
+                game_id: "hl3".to_string(),
+                edition: None,
+            },
+            owner: owner.clone(),
+            metadata: None,
+        };
+        let mint_response = LoamSpineRpc::mint_certificate(server.clone(), ctx, mint_request)
+            .await
+            .unwrap_or_else(|_| panic!("mint failed"));
+
+        let transfer_request = TransferCertificateRequest {
+            certificate_id: mint_response.certificate_id,
+            from: owner,
+            to: new_owner,
+        };
+        let result = LoamSpineRpc::transfer_certificate(server, ctx, transfer_request).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_tarpc_loan_and_return_certificate() {
+        let server = LoamSpineTarpcServer::default_server();
+        let ctx = tarpc::context::current();
+        let owner = Did::new("did:key:z6MkTest");
+        let borrower = Did::new("did:key:z6MkBorrower");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Loan Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineRpc::create_spine(server.clone(), ctx, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let mint_request = MintCertificateRequest {
+            spine_id: create_response.spine_id,
+            cert_type: CertificateType::DigitalGame {
+                platform: "steam".to_string(),
+                game_id: "hl3".to_string(),
+                edition: None,
+            },
+            owner: owner.clone(),
+            metadata: None,
+        };
+        let mint_response = LoamSpineRpc::mint_certificate(server.clone(), ctx, mint_request)
+            .await
+            .unwrap_or_else(|_| panic!("mint failed"));
+
+        let loan_request = LoanCertificateRequest {
+            certificate_id: mint_response.certificate_id,
+            lender: owner.clone(),
+            borrower: borrower.clone(),
+            terms: loam_spine_core::LoanTerms::new().with_duration(3600),
+        };
+        let result = LoamSpineRpc::loan_certificate(server.clone(), ctx, loan_request).await;
+        assert!(result.is_ok());
+
+        let return_request = ReturnCertificateRequest {
+            certificate_id: mint_response.certificate_id,
+            returner: borrower,
+        };
+        let result = LoamSpineRpc::return_certificate(server, ctx, return_request).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_tarpc_anchor_slice() {
+        let server = LoamSpineTarpcServer::default_server();
+        let ctx = tarpc::context::current();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let waypoint_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Waypoint".to_string(),
+            config: None,
+        };
+        let waypoint_response = LoamSpineRpc::create_spine(server.clone(), ctx, waypoint_request)
+            .await
+            .unwrap_or_else(|_| panic!("create waypoint failed"));
+
+        let origin_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Origin".to_string(),
+            config: None,
+        };
+        let origin_response = LoamSpineRpc::create_spine(server.clone(), ctx, origin_request)
+            .await
+            .unwrap_or_else(|_| panic!("create origin failed"));
+
+        let anchor_request = AnchorSliceRequest {
+            waypoint_spine_id: waypoint_response.spine_id,
+            slice_id: uuid::Uuid::now_v7(),
+            origin_spine_id: origin_response.spine_id,
+            committer: owner,
+        };
+        let result = LoamSpineRpc::anchor_slice(server, ctx, anchor_request).await;
+        assert!(result.is_ok());
+        let response = result.unwrap_or_else(|_| panic!("anchor failed"));
+        assert!(!response.anchor_hash.iter().all(|&b| b == 0));
+    }
+
+    #[tokio::test]
+    async fn test_tarpc_checkout_slice_nonexistent() {
+        let server = LoamSpineTarpcServer::default_server();
+        let ctx = tarpc::context::current();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let waypoint_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Waypoint Checkout".to_string(),
+            config: None,
+        };
+        let waypoint_response = LoamSpineRpc::create_spine(server.clone(), ctx, waypoint_request)
+            .await
+            .unwrap_or_else(|_| panic!("create waypoint failed"));
+
+        let checkout_request = CheckoutSliceRequest {
+            waypoint_spine_id: waypoint_response.spine_id,
+            slice_id: uuid::Uuid::now_v7(),
+            requester: owner,
+        };
+        let result = LoamSpineRpc::checkout_slice(server, ctx, checkout_request).await;
+        assert!(result.is_err(), "checkout of nonexistent slice should fail");
+    }
+
+    #[tokio::test]
+    async fn test_tarpc_generate_and_verify_inclusion_proof() {
+        let server = LoamSpineTarpcServer::default_server();
+        let ctx = tarpc::context::current();
+        let owner = Did::new("did:key:z6MkTest");
+
+        let create_request = CreateSpineRequest {
+            owner: owner.clone(),
+            name: "Proof Test".to_string(),
+            config: None,
+        };
+        let create_response = LoamSpineRpc::create_spine(server.clone(), ctx, create_request)
+            .await
+            .unwrap_or_else(|_| panic!("create failed"));
+
+        let append_request = AppendEntryRequest {
+            spine_id: create_response.spine_id,
+            entry_type: EntryType::DataAnchor {
+                data_hash: [5u8; 32],
+                mime_type: Some("text/plain".to_string()),
+                size: 10,
+            },
+            committer: owner.clone(),
+            payload: None,
+        };
+        let append_response = LoamSpineRpc::append_entry(server.clone(), ctx, append_request)
+            .await
+            .unwrap_or_else(|_| panic!("append failed"));
+
+        let gen_request = GenerateInclusionProofRequest {
+            spine_id: create_response.spine_id,
+            entry_hash: append_response.entry_hash,
+        };
+        let gen_result = LoamSpineRpc::generate_inclusion_proof(server.clone(), ctx, gen_request)
+            .await
+            .unwrap_or_else(|_| panic!("generate proof failed"));
+
+        let verify_request = VerifyInclusionProofRequest {
+            proof: gen_result.proof,
+        };
+        let result = LoamSpineRpc::verify_inclusion_proof(server, ctx, verify_request).await;
+        assert!(result.is_ok());
+        let response = result.unwrap_or_else(|_| panic!("verify failed"));
+        assert!(response.valid);
     }
 }

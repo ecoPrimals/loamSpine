@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Entry types for LoamSpine.
 //!
 //! An Entry is a single, immutable record in a LoamSpine. Entries are

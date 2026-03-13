@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Proof types for LoamSpine.
 //!
 //! Proofs allow verification of entries and certificates without

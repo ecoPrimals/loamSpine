@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Songbird integration for universal service discovery.
 //!
 //! This module provides integration with Songbird (the universal adapter) for
@@ -301,10 +303,20 @@ impl DiscoveryClient {
     pub fn endpoint(&self) -> &str {
         &self.endpoint
     }
+
+    /// Create a client with the given endpoint for testing (bypasses health check).
+    #[cfg(test)]
+    #[must_use]
+    pub fn for_testing(endpoint: impl Into<String>) -> Self {
+        Self {
+            endpoint: endpoint.into(),
+            client: reqwest::Client::new(),
+        }
+    }
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 
@@ -710,6 +722,75 @@ mod tests {
             advertisement.metadata.get("unsafe_code"),
             Some(&"false".to_string())
         );
+    }
+
+    #[tokio::test]
+    async fn connect_fails_for_unreachable_endpoint() {
+        let result = DiscoveryClient::connect("http://127.0.0.1:1").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn connect_fails_for_nonexistent_host() {
+        let result = DiscoveryClient::connect("http://nonexistent.invalid.host:8082").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn advertise_loamspine_fails_for_unreachable_endpoint() {
+        let client = DiscoveryClient::for_testing("http://127.0.0.1:1");
+
+        let result = client
+            .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Advertisement") || err.to_string().contains("Network"));
+    }
+
+    #[tokio::test]
+    async fn deregister_fails_for_unreachable_endpoint() {
+        let client = DiscoveryClient::for_testing("http://127.0.0.1:1");
+
+        let result = client.deregister().await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Deregister") || err.to_string().contains("Network"));
+    }
+
+    #[tokio::test]
+    async fn heartbeat_fails_for_unreachable_endpoint() {
+        let client = DiscoveryClient::for_testing("http://127.0.0.1:1");
+
+        let result = client.heartbeat().await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Heartbeat") || err.to_string().contains("Network"));
+    }
+
+    #[tokio::test]
+    async fn discover_capability_fails_for_unreachable_endpoint() {
+        let client = DiscoveryClient::for_testing("http://127.0.0.1:1");
+
+        let result = client.discover_capability("signing").await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Discovery") || err.to_string().contains("Network"));
+    }
+
+    #[tokio::test]
+    async fn discover_all_fails_for_unreachable_endpoint() {
+        let client = DiscoveryClient::for_testing("http://127.0.0.1:1");
+
+        let result = client.discover_all().await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Discovery") || err.to_string().contains("Network"));
     }
 
     // Integration tests with real Songbird require Songbird to be running

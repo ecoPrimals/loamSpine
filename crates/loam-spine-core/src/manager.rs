@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Certificate and Spine management traits.
 //!
 //! These traits define the operations for managing spines and certificates.

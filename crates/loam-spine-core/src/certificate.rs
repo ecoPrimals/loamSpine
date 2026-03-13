@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Certificate types for LoamSpine.
 //!
 //! Certificates are memory-bound objects with verifiable ownership,

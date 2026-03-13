@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! # `LoamSpine` Pure Rust RPC API
 //!
 //! **Pure Rust, No Vendor Lock-in**

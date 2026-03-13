@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Core LoamSpine service implementation.
 //!
 //! This module provides the main `LoamSpineService` that implements all

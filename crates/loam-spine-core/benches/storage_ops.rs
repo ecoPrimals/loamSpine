@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Benchmarks for storage operations.
 //!
 //! Run with: `cargo bench --bench storage_ops`

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! API error types for `LoamSpine` RPC.
 
 use serde::{Deserialize, Serialize};

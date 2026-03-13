@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Infant discovery - start with zero knowledge, discover everything.
 //!
 //! This module implements the "infant discovery" philosophy: LoamSpine starts
@@ -350,8 +352,10 @@ impl Default for InfantDiscovery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn infant_discovery_creation() {
@@ -370,6 +374,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn environment_discovery_with_var() {
         std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
 
@@ -382,6 +387,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn environment_discovery_without_var() {
         std::env::remove_var("DISCOVERY_ENDPOINT");
 
@@ -426,19 +432,59 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn discovery_service_full_chain() {
-        // Set environment variable to ensure test is deterministic
         std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
-
-        // This will try to connect, which will fail in tests
-        // but we're testing that the discovery chain works
         let result = infant.discover_discovery_service().await;
 
-        // Will fail to connect, but that's expected in tests
-        // The important thing is the discovery chain executed
         assert!(result.is_err());
+
+        std::env::remove_var("DISCOVERY_ENDPOINT");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn discover_discovery_service_unreachable_endpoint_returns_error() {
+        std::env::set_var("DISCOVERY_ENDPOINT", "http://127.0.0.1:1");
+
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.discover_discovery_service().await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        let err_str = err.to_string();
+        assert!(
+            err_str.contains("unavailable")
+                || err_str.contains("Songbird")
+                || err_str.contains("127"),
+            "Expected connection error: {err_str}",
+        );
+
+        std::env::remove_var("DISCOVERY_ENDPOINT");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn discover_discovery_service_development_fallback_connection_fails() {
+        std::env::remove_var("DISCOVERY_ENDPOINT");
+
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.discover_discovery_service().await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn discover_discovery_service_empty_env_skipped() {
+        std::env::set_var("DISCOVERY_ENDPOINT", "");
+
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.try_environment_discovery();
+
+        assert!(result.is_none());
 
         std::env::remove_var("DISCOVERY_ENDPOINT");
     }

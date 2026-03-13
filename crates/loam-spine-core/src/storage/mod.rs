@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Storage traits and implementations for `LoamSpine`.
 //!
 //! This module defines the storage interfaces for persisting spines and entries.

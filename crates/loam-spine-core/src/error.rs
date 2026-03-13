@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! LoamSpine error types.
 
 use thiserror::Error;

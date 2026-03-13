@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Waypoint operations and proof generation.
 //!
 //! This module provides:

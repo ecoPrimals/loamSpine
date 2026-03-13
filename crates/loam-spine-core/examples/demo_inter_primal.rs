@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! # 🦴 Demo: Inter-Primal Integration
 //!
 //! Shows how `LoamSpine` integrates with other primals via capability discovery.

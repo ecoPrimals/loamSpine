@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Time markers - named references to moments (like Git branches/tags).
 
 use serde::{Deserialize, Serialize};

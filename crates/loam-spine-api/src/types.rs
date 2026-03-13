@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! RPC message types for `LoamSpine`.
 //!
 //! These types use native Rust serde serialization - no protobuf required.

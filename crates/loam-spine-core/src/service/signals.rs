@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Signal handling utilities for graceful shutdown.
 //!
 //! Provides helpers for handling SIGTERM, SIGINT, and other shutdown signals.
@@ -170,6 +172,7 @@ pub async fn run_with_signals(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
 
@@ -198,9 +201,55 @@ mod tests {
         assert!(handler.is_shutdown());
     }
 
+    #[test]
+    fn signal_handler_default_equals_new() {
+        let from_new = SignalHandler::new();
+        let from_default = SignalHandler::default();
+        assert_eq!(from_new.is_shutdown(), from_default.is_shutdown());
+    }
+
+    #[test]
+    fn signal_handler_state_transition_via_flag() {
+        let handler = SignalHandler::new();
+        let flag = handler.shutdown_flag();
+
+        assert!(!handler.is_shutdown());
+        flag.store(true, Ordering::Relaxed);
+        assert!(handler.is_shutdown());
+        flag.store(false, Ordering::Relaxed);
+        assert!(!handler.is_shutdown());
+    }
+
+    #[test]
+    fn signal_handler_multiple_flag_clones_share_state() {
+        let handler = SignalHandler::new();
+        let flag1 = handler.shutdown_flag();
+        let flag2 = handler.shutdown_flag();
+
+        flag1.store(true, Ordering::Relaxed);
+        assert!(flag2.load(Ordering::Relaxed));
+        assert!(handler.is_shutdown());
+    }
+
     #[tokio::test]
+    #[allow(deprecated)]
     async fn run_with_signals_requires_real_signal() {
-        // This test just verifies the function signature compiles
-        // Actual signal testing requires integration tests
+        // This test verifies the function compiles and can be invoked.
+        // Actual signal testing requires integration tests with real OS signals.
+        // We use a timeout to avoid blocking forever - the function will block
+        // on wait_for_shutdown until SIGTERM/SIGINT is received.
+        let service = crate::service::LoamSpineService::new();
+        let mut config = crate::config::LoamSpineConfig::default();
+        config.discovery.discovery_enabled = false;
+        config.discovery.songbird_enabled = false;
+
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            run_with_signals(service, config),
+        )
+        .await;
+
+        // Timeout is expected - we didn't send a signal
+        assert!(result.is_err());
     }
 }

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Spine types for LoamSpine.
 //!
 //! A Spine is a linear chain of entries with common ownership.

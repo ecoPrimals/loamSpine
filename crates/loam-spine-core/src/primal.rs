@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 //! Primal lifecycle and health traits.
 //!
 //! These traits define the standard interface for all ecoPrimals services.
