@@ -212,7 +212,7 @@ All levels complete + code review + contribution
 - Service health monitoring
 - Concurrent operations
 
-**Prerequisites**: `loamspine-service` binary
+**Prerequisites**: `loamspine` binary
 
 ---
 
@@ -298,7 +298,7 @@ All levels complete + code review + contribution
 - That's it!
 
 ### Recommended (Level 2)
-- `cargo build --release --bin loamspine-service`
+- `cargo build --release --bin loamspine`
 
 ### Optional (Level 3)
 - Songbird binary in `../bins/`

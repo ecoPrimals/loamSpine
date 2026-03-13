@@ -9,7 +9,7 @@ PROJECT_ROOT="$(cd "${SHOWCASE_ROOT}/.." && pwd)"
 BINS_DIR="${PROJECT_ROOT}/../../primalBins"
 
 # Configuration
-LOAM_BIN="${BINS_DIR}/loamspine-service"
+LOAM_BIN="${BINS_DIR}/loamspine"
 TARPC_PORT="${TARPC_PORT:-9001}"
 JSONRPC_PORT="${JSONRPC_PORT:-8080}"
 LOG_FILE="${SHOWCASE_ROOT}/logs/loamspine-service.log"
@@ -21,7 +21,7 @@ mkdir -p "${SHOWCASE_ROOT}/logs"
 # Check if binary exists
 if [ ! -f "${LOAM_BIN}" ]; then
     echo "❌ LoamSpine binary not found at: ${LOAM_BIN}"
-    echo "   Please ensure loamspine-service is built in primalBins/"
+    echo "   Please ensure loamspine is built in primalBins/"
     exit 1
 fi
 
@@ -44,7 +44,7 @@ echo "   tarpc port: ${TARPC_PORT}"
 echo "   JSON-RPC port: ${JSONRPC_PORT}"
 echo "   Logs: ${LOG_FILE}"
 
-"${LOAM_BIN}" \
+"${LOAM_BIN}" server \
   --tarpc-port "${TARPC_PORT}" \
   --jsonrpc-port "${JSONRPC_PORT}" \
   > "${LOG_FILE}" 2>&1 &

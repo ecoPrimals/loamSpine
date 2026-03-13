@@ -78,9 +78,13 @@ pub enum LoamSpineError {
     #[error("capability unavailable: {0}")]
     CapabilityUnavailable(String),
 
-    /// Network error (Songbird, HTTP, etc.).
+    /// Network error (service registry, HTTP, etc.).
     #[error("network error: {0}")]
     Network(String),
+
+    /// Invalid data (conversion, parsing, validation).
+    #[error("invalid data: {0}")]
+    InvalidData(String),
 }
 
 /// Result type for LoamSpine operations.

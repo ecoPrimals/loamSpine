@@ -90,8 +90,8 @@ else
     log_success "All demos passed! 🎉"
     log_info ""
     log_info "Next steps:"
-    log_info "  • Try Level 2: RPC API (cd ../02-rpc-api && ./RUN_ALL.sh)"
-    log_info "  • Try Level 3: Songbird Discovery (cd ../07-songbird-discovery && ./RUN_ALL.sh)"
-    log_info "  • Try Level 4: Inter-Primal (cd ../03-inter-primal && ./RUN_ALL.sh)"
+    log_info "  • Try Level 2: RPC API (cd ../02-rpc-api)"
+    log_info "  • Try Level 3: Songbird Discovery (cd ../03-songbird-discovery)"
+    log_info "  • Try Level 4: Inter-Primal (cd ../04-inter-primal)"
 fi
 

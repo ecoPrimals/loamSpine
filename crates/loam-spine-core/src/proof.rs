@@ -8,6 +8,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::entry::Entry;
+use crate::error::LoamSpineResult;
 use crate::types::{CertificateId, Did, EntryHash, Signature, SpineId, Timestamp};
 
 /// Proof that an entry exists in a spine.
@@ -37,10 +38,13 @@ pub struct InclusionProof {
 
 impl InclusionProof {
     /// Create a new inclusion proof.
-    #[must_use]
-    pub fn new(entry: Entry, spine_id: SpineId, tip: EntryHash) -> Self {
-        let entry_hash = entry.compute_hash();
-        Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if entry hash computation fails.
+    pub fn new(entry: Entry, spine_id: SpineId, tip: EntryHash) -> LoamSpineResult<Self> {
+        let entry_hash = entry.compute_hash()?;
+        Ok(Self {
             entry,
             entry_hash,
             path: Vec::new(),
@@ -48,7 +52,7 @@ impl InclusionProof {
             spine_id,
             timestamp: Timestamp::now(),
             owner_attestation: None,
-        }
+        })
     }
 
     /// Add path entries.
@@ -68,22 +72,25 @@ impl InclusionProof {
     /// Verify this proof.
     ///
     /// Checks that the hash chain from entry to tip is valid.
-    #[must_use]
-    pub fn verify(&self) -> bool {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if entry hash computation fails.
+    pub fn verify(&self) -> LoamSpineResult<bool> {
         // Verify entry hash matches
-        if self.entry.compute_hash() != self.entry_hash {
-            return false;
+        if self.entry.compute_hash()? != self.entry_hash {
+            return Ok(false);
         }
 
         // If path is empty and entry_hash == tip, it's valid (entry is tip)
         if self.path.is_empty() {
-            return self.entry_hash == self.tip;
+            return Ok(self.entry_hash == self.tip);
         }
 
         // Verify we reach the tip through the path
         // In a proper implementation, we'd verify each entry links correctly
         // For now, just verify the path ends at tip
-        self.path.last() == Some(&self.tip)
+        Ok(self.path.last() == Some(&self.tip))
     }
 
     /// Get the number of entries between this entry and tip.
@@ -147,26 +154,29 @@ impl CertificateProof {
     }
 
     /// Verify this proof.
-    #[must_use]
-    pub fn verify(&self) -> bool {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any sub-proof verification fails.
+    pub fn verify(&self) -> LoamSpineResult<bool> {
         // Verify mint proof
-        if !self.mint_proof.verify() {
-            return false;
+        if !self.mint_proof.verify()? {
+            return Ok(false);
         }
 
         // Verify all transfer proofs
         for proof in &self.transfer_proofs {
-            if !proof.verify() {
-                return false;
+            if !proof.verify()? {
+                return Ok(false);
             }
         }
 
         // Verify current proof
-        if !self.current_proof.verify() {
-            return false;
+        if !self.current_proof.verify()? {
+            return Ok(false);
         }
 
-        true
+        Ok(true)
     }
 }
 
@@ -217,21 +227,24 @@ impl ProvenanceProof {
     }
 
     /// Verify this proof.
-    #[must_use]
-    pub fn verify(&self) -> bool {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any sub-proof verification fails.
+    pub fn verify(&self) -> LoamSpineResult<bool> {
         // Verify anchor proof
-        if !self.anchor_proof.verify() {
-            return false;
+        if !self.anchor_proof.verify()? {
+            return Ok(false);
         }
 
         // Verify all custody entries
         for proof in &self.custody_chain {
-            if !proof.verify() {
-                return false;
+            if !proof.verify()? {
+                return Ok(false);
             }
         }
 
-        true
+        Ok(true)
     }
 }
 
@@ -296,6 +309,7 @@ pub enum VerificationError {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
     use crate::entry::SpineConfig;
@@ -310,9 +324,9 @@ mod tests {
     fn inclusion_proof_creation() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
 
-        let proof = InclusionProof::new(entry, spine_id, tip);
+        let proof = InclusionProof::new(entry, spine_id, tip).expect("new proof");
 
         assert_eq!(proof.spine_id, spine_id);
         assert_eq!(proof.tip, tip);
@@ -323,12 +337,12 @@ mod tests {
     fn inclusion_proof_verify_tip() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
 
-        let proof = InclusionProof::new(entry, spine_id, tip);
+        let proof = InclusionProof::new(entry, spine_id, tip).expect("new proof");
 
         // Entry is the tip, should verify
-        assert!(proof.verify());
+        assert!(proof.verify().expect("verify"));
     }
 
     #[test]
@@ -338,25 +352,29 @@ mod tests {
         let tip = [1u8; 32];
         let path = vec![[2u8; 32], [3u8; 32], tip];
 
-        let proof = InclusionProof::new(entry, spine_id, tip).with_path(path);
+        let proof = InclusionProof::new(entry, spine_id, tip)
+            .expect("new proof")
+            .with_path(path);
 
         assert_eq!(proof.depth(), 3);
         // Path ends at tip, so should verify (simplified check)
-        assert!(proof.verify());
+        assert!(proof.verify().expect("verify"));
     }
 
     #[test]
     fn inclusion_proof_with_attestation() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
 
         let signature = Signature::from_vec(vec![1, 2, 3, 4, 5]);
-        let proof = InclusionProof::new(entry, spine_id, tip).with_attestation(signature);
+        let proof = InclusionProof::new(entry, spine_id, tip)
+            .expect("new proof")
+            .with_attestation(signature);
 
         assert!(proof.owner_attestation.is_some());
         assert_eq!(proof.owner_attestation.as_ref().map(|s| s.0.len()), Some(5));
-        assert!(proof.verify());
+        assert!(proof.verify().expect("verify"));
     }
 
     #[test]
@@ -365,10 +383,10 @@ mod tests {
         let spine_id = SpineId::now_v7();
         let wrong_tip = [99u8; 32]; // Different from entry hash
 
-        let proof = InclusionProof::new(entry, spine_id, wrong_tip);
+        let proof = InclusionProof::new(entry, spine_id, wrong_tip).expect("new proof");
 
         // Empty path, but entry_hash != tip, should fail
-        assert!(!proof.verify());
+        assert!(!proof.verify().expect("verify"));
     }
 
     #[test]
@@ -379,27 +397,29 @@ mod tests {
         // Path doesn't end at tip
         let bad_path = vec![[2u8; 32], [3u8; 32], [99u8; 32]];
 
-        let proof = InclusionProof::new(entry, spine_id, tip).with_path(bad_path);
+        let proof = InclusionProof::new(entry, spine_id, tip)
+            .expect("new proof")
+            .with_path(bad_path);
 
         // Path doesn't end at tip, should fail
-        assert!(!proof.verify());
+        assert!(!proof.verify().expect("verify"));
     }
 
     #[test]
     fn certificate_proof_creation() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
 
-        let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip);
-        let current_proof = InclusionProof::new(entry, spine_id, tip);
+        let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
+        let current_proof = InclusionProof::new(entry, spine_id, tip).expect("new proof");
 
         let cert_id = CertificateId::now_v7();
         let owner = Did::new("did:key:z6MkOwner");
 
         let proof = CertificateProof::new(cert_id, owner, mint_proof, current_proof);
 
-        assert!(proof.verify());
+        assert!(proof.verify().expect("verify"));
         assert!(proof.transfer_proofs.is_empty());
     }
 
@@ -407,12 +427,12 @@ mod tests {
     fn certificate_proof_with_transfers() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
 
-        let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip);
-        let current_proof = InclusionProof::new(entry.clone(), spine_id, tip);
-        let transfer1 = InclusionProof::new(entry.clone(), spine_id, tip);
-        let transfer2 = InclusionProof::new(entry, spine_id, tip);
+        let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
+        let current_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
+        let transfer1 = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
+        let transfer2 = InclusionProof::new(entry, spine_id, tip).expect("new proof");
 
         let cert_id = CertificateId::now_v7();
         let owner = Did::new("did:key:z6MkOwner");
@@ -420,7 +440,7 @@ mod tests {
         let proof = CertificateProof::new(cert_id, owner, mint_proof, current_proof)
             .with_transfers(vec![transfer1, transfer2]);
 
-        assert!(proof.verify());
+        assert!(proof.verify().expect("verify"));
         assert_eq!(proof.transfer_proofs.len(), 2);
         assert_eq!(proof.history_summary.transfer_count, 2);
     }
@@ -429,32 +449,33 @@ mod tests {
     fn certificate_proof_fails_with_invalid_mint() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
         let wrong_tip = [99u8; 32];
 
         // Invalid mint proof (wrong tip)
-        let mint_proof = InclusionProof::new(entry.clone(), spine_id, wrong_tip);
-        let current_proof = InclusionProof::new(entry, spine_id, tip);
+        let mint_proof =
+            InclusionProof::new(entry.clone(), spine_id, wrong_tip).expect("new proof");
+        let current_proof = InclusionProof::new(entry, spine_id, tip).expect("new proof");
 
         let cert_id = CertificateId::now_v7();
         let owner = Did::new("did:key:z6MkOwner");
 
         let proof = CertificateProof::new(cert_id, owner, mint_proof, current_proof);
 
-        assert!(!proof.verify());
+        assert!(!proof.verify().expect("verify"));
     }
 
     #[test]
     fn certificate_proof_fails_with_invalid_transfer() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
         let wrong_tip = [99u8; 32];
 
-        let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip);
-        let current_proof = InclusionProof::new(entry.clone(), spine_id, tip);
+        let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
+        let current_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
         // Invalid transfer proof
-        let bad_transfer = InclusionProof::new(entry, spine_id, wrong_tip);
+        let bad_transfer = InclusionProof::new(entry, spine_id, wrong_tip).expect("new proof");
 
         let cert_id = CertificateId::now_v7();
         let owner = Did::new("did:key:z6MkOwner");
@@ -462,59 +483,59 @@ mod tests {
         let proof = CertificateProof::new(cert_id, owner, mint_proof, current_proof)
             .with_transfers(vec![bad_transfer]);
 
-        assert!(!proof.verify());
+        assert!(!proof.verify().expect("verify"));
     }
 
     #[test]
     fn certificate_proof_fails_with_invalid_current() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
         let wrong_tip = [99u8; 32];
 
-        let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip);
+        let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
         // Invalid current proof
-        let current_proof = InclusionProof::new(entry, spine_id, wrong_tip);
+        let current_proof = InclusionProof::new(entry, spine_id, wrong_tip).expect("new proof");
 
         let cert_id = CertificateId::now_v7();
         let owner = Did::new("did:key:z6MkOwner");
 
         let proof = CertificateProof::new(cert_id, owner, mint_proof, current_proof);
 
-        assert!(!proof.verify());
+        assert!(!proof.verify().expect("verify"));
     }
 
     #[test]
     fn provenance_proof_creation() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
         let data_hash = [42u8; 32];
 
-        let anchor_proof = InclusionProof::new(entry, spine_id, tip);
+        let anchor_proof = InclusionProof::new(entry, spine_id, tip).expect("new proof");
         let proof = ProvenanceProof::new(data_hash, anchor_proof);
 
         assert_eq!(proof.data_hash, data_hash);
         assert!(proof.custody_chain.is_empty());
-        assert!(proof.verify());
+        assert!(proof.verify().expect("verify"));
     }
 
     #[test]
     fn provenance_proof_with_custody() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
         let data_hash = [42u8; 32];
 
-        let anchor_proof = InclusionProof::new(entry.clone(), spine_id, tip);
-        let custody1 = InclusionProof::new(entry.clone(), spine_id, tip);
-        let custody2 = InclusionProof::new(entry, spine_id, tip);
+        let anchor_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
+        let custody1 = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
+        let custody2 = InclusionProof::new(entry, spine_id, tip).expect("new proof");
 
         let proof =
             ProvenanceProof::new(data_hash, anchor_proof).with_custody(vec![custody1, custody2]);
 
         assert_eq!(proof.custody_chain.len(), 2);
-        assert!(proof.verify());
+        assert!(proof.verify().expect("verify"));
     }
 
     #[test]
@@ -525,27 +546,27 @@ mod tests {
         let data_hash = [42u8; 32];
 
         // Invalid anchor proof
-        let anchor_proof = InclusionProof::new(entry, spine_id, wrong_tip);
+        let anchor_proof = InclusionProof::new(entry, spine_id, wrong_tip).expect("new proof");
         let proof = ProvenanceProof::new(data_hash, anchor_proof);
 
-        assert!(!proof.verify());
+        assert!(!proof.verify().expect("verify"));
     }
 
     #[test]
     fn provenance_proof_fails_with_invalid_custody() {
         let entry = create_test_entry();
         let spine_id = SpineId::now_v7();
-        let tip = entry.compute_hash();
+        let tip = entry.compute_hash().expect("compute_hash");
         let wrong_tip = [99u8; 32];
         let data_hash = [42u8; 32];
 
-        let anchor_proof = InclusionProof::new(entry.clone(), spine_id, tip);
+        let anchor_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("new proof");
         // Invalid custody proof
-        let bad_custody = InclusionProof::new(entry, spine_id, wrong_tip);
+        let bad_custody = InclusionProof::new(entry, spine_id, wrong_tip).expect("new proof");
 
         let proof = ProvenanceProof::new(data_hash, anchor_proof).with_custody(vec![bad_custody]);
 
-        assert!(!proof.verify());
+        assert!(!proof.verify().expect("verify"));
     }
 
     #[test]

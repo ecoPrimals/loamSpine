@@ -75,7 +75,7 @@ impl LoamSpineRpcService {
             .map_err(ApiError::from)?
             .ok_or_else(|| ApiError::SpineNotFound(format!("{:?}", request.spine_id)))?;
 
-        let tip_hash = entry.hash();
+        let tip_hash = entry.hash().map_err(ApiError::from)?;
 
         Ok(GetTipResponse {
             tip_hash,

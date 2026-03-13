@@ -457,7 +457,7 @@ mod tests {
         let err_str = err.to_string();
         assert!(
             err_str.contains("unavailable")
-                || err_str.contains("Songbird")
+                || err_str.contains("registry")
                 || err_str.contains("127"),
             "Expected connection error: {err_str}",
         );

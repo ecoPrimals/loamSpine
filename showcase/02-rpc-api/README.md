@@ -1,14 +1,14 @@
 # 🦴 Phase 2: RPC API & Service Integration
 
 **Status**: Complete ✅  
-**Real Service**: YES (using loamspine-service binary)  
+**Real Service**: YES (using loamspine binary)  
 **Mocks**: ZERO
 
 ---
 
 ## Overview
 
-This phase demonstrates **LoamSpine as a production service** using the real `loamspine-service` binary. All demos use actual running services, not mocks or examples.
+This phase demonstrates **LoamSpine as a production service** using the real `loamspine` binary. All demos use actual running services, not mocks or examples.
 
 **Key Features**:
 - **Dual Protocol**: tarpc (binary) + JSON-RPC 2.0 (text)
@@ -24,7 +24,7 @@ This phase demonstrates **LoamSpine as a production service** using the real `lo
 **Real Service JSON-RPC Integration**
 
 Demonstrates:
-- Starting real `loamspine-service` binary
+- Starting real `loamspine` binary
 - JSON-RPC 2.0 protocol (standard, language-agnostic)
 - Creating spines via HTTP POST
 - Appending entries
@@ -270,7 +270,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/loamspine-service --jsonrpc-port 8080
+ExecStart=/usr/local/bin/loamspine server --jsonrpc-port 8080
 Restart=always
 RestartSec=10
 
@@ -379,7 +379,7 @@ cd 06-service-lifecycle && ./demo.sh
 - **Phase 1**: Local primal capabilities
 - **Phase 3**: Real inter-primal integration
 - **API Docs**: `crates/loam-spine-api/README.md`
-- **Service Binary**: `ecoPrimals/primalBins/loamspine-service`
+- **Service Binary**: `ecoPrimals/primalBins/loamspine`
 
 ---
 

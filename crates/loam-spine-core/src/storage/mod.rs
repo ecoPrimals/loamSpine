@@ -122,7 +122,8 @@ pub trait EntryStorage: Send + Sync {
 
 /// Storage backend type.
 ///
-/// Used to select between in-memory (testing) and persistent (production) storage.
+/// Used to select between available storage backends. All backends implement
+/// the same `SpineStorage` + `EntryStorage` traits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StorageBackend {
     /// In-memory storage (for testing and development).
@@ -133,6 +134,50 @@ pub enum StorageBackend {
 
     /// Sled-backed persistent storage (for production).
     ///
-    /// Slower but persistent — data survives process restarts.
+    /// Embedded, pure-Rust database. Good default for single-node deployments.
     Sled,
+
+    /// SQLite-backed persistent storage (planned).
+    ///
+    /// Widely supported, file-based relational storage.
+    /// Note: Requires the `sqlite` feature to be enabled.
+    Sqlite,
+
+    /// PostgreSQL-backed persistent storage (planned).
+    ///
+    /// Production-grade relational storage for multi-node deployments.
+    /// Note: Requires the `postgres` feature to be enabled.
+    Postgres,
+
+    /// RocksDB-backed persistent storage (planned).
+    ///
+    /// High-performance LSM-tree storage.
+    /// Note: Requires the `rocksdb` feature to be enabled.
+    Rocksdb,
+}
+
+impl StorageBackend {
+    /// Check if this backend is currently implemented and available.
+    #[must_use]
+    pub const fn is_available(&self) -> bool {
+        matches!(self, Self::InMemory | Self::Sled)
+    }
+
+    /// Get a human-readable name for this backend.
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::InMemory => "in-memory",
+            Self::Sled => "sled",
+            Self::Sqlite => "sqlite",
+            Self::Postgres => "postgres",
+            Self::Rocksdb => "rocksdb",
+        }
+    }
+}
+
+impl std::fmt::Display for StorageBackend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name())
+    }
 }

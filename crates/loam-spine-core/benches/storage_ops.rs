@@ -4,7 +4,6 @@
 //!
 //! Run with: `cargo bench --bench storage_ops`
 
-// Benchmarks allow patterns that would be problematic in production
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 #![allow(clippy::panic)]
@@ -101,7 +100,7 @@ fn bench_sled_entry_save(c: &mut Criterion) {
                 },
             )
             .with_spine_id(spine.id);
-            entry.hash();
+            let _ = entry.hash();
 
             rt.block_on(async {
                 black_box(
@@ -135,7 +134,7 @@ fn bench_sled_entry_load(c: &mut Criterion) {
         },
     )
     .with_spine_id(spine.id);
-    let entry_hash = entry.hash();
+    let entry_hash = entry.hash().expect("compute hash");
 
     rt.block_on(async {
         storage
@@ -187,7 +186,7 @@ fn bench_sled_bulk_entry_save(c: &mut Criterion) {
                         },
                     )
                     .with_spine_id(spine.id);
-                    entry.hash();
+                    let _ = entry.hash();
                     storage
                         .entries
                         .save_entry(&entry)

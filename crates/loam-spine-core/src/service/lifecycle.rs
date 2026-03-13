@@ -3,9 +3,9 @@
 //! Service lifecycle management.
 //!
 //! This module handles LoamSpine service lifecycle operations:
-//! - Startup (auto-advertisement to Songbird)
+//! - Startup (auto-advertisement to service registry)
 //! - Runtime (background heartbeat)
-//! - Shutdown (deregistration from Songbird)
+//! - Shutdown (deregistration from service registry)
 
 use crate::config::LoamSpineConfig;
 use crate::error::LoamSpineResult;
@@ -108,6 +108,15 @@ impl LifecycleManager {
                         }
 
                         tracing::info!("✅ LoamSpine service lifecycle started");
+                        match crate::neural_api::register_with_neural_api().await {
+                            Ok(true) => tracing::info!("✅ Registered with NeuralAPI"),
+                            Ok(false) => {
+                                tracing::debug!("NeuralAPI not available, running standalone");
+                            }
+                            Err(err) => tracing::warn!(
+                                "⚠️  NeuralAPI registration failed (non-fatal): {err}"
+                            ),
+                        }
                         return Ok(());
                     }
                     Err(e) => {
@@ -117,6 +126,15 @@ impl LifecycleManager {
                         tracing::info!(
                             "✅ LoamSpine service lifecycle started (without discovery)"
                         );
+                        match crate::neural_api::register_with_neural_api().await {
+                            Ok(true) => tracing::info!("✅ Registered with NeuralAPI"),
+                            Ok(false) => {
+                                tracing::debug!("NeuralAPI not available, running standalone");
+                            }
+                            Err(err) => tracing::warn!(
+                                "⚠️  NeuralAPI registration failed (non-fatal): {err}"
+                            ),
+                        }
                         return Ok(());
                     }
                 }
@@ -153,6 +171,14 @@ impl LifecycleManager {
         }
 
         tracing::info!("✅ LoamSpine service lifecycle started");
+
+        // Register with NeuralAPI (biomeOS orchestration) — non-fatal
+        match crate::neural_api::register_with_neural_api().await {
+            Ok(true) => tracing::info!("✅ Registered with NeuralAPI"),
+            Ok(false) => tracing::debug!("NeuralAPI not available, running standalone"),
+            Err(err) => tracing::warn!("⚠️  NeuralAPI registration failed (non-fatal): {err}"),
+        }
+
         Ok(())
     }
 
@@ -168,7 +194,7 @@ impl LifecycleManager {
         let jsonrpc_endpoint = &self.config.discovery.jsonrpc_endpoint;
 
         client
-            .advertise_loamspine(tarpc_endpoint, jsonrpc_endpoint)
+            .advertise_self(tarpc_endpoint, jsonrpc_endpoint)
             .await?;
 
         tracing::info!("✅ Capabilities advertised to discovery service");
@@ -210,7 +236,7 @@ impl LifecycleManager {
                             consecutive_failures = 0;
                             is_degraded = false;
                         } else {
-                            tracing::debug!("❤️  Heartbeat sent to Songbird");
+                            tracing::debug!("❤️  Heartbeat sent to service registry");
                         }
                     }
                     Err(e) => {
@@ -232,10 +258,10 @@ impl LifecycleManager {
                         // Check if we've exceeded total failure limit
                         if consecutive_failures >= retry_config.max_failures_total {
                             tracing::error!(
-                                "❌ Heartbeat failed {consecutive_failures} times. Giving up. Service may be deregistered by Songbird."
+                                "❌ Heartbeat failed {consecutive_failures} times. Giving up. Service may be deregistered by registry."
                             );
                             // Continue loop but stop trying to send heartbeats
-                            // Service will be auto-deregistered by Songbird after timeout
+                            // Service will be auto-deregistered by registry after timeout
                             break;
                         }
                     }
@@ -290,7 +316,7 @@ impl LifecycleManager {
     /// This performs:
     /// 1. Signal shutdown to background tasks
     /// 2. Wait for heartbeat task to complete
-    /// 3. Deregister from Songbird (if connected)
+    /// 3. Deregister from service registry (if connected)
     ///
     /// # Errors
     ///
@@ -305,6 +331,11 @@ impl LifecycleManager {
         if let Some(task) = self.heartbeat_task.take() {
             tracing::debug!("Waiting for heartbeat task to complete...");
             let _ = task.await; // Ignore errors on shutdown
+        }
+
+        // Deregister from NeuralAPI
+        if let Err(e) = crate::neural_api::deregister_from_neural_api().await {
+            tracing::warn!("⚠️  NeuralAPI deregistration failed (non-fatal): {e}");
         }
 
         // Deregister from discovery service if connected
@@ -364,11 +395,10 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
-    async fn lifecycle_start_without_songbird() {
+    async fn lifecycle_start_without_discovery() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
-        config.discovery.songbird_enabled = false;
+        config.discovery.discovery_enabled = false;
 
         let mut manager = LifecycleManager::new(service, config);
         let result = manager.start().await;
@@ -377,11 +407,10 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
     async fn lifecycle_stop() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
-        config.discovery.songbird_enabled = false;
+        config.discovery.discovery_enabled = false;
 
         let mut manager = LifecycleManager::new(service, config);
         manager.start().await.expect("Failed to start");
@@ -402,18 +431,16 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
-    async fn lifecycle_start_with_songbird_unavailable() {
+    async fn lifecycle_start_with_registry_unavailable() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
-        config.discovery.songbird_enabled = true;
-        config.discovery.songbird_endpoint = Some("http://localhost:9999".to_string());
+        config.discovery.discovery_enabled = true;
+        config.discovery.discovery_endpoint = Some("http://localhost:9999".to_string());
         config.discovery.auto_advertise = true;
 
         let mut manager = LifecycleManager::new(service, config);
         let result = manager.start().await;
 
-        // Should succeed even if discovery service is unavailable (graceful degradation)
         assert!(result.is_ok());
         assert!(manager.discovery_client.is_none());
     }
@@ -439,11 +466,10 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
     async fn lifecycle_multiple_stops() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
-        config.discovery.songbird_enabled = false;
+        config.discovery.discovery_enabled = false;
 
         let mut manager = LifecycleManager::new(service, config);
         manager.start().await.expect("Failed to start");
@@ -456,12 +482,11 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
-    async fn lifecycle_start_with_songbird_no_endpoint() {
+    async fn lifecycle_start_with_no_endpoint() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
-        config.discovery.songbird_enabled = true;
-        config.discovery.songbird_endpoint = None;
+        config.discovery.discovery_enabled = true;
+        config.discovery.discovery_endpoint = None;
 
         let mut manager = LifecycleManager::new(service, config);
         let result = manager.start().await;
@@ -471,11 +496,10 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
     async fn lifecycle_start_with_heartbeat_disabled() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
-        config.discovery.songbird_enabled = false;
+        config.discovery.discovery_enabled = false;
         config.discovery.heartbeat_interval_seconds = 0;
 
         let mut manager = LifecycleManager::new(service, config);
@@ -495,11 +519,10 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
     async fn shutdown_signal_after_stop() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
-        config.discovery.songbird_enabled = false;
+        config.discovery.discovery_enabled = false;
 
         let mut manager = LifecycleManager::new(service, config);
         manager.start().await.expect("Failed to start");
@@ -594,7 +617,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
     async fn lifecycle_start_discovery_enabled_endpoint_provided_unreachable_no_advertise() {
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
@@ -608,20 +630,17 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
     async fn lifecycle_heartbeat_task_starts_with_connected_client() {
-        // Use unreachable endpoint - connect fails, so we never get heartbeat task.
-        // This test documents the behavior: when discovery connects, heartbeat starts.
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
-        config.discovery.songbird_enabled = true;
-        config.discovery.songbird_endpoint = Some("http://127.0.0.1:1".to_string());
+        config.discovery.discovery_enabled = true;
+        config.discovery.discovery_endpoint = Some("http://127.0.0.1:1".to_string());
         config.discovery.heartbeat_interval_seconds = 60;
 
         let mut manager = LifecycleManager::new(service, config);
         let result = manager.start().await;
 
         assert!(result.is_ok());
-        assert!(manager.heartbeat_task.is_none()); // No client = no heartbeat task
+        assert!(manager.heartbeat_task.is_none());
     }
 }

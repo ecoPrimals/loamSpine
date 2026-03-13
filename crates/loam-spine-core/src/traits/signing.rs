@@ -76,7 +76,8 @@ impl SignatureVerification {
 /// let registry = CapabilityRegistry::new();
 /// if let Some(signer) = registry.get_signer().await {
 ///     // Use it without knowing which primal provides it
-///     let signature = signer.sign_boxed(b"data".to_vec()).await?;
+///     let data = loam_spine_core::types::ByteBuffer::from_static(b"data");
+///     let signature = signer.sign_boxed(data).await?;
 /// }
 /// # Ok(())
 /// # }

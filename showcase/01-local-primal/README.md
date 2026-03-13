@@ -150,7 +150,7 @@ Once you've seen LoamSpine's local capabilities:
 
 **Phase 2**: `../02-rpc-api/` - See the Pure Rust RPC API
 
-**Phase 3**: `../03-inter-primal/` - Complete ecosystem integration
+**Phase 3**: `../04-inter-primal/` - Complete ecosystem integration
 
 ---
 

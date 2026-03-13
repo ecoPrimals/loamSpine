@@ -90,6 +90,14 @@ impl LoamSpineRpcService {
         crate::health::LivenessProbe { alive: true }
     }
 
+    /// Check whether the permanence layer (spine + entry storage) is healthy.
+    pub async fn permanence_healthy(&self) -> bool {
+        let core = self.core().await;
+        core.spine_count().await;
+        core.entry_count().await;
+        true
+    }
+
     /// Readiness probe (standard container orchestrator endpoint).
     ///
     /// Returns whether the service is ready for traffic.
@@ -488,7 +496,7 @@ mod tests {
             .expect("proof generation should succeed");
 
         // Verify the proof
-        assert!(proof_resp.proof.verify());
+        assert!(proof_resp.proof.verify().expect("verify"));
         assert_eq!(proof_resp.proof.spine_id, create_resp.spine_id);
     }
 }

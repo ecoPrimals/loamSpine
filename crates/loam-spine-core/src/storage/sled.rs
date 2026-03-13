@@ -256,7 +256,7 @@ impl EntryStorage for SledEntryStorage {
     }
 
     async fn save_entry(&self, entry: &Entry) -> LoamSpineResult<EntryHash> {
-        let hash = entry.compute_hash();
+        let hash = entry.compute_hash()?;
         let bytes = bincode::serialize(entry)
             .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
 

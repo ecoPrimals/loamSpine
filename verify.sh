@@ -31,6 +31,15 @@ cargo doc --workspace --no-deps --quiet 2>&1
 echo "  Docs PASSED"
 echo ""
 
+echo "Dependency audit..."
+if command -v cargo-deny &>/dev/null; then
+    cargo deny check licenses bans sources --quiet 2>&1
+    echo "  Dependency audit PASSED (licenses, bans, sources)"
+else
+    echo "  (cargo-deny not installed, skipping)"
+fi
+echo ""
+
 echo "Coverage..."
 if command -v cargo-llvm-cov &>/dev/null; then
     COVERAGE=$(cargo llvm-cov --workspace --summary-only 2>&1 | grep "TOTAL" | awk '{for(i=NF;i>0;i--) if ($i ~ /%/) {print $i; break}}')

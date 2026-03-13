@@ -1,15 +1,31 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Songbird integration for universal service discovery.
+//! Service registry client for universal service discovery.
 //!
-//! This module provides integration with Songbird (the universal adapter) for
-//! discovering other primals' capabilities at runtime without hardcoding.
+//! This module provides integration with any RFC 2782 compliant service registry
+//! (the "universal adapter") for discovering other primals' capabilities at runtime
+//! without hardcoding.
+//!
+//! ## Transport Layer
+//!
+//! `DiscoveryClient` is transport-agnostic. The backing HTTP implementation is
+//! selected at construction time via [`DiscoveryTransport`]:
+//!
+//! | Constructor | Transport | Feature | ecoBin? |
+//! |---|---|---|---|
+//! | [`connect`] | Tower Atomic (NeuralAPI → Songbird) | `tower-atomic` | **Yes** |
+//! | `connect_http` | reqwest (rustls → ring) | `discovery-http` | No |
+//! | [`connect_with_transport`] | Caller-provided | — | Depends |
+//!
+//! [`connect`]: DiscoveryClient::connect
+//! [`connect_with_transport`]: DiscoveryClient::connect_with_transport
+//! [`DiscoveryTransport`]: crate::transport::DiscoveryTransport
 //!
 //! ## Philosophy
 //!
 //! - **Zero hardcoding**: No primal names in code
 //! - **Runtime discovery**: Find capabilities when needed
-//! - **O(n) complexity**: Each primal connects to Songbird, not to each other
+//! - **O(n) complexity**: Each primal connects to a registry, not to each other
 //! - **Infant learning**: Start with zero knowledge, discover everything
 //!
 //! ## Example
@@ -18,8 +34,8 @@
 //! use loam_spine_core::discovery_client::DiscoveryClient;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Connect to Songbird
-//! let client = DiscoveryClient::connect("http://localhost:8082").await?;
+//! // Connect to the service registry (auto-selects best transport)
+//! let client = DiscoveryClient::connect("http://registry.local:8082").await?;
 //!
 //! // Discover signing capability
 //! let services = client.discover_capability("signing").await?;
@@ -28,25 +44,31 @@
 //! }
 //!
 //! // Advertise our capabilities
-//! client.advertise_loamspine("http://localhost:9001", "http://localhost:8080").await?;
+//! client.advertise_self("http://localhost:9001", "http://localhost:8080").await?;
 //! # Ok(())
 //! # }
 //! ```
 
-use crate::error::{LoamSpineError, LoamSpineResult};
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::sync::Arc;
 
-/// Songbird discovery client.
+use serde::{Deserialize, Serialize};
+
+use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::transport::DiscoveryTransport;
+
+/// Service registry discovery client.
 ///
-/// This client connects to a Songbird instance to discover other primals'
-/// capabilities and advertise LoamSpine's own capabilities.
+/// This client connects to any RFC 2782 compliant service registry to discover
+/// other primals' capabilities and advertise LoamSpine's own capabilities.
+///
+/// Compatible registries include any system exposing `/health`, `/discover`,
+/// `/register`, `/heartbeat`, and `/deregister` HTTP endpoints.
 #[derive(Clone, Debug)]
 pub struct DiscoveryClient {
-    /// Songbird endpoint.
+    /// Registry endpoint.
     endpoint: String,
-    /// HTTP client.
-    client: reqwest::Client,
+    /// Pluggable HTTP transport.
+    transport: Arc<dyn DiscoveryTransport>,
 }
 
 /// A discovered service.
@@ -86,27 +108,105 @@ struct ServiceEndpoint {
 }
 
 impl DiscoveryClient {
-    /// Connect to a Songbird instance.
+    /// Connect to a service registry using the best available transport.
+    ///
+    /// Transport selection order:
+    /// 1. **Tower Atomic** (feature `tower-atomic`) — ecoBin compliant, zero C deps
+    /// 2. **reqwest HTTP** (feature `discovery-http`) — development fallback
+    ///
+    /// Verifies the registry is reachable via its `/health` endpoint.
     ///
     /// # Errors
     ///
-    /// Returns an error if the connection fails or Songbird is unavailable.
+    /// Returns an error if no transport is available or the registry is unreachable.
+    #[allow(clippy::unused_async)] // async is required when transport features are enabled
     pub async fn connect(endpoint: impl Into<String>) -> LoamSpineResult<Self> {
         let endpoint = endpoint.into();
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .map_err(|e| LoamSpineError::Network(format!("Failed to create HTTP client: {e}")))?;
 
-        // Verify Songbird is reachable
-        let health_url = format!("{endpoint}/health");
-        client.get(&health_url).send().await.map_err(|e| {
+        // Try Tower Atomic first (ecoBin)
+        #[cfg(feature = "tower-atomic")]
+        {
+            match crate::transport::NeuralApiTransport::new(None) {
+                Ok(transport) => {
+                    let client = Self {
+                        endpoint: endpoint.clone(),
+                        transport: Arc::new(transport),
+                    };
+                    client.health_check().await?;
+                    return Ok(client);
+                }
+                Err(e) => {
+                    tracing::debug!("Tower Atomic transport unavailable, falling back: {e}");
+                }
+            }
+        }
+
+        // Fall back to reqwest HTTP
+        #[cfg(feature = "discovery-http")]
+        {
+            let transport = crate::transport::HttpTransport::new()?;
+            let client = Self {
+                endpoint: endpoint.clone(),
+                transport: Arc::new(transport),
+            };
+            client.health_check().await?;
+            return Ok(client);
+        }
+
+        #[allow(unreachable_code)]
+        Err(LoamSpineError::Network(format!(
+            "No discovery transport available for {endpoint}. \
+             Enable feature 'tower-atomic' (recommended) or 'discovery-http'."
+        )))
+    }
+
+    /// Connect using the reqwest HTTP transport explicitly.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the registry is unreachable.
+    #[cfg(feature = "discovery-http")]
+    pub async fn connect_http(endpoint: impl Into<String>) -> LoamSpineResult<Self> {
+        let endpoint = endpoint.into();
+        let transport = crate::transport::HttpTransport::new()?;
+        let client = Self {
+            endpoint: endpoint.clone(),
+            transport: Arc::new(transport),
+        };
+        client.health_check().await?;
+        Ok(client)
+    }
+
+    /// Connect with a caller-provided transport.
+    ///
+    /// Verifies the registry is reachable via its `/health` endpoint.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the registry is unreachable.
+    pub async fn connect_with_transport(
+        endpoint: impl Into<String>,
+        transport: Arc<dyn DiscoveryTransport>,
+    ) -> LoamSpineResult<Self> {
+        let endpoint = endpoint.into();
+        let client = Self {
+            endpoint: endpoint.clone(),
+            transport,
+        };
+        client.health_check().await?;
+        Ok(client)
+    }
+
+    /// Verify the registry is reachable.
+    async fn health_check(&self) -> LoamSpineResult<()> {
+        let health_url = format!("{}/health", self.endpoint);
+        self.transport.get(&health_url).await.map_err(|e| {
             LoamSpineError::CapabilityUnavailable(format!(
-                "Songbird unavailable at {endpoint}: {e}"
+                "Service registry unavailable at {}: {e}",
+                self.endpoint
             ))
         })?;
-
-        Ok(Self { endpoint, client })
+        Ok(())
     }
 
     /// Discover services by capability.
@@ -120,25 +220,19 @@ impl DiscoveryClient {
     ) -> LoamSpineResult<Vec<DiscoveredService>> {
         let url = format!("{}/discover", self.endpoint);
         let response = self
-            .client
-            .get(&url)
-            .query(&[("capability", capability)])
-            .send()
+            .transport
+            .get_with_query(&url, &[("capability", capability)])
             .await
             .map_err(|e| LoamSpineError::Network(format!("Discovery request failed: {e}")))?;
 
-        if !response.status().is_success() {
+        if !response.is_success() {
             return Err(LoamSpineError::Network(format!(
                 "Discovery failed with status: {}",
-                response.status()
+                response.status
             )));
         }
 
-        let services: Vec<DiscoveredService> = response.json().await.map_err(|e| {
-            LoamSpineError::Network(format!("Failed to parse discovery response: {e}"))
-        })?;
-
-        Ok(services)
+        response.json()
     }
 
     /// Discover all available services.
@@ -149,47 +243,35 @@ impl DiscoveryClient {
     pub async fn discover_all(&self) -> LoamSpineResult<Vec<DiscoveredService>> {
         let url = format!("{}/discover", self.endpoint);
         let response = self
-            .client
+            .transport
             .get(&url)
-            .send()
             .await
             .map_err(|e| LoamSpineError::Network(format!("Discovery request failed: {e}")))?;
 
-        if !response.status().is_success() {
+        if !response.is_success() {
             return Err(LoamSpineError::Network(format!(
                 "Discovery failed with status: {}",
-                response.status()
+                response.status
             )));
         }
 
-        let services: Vec<DiscoveredService> = response.json().await.map_err(|e| {
-            LoamSpineError::Network(format!("Failed to parse discovery response: {e}"))
-        })?;
-
-        Ok(services)
+        response.json()
     }
 
-    /// Advertise LoamSpine's capabilities to Songbird.
+    /// Advertise LoamSpine's capabilities to the service registry.
     ///
     /// # Errors
     ///
     /// Returns an error if the advertisement fails.
-    pub async fn advertise_loamspine(
+    pub async fn advertise_self(
         &self,
         tarpc_endpoint: &str,
         jsonrpc_endpoint: &str,
     ) -> LoamSpineResult<()> {
-        // Extract ports from endpoint URLs (default to standard ports if parsing fails)
-        let tarpc_port = tarpc_endpoint
-            .parse::<reqwest::Url>()
-            .ok()
-            .and_then(|u| u.port())
-            .unwrap_or(crate::constants::DEFAULT_TARPC_PORT);
-        let jsonrpc_port = jsonrpc_endpoint
-            .parse::<reqwest::Url>()
-            .ok()
-            .and_then(|u| u.port())
-            .unwrap_or(crate::constants::DEFAULT_JSONRPC_PORT);
+        let tarpc_port =
+            extract_port(tarpc_endpoint).unwrap_or(crate::constants::DEFAULT_TARPC_PORT);
+        let jsonrpc_port =
+            extract_port(jsonrpc_endpoint).unwrap_or(crate::constants::DEFAULT_JSONRPC_PORT);
 
         let advertisement = ServiceAdvertisement {
             name: "loamspine".to_string(),
@@ -229,23 +311,39 @@ impl DiscoveryClient {
             .collect(),
         };
 
+        let body = serde_json::to_value(&advertisement).map_err(|e| {
+            LoamSpineError::Network(format!("Failed to serialize advertisement: {e}"))
+        })?;
+
         let url = format!("{}/register", self.endpoint);
         let response = self
-            .client
-            .post(&url)
-            .json(&advertisement)
-            .send()
+            .transport
+            .post_json(&url, &body)
             .await
             .map_err(|e| LoamSpineError::Network(format!("Advertisement failed: {e}")))?;
 
-        if !response.status().is_success() {
+        if !response.is_success() {
             return Err(LoamSpineError::Network(format!(
                 "Advertisement failed with status: {}",
-                response.status()
+                response.status
             )));
         }
 
         Ok(())
+    }
+
+    /// Backward-compatible alias for [`Self::advertise_self`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the advertisement fails.
+    #[deprecated(since = "0.9.0", note = "Use advertise_self instead")]
+    pub async fn advertise_loamspine(
+        &self,
+        tarpc_endpoint: &str,
+        jsonrpc_endpoint: &str,
+    ) -> LoamSpineResult<()> {
+        self.advertise_self(tarpc_endpoint, jsonrpc_endpoint).await
     }
 
     /// Heartbeat to keep advertisement alive.
@@ -255,64 +353,68 @@ impl DiscoveryClient {
     /// Returns an error if the heartbeat fails.
     pub async fn heartbeat(&self) -> LoamSpineResult<()> {
         let url = format!("{}/heartbeat", self.endpoint);
+        let body = serde_json::json!({ "name": "loamspine" });
         let response = self
-            .client
-            .post(&url)
-            .json(&serde_json::json!({ "name": "loamspine" }))
-            .send()
+            .transport
+            .post_json(&url, &body)
             .await
             .map_err(|e| LoamSpineError::Network(format!("Heartbeat failed: {e}")))?;
 
-        if !response.status().is_success() {
+        if !response.is_success() {
             return Err(LoamSpineError::Network(format!(
                 "Heartbeat failed with status: {}",
-                response.status()
+                response.status
             )));
         }
 
         Ok(())
     }
 
-    /// Deregister from Songbird on shutdown.
+    /// Deregister from the service registry on shutdown.
     ///
     /// # Errors
     ///
     /// Returns an error if the deregistration fails.
     pub async fn deregister(&self) -> LoamSpineResult<()> {
         let url = format!("{}/deregister", self.endpoint);
+        let body = serde_json::json!({ "name": "loamspine" });
         let response = self
-            .client
-            .post(&url)
-            .json(&serde_json::json!({ "name": "loamspine" }))
-            .send()
+            .transport
+            .post_json(&url, &body)
             .await
             .map_err(|e| LoamSpineError::Network(format!("Deregister failed: {e}")))?;
 
-        if !response.status().is_success() {
+        if !response.is_success() {
             return Err(LoamSpineError::Network(format!(
                 "Deregister failed with status: {}",
-                response.status()
+                response.status
             )));
         }
 
         Ok(())
     }
 
-    /// Get the Songbird endpoint.
+    /// Get the registry endpoint.
     #[must_use]
     pub fn endpoint(&self) -> &str {
         &self.endpoint
     }
 
-    /// Create a client with the given endpoint for testing (bypasses health check).
+    /// Create a client with a mock transport for testing (bypasses health check).
     #[cfg(test)]
     #[must_use]
     pub fn for_testing(endpoint: impl Into<String>) -> Self {
+        let endpoint = endpoint.into();
         Self {
-            endpoint: endpoint.into(),
-            client: reqwest::Client::new(),
+            transport: Arc::new(crate::transport::mock::MockTransport::new(&endpoint)),
+            endpoint,
         }
     }
+}
+
+/// Extract the port from a URL string using the `url` crate (pure Rust).
+fn extract_port(url_str: &str) -> Option<u16> {
+    url::Url::parse(url_str).ok().and_then(|u| u.port())
 }
 
 #[cfg(test)]
@@ -322,7 +424,6 @@ mod tests {
 
     #[test]
     fn client_creation() {
-        // Client creation is async, so we just test the structure
         let endpoint = "http://localhost:8082";
         assert!(!endpoint.is_empty());
     }
@@ -368,7 +469,7 @@ mod tests {
                 port: 9001,
                 health_check: None,
             }],
-            metadata: std::iter::once(("version".to_string(), "0.6.0".to_string())).collect(),
+            metadata: std::iter::once(("version".to_string(), "0.8.0".to_string())).collect(),
         };
 
         let json = serde_json::to_string(&advertisement).unwrap();
@@ -396,27 +497,19 @@ mod tests {
     }
 
     #[test]
-    fn songbird_client_endpoint_getter() {
+    fn client_endpoint_getter() {
         let endpoint = "http://localhost:8082";
-        let client = DiscoveryClient {
-            endpoint: endpoint.to_string(),
-            client: reqwest::Client::new(),
-        };
-
+        let client = DiscoveryClient::for_testing(endpoint);
         assert_eq!(client.endpoint(), endpoint);
     }
 
     #[test]
-    fn songbird_client_is_cloneable() {
-        let client = DiscoveryClient {
-            endpoint: "http://localhost:8082".to_string(),
-            client: reqwest::Client::new(),
-        };
+    fn client_is_cloneable() {
+        let client = DiscoveryClient::for_testing("http://registry.local:8082");
 
-        // Test that client is cloneable
         #[allow(clippy::no_effect_underscore_binding)]
         let _cloned = &client;
-        assert_eq!(client.endpoint(), "http://localhost:8082");
+        assert_eq!(client.endpoint(), "http://registry.local:8082");
     }
 
     #[test]
@@ -513,26 +606,20 @@ mod tests {
 
     #[test]
     fn port_extraction_from_urls() {
-        // Test URL parsing logic
         let test_cases = vec![
-            ("http://localhost:9001", 9001),
-            ("https://example.com:8443", 8443),
-            ("http://192.0.2.1:3000", 3000),
+            ("http://localhost:9001", Some(9001)),
+            ("https://example.com:8443", Some(8443)),
+            ("http://192.0.2.1:3000", Some(3000)),
+            ("http://localhost", None),
         ];
 
         for (url, expected_port) in test_cases {
-            // Parse URL and extract port (simulating what the code does)
-            if let Ok(parsed) = reqwest::Url::parse(url) {
-                if let Some(port) = parsed.port() {
-                    assert_eq!(port, expected_port, "Port mismatch for {url}");
-                }
-            }
+            assert_eq!(extract_port(url), expected_port, "Port mismatch for {url}");
         }
     }
 
     #[test]
     fn service_advertisement_empty_capabilities() {
-        // Test service with no capabilities
         let advertisement = ServiceAdvertisement {
             name: "minimal-service".to_string(),
             primary_role: "test".to_string(),
@@ -548,7 +635,6 @@ mod tests {
 
     #[test]
     fn discovered_service_healthy_flag() {
-        // Test healthy flag variations
         let healthy_service = DiscoveredService {
             name: "healthy".to_string(),
             endpoint: "http://localhost:9000".to_string(),
@@ -571,7 +657,6 @@ mod tests {
 
     #[test]
     fn service_endpoint_port_matching() {
-        // Test that port in address matches port field
         let endpoint = ServiceEndpoint {
             protocol: "http".to_string(),
             address: "http://localhost:8080".to_string(),
@@ -579,22 +664,14 @@ mod tests {
             health_check: None,
         };
 
-        // Extract port from address
-        if let Ok(parsed) = reqwest::Url::parse(&endpoint.address) {
-            if let Some(addr_port) = parsed.port() {
-                assert_eq!(addr_port, endpoint.port, "Port mismatch");
-            }
-        }
+        let extracted = extract_port(&endpoint.address);
+        assert_eq!(extracted, Some(endpoint.port), "Port mismatch");
     }
 
     #[test]
     fn client_endpoint_accessor() {
-        // Test endpoint accessor method
-        let endpoint_url = "http://songbird.example.com:8082";
-        let client = DiscoveryClient {
-            endpoint: endpoint_url.to_string(),
-            client: reqwest::Client::new(),
-        };
+        let endpoint_url = "http://registry.example.com:8082";
+        let client = DiscoveryClient::for_testing(endpoint_url);
 
         assert_eq!(client.endpoint(), endpoint_url);
         assert!(client.endpoint().starts_with("http://"));
@@ -603,7 +680,6 @@ mod tests {
 
     #[test]
     fn discovered_service_debug_impl() {
-        // Test Debug implementation
         let service = DiscoveredService {
             name: "debug-test".to_string(),
             endpoint: "http://localhost:9000".to_string(),
@@ -619,7 +695,6 @@ mod tests {
 
     #[test]
     fn service_endpoint_protocol_variations() {
-        // Test different protocol types
         let protocols = vec!["http", "https", "tarpc", "jsonrpc", "grpc"];
 
         for protocol in protocols {
@@ -637,7 +712,7 @@ mod tests {
     #[test]
     fn service_advertisement_metadata() {
         let mut metadata = std::collections::HashMap::new();
-        metadata.insert("version".to_string(), "0.6.0".to_string());
+        metadata.insert("version".to_string(), "0.8.0".to_string());
         metadata.insert("language".to_string(), "rust".to_string());
         metadata.insert("rpc_style".to_string(), "pure-rust".to_string());
 
@@ -652,7 +727,7 @@ mod tests {
         assert_eq!(advertisement.metadata.len(), 3);
         assert_eq!(
             advertisement.metadata.get("version"),
-            Some(&"0.6.0".to_string())
+            Some(&"0.8.0".to_string())
         );
     }
 
@@ -684,7 +759,7 @@ mod tests {
     #[test]
     fn service_advertisement_complete_metadata() {
         let mut metadata = std::collections::HashMap::new();
-        metadata.insert("version".to_string(), "0.6.0".to_string());
+        metadata.insert("version".to_string(), "0.8.0".to_string());
         metadata.insert("language".to_string(), "rust".to_string());
         metadata.insert("rpc_style".to_string(), "pure-rust".to_string());
         metadata.insert("unsafe_code".to_string(), "false".to_string());
@@ -725,28 +800,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn connect_fails_for_unreachable_endpoint() {
-        let result = DiscoveryClient::connect("http://127.0.0.1:1").await;
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn connect_fails_for_nonexistent_host() {
-        let result = DiscoveryClient::connect("http://nonexistent.invalid.host:8082").await;
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn advertise_loamspine_fails_for_unreachable_endpoint() {
+    async fn advertise_self_fails_for_unreachable_endpoint() {
         let client = DiscoveryClient::for_testing("http://127.0.0.1:1");
 
         let result = client
-            .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+            .advertise_self("http://localhost:9001", "http://localhost:8080")
             .await;
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Advertisement") || err.to_string().contains("Network"));
+        assert!(
+            err.to_string().contains("Advertisement")
+                || err.to_string().contains("Network")
+                || err.to_string().contains("MockTransport")
+        );
     }
 
     #[tokio::test]
@@ -757,7 +824,11 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Deregister") || err.to_string().contains("Network"));
+        assert!(
+            err.to_string().contains("Deregister")
+                || err.to_string().contains("Network")
+                || err.to_string().contains("MockTransport")
+        );
     }
 
     #[tokio::test]
@@ -768,7 +839,11 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Heartbeat") || err.to_string().contains("Network"));
+        assert!(
+            err.to_string().contains("Heartbeat")
+                || err.to_string().contains("Network")
+                || err.to_string().contains("MockTransport")
+        );
     }
 
     #[tokio::test]
@@ -779,7 +854,11 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Discovery") || err.to_string().contains("Network"));
+        assert!(
+            err.to_string().contains("Discovery")
+                || err.to_string().contains("Network")
+                || err.to_string().contains("MockTransport")
+        );
     }
 
     #[tokio::test]
@@ -790,9 +869,31 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Discovery") || err.to_string().contains("Network"));
+        assert!(
+            err.to_string().contains("Discovery")
+                || err.to_string().contains("Network")
+                || err.to_string().contains("MockTransport")
+        );
     }
 
-    // Integration tests with real Songbird require Songbird to be running
-    // These are tested in the showcase demos
+    #[tokio::test]
+    async fn connect_fails_without_transport_features() {
+        // With the mock transport in for_testing, connect itself would fail
+        // because no real transport is available. We test that the error
+        // path produces a sensible message.
+        // Note: when neither feature is enabled, connect() returns an error.
+        // We can't easily test that in isolation since tests may have features
+        // enabled, so we test via for_testing + health_check instead.
+        let client = DiscoveryClient::for_testing("http://127.0.0.1:1");
+        let result = client.health_check().await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn client_debug_impl() {
+        let client = DiscoveryClient::for_testing("http://test:8082");
+        let debug = format!("{client:?}");
+        assert!(debug.contains("DiscoveryClient"));
+        assert!(debug.contains("test:8082"));
+    }
 }

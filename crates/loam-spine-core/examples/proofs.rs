@@ -8,12 +8,11 @@
 //! 3. Verify proofs
 //! 4. Show tamper detection
 
-// Examples allow patterns for demonstration purposes
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::redundant_clone)]
 #![allow(clippy::semicolon_if_nothing_returned)]
 #![allow(clippy::too_many_lines)]
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 #![allow(clippy::no_effect_underscore_binding)]
 #![allow(clippy::clone_on_copy)]
 
@@ -69,7 +68,7 @@ fn main() -> LoamSpineResult<()> {
 
     let entry_5_index = 5;
     let mut entry_5 = spine.get_entry(entry_5_index).unwrap().clone();
-    let entry_5_hash = entry_5.hash();
+    let entry_5_hash = entry_5.hash().expect("hash");
 
     println!("   Entry Index: {}", entry_5_index);
     println!("   Entry Hash: {:?}", &entry_5_hash[..8]);
@@ -93,7 +92,7 @@ fn main() -> LoamSpineResult<()> {
     for i in 1..spine.height {
         if let Some(entry) = spine.get_entry(i) {
             let mut entry_clone = entry.clone();
-            let computed_hash = entry_clone.hash();
+            let computed_hash = entry_clone.hash().expect("hash");
 
             // Verify previous link
             if entry.previous != Some(prev_hash) {
@@ -159,7 +158,7 @@ fn main() -> LoamSpineResult<()> {
 
     let cert_entry_index = 7;
     let mut cert_entry = spine.get_entry(cert_entry_index).unwrap().clone();
-    let cert_hash = cert_entry.hash();
+    let cert_hash = cert_entry.hash().expect("hash");
 
     println!("Certificate at entry {}", cert_entry_index);
     println!("   Entry Hash: {:?}", &cert_hash[..8]);

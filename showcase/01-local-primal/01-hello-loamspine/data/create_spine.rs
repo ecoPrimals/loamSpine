@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use loam_spine_core::{Spine, SpineConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

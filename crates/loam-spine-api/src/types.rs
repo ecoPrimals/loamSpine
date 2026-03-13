@@ -18,8 +18,33 @@ pub use loam_spine_core::primal::{HealthReport, HealthStatus};
 pub use loam_spine_core::proof::{CertificateProof, InclusionProof};
 pub use loam_spine_core::spine::{Spine, SpineState};
 pub use loam_spine_core::types::{
-    CertificateId, ContentHash, Did, EntryHash, PeerId, Signature, SliceId, SpineId, Timestamp,
+    ByteBuffer, CertificateId, ContentHash, Did, EntryHash, PeerId, Signature, SliceId, SpineId,
+    Timestamp,
 };
+
+/// Serde helpers for `Option<ByteBuffer>` fields in RPC types.
+mod serde_opt_bytes {
+    use super::ByteBuffer;
+
+    #[allow(clippy::ref_option)]
+    pub fn serialize<S>(val: &Option<ByteBuffer>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match val {
+            Some(b) => serializer.serialize_bytes(b),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<ByteBuffer>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let opt: Option<Vec<u8>> = serde::Deserialize::deserialize(deserializer)?;
+        Ok(opt.map(ByteBuffer::from))
+    }
+}
 
 // ============================================================================
 // Spine Operations
@@ -92,8 +117,9 @@ pub struct AppendEntryRequest {
     pub entry_type: EntryType,
     /// Committer DID
     pub committer: Did,
-    /// Optional payload
-    pub payload: Option<Vec<u8>>,
+    /// Optional payload (zero-copy via `bytes::Bytes`)
+    #[serde(with = "serde_opt_bytes", default)]
+    pub payload: Option<ByteBuffer>,
 }
 
 /// Response from appending an entry.

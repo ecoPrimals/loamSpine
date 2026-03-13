@@ -97,17 +97,18 @@ impl LoamSpineService {
         for idx in (entry_index + 1)..=spine.height {
             if let Some(e) = spine.get_entry(idx) {
                 let mut e_clone = e.clone();
-                path.push(e_clone.hash());
+                path.push(e_clone.hash()?);
             }
         }
 
-        let proof = InclusionProof::new(entry, spine_id, tip_hash).with_path(path);
+        let proof = InclusionProof::new(entry, spine_id, tip_hash)?.with_path(path);
 
         Ok(proof)
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
     use crate::traits::SpineQuery;
@@ -147,13 +148,13 @@ mod tests {
         let spine_result = service.get_spine(spine_id).await;
         if let Ok(Some(spine)) = spine_result {
             if let Some(genesis) = spine.genesis_entry() {
-                let entry_hash = genesis.compute_hash();
+                let entry_hash = genesis.compute_hash().expect("compute_hash");
 
                 let result = service.generate_inclusion_proof(spine_id, entry_hash).await;
                 assert!(result.is_ok());
 
                 if let Ok(proof) = result {
-                    assert!(proof.verify());
+                    assert!(proof.verify().expect("verify"));
                 }
             }
         }

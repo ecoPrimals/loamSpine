@@ -192,9 +192,13 @@ impl Signer for CliSigner {
                 "--key",
                 &self.key_id,
                 "--input",
-                data_file.to_str().unwrap_or_default(),
+                data_file.to_str().ok_or_else(|| {
+                    LoamSpineError::Internal("data file path is not valid UTF-8".into())
+                })?,
                 "--output",
-                sig_file.to_str().unwrap_or_default(),
+                sig_file.to_str().ok_or_else(|| {
+                    LoamSpineError::Internal("signature file path is not valid UTF-8".into())
+                })?,
             ])
             .output()
             .map_err(|e| LoamSpineError::Internal(format!("Failed to run signing service: {e}")))?;
@@ -289,7 +293,9 @@ impl Verifier for CliVerifier {
             .args([
                 "decrypt",
                 "--input",
-                sig_file.to_str().unwrap_or_default(),
+                sig_file.to_str().ok_or_else(|| {
+                    LoamSpineError::Internal("signature file path is not valid UTF-8".into())
+                })?,
                 "--output",
                 "/dev/null",
             ])

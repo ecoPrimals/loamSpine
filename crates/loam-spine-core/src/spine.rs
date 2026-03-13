@@ -67,7 +67,7 @@ impl Spine {
 
         // Create genesis entry
         let mut genesis_entry = Entry::genesis(owner.clone(), id, config.clone());
-        let genesis_hash = genesis_entry.hash();
+        let genesis_hash = genesis_entry.hash()?;
 
         Ok(Self {
             id,
@@ -156,7 +156,7 @@ impl Spine {
         }
 
         // Compute hash and update spine
-        let hash = entry.hash();
+        let hash = entry.hash()?;
         self.entries.push(entry);
         self.tip = hash;
         self.height += 1;
@@ -217,7 +217,16 @@ impl Spine {
                 });
             }
 
-            prev_hash = Some(entry.compute_hash());
+            prev_hash = match entry.compute_hash() {
+                Ok(h) => Some(h),
+                Err(e) => {
+                    errors.push(ChainError::HashComputationFailed {
+                        index: entry.index,
+                        message: e.to_string(),
+                    });
+                    None
+                }
+            };
         }
 
         ChainVerification {
@@ -408,6 +417,14 @@ pub enum ChainError {
     InvalidSignature {
         /// Entry index.
         index: u64,
+    },
+
+    /// Hash computation failed for an entry.
+    HashComputationFailed {
+        /// Entry index.
+        index: u64,
+        /// Error message.
+        message: String,
     },
 }
 

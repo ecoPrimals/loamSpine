@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Demo: JSON-RPC Basics with Real Service
-# Uses actual loamspine-service binary - NO MOCKS!
+# Uses actual loamspine binary - NO MOCKS!
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Configuration
-LOAMSPINE_SERVICE_BIN="${BINS_DIR}/loamspine-service"
+LOAMSPINE_BIN="${BINS_DIR}/loamspine"
 JSONRPC_PORT="8080"
 JSONRPC_URL="http://localhost:${JSONRPC_PORT}"
 
@@ -29,30 +29,30 @@ echo ""
 echo "🎯 Real Service Integration - NO MOCKS!"
 echo ""
 echo "This demo uses:"
-echo "  • Real loamspine-service binary"
+echo "  • Real loamspine binary"
 echo "  • JSON-RPC 2.0 protocol"
 echo "  • Language-agnostic API"
 echo "  • External client access"
 echo ""
 
 # Check if binary exists
-if [ ! -f "${LOAMSPINE_SERVICE_BIN}" ]; then
-    echo -e "${RED}❌ loamspine-service binary not found at: ${LOAMSPINE_SERVICE_BIN}${NC}"
-    echo "   Please ensure loamspine-service is built in primalBins/"
+if [ ! -f "${LOAMSPINE_BIN}" ]; then
+    echo -e "${RED}❌ loamspine binary not found at: ${LOAMSPINE_BIN}${NC}"
+    echo "   Please ensure loamspine is built in primalBins/"
     exit 1
 fi
 
-echo -e "${YELLOW}✓ loamspine-service binary found${NC}"
+echo -e "${YELLOW}✓ loamspine binary found${NC}"
 echo ""
 
 # Check if service is already running
-if pgrep -f "loamspine-service" > /dev/null; then
+if pgrep -f "loamspine" > /dev/null; then
     echo -e "${YELLOW}⚠ LoamSpine service already running, using existing instance${NC}"
 else
-    echo "🚀 Starting loamspine-service..."
-    "${LOAMSPINE_SERVICE_BIN}" --jsonrpc-port "${JSONRPC_PORT}" &> /tmp/loamspine-service-demo.log &
+    echo "🚀 Starting loamspine..."
+    "${LOAMSPINE_BIN}" server --jsonrpc-port "${JSONRPC_PORT}" &> /tmp/loamspine-demo.log &
     SERVICE_PID=$!
-    echo "${SERVICE_PID}" > /tmp/loamspine-service-demo.pid
+    echo "${SERVICE_PID}" > /tmp/loamspine-demo.pid
     
     # Wait for service to be ready
     echo "   Waiting for service to start..."
@@ -286,13 +286,13 @@ rm -f /tmp/get_spine_request.json
 rm -f /tmp/verify_spine_request.json
 
 # Stop service if we started it
-if [ -f /tmp/loamspine-service-demo.pid ]; then
-    SERVICE_PID=$(cat /tmp/loamspine-service-demo.pid)
+if [ -f /tmp/loamspine-demo.pid ]; then
+    SERVICE_PID=$(cat /tmp/loamspine-demo.pid)
     if kill "${SERVICE_PID}" 2>/dev/null; then
-        echo "🛑 Stopped loamspine-service (PID: ${SERVICE_PID})"
+        echo "🛑 Stopped loamspine (PID: ${SERVICE_PID})"
     fi
-    rm -f /tmp/loamspine-service-demo.pid
-    rm -f /tmp/loamspine-service-demo.log
+    rm -f /tmp/loamspine-demo.pid
+    rm -f /tmp/loamspine-demo.log
 fi
 
 echo ""

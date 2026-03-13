@@ -95,7 +95,7 @@ impl EntryStorage for InMemoryEntryStorage {
     }
 
     async fn save_entry(&self, entry: &Entry) -> LoamSpineResult<EntryHash> {
-        let hash = entry.compute_hash();
+        let hash = entry.compute_hash()?;
         let spine_id = entry.spine_id;
 
         // Save entry

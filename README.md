@@ -4,9 +4,10 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
 [![Version](https://img.shields.io/badge/version-0.8.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-549%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/line%20coverage-90.08%25-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-610%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/line%20coverage-90%25+-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
+[![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
 
 ---
 
@@ -20,7 +21,8 @@ LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Na
 - **Loam Certificates** -- Digital ownership with lending and provenance
 - **Infant Discovery** -- Born with zero external knowledge, discovers at runtime
 - **Capability-Based** -- "Who can sign?" not "Where is BearDog?"
-- **Vendor Agnostic** -- Works with Songbird, Consul, etcd, or any RFC 2782 system
+- **NeuralAPI Integration** -- Registers with biomeOS for ecosystem orchestration
+- **Provenance Trio** -- Coordinates with rhizoCrypt (ephemeral) and sweetGrass (attribution)
 
 ---
 
@@ -31,18 +33,15 @@ LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Na
 cargo build --release
 cargo test --workspace
 
-# Run the service (UniBin subcommand)
+# Run the service (UniBin)
 cargo run --release --bin loamspine -- server
 
 # With explicit ports
 cargo run --release --bin loamspine -- server --tarpc-port 9001 --jsonrpc-port 8080
 
-# Configuration (all optional -- sensible defaults)
-export LOAMSPINE_TARPC_PORT=9001
-export LOAMSPINE_JSONRPC_PORT=8080
-
-# Capability discovery (auto-discovered if not set)
-export CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT="http://localhost:8001"
+# UniBin introspection
+cargo run --release --bin loamspine -- capabilities
+cargo run --release --bin loamspine -- socket
 
 # Quality checks
 cargo clippy --workspace --all-targets -- -D warnings
@@ -50,63 +49,65 @@ cargo fmt --all -- --check
 cargo llvm-cov --workspace --summary-only
 cargo deny check licenses bans sources
 
-# Build docs
-cargo doc --open --no-deps
+# Full verification
+./verify.sh
 ```
 
 ---
 
 ## Architecture
 
-**Pure Rust** -- No gRPC, no protobuf, no C/C++ tooling, no OpenSSL.
+**Pure Rust** -- No gRPC, no protobuf, no C/C++ tooling, no OpenSSL. Zero C dependencies (ecoBin compliant).
 
 ```
 loamSpine/
-├── bin/loamspine-service/     # UniBin: `loamspine server`
+├── bin/loamspine-service/     # UniBin: server | capabilities | socket
 ├── crates/
-│   ├── loam-spine-core/       # Core library
+│   ├── loam-spine-core/       # Core library (45 source files)
 │   │   └── src/
-│   │       ├── backup.rs          # Backup/restore
+│   │       ├── backup/            # Backup/restore
 │   │       ├── capabilities.rs    # Capability definitions
 │   │       ├── certificate.rs     # Loam Certificates
 │   │       ├── config.rs          # Configuration
 │   │       ├── discovery.rs       # Capability registry
 │   │       ├── discovery_client.rs # HTTP discovery client
-│   │       ├── entry.rs           # Entry types (15+ variants)
+│   │       ├── entry.rs           # Entry types (15+ variants, bincode canonical)
 │   │       ├── infant_discovery.rs # DNS-SRV, mDNS, registry discovery
 │   │       ├── manager.rs         # Spine manager
+│   │       ├── neural_api.rs      # NeuralAPI / biomeOS integration
 │   │       ├── proof.rs           # Inclusion proofs
-│   │       ├── service/           # Modular service
-│   │       │   ├── lifecycle.rs   # Startup/shutdown with heartbeat
-│   │       │   ├── infant_discovery.rs # Discovery orchestration
-│   │       │   ├── certificate.rs # Certificate lifecycle
+│   │       ├── service/           # Modular service layer
+│   │       │   ├── lifecycle.rs   # Startup/shutdown + NeuralAPI registration
+│   │       │   ├── infant_discovery.rs
+│   │       │   ├── certificate.rs
 │   │       │   ├── integration.rs # Trait implementations
 │   │       │   ├── signals.rs     # Signal handling
 │   │       │   └── waypoint.rs    # Proof generation
 │   │       ├── spine.rs           # Spine structure
-│   │       ├── storage/           # Storage backends
-│   │       │   ├── memory.rs      # In-memory
-│   │       │   └── sled.rs        # Persistent (pure Rust)
-│   │       ├── temporal/          # Time tracking
-│   │       └── traits/            # Integration traits
-│   │           ├── cli_signer.rs  # CLI-based signing
-│   │           ├── signing.rs     # Signer, Verifier
-│   │           └── commit.rs      # CommitAcceptor, SpineQuery
-│   └── loam-spine-api/        # RPC layer
+│   │       ├── storage/           # Storage backends (memory, sled)
+│   │       ├── temporal/          # Time tracking (moments, anchors)
+│   │       ├── traits/            # Integration traits
+│   │       │   ├── cli_signer.rs  # CLI-based signing
+│   │       │   ├── signing.rs     # Signer, Verifier
+│   │       │   ├── commit.rs      # CommitAcceptor, SpineQuery
+│   │       │   └── slice.rs       # SliceManager
+│   │       ├── transport/         # IPC transports (HTTP, NeuralAPI, mock)
+│   │       └── trio_types.rs      # Provenance trio type bridging
+│   └── loam-spine-api/        # RPC layer (14 source files)
 │       └── src/
-│           ├── jsonrpc.rs     # JSON-RPC 2.0 (semantic naming)
+│           ├── jsonrpc/       # JSON-RPC 2.0 (semantic naming)
 │           ├── tarpc_server.rs # Binary RPC (primal-to-primal)
 │           ├── service/       # Domain-focused RPC ops
 │           ├── health.rs      # Health checks
 │           └── error.rs       # API errors
-├── specs/                     # Specifications
-├── showcase/                  # Interactive demos
-└── fuzz/                      # Fuzz testing
+├── specs/                     # 11 specification documents
+├── showcase/                  # Interactive demos (83 files)
+└── fuzz/                      # Fuzz testing targets
 ```
 
 **Dual Protocol:**
 - **tarpc** -- High-performance binary RPC for primal-to-primal
-- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients
+- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI
 
 ---
 
@@ -128,12 +129,14 @@ loamSpine/
 | **Waypoint** | `slice.anchor` | Anchor borrowed state |
 | **Proof** | `proof.generate_inclusion` | Create proof |
 | **Integration** | `session.commit` | rhizoCrypt commits |
+| **Integration** | `commit.session` | Semantic alias (biomeOS routing) |
 | **Integration** | `braid.commit` | sweetGrass commits |
 | **Compat** | `permanent-storage.commitSession` | rhizoCrypt wire format |
 | **Compat** | `permanent-storage.verifyCommit` | Verify via rhizoCrypt format |
 | **Compat** | `permanent-storage.getCommit` | Retrieve via rhizoCrypt format |
 | **Compat** | `permanent-storage.healthCheck` | Health for rhizoCrypt clients |
 | **Health** | `health.check` | Service status |
+| **Meta** | `capability.list` | List primal capabilities |
 
 ---
 
@@ -141,11 +144,12 @@ loamSpine/
 
 LoamSpine discovers services at runtime via **infant discovery** (zero knowledge at startup):
 
-1. **Environment Variables** (`CAPABILITY_*_ENDPOINT`, `*_SERVICE_URL`)
-2. **Service Registry** -- HTTP-based (Songbird, Consul adapter, etcd adapter)
-3. **DNS SRV** -- RFC 2782 (`_signing._tcp.local`)
-4. **mDNS** -- RFC 6762 (experimental, feature-gated)
-5. **Development Fallback** (`localhost`, debug builds only)
+1. **NeuralAPI** -- biomeOS Unix socket IPC (preferred, capability-registered)
+2. **Environment Variables** (`CAPABILITY_*_ENDPOINT`, `*_SERVICE_URL`)
+3. **Service Registry** -- HTTP-based (Songbird, Consul adapter, etcd adapter)
+4. **DNS SRV** -- RFC 2782 (`_signing._tcp.local`)
+5. **mDNS** -- RFC 6762 (experimental, feature-gated)
+6. **Development Fallback** (`localhost`, debug builds only)
 
 ---
 
@@ -154,16 +158,17 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 | Metric | Value |
 |--------|-------|
 | **Version** | 0.8.0 |
-| **Tests** | 549 passing |
-| **Line Coverage** | 90.08% |
-| **Clippy** | 0 warnings (all targets) |
+| **Tests** | 610 passing |
+| **Line Coverage** | 90%+ |
+| **Clippy** | 0 warnings (`-D warnings`, all targets) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Max File Size** | 863 lines |
+| **Max File Size** | 899 lines (all < 1000) |
+| **Source Files** | 78 `.rs` files across 2 crates |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
-| **Pure Rust TLS** | rustls (no OpenSSL/native-tls) |
+| **ecoBin** | Zero C dependencies (pure Rust TLS) |
 | **cargo deny** | bans, licenses, sources pass |
-| **UniBin** | `loamspine server` subcommand |
+| **UniBin** | `server`, `capabilities`, `socket` subcommands |
 
 ---
 
@@ -172,7 +177,6 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 ```bash
 # Docker
 docker build -t loamspine .
-docker-compose up -d
 
 # Verify everything
 ./verify.sh
@@ -186,6 +190,7 @@ Complete specifications in [specs/](./specs/):
 - Core specification, architecture, data model
 - Certificate layer, waypoint semantics
 - API specification, service lifecycle
+- Integration specification (provenance trio)
 
 ## Contributing
 

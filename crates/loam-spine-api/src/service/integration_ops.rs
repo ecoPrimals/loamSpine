@@ -24,11 +24,20 @@ impl LoamSpineRpcService {
         &self,
         request: AnchorSliceRequest,
     ) -> ApiResult<AnchorSliceResponse> {
+        use loam_spine_core::traits::SpineQuery;
+
         let core = self.core_mut().await;
 
-        // Origin entry hash: requires the origin spine's tip entry.
-        // Full slice workflow will look this up from origin_spine_id.
-        let origin_entry = [0u8; 32];
+        let origin_entry = match core.get_tip(request.origin_spine_id).await {
+            Ok(Some(tip)) => tip.compute_hash().map_err(ApiError::from)?,
+            Ok(None) => {
+                return Err(ApiError::InvalidRequest(format!(
+                    "origin spine {} has no entries",
+                    request.origin_spine_id
+                )));
+            }
+            Err(e) => return Err(ApiError::from(e)),
+        };
 
         let anchor_hash = core
             .anchor_slice(
@@ -52,13 +61,34 @@ impl LoamSpineRpcService {
         &self,
         request: CheckoutSliceRequest,
     ) -> ApiResult<CheckoutSliceResponse> {
+        use loam_spine_core::entry::EntryType;
+        use loam_spine_core::traits::SpineQuery;
+
         let core = self.core_mut().await;
 
         let session_id = loam_spine_core::types::SessionId::now_v7();
 
-        // Entry hash: requires lookup from active_slices registry.
-        // Full slice workflow will resolve this from the anchored slice.
-        let entry_hash = [0u8; 32];
+        let entries = core
+            .get_entries(request.waypoint_spine_id, 0, 10_000)
+            .await
+            .map_err(ApiError::from)?;
+
+        let anchor_entry = entries.iter().rev().find(|e| {
+            matches!(
+                &e.entry_type,
+                EntryType::SliceAnchor { slice_id, .. } if *slice_id == request.slice_id
+            )
+        });
+
+        let entry_hash = match anchor_entry {
+            Some(entry) => entry.compute_hash().map_err(ApiError::from)?,
+            None => {
+                return Err(ApiError::InvalidRequest(format!(
+                    "no anchored slice {} found on waypoint {}",
+                    request.slice_id, request.waypoint_spine_id
+                )));
+            }
+        };
 
         match core
             .checkout_slice(
@@ -71,7 +101,7 @@ impl LoamSpineRpcService {
         {
             Ok(_origin) => Ok(CheckoutSliceResponse {
                 success: true,
-                checkout_hash: Some(entry_hash), // Return the checkout entry hash
+                checkout_hash: Some(entry_hash),
             }),
             Err(e) => Err(ApiError::from(e)),
         }

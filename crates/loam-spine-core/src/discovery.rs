@@ -26,7 +26,8 @@
 //! // Check if signer is available
 //! if let Some(signer) = registry.get_signer().await {
 //!     // Use the capability
-//!     let signature = signer.sign_boxed(b"data".to_vec()).await?;
+//!     let data = loam_spine_core::types::ByteBuffer::from_static(b"data");
+//!     let signature = signer.sign_boxed(data).await?;
 //! }
 //! # Ok(())
 //! # }
@@ -60,13 +61,13 @@ pub type BoxedVerifier = Arc<dyn DynVerifier>;
 
 /// Object-safe version of Signer for dynamic dispatch.
 ///
-/// This trait uses owned data to avoid lifetime complexity in dynamic dispatch.
+/// Uses `bytes::Bytes` for zero-copy data passing across async boundaries.
 #[allow(async_fn_in_trait)]
 pub trait DynSigner: Send + Sync {
-    /// Sign data (takes owned Vec for object safety).
+    /// Sign data (takes `Bytes` for zero-copy object safety).
     fn sign_boxed(
         &self,
-        data: Vec<u8>,
+        data: crate::types::ByteBuffer,
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = LoamSpineResult<crate::types::Signature>> + Send + '_>,
     >;
@@ -79,7 +80,7 @@ pub trait DynSigner: Send + Sync {
 impl<T: Signer> DynSigner for T {
     fn sign_boxed(
         &self,
-        data: Vec<u8>,
+        data: crate::types::ByteBuffer,
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = LoamSpineResult<crate::types::Signature>> + Send + '_>,
     > {
@@ -93,13 +94,13 @@ impl<T: Signer> DynSigner for T {
 
 /// Object-safe version of Verifier for dynamic dispatch.
 ///
-/// This trait uses owned data to avoid lifetime complexity in dynamic dispatch.
+/// Uses `bytes::Bytes` for zero-copy data passing across async boundaries.
 #[allow(async_fn_in_trait)]
 pub trait DynVerifier: Send + Sync {
-    /// Verify a signature (takes owned data for object safety).
+    /// Verify a signature (takes `Bytes` for zero-copy object safety).
     fn verify_boxed(
         &self,
-        data: Vec<u8>,
+        data: crate::types::ByteBuffer,
         signature: crate::types::Signature,
         signer: crate::types::Did,
     ) -> std::pin::Pin<
@@ -127,7 +128,7 @@ pub trait DynVerifier: Send + Sync {
 impl<T: Verifier> DynVerifier for T {
     fn verify_boxed(
         &self,
-        data: Vec<u8>,
+        data: crate::types::ByteBuffer,
         signature: crate::types::Signature,
         signer: crate::types::Did,
     ) -> std::pin::Pin<
@@ -167,7 +168,7 @@ pub struct CapabilityRegistry {
 struct RegistryInner {
     signer: Option<BoxedSigner>,
     verifier: Option<BoxedVerifier>,
-    songbird_client: Option<Arc<crate::discovery_client::DiscoveryClient>>,
+    registry_client: Option<Arc<crate::discovery_client::DiscoveryClient>>,
 }
 
 impl CapabilityRegistry {
@@ -177,37 +178,46 @@ impl CapabilityRegistry {
         Self::default()
     }
 
-    /// Create a new registry with Songbird integration.
+    /// Create a new registry with a service registry connection.
     ///
     /// # Errors
     ///
-    /// Returns an error if Songbird connection fails.
-    pub async fn with_songbird(songbird_endpoint: &str) -> LoamSpineResult<Self> {
-        let client = crate::discovery_client::DiscoveryClient::connect(songbird_endpoint).await?;
+    /// Returns an error if the registry connection fails.
+    pub async fn with_service_registry(endpoint: &str) -> LoamSpineResult<Self> {
+        let client = crate::discovery_client::DiscoveryClient::connect(endpoint).await?;
         let registry = Self::new();
         {
             let mut inner = registry.inner.write().await;
-            inner.songbird_client = Some(Arc::new(client));
+            inner.registry_client = Some(Arc::new(client));
         }
         Ok(registry)
     }
 
-    /// Discover and register capabilities from Songbird.
-    ///
-    /// This method queries Songbird for available capabilities and registers them.
+    /// Backward-compatible alias for [`Self::with_service_registry`].
     ///
     /// # Errors
     ///
-    /// Returns an error if Songbird discovery fails.
-    pub async fn discover_from_songbird(&self) -> LoamSpineResult<()> {
+    /// Returns an error if the registry connection fails.
+    #[deprecated(since = "0.9.0", note = "Use with_service_registry instead")]
+    pub async fn with_songbird(endpoint: &str) -> LoamSpineResult<Self> {
+        Self::with_service_registry(endpoint).await
+    }
+
+    /// Discover and register capabilities from the service registry.
+    ///
+    /// This method queries the registry for available capabilities and registers them.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if discovery fails.
+    pub async fn discover_from_registry(&self) -> LoamSpineResult<()> {
         let client = {
             let inner = self.inner.read().await;
-            inner.songbird_client.clone().ok_or_else(|| {
-                LoamSpineError::CapabilityUnavailable("Songbird not configured".into())
+            inner.registry_client.clone().ok_or_else(|| {
+                LoamSpineError::CapabilityUnavailable("Service registry not configured".into())
             })?
         };
 
-        // Discover signing capability
         if let Ok(services) = client.discover_capability("signing").await {
             if let Some(service) = services.first() {
                 tracing::info!(
@@ -215,12 +225,9 @@ impl CapabilityRegistry {
                     service.name,
                     service.endpoint
                 );
-                // In a full implementation, we would create a remote signer client here
-                // For now, we just log the discovery
             }
         }
 
-        // Discover verification capability
         if let Ok(services) = client.discover_capability("verification").await {
             if let Some(service) = services.first() {
                 tracing::info!(
@@ -234,46 +241,81 @@ impl CapabilityRegistry {
         Ok(())
     }
 
-    /// Advertise LoamSpine's capabilities to Songbird.
+    /// Backward-compatible alias for [`Self::discover_from_registry`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if discovery fails.
+    #[deprecated(since = "0.9.0", note = "Use discover_from_registry instead")]
+    pub async fn discover_from_songbird(&self) -> LoamSpineResult<()> {
+        self.discover_from_registry().await
+    }
+
+    /// Advertise LoamSpine's capabilities to the service registry.
     ///
     /// # Errors
     ///
     /// Returns an error if advertisement fails.
-    pub async fn advertise_to_songbird(
+    pub async fn advertise_to_registry(
         &self,
         tarpc_endpoint: &str,
         jsonrpc_endpoint: &str,
     ) -> LoamSpineResult<()> {
         let client = {
             let inner = self.inner.read().await;
-            inner.songbird_client.clone().ok_or_else(|| {
-                LoamSpineError::CapabilityUnavailable("Songbird not configured".into())
+            inner.registry_client.clone().ok_or_else(|| {
+                LoamSpineError::CapabilityUnavailable("Service registry not configured".into())
             })?
         };
 
         client
-            .advertise_loamspine(tarpc_endpoint, jsonrpc_endpoint)
+            .advertise_self(tarpc_endpoint, jsonrpc_endpoint)
             .await?;
 
-        tracing::info!("Advertised LoamSpine capabilities to Songbird");
+        tracing::info!("Advertised LoamSpine capabilities to service registry");
         Ok(())
     }
 
-    /// Send heartbeat to Songbird to keep advertisement alive.
+    /// Backward-compatible alias for [`Self::advertise_to_registry`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if advertisement fails.
+    #[deprecated(since = "0.9.0", note = "Use advertise_to_registry instead")]
+    pub async fn advertise_to_songbird(
+        &self,
+        tarpc_endpoint: &str,
+        jsonrpc_endpoint: &str,
+    ) -> LoamSpineResult<()> {
+        self.advertise_to_registry(tarpc_endpoint, jsonrpc_endpoint)
+            .await
+    }
+
+    /// Send heartbeat to the service registry to keep advertisement alive.
     ///
     /// # Errors
     ///
     /// Returns an error if heartbeat fails.
-    pub async fn heartbeat_songbird(&self) -> LoamSpineResult<()> {
+    pub async fn heartbeat_registry(&self) -> LoamSpineResult<()> {
         let client = {
             let inner = self.inner.read().await;
-            inner.songbird_client.clone().ok_or_else(|| {
-                LoamSpineError::CapabilityUnavailable("Songbird not configured".into())
+            inner.registry_client.clone().ok_or_else(|| {
+                LoamSpineError::CapabilityUnavailable("Service registry not configured".into())
             })?
         };
 
         client.heartbeat().await?;
         Ok(())
+    }
+
+    /// Backward-compatible alias for [`Self::heartbeat_registry`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if heartbeat fails.
+    #[deprecated(since = "0.9.0", note = "Use heartbeat_registry instead")]
+    pub async fn heartbeat_songbird(&self) -> LoamSpineResult<()> {
+        self.heartbeat_registry().await
     }
 
     // ========================================================================
@@ -575,7 +617,7 @@ mod tests {
         // Test DynSigner trait through Arc
         let boxed: BoxedSigner = Arc::new(signer);
 
-        let data = b"test data".to_vec();
+        let data = crate::types::ByteBuffer::from_static(b"test data");
         let sig = boxed.sign_boxed(data).await;
         assert!(sig.is_ok());
 
@@ -591,7 +633,7 @@ mod tests {
         let verifier = MockVerifier::permissive();
         let boxed: BoxedVerifier = Arc::new(verifier);
 
-        let data = b"test data".to_vec();
+        let data = crate::types::ByteBuffer::from_static(b"test data");
         let sig = Signature::from_vec(vec![1, 2, 3]);
         let did = Did::new("did:key:test");
 
@@ -629,7 +671,7 @@ mod tests {
         let verifier = MockVerifier::strict();
         let boxed: BoxedVerifier = Arc::new(verifier);
 
-        let data = b"test data".to_vec();
+        let data = crate::types::ByteBuffer::from_static(b"test data");
         let sig = Signature::from_vec(vec![1, 2, 3]);
         let did = Did::new("did:key:test");
 
@@ -670,50 +712,67 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn discover_from_songbird_fails_when_not_configured() {
+    async fn discover_from_registry_fails_when_not_configured() {
         let registry = CapabilityRegistry::new();
 
-        let result = registry.discover_from_songbird().await;
+        let result = registry.discover_from_registry().await;
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Songbird") || err.to_string().contains("unavailable"));
+        assert!(err.to_string().contains("registry") || err.to_string().contains("unavailable"));
     }
 
     #[tokio::test]
-    async fn advertise_to_songbird_fails_when_not_configured() {
+    async fn advertise_to_registry_fails_when_not_configured() {
         let registry = CapabilityRegistry::new();
 
         let result = registry
-            .advertise_to_songbird("http://localhost:9001", "http://localhost:8080")
+            .advertise_to_registry("http://localhost:9001", "http://localhost:8080")
             .await;
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Songbird") || err.to_string().contains("unavailable"));
+        assert!(err.to_string().contains("registry") || err.to_string().contains("unavailable"));
     }
 
     #[tokio::test]
-    async fn heartbeat_songbird_fails_when_not_configured() {
+    async fn heartbeat_registry_fails_when_not_configured() {
         let registry = CapabilityRegistry::new();
 
-        let result = registry.heartbeat_songbird().await;
+        let result = registry.heartbeat_registry().await;
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Songbird") || err.to_string().contains("unavailable"));
+        assert!(err.to_string().contains("registry") || err.to_string().contains("unavailable"));
     }
 
     #[tokio::test]
-    async fn with_songbird_fails_for_unreachable_endpoint() {
-        let result = CapabilityRegistry::with_songbird("http://127.0.0.1:1").await;
+    async fn with_service_registry_fails_for_unreachable_endpoint() {
+        let result = CapabilityRegistry::with_service_registry("http://127.0.0.1:1").await;
 
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(
-            err.to_string().contains("unavailable") || err.to_string().contains("Songbird"),
-            "Expected connection error: {err}",
+            err.to_string().contains("unavailable")
+                || err.to_string().contains("registry")
+                || err.to_string().contains("transport"),
+            "Expected connection/transport error: {err}",
         );
+    }
+
+    #[tokio::test]
+    #[allow(deprecated)]
+    async fn deprecated_songbird_aliases_work() {
+        let registry = CapabilityRegistry::new();
+        assert!(registry.discover_from_songbird().await.is_err());
+        assert!(registry.heartbeat_songbird().await.is_err());
+        assert!(registry
+            .advertise_to_songbird("http://localhost:9001", "http://localhost:8080")
+            .await
+            .is_err());
+        assert!(CapabilityRegistry::with_songbird("http://127.0.0.1:1")
+            .await
+            .is_err());
     }
 
     #[test]

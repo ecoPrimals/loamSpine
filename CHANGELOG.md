@@ -5,9 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0] - 2026-03-12
+## [0.8.0] - 2026-03-13
 
-### Added
+### Added (March 13 -- Deep Debt & NeuralAPI)
+- **NeuralAPI integration**: `neural_api.rs` module with capability registration/deregistration via biomeOS Unix socket IPC, 19 semantic capabilities declared
+- **NeuralAPI lifecycle wiring**: `LifecycleManager::start()` registers with NeuralAPI (non-fatal), `stop()` deregisters
+- **UniBin `capabilities` subcommand**: `loamspine capabilities` prints JSON capability list
+- **UniBin `socket` subcommand**: `loamspine socket` prints NeuralAPI Unix socket path
+- **Provenance trio type bridge**: `trio_types.rs` with `EphemeralSessionId`, `BraidRef`, `EphemeralContentHash`, `TrioCommitRequest`, `TrioCommitReceipt`
+- **Semantic method aliases**: `commit.session` (biomeOS routing alias for `session.commit`), `capability.list` JSON-RPC method
+- **Canonical serialization evolution**: `entry.rs` `to_canonical_bytes()` now uses `bincode` with sorted metadata keys for deterministic hashing, returns `Result` with proper error propagation
+- **Error propagation**: Eliminated all `unwrap_or_default()` in production code -- transport body serialization, path handling, and entry hashing now propagate errors explicitly
+- **Safe integer casts**: All `u32 as usize` network length casts replaced with `usize::try_from()` and overflow handling
+- **MockTransport isolation**: `transport::mock` module gated behind `#[cfg(any(test, feature = "testing"))]`
+- **Deprecated songbird alias removed**: `pub use discovery_client as songbird` cleaned (no consumers)
+
+### Changed (March 13)
+- `Entry::compute_hash()`, `Entry::hash()`, `Entry::to_canonical_bytes()` now return `LoamSpineResult<T>` with error propagation through all 20+ call sites
+- `cli_signer.rs` `Path::to_str()` calls evolved from `unwrap_or_default()` to explicit `LoamSpineError::Internal` on non-UTF-8 paths
+- `jsonrpc.rs` refactored into `jsonrpc/mod.rs` (531 lines) + `jsonrpc/tests.rs` (481 lines)
+- All test modules annotated with `#[allow(clippy::expect_used, clippy::unwrap_used)]` for clean clippy
+- `backup/mod.rs`, `spine.rs` error enums extended with `HashComputationFailed` variants
+
+### Metrics (March 13)
+- Tests: 549 -> 610 (+61)
+- Source files: 66 -> 78
+- Clippy: 0 warnings (all targets, `-D warnings`)
+- Unsafe: 0 blocks (maintained)
+- Max file size: 899 lines (all < 1000)
+- ecoBin: fully compliant (zero C dependencies)
+
+### Added (March 12 -- Provenance Trio & Standards)
 - **Provenance Trio coordination**: `permanent-storage.*` JSON-RPC compatibility layer bridging rhizoCrypt's wire format to loamSpine's native types
   - `permanent-storage.commitSession` auto-creates permanence spines per committer, translates hex-encoded merkle roots to `[u8; 32]` and `RpcDehydrationSummary` to native `CommitSessionRequest`
   - `permanent-storage.verifyCommit`, `permanent-storage.getCommit`, `permanent-storage.healthCheck` methods for full rhizoCrypt client compatibility

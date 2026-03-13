@@ -34,7 +34,7 @@ impl LoamSpineRpcService {
         &self,
         request: VerifyInclusionProofRequest,
     ) -> ApiResult<VerifyInclusionProofResponse> {
-        let valid = request.proof.verify();
+        let valid = request.proof.verify()?;
         Ok(VerifyInclusionProofResponse {
             valid,
             message: if valid {

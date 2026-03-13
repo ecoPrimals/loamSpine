@@ -1,6 +1,6 @@
 # Known Issues - LoamSpine
 
-**Date**: March 12, 2026
+**Date**: March 13, 2026
 **Version**: 0.8.0
 **Status**: Production Ready
 
@@ -8,21 +8,22 @@
 
 ## Current State
 
-As of v0.8.0, the codebase passes all quality gates:
+As of v0.8.0 (March 13 deep debt pass), the codebase passes all quality gates:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Tests | 400+ | 549 | PASS |
-| Line Coverage | 90% | 90.08% | PASS |
-| Clippy (all targets, all features) | 0 warnings | 0 | PASS |
+| Tests | 400+ | 610 | PASS |
+| Line Coverage | 90% | 90%+ | PASS |
+| Clippy (all targets) | 0 warnings | 0 | PASS |
 | Formatting | clean | clean | PASS |
 | Documentation | compiles | compiles | PASS |
 | Unsafe Code | 0 | 0 | PASS |
-| Max File Size | <1000 lines | 863 max | PASS |
+| Max File Size | <1000 lines | 899 max | PASS |
 | License | AGPL-3.0-only | AGPL-3.0-only | PASS |
 | SPDX Headers | all files | all files | PASS |
 | cargo deny (bans, licenses, sources) | pass | pass | PASS |
-| Pure Rust deps (no openssl/native-tls) | pass | pass | PASS |
+| ecoBin (zero C deps) | pass | pass | PASS |
+| UniBin subcommands | server, capabilities, socket | all present | PASS |
 
 ---
 
@@ -30,34 +31,24 @@ As of v0.8.0, the codebase passes all quality gates:
 
 ### Minor
 
-1. **Deprecated config fields**: `songbird_enabled`, `songbird_endpoint` in `DiscoveryConfig` -- scheduled for removal in v1.0.0.
-2. **mDNS experimental**: Feature-gated behind `mdns` feature; stub implementation returns empty when feature enabled.
-3. **`main.rs` 0% coverage**: Binary entry point; tested via integration/showcase demos, not unit tests.
-4. **`thiserror` duplicate versions**: v1 and v2 coexist via transitive deps (non-blocking, `cargo deny` warns).
+1. **mDNS experimental**: Feature-gated behind `mdns` feature; stub implementation returns empty when feature enabled.
+2. **`main.rs` 0% coverage**: Binary entry point; tested via integration/showcase demos, not unit tests.
+3. **`thiserror` duplicate versions**: v1 and v2 coexist via transitive deps (non-blocking).
+4. **Storage backends**: `Sqlite`, `Postgres`, `Rocksdb` enum variants defined but not implemented (planned work).
+5. **Showcase demos**: 10% complete (2/21 demos fully implemented); remaining are documented/scaffolded.
+6. **`proc-macro-error` advisory**: Transitive dependency of optional `mdns` feature (not enabled by default).
+
+### Resolved (March 13)
+
+- `songbird` deprecated alias removed (was: scheduled for v1.0.0 removal)
+- `unwrap_or_default()` in production code eliminated (entry.rs, transport/neural_api.rs, cli_signer.rs)
+- `u32 as usize` network casts replaced with `try_from`
+- `MockTransport` dead code warnings resolved via `cfg(test)` gating
+- `entry.rs` JSON serialization replaced with deterministic `bincode` + sorted metadata
 
 ### None Critical
 
 No critical issues, blockers, or security concerns.
-
----
-
-## v0.8.0 Changes (This Release)
-
-- UniBin compliance: binary renamed to `loamspine`, subcommand structure (`loamspine server`)
-- AGPL-3.0-only LICENSE file, SPDX headers on all source files
-- Semantic JSON-RPC method naming (`spine.create`, `certificate.mint`, etc.)
-- DNS-SRV discovery activated in default config
-- `service.rs` refactored into domain-focused modules
-- `#[allow]` cleanup and `cast_possible_truncation` evolved to `try_into()`
-- Service registry discovery evolved from warning stub to real HTTP-based implementation
-- `reqwest` switched from `native-tls` to `rustls-tls` for pure Rust TLS (ecoBin compliance)
-- `deny.toml` updated: `AGPL-3.0-only`, `CDLA-Permissive-2.0` licenses allowed
-- Environment-touching tests serialized with `#[serial]` to prevent race conditions
-- Coverage pushed from 87% to 90.08% with targeted tests across 8 files
-- 549 tests (up from 495), 90.08% line coverage (up from 87%)
-- Version aligned to 0.8.0 across workspace
-- `permanent-storage.*` compatibility layer for rhizoCrypt wire format
-- Provenance trio integration tests (10 tests covering full dehydration + braid anchoring flows)
 
 ---
 

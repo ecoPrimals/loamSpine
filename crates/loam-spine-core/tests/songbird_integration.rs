@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Integration tests for Songbird client with real binary.
+//! Integration tests for service registry client with real binary.
 //!
-//! These tests use the actual `Songbird` binary from `../bins/` to test
+//! These tests use the actual service registry binary from `../bins/` to test
 //! real service discovery and registration flows. They gracefully skip
 //! if the binary is not available.
 //!
@@ -231,7 +231,7 @@ async fn test_songbird_advertise_and_discover() {
 
     // Advertise LoamSpine
     let result = client
-        .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
         .await;
 
     assert!(
@@ -288,7 +288,7 @@ async fn test_songbird_heartbeat() {
 
     // Advertise first
     let _ = client
-        .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
@@ -325,7 +325,7 @@ async fn test_songbird_deregister() {
 
     // Advertise first
     let _ = client
-        .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
@@ -379,7 +379,7 @@ async fn test_songbird_discover_all() {
 
     // Advertise multiple capabilities
     let _ = client
-        .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
@@ -418,7 +418,7 @@ async fn test_songbird_multiple_capabilities() {
 
     // Advertise
     let _ = client
-        .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
@@ -449,6 +449,7 @@ async fn test_songbird_multiple_capabilities() {
     for (capability, handle) in handles {
         let result = handle.await;
         assert!(result.is_ok(), "Task for {capability} should not fail");
+        #[allow(clippy::unwrap_used)]
         let timeout_result = result.unwrap();
         assert!(
             timeout_result.is_ok(),
@@ -487,7 +488,7 @@ async fn test_songbird_concurrent_operations() {
 
     // Advertise
     let _ = client
-        .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)

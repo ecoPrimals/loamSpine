@@ -281,7 +281,7 @@ cd 04-inter-primal/05-full-ecosystem
 - ✅ That's it! Level 1 works standalone
 
 ### Recommended (For Level 2+)
-- ✅ LoamSpine service binary (`bin/loamspine-service`)
+- ✅ LoamSpine binary (`loamspine server`)
 - ✅ Songbird for discovery (Level 3)
 - ✅ Phase 1 primal binaries in `../bins/` (Level 4)
 

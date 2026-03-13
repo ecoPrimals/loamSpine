@@ -9,6 +9,7 @@
 //! - **SliceManager**: Manages slice checkout and resolution
 //! - **SpineQuery**: Provides query access to spines and entries
 //! - **BraidAcceptor**: Accepts Braids from semantic attribution primals
+//! - **ProvenanceSource**: Provides provenance data to attribution primals
 //!
 //! ## Capability-Based Discovery
 //!
@@ -20,8 +21,9 @@ use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::spine::Spine;
 use crate::storage::{EntryStorage, SpineStorage};
 use crate::traits::{
-    BraidAcceptor, BraidSummary, CommitAcceptor, DehydrationSummary, LoamCommitRef, SliceManager,
-    SliceOrigin, SliceResolution, SpineQuery,
+    ActiveSlice, AttributionRecord, BraidAcceptor, BraidSummary, CommitAcceptor,
+    DehydrationSummary, LoamCommitRef, ProvenanceLink, ProvenanceSource, SliceManager, SliceOrigin,
+    SliceResolution, SliceStatus, SpineQuery,
 };
 use crate::types::{BraidId, ContentHash, Did, EntryHash, SessionId, SliceId, SpineId};
 
@@ -119,18 +121,31 @@ impl SliceManager for LoamSpineService {
         self.entry_storage.save_entry(&checkout_entry).await?;
         self.spine_storage.save_spine(&spine).await?;
 
-        {
-            let mut slices = self.active_slices.write().await;
-            slices.insert(slice_id, (spine_id, entry_hash, holder.clone()));
-        }
-
-        Ok(SliceOrigin {
+        let origin = SliceOrigin {
             spine_id,
             entry_hash,
             entry_index: entry.index,
             certificate_id: None,
             owner: spine.owner.clone(),
-        })
+        };
+
+        {
+            let mut slices = self.active_slices.write().await;
+            slices.insert(
+                slice_id,
+                super::ActiveSliceInfo {
+                    spine_id,
+                    entry_hash,
+                    holder: holder.clone(),
+                    entry_index: entry.index,
+                    owner: spine.owner.clone(),
+                    session_id,
+                    checked_out_at: crate::types::Timestamp::now(),
+                },
+            );
+        }
+
+        Ok(origin)
     }
 
     async fn resolve_slice(
@@ -138,13 +153,15 @@ impl SliceManager for LoamSpineService {
         slice_id: SliceId,
         resolution: SliceResolution,
     ) -> LoamSpineResult<EntryHash> {
-        let (spine_id, source_entry, _holder) = {
+        let info = {
             let slices = self.active_slices.read().await;
             slices
                 .get(&slice_id)
                 .cloned()
                 .ok_or_else(|| LoamSpineError::Internal(format!("slice not found: {slice_id}")))?
         };
+        let spine_id = info.spine_id;
+        let source_entry = info.entry_hash;
 
         let mut spine = self
             .spine_storage
@@ -180,6 +197,117 @@ impl SliceManager for LoamSpineService {
         }
 
         Ok(entry_hash)
+    }
+
+    async fn mark_sliced(&self, slice_id: SliceId, holder: Did) -> LoamSpineResult<()> {
+        let mut slices = self.active_slices.write().await;
+        if let Some(info) = slices.get_mut(&slice_id) {
+            info.holder = holder;
+        }
+        Ok(())
+    }
+
+    async fn clear_slice_mark(&self, slice_id: SliceId) -> LoamSpineResult<()> {
+        let mut slices = self.active_slices.write().await;
+        slices.remove(&slice_id);
+        Ok(())
+    }
+
+    async fn record_slice_checkout(
+        &self,
+        spine_id: SpineId,
+        slice_id: SliceId,
+        holder: Did,
+        origin: &SliceOrigin,
+    ) -> LoamSpineResult<EntryHash> {
+        let mut spine = self
+            .spine_storage
+            .get_spine(spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
+
+        let entry = spine.create_entry(EntryType::SliceCheckout {
+            slice_id,
+            source_entry: origin.entry_hash,
+            session_id: SessionId::now_v7(),
+            holder,
+        });
+
+        let entry_hash = spine.append(entry.clone())?;
+        self.entry_storage.save_entry(&entry).await?;
+        self.spine_storage.save_spine(&spine).await?;
+
+        Ok(entry_hash)
+    }
+
+    async fn record_slice_return(
+        &self,
+        spine_id: SpineId,
+        slice_id: SliceId,
+        resolution: &SliceResolution,
+    ) -> LoamSpineResult<EntryHash> {
+        let mut spine = self
+            .spine_storage
+            .get_spine(spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
+
+        let (success, summary) = match resolution {
+            SliceResolution::Merged { summary } => (true, Some(*summary)),
+            SliceResolution::Abandoned { .. } | SliceResolution::Expired => (false, None),
+        };
+
+        let checkout_entry = spine
+            .tip_entry()
+            .map(Entry::compute_hash)
+            .transpose()?
+            .unwrap_or_default();
+
+        let entry = spine.create_entry(EntryType::SliceReturn {
+            slice_id,
+            checkout_entry,
+            success,
+            summary,
+        });
+
+        let entry_hash = spine.append(entry.clone())?;
+        self.entry_storage.save_entry(&entry).await?;
+        self.spine_storage.save_spine(&spine).await?;
+
+        Ok(entry_hash)
+    }
+
+    async fn get_slice_status(&self, slice_id: SliceId) -> LoamSpineResult<SliceStatus> {
+        let slices = self.active_slices.read().await;
+        match slices.get(&slice_id) {
+            Some(info) => Ok(SliceStatus::Active {
+                holder: info.holder.clone(),
+            }),
+            None => Ok(SliceStatus::Unknown),
+        }
+    }
+
+    async fn list_active_slices(&self, spine_id: SpineId) -> LoamSpineResult<Vec<ActiveSlice>> {
+        let slices = self.active_slices.read().await;
+        let mut result = Vec::new();
+        for (slice_id, info) in slices.iter() {
+            if info.spine_id == spine_id {
+                result.push(ActiveSlice {
+                    slice_id: *slice_id,
+                    origin: SliceOrigin {
+                        spine_id: info.spine_id,
+                        entry_hash: info.entry_hash,
+                        entry_index: info.entry_index,
+                        certificate_id: None,
+                        owner: info.owner.clone(),
+                    },
+                    holder: info.holder.clone(),
+                    checked_out_at: info.checked_out_at,
+                    session_id: info.session_id,
+                });
+            }
+        }
+        Ok(result)
     }
 }
 
@@ -279,7 +407,7 @@ impl BraidAcceptor for LoamSpineService {
                 } = &entry.entry_type
                 {
                     if *sh == subject_hash {
-                        results.push(entry.compute_hash());
+                        results.push(entry.compute_hash()?);
                     }
                 }
             }
@@ -288,312 +416,133 @@ impl BraidAcceptor for LoamSpineService {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::types::Timestamp;
+// ============================================================================
+// ProvenanceSource Implementation (Attribution Primals → LoamSpine)
+// ============================================================================
 
-    #[tokio::test]
-    async fn test_slice_checkout_and_resolve() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // Get genesis entry hash
-        let spine = service
-            .get_spine(spine_id)
-            .await
-            .unwrap_or_else(|_| unreachable!())
-            .unwrap_or_else(|| unreachable!());
-
-        let genesis = spine.genesis_entry().unwrap_or_else(|| unreachable!());
-        let entry_hash = genesis.compute_hash();
-
-        // Checkout slice
-        let session_id = SessionId::now_v7();
-        let origin = service
-            .checkout_slice(spine_id, entry_hash, owner.clone(), session_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        assert_eq!(origin.spine_id, spine_id);
+impl ProvenanceSource for LoamSpineService {
+    async fn get_entries_for_data(&self, content_hash: ContentHash) -> LoamSpineResult<Vec<Entry>> {
+        let mut results = Vec::new();
+        let spine_ids = self.spine_storage.list_spines().await?;
+        for spine_id in spine_ids {
+            let entries = self
+                .entry_storage
+                .get_entries_for_spine(spine_id, 0, DEFAULT_SEARCH_LIMIT)
+                .await?;
+            for entry in entries {
+                if let EntryType::DataAnchor { data_hash, .. } = &entry.entry_type {
+                    if *data_hash == content_hash {
+                        results.push(entry);
+                    }
+                }
+            }
+        }
+        Ok(results)
     }
 
-    #[tokio::test]
-    async fn test_slice_resolve_merged() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Resolve Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let spine = service
-            .get_spine(spine_id)
-            .await
-            .unwrap_or_else(|_| unreachable!())
-            .unwrap_or_else(|| unreachable!());
-
-        let genesis = spine.genesis_entry().unwrap_or_else(|| unreachable!());
-        let entry_hash = genesis.compute_hash();
-
-        let session_id = SessionId::now_v7();
-        let origin = service
-            .checkout_slice(spine_id, entry_hash, owner.clone(), session_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // Get slice_id from active slices
-        let slice_id = {
-            let slices = service.active_slices.read().await;
-            slices
-                .keys()
-                .next()
-                .copied()
-                .unwrap_or_else(|| unreachable!())
-        };
-
-        // Resolve with merge
-        let resolution = SliceResolution::Merged {
-            summary: [0xABu8; 32],
-        };
-        let result_hash = service
-            .resolve_slice(slice_id, resolution)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        assert_ne!(result_hash, [0u8; 32]);
-        assert_eq!(origin.spine_id, spine_id);
+    async fn get_certificate_history(
+        &self,
+        certificate_id: crate::types::CertificateId,
+    ) -> LoamSpineResult<Vec<Entry>> {
+        let mut results = Vec::new();
+        let spine_ids = self.spine_storage.list_spines().await?;
+        for spine_id in spine_ids {
+            let entries = self
+                .entry_storage
+                .get_entries_for_spine(spine_id, 0, DEFAULT_SEARCH_LIMIT)
+                .await?;
+            for entry in entries {
+                let matches = match &entry.entry_type {
+                    EntryType::CertificateMint { cert_id, .. }
+                    | EntryType::CertificateTransfer { cert_id, .. }
+                    | EntryType::CertificateLoan { cert_id, .. }
+                    | EntryType::CertificateReturn { cert_id, .. } => *cert_id == certificate_id,
+                    _ => false,
+                };
+                if matches {
+                    results.push(entry);
+                }
+            }
+        }
+        Ok(results)
     }
 
-    #[tokio::test]
-    async fn test_slice_resolve_abandoned() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
+    async fn get_attribution(
+        &self,
+        content_hash: ContentHash,
+    ) -> LoamSpineResult<Option<AttributionRecord>> {
+        let spine_ids = self.spine_storage.list_spines().await?;
+        for spine_id in &spine_ids {
+            let entries = self
+                .entry_storage
+                .get_entries_for_spine(*spine_id, 0, DEFAULT_SEARCH_LIMIT)
+                .await?;
+            for entry in &entries {
+                if let EntryType::DataAnchor { data_hash, .. } = &entry.entry_type {
+                    if *data_hash == content_hash {
+                        let spine = self.spine_storage.get_spine(*spine_id).await?;
+                        let creator = spine
+                            .as_ref()
+                            .map_or_else(|| Did::new("did:key:unknown"), |s| s.owner.clone());
 
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Abandon Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let spine = service
-            .get_spine(spine_id)
-            .await
-            .unwrap_or_else(|_| unreachable!())
-            .unwrap_or_else(|| unreachable!());
-
-        let genesis = spine.genesis_entry().unwrap_or_else(|| unreachable!());
-        let entry_hash = genesis.compute_hash();
-
-        let session_id = SessionId::now_v7();
-        let _origin = service
-            .checkout_slice(spine_id, entry_hash, owner.clone(), session_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let slice_id = {
-            let slices = service.active_slices.read().await;
-            slices
-                .keys()
-                .next()
-                .copied()
-                .unwrap_or_else(|| unreachable!())
-        };
-
-        // Resolve with abandon
-        let resolution = SliceResolution::Abandoned {
-            reason: "test".to_string(),
-        };
-        let result_hash = service
-            .resolve_slice(slice_id, resolution)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        assert_ne!(result_hash, [0u8; 32]);
+                        return Ok(Some(AttributionRecord {
+                            content_hash,
+                            creator,
+                            contributors: Vec::new(),
+                            certificate_id: None,
+                            recorded_at: entry.timestamp,
+                        }));
+                    }
+                }
+            }
+        }
+        Ok(None)
     }
 
-    #[tokio::test]
-    async fn test_get_entries() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
+    async fn get_provenance_chain(
+        &self,
+        content_hash: ContentHash,
+    ) -> LoamSpineResult<Vec<ProvenanceLink>> {
+        let mut chain = Vec::new();
+        let spine_ids = self.spine_storage.list_spines().await?;
+        for spine_id in spine_ids {
+            let spine = self.spine_storage.get_spine(spine_id).await?;
+            let owner = spine
+                .as_ref()
+                .map_or_else(|| Did::new("did:key:unknown"), |s| s.owner.clone());
 
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let entries = service
-            .get_entries(spine_id, 0, 10)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // Should have at least genesis entry
-        assert!(!entries.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_commit_session_and_verify() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Session Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let session_id = SessionId::now_v7();
-        let summary = DehydrationSummary {
-            session_id,
-            session_type: "test-session".to_string(),
-            merkle_root: [0xABu8; 32],
-            vertex_count: 42,
-            started_at: Timestamp::now(),
-            ended_at: Timestamp::now(),
-            result_entries: Vec::new(),
-            metadata: std::collections::HashMap::new(),
-        };
-
-        let commit_ref = service
-            .commit_session(spine_id, owner.clone(), summary)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        assert_eq!(commit_ref.spine_id, spine_id);
-        assert!(commit_ref.index > 0);
-
-        // Verify commit
-        let verified = service
-            .verify_commit(&commit_ref)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(verified);
-
-        // Get commit
-        let entry = service
-            .get_commit(&commit_ref)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(entry.is_some());
-    }
-
-    #[tokio::test]
-    async fn test_braid_commit_and_verify() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Braid Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let braid_id = BraidId::now_v7();
-        let subject_hash = [0xCDu8; 32];
-        let braid = BraidSummary {
-            braid_id,
-            braid_type: "attribution".to_string(),
-            subject_hash,
-            braid_hash: [0xEFu8; 32],
-            agents: vec![owner.clone()],
-            created_at: Timestamp::now(),
-            signature: None,
-        };
-
-        let entry_hash = service
-            .commit_braid(spine_id, owner.clone(), braid)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        assert_ne!(entry_hash, [0u8; 32]);
-
-        // Verify braid exists
-        let exists = service
-            .verify_braid(braid_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(exists);
-
-        // Verify non-existent braid doesn't exist
-        let not_exists = service
-            .verify_braid(BraidId::now_v7())
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(!not_exists);
-
-        // Get braids for subject
-        let braids = service
-            .get_braids_for_subject(subject_hash)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert_eq!(braids.len(), 1);
-        assert_eq!(braids[0], entry_hash);
-
-        // Get braids for non-existent subject
-        let no_braids = service
-            .get_braids_for_subject([0x00u8; 32])
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(no_braids.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_get_tip() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Tip Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let tip = service
-            .get_tip(spine_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(tip.is_some());
-
-        // Non-existent spine returns None
-        let no_tip = service
-            .get_tip(SpineId::now_v7())
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(no_tip.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_get_entry() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Entry Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let spine = service
-            .get_spine(spine_id)
-            .await
-            .unwrap_or_else(|_| unreachable!())
-            .unwrap_or_else(|| unreachable!());
-
-        let genesis = spine.genesis_entry().unwrap_or_else(|| unreachable!());
-        let entry_hash = genesis.compute_hash();
-
-        let entry = service
-            .get_entry(entry_hash)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(entry.is_some());
-
-        // Non-existent entry returns None
-        let no_entry = service
-            .get_entry([0u8; 32])
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(no_entry.is_none());
+            let entries = self
+                .entry_storage
+                .get_entries_for_spine(spine_id, 0, DEFAULT_SEARCH_LIMIT)
+                .await?;
+            for entry in entries {
+                let relationship = match &entry.entry_type {
+                    EntryType::DataAnchor { data_hash, .. } if *data_hash == content_hash => {
+                        Some("anchored-by")
+                    }
+                    EntryType::BraidCommit { subject_hash, .. }
+                        if *subject_hash == content_hash =>
+                    {
+                        Some("attributed-to")
+                    }
+                    _ => None,
+                };
+                if let Some(rel) = relationship {
+                    chain.push(ProvenanceLink {
+                        entry_hash: entry.compute_hash()?,
+                        spine_id,
+                        index: entry.index,
+                        agent: owner.clone(),
+                        timestamp: entry.timestamp,
+                        relationship: rel.to_string(),
+                    });
+                }
+            }
+        }
+        Ok(chain)
     }
 }
+
+#[cfg(test)]
+#[path = "integration_tests.rs"]
+mod tests;

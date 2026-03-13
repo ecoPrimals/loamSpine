@@ -20,7 +20,7 @@
 //! 1. **Environment Variables** - Explicit configuration
 //! 2. **mDNS/Bonjour** - Zero-config LAN discovery
 //! 3. **DNS SRV** - Production service discovery
-//! 4. **Service Registry** - Universal adapter (Songbird)
+//! 4. **Service Registry** - Universal adapter (any RFC 2782 compliant system)
 //! 5. **Degraded Mode** - Operate with reduced functionality
 //!
 //! ## Examples
@@ -436,7 +436,7 @@ impl InfantDiscovery {
     ///
     /// Queries the registry's HTTP API for services providing the given capability.
     /// Compatible with any registry exposing a `/discover?capability=...` endpoint
-    /// (Songbird, Consul adapter, etcd adapter, etc.).
+    /// (Consul adapter, etcd adapter, or any compatible registry).
     async fn discover_via_registry(
         &self,
         registry_url: &str,

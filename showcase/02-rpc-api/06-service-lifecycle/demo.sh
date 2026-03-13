@@ -19,7 +19,7 @@ PURPLE='\033[0;35m'
 NC='\033[0m'
 
 # Configuration
-LOAMSPINE_SERVICE_BIN="${BINS_DIR}/loamspine-service"
+LOAMSPINE_BIN="${BINS_DIR}/loamspine"
 JSONRPC_PORT="8085"
 TARPC_PORT="9005"
 JSONRPC_URL="http://localhost:${JSONRPC_PORT}"
@@ -39,12 +39,12 @@ echo "  • Graceful shutdown"
 echo ""
 
 # Check binary
-if [ ! -f "${LOAMSPINE_SERVICE_BIN}" ]; then
-    echo -e "${RED}❌ loamspine-service binary not found${NC}"
+if [ ! -f "${LOAMSPINE_BIN}" ]; then
+    echo -e "${RED}❌ loamspine binary not found${NC}"
     exit 1
 fi
 
-echo -e "${YELLOW}✓ Binary located: ${LOAMSPINE_SERVICE_BIN}${NC}"
+echo -e "${YELLOW}✓ Binary located: ${LOAMSPINE_BIN}${NC}"
 echo ""
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -85,12 +85,12 @@ echo ""
 echo -e "${PURPLE}STAGE 2: Service Startup${NC}"
 echo ""
 
-echo "   Starting loamspine-service..."
+echo "   Starting loamspine..."
 echo "   • JSON-RPC port: ${JSONRPC_PORT}"
 echo "   • TARPC port: ${TARPC_PORT}"
 echo ""
 
-"${LOAMSPINE_SERVICE_BIN}" \
+"${LOAMSPINE_BIN}" server \
     --jsonrpc-port "${JSONRPC_PORT}" \
     --tarpc-port "${TARPC_PORT}" \
     &> /tmp/loamspine-lifecycle.log &

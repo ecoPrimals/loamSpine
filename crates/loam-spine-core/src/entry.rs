@@ -15,6 +15,26 @@ use crate::types::{
     Signature, SliceId, SpineId, Timestamp,
 };
 
+/// Serde helpers for `ByteBuffer` fields in derived enums/structs.
+pub(crate) mod serde_byte_buffer {
+    use crate::types::ByteBuffer;
+
+    pub fn serialize<S>(val: &ByteBuffer, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_bytes(val)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<ByteBuffer, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = serde::Deserialize::deserialize(deserializer)?;
+        Ok(ByteBuffer::from(bytes))
+    }
+}
+
 /// A single entry in a LoamSpine.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Entry {
@@ -134,29 +154,48 @@ impl Entry {
     }
 
     /// Compute the entry hash (Blake3 of canonical form).
-    #[must_use]
-    pub fn compute_hash(&self) -> EntryHash {
-        let canonical = self.to_canonical_bytes();
-        hash_bytes(&canonical)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if canonical serialization fails.
+    pub fn compute_hash(&self) -> crate::error::LoamSpineResult<EntryHash> {
+        let canonical = self.to_canonical_bytes()?;
+        Ok(hash_bytes(&canonical))
     }
 
     /// Get the entry hash (cached).
-    pub fn hash(&mut self) -> EntryHash {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if canonical serialization fails.
+    pub fn hash(&mut self) -> crate::error::LoamSpineResult<EntryHash> {
         if let Some(hash) = self.cached_hash {
-            hash
+            Ok(hash)
         } else {
-            let hash = self.compute_hash();
+            let hash = self.compute_hash()?;
             self.cached_hash = Some(hash);
-            hash
+            Ok(hash)
         }
     }
 
-    /// Serialize to canonical bytes (for hashing).
-    #[must_use]
-    pub fn to_canonical_bytes(&self) -> Vec<u8> {
-        // Use JSON for canonical serialization
-        // In production, we'd use CBOR or a more compact format
-        serde_json::to_vec(self).unwrap_or_default()
+    /// Serialize to canonical bytes for hashing.
+    ///
+    /// Uses `bincode` for compact, deterministic serialization. Metadata keys
+    /// are sorted before serialization to ensure consistent hashes regardless
+    /// of `HashMap` iteration order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if serialization fails (should never occur for valid entries).
+    pub fn to_canonical_bytes(&self) -> crate::error::LoamSpineResult<Vec<u8>> {
+        let mut canonical = self.clone();
+        let sorted: std::collections::BTreeMap<_, _> = canonical.metadata.drain().collect();
+        canonical.metadata = sorted.into_iter().collect();
+        bincode::serialize(&canonical).map_err(|e| {
+            crate::error::LoamSpineError::Serialization(format!(
+                "canonical serialization failed: {e}"
+            ))
+        })
     }
 
     /// Get the entry type domain.
@@ -333,12 +372,16 @@ pub enum EntryType {
     },
 
     // === Custom ===
-    /// Custom entry type.
+    /// Custom entry type with zero-copy payload.
     Custom {
         /// Type URI.
         type_uri: String,
-        /// Payload bytes.
-        payload: Vec<u8>,
+        /// Payload bytes (zero-copy via `bytes::Bytes`).
+        #[serde(
+            serialize_with = "crate::entry::serde_byte_buffer::serialize",
+            deserialize_with = "crate::entry::serde_byte_buffer::deserialize"
+        )]
+        payload: crate::types::ByteBuffer,
     },
 }
 
@@ -420,6 +463,7 @@ pub enum SpineType {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -453,8 +497,8 @@ mod tests {
         let did = Did::new("did:key:z6MkTest");
         let entry = Entry::new(0, None, did, EntryType::SpineSealed { reason: None });
 
-        let hash1 = entry.compute_hash();
-        let hash2 = entry.compute_hash();
+        let hash1 = entry.compute_hash().expect("compute_hash");
+        let hash2 = entry.compute_hash().expect("compute_hash");
         assert_eq!(hash1, hash2);
     }
 

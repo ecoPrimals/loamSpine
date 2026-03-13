@@ -238,7 +238,7 @@ EOF
     pause_if_interactive
     
     # Check if service is available
-    if [ -f "../bin/loamspine-service/main.rs" ] || [ -f "../target/release/loamspine-service" ]; then
+    if [ -f "../bin/loamspine-service/main.rs" ] || [ -f "../target/release/loamspine" ]; then
         # Demo 1: tarpc Basics
         print_step "Demo 1/5: tarpc Basics — Binary RPC"
         cd 02-rpc-api/01-tarpc-basics
@@ -283,7 +283,7 @@ EOF
         echo ""
     else
         print_warning "LoamSpine service not built. Skipping RPC demos."
-        print_info "To build: cargo build --release --bin loamspine-service"
+        print_info "To build: cargo build --release --bin loamspine"
         echo ""
     fi
     
@@ -520,7 +520,7 @@ echo ""
 echo -e "${YELLOW}Next Steps:${NC}"
 echo "  • Build with LoamSpine: Review API docs (cargo doc --open)"
 echo "  • Integrate: See specs/ for integration patterns"
-echo "  • Deploy: Review bin/loamspine-service for production"
+echo "  • Deploy: Review bin/loamspine-service for production (UniBin: loamspine server)"
 echo "  • Contribute: See CONTRIBUTING.md for contribution guide"
 echo ""
 

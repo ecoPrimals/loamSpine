@@ -158,7 +158,7 @@ print_info "LoamSpine uses Pure Rust RPC for maximum performance..."
 sleep 1
 
 # Check if service is running
-if pgrep -f "loamspine-service" > /dev/null 2>&1; then
+if pgrep -f "loamspine" > /dev/null 2>&1; then
     print_success "LoamSpine service is running"
     
     # Try a JSON-RPC health check
@@ -175,7 +175,7 @@ else
     print_info "Service not running, showing example:"
     echo ""
     echo "Start service:"
-    echo "  \$ cargo run --release --bin loamspine-service"
+    echo "  \$ cargo run --release --bin loamspine -- server"
     echo ""
     echo "Make JSON-RPC call:"
     echo "  \$ curl -X POST http://localhost:8080/jsonrpc \\"

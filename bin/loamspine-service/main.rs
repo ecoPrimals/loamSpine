@@ -19,7 +19,7 @@
 //! LOAMSPINE_TARPC_PORT=9001 LOAMSPINE_JSONRPC_PORT=8080 loamspine server
 //!
 //! # Discovery registration
-//! DISCOVERY_ENDPOINT=http://songbird:8082 loamspine server
+//! DISCOVERY_ENDPOINT=http://registry:8082 loamspine server
 //! ```
 
 #![forbid(unsafe_code)]
@@ -48,7 +48,7 @@ struct Cli {
     command: Command,
 }
 
-/// Available subcommands.
+/// Available subcommands (UniBin standard).
 #[derive(Subcommand)]
 enum Command {
     /// Start the LoamSpine service (tarpc + JSON-RPC dual protocol).
@@ -65,6 +65,12 @@ enum Command {
         #[arg(long)]
         bind_address: Option<String>,
     },
+
+    /// List capabilities provided by this primal (UniBin standard).
+    Capabilities,
+
+    /// Show socket path for NeuralAPI IPC (UniBin standard).
+    Socket,
 }
 
 #[tokio::main]
@@ -78,6 +84,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             bind_address,
         } => {
             run_server(tarpc_port, jsonrpc_port, bind_address).await?;
+        }
+        Command::Capabilities => {
+            println!("{}", loam_spine_core::neural_api::capability_list_pretty());
+        }
+        Command::Socket => {
+            let path = loam_spine_core::neural_api::resolve_socket_path();
+            println!("{}", path.display());
         }
     }
 
@@ -132,9 +145,12 @@ async fn run_server(
         }
     });
 
+    let socket_path = loam_spine_core::neural_api::resolve_socket_path();
+
     info!("LoamSpine service started successfully");
     info!("  tarpc:    tarpc://{resolved_bind}:{resolved_tarpc_port}");
     info!("  JSON-RPC: http://{resolved_bind}:{resolved_jsonrpc_port}");
+    info!("  socket:   {}", socket_path.display());
 
     // Cooperative shutdown: select between server futures and ctrl-c
     tokio::select! {

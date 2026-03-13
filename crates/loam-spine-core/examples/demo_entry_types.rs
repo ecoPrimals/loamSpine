@@ -97,7 +97,7 @@ fn main() -> LoamSpineResult<()> {
     println!("---------------------------");
     let entry6 = spine.create_entry(EntryType::Custom {
         type_uri: "loamspine://annotation/v1".to_string(),
-        payload: b"This was an important session".to_vec(),
+        payload: loam_spine_core::types::ByteBuffer::from_static(b"This was an important session"),
     });
     let hash6 = spine.append(entry6)?;
     println!("✓ Custom added: {hash6:?}");

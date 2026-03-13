@@ -40,8 +40,17 @@ use crate::spine::Spine;
 use crate::storage::{EntryStorage, InMemoryEntryStorage, InMemorySpineStorage, SpineStorage};
 use crate::types::{CertificateId, Did, EntryHash, SliceId, SpineId};
 
-/// Active slice info tuple type.
-pub(crate) type ActiveSliceInfo = (SpineId, EntryHash, Did);
+/// Stored metadata for an active slice, tracked in the in-memory registry.
+#[derive(Clone, Debug)]
+pub(crate) struct ActiveSliceInfo {
+    pub spine_id: SpineId,
+    pub entry_hash: EntryHash,
+    pub holder: Did,
+    pub entry_index: u64,
+    pub owner: Did,
+    pub session_id: crate::types::SessionId,
+    pub checked_out_at: crate::types::Timestamp,
+}
 
 /// LoamSpine service that implements all integration traits.
 ///

@@ -15,7 +15,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe**: `#![forbid(unsafe_code)]` is enforced
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 90.08%)
+- **High Coverage**: Aim for 90%+ line coverage (current: 90%+, 610 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -42,7 +42,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 # Build
 cargo build
 
-# Test (549 tests)
+# Test (610 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -163,7 +163,7 @@ async fn concurrent_commits_succeed() { ... }
 ### Coverage Requirements
 - New code: 90%+ line coverage
 - Critical paths: 95%+ coverage
-- Current project average: 90.08%
+- Current project average: 90%+
 - Run coverage: `cargo llvm-cov --workspace --summary-only`
 
 ---
@@ -293,9 +293,9 @@ Look for issues labeled `good-first-issue`:
 | Metric | Value |
 |--------|-------|
 | Version | 0.8.0 |
-| Tests | 549 |
-| Line Coverage | 90.08% |
-| Max File Size | 863 lines |
+| Tests | 610 |
+| Line Coverage | 90%+ |
+| Max File Size | 899 lines |
 | Clippy | pedantic + nursery (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | License | AGPL-3.0-only |

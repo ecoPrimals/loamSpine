@@ -85,6 +85,7 @@ impl From<loam_spine_core::error::LoamSpineError> for ApiError {
             | LoamSpineError::CapabilityUnavailable(msg)
             | LoamSpineError::Network(msg) => Self::Internal(msg),
             LoamSpineError::Serialization(msg) => Self::Serialization(msg),
+            LoamSpineError::InvalidData(msg) => Self::InvalidRequest(msg),
         }
     }
 }
@@ -219,6 +220,11 @@ mod tests {
         let core_err = LoamSpineError::Serialization("json failed".into());
         let api_err: ApiError = core_err.into();
         assert!(matches!(api_err, ApiError::Serialization(_)));
+
+        // InvalidData -> InvalidRequest
+        let core_err = LoamSpineError::InvalidData("bad data".into());
+        let api_err: ApiError = core_err.into();
+        assert!(matches!(api_err, ApiError::InvalidRequest(_)));
     }
 
     #[test]

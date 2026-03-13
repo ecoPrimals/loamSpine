@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::expect_used, clippy::unwrap_used)]
+
 //! Integration tests for CLI signer with real `BearDog` binary.
 //!
 //! These tests use the actual `BearDog` binary from `../bins/` to test
@@ -211,7 +213,7 @@ async fn test_cli_signer_integration_with_entry() {
         let entry = Entry::genesis(owner.clone(), spine_id, SpineConfig::default());
 
         // Sign the entry
-        let data = entry.to_canonical_bytes();
+        let data = entry.to_canonical_bytes().expect("to_canonical_bytes");
         let sign_result = signer.sign(&data).await;
 
         match sign_result {

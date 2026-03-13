@@ -287,7 +287,7 @@ After this demo, explore:
 - Query temporal history
 - Subscribe to moment streams
 
-**Ecosystem Integration** (`../03-inter-primal/`)
+**Ecosystem Integration** (`../04-inter-primal/`)
 - Sign moments with BearDog
 - Store moment data in NestGate
 - Discover moments via Songbird

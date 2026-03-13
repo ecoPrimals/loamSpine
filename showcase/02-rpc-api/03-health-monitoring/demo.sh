@@ -19,7 +19,7 @@ PURPLE='\033[0;35m'
 NC='\033[0m'
 
 # Configuration
-LOAMSPINE_SERVICE_BIN="${BINS_DIR}/loamspine-service"
+LOAMSPINE_BIN="${BINS_DIR}/loamspine"
 JSONRPC_PORT="8080"
 JSONRPC_URL="http://localhost:${JSONRPC_PORT}"
 
@@ -37,18 +37,18 @@ echo "  • Performance tracking"
 echo ""
 
 # Check if binary exists
-if [ ! -f "${LOAMSPINE_SERVICE_BIN}" ]; then
-    echo -e "${RED}❌ loamspine-service binary not found${NC}"
+if [ ! -f "${LOAMSPINE_BIN}" ]; then
+    echo -e "${RED}❌ loamspine binary not found${NC}"
     exit 1
 fi
 
-echo -e "${YELLOW}✓ loamspine-service binary found${NC}"
+echo -e "${YELLOW}✓ loamspine binary found${NC}"
 echo ""
 
 # Start service if not running
-if ! pgrep -f "loamspine-service" > /dev/null; then
-    echo "🚀 Starting loamspine-service..."
-    "${LOAMSPINE_SERVICE_BIN}" --jsonrpc-port "${JSONRPC_PORT}" &> /tmp/loamspine-health-demo.log &
+if ! pgrep -f "loamspine" > /dev/null; then
+    echo "🚀 Starting loamspine..."
+    "${LOAMSPINE_BIN}" server --jsonrpc-port "${JSONRPC_PORT}" &> /tmp/loamspine-health-demo.log &
     SERVICE_PID=$!
     echo "${SERVICE_PID}" > /tmp/loamspine-health-demo.pid
     
