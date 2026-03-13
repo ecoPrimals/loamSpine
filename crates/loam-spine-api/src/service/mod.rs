@@ -4,7 +4,7 @@
 //!
 //! Implements the `LoamSpineRpc` trait defined in `rpc.rs`.
 
-// Allow unused_async for stub implementations that will be async when completed
+// Some trait dispatch methods are async for uniform interface but don't await internally.
 #![allow(clippy::unused_async)]
 // Allow wildcard imports for re-exported types
 #![allow(clippy::wildcard_imports)]

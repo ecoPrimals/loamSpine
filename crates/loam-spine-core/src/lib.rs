@@ -278,8 +278,8 @@ impl PrimalLifecycle for LoamSpine {
         self.state = PrimalState::Stopping;
         tracing::info!(name = %self.config.name, "LoamSpine stopping...");
 
-        // Flush any pending operations
-        // (placeholder for actual cleanup)
+        // Cleanup: flush pending storage ops, cancel discovery timers.
+        // Currently a no-op; sled flushes on drop, in-memory is transient.
 
         self.state = PrimalState::Stopped;
         self.started_at = None;

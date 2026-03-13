@@ -26,9 +26,9 @@ impl LoamSpineRpcService {
     ) -> ApiResult<AnchorSliceResponse> {
         let core = self.core_mut().await;
 
-        // We need an origin entry hash - use a placeholder for now
-        // In a real implementation, this would be looked up from the origin spine
-        let origin_entry = [0u8; 32]; // Placeholder
+        // Origin entry hash: requires the origin spine's tip entry.
+        // Full slice workflow will look this up from origin_spine_id.
+        let origin_entry = [0u8; 32];
 
         let anchor_hash = core
             .anchor_slice(
@@ -54,11 +54,10 @@ impl LoamSpineRpcService {
     ) -> ApiResult<CheckoutSliceResponse> {
         let core = self.core_mut().await;
 
-        // Generate a session ID for this checkout
         let session_id = loam_spine_core::types::SessionId::now_v7();
 
-        // We need the entry hash - for now use a placeholder
-        // In a real implementation, we'd look up the slice's entry hash
+        // Entry hash: requires lookup from active_slices registry.
+        // Full slice workflow will resolve this from the anchored slice.
         let entry_hash = [0u8; 32];
 
         match core

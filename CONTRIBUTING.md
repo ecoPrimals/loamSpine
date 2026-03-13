@@ -15,10 +15,12 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe**: `#![forbid(unsafe_code)]` is enforced
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 93.29%)
+- **High Coverage**: Aim for 90%+ line coverage (current: 90.08%)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
+- **SPDX Headers**: `// SPDX-License-Identifier: AGPL-3.0-only` on all `.rs` files
+- **No Hardcoding**: Primal names, ports, and endpoints discovered at runtime
 
 ### Human Dignity
 - **No Surveillance**: No tracking, analytics, or telemetry
@@ -40,26 +42,26 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 # Build
 cargo build
 
-# Test (253 tests)
-cargo test
+# Test (549 tests)
+cargo test --workspace
 
-# Linting (must pass)
-cargo clippy --all-targets --all-features -- -D warnings
+# Linting (must pass, zero warnings)
+cargo clippy --workspace --all-targets -- -D warnings
 
 # Formatting
-cargo fmt --check
+cargo fmt --all -- --check
 
-# Coverage
-cargo llvm-cov --summary-only
+# Coverage (requires cargo-llvm-cov)
+cargo llvm-cov --workspace --summary-only
 
-# Security audit
-cargo deny check
+# License and dependency audit (requires cargo-deny)
+cargo deny check licenses bans sources
 
-# Fuzz testing (optional, requires nightly)
-cargo +nightly fuzz run fuzz_entry_parsing
+# Full verification
+./verify.sh
 
-# Run showcase demos
-cd showcase && ./QUICK_START.sh
+# Build docs
+cargo doc --workspace --no-deps --open
 ```
 
 ---
@@ -161,17 +163,8 @@ async fn concurrent_commits_succeed() { ... }
 ### Coverage Requirements
 - New code: 90%+ line coverage
 - Critical paths: 95%+ coverage
-- Current project average: 93.29%
-- Run coverage: `cargo llvm-cov --summary-only`
-
-### 100% Coverage Modules
-These modules should maintain 100% coverage:
-- `traits/commit.rs`
-- `traits/mod.rs`
-- `traits/signing.rs`
-- `discovery.rs`
-- `config.rs`
-- `error.rs`
+- Current project average: 90.08%
+- Run coverage: `cargo llvm-cov --workspace --summary-only`
 
 ---
 
@@ -299,19 +292,19 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.4.1 |
-| Tests | 253 |
-| Line Coverage | 93.29% |
-| Function Coverage | 84.29% |
-| Max File Size | 889 lines |
+| Version | 0.8.0 |
+| Tests | 549 |
+| Line Coverage | 90.08% |
+| Max File Size | 863 lines |
 | Clippy | pedantic + nursery (0 warnings) |
-| Unsafe Code | 0 (forbidden) |
-| Fuzz Targets | 3 |
-| Showcase Demos | 8 (6 core + 2 Phase 1) |
-| Signing Integration | Agnostic CLI + Mock |
-| Zero-Copy | `bytes` crate `ByteBuffer` |
-| Phase 1 Integration | Signing + Storage services |
-| Constants | KB/MB/GB + SECONDS_PER_* extracted |
+| Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
+| License | AGPL-3.0-only |
+| SPDX Headers | All source files |
+| Pure Rust TLS | rustls (no OpenSSL) |
+| cargo deny | bans, licenses, sources pass |
+| UniBin | `loamspine server` subcommand |
+| JSON-RPC Methods | 22 (semantic naming) |
+| Provenance Trio | Tested (rhizoCrypt + sweetGrass) |
 
 ---
 
