@@ -478,3 +478,108 @@ fn backup_empty_description() {
     assert!(backup.description.is_some());
     assert_eq!(backup.description.as_deref(), Some(""));
 }
+
+#[test]
+fn backup_on_empty_spine_entry_count_mismatch() {
+    let (mut spine, _entries) = create_test_spine();
+    spine.height = 1;
+
+    let backup = SpineBackup::new(spine, Vec::new(), Vec::new());
+    let result = backup.verify();
+
+    assert!(!result.valid);
+    assert!(result
+        .errors
+        .iter()
+        .any(|e| matches!(e, BackupError::EntryCountMismatch { .. })));
+}
+
+#[test]
+fn backup_restore_from_truncated_data() {
+    let (spine, entries) = create_test_spine();
+    let backup = SpineBackup::new(spine, entries, Vec::new());
+
+    let mut buffer = Vec::new();
+    backup.export(&mut buffer).expect("export should succeed");
+
+    let mut truncated = Vec::new();
+    truncated.extend_from_slice(BACKUP_MAGIC);
+    let len: u64 = 1000;
+    truncated.extend_from_slice(&len.to_le_bytes());
+    truncated.extend_from_slice(&[0u8; 10]);
+
+    let mut cursor = Cursor::new(truncated);
+    let result = SpineBackup::import(&mut cursor);
+    assert!(result.is_err());
+}
+
+#[test]
+fn backup_restore_from_corrupt_bincode() {
+    let mut buffer = Vec::new();
+    buffer.extend_from_slice(BACKUP_MAGIC);
+    let len: u64 = 20;
+    buffer.extend_from_slice(&len.to_le_bytes());
+    buffer.extend_from_slice(b"corrupt-bincode-data!!");
+
+    let mut cursor = Cursor::new(buffer);
+    let result = SpineBackup::import(&mut cursor);
+    assert!(result.is_err());
+}
+
+#[test]
+fn backup_from_json_invalid() {
+    let result = SpineBackup::from_json("not valid json {");
+    assert!(result.is_err());
+}
+
+#[test]
+fn backup_roundtrip_create_add_entries_export_import_verify() {
+    let owner = Did::new("did:key:z6MkRoundtrip");
+    let spine = SpineBuilder::new(owner.clone())
+        .with_name("Roundtrip Spine")
+        .build()
+        .expect("spine build should succeed");
+
+    let mut entries = vec![];
+    let genesis = spine
+        .genesis_entry()
+        .cloned()
+        .expect("genesis should exist");
+    entries.push(genesis);
+
+    for i in 1..5 {
+        let prev_hash = entries.last().and_then(|e| e.compute_hash().ok());
+        let mut entry = Entry::new(
+            i,
+            prev_hash,
+            owner.clone(),
+            EntryType::DataAnchor {
+                #[allow(clippy::cast_possible_truncation)]
+                data_hash: [{ i as u8 }; 32],
+                mime_type: Some("application/octet-stream".into()),
+                size: 64,
+            },
+        );
+        entry.spine_id = spine.id;
+        entries.push(entry);
+    }
+
+    let mut spine_with_height = spine;
+    spine_with_height.height = entries.len() as u64;
+
+    let backup = SpineBackup::new(spine_with_height, entries.clone(), Vec::new());
+    let verify_before = backup.verify();
+    assert!(verify_before.valid, "backup should verify before export");
+
+    let mut buffer = Vec::new();
+    backup.export(&mut buffer).expect("export should succeed");
+    assert!(!buffer.is_empty());
+
+    let mut cursor = Cursor::new(buffer);
+    let restored = SpineBackup::import(&mut cursor).expect("import should succeed");
+
+    let verify_after = restored.verify();
+    assert!(verify_after.valid, "restored backup should verify");
+    assert_eq!(restored.entries.len(), entries.len());
+    assert_eq!(restored.spine.id, backup.spine.id);
+}

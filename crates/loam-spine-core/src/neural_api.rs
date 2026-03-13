@@ -276,6 +276,14 @@ pub fn capability_list_pretty() -> String {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
+    use serial_test::serial;
+
+    fn cleanup_neural_env() {
+        std::env::remove_var("LOAMSPINE_SOCKET");
+        std::env::remove_var("XDG_RUNTIME_DIR");
+        std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        std::env::remove_var("BIOMEOS_FAMILY_ID");
+    }
 
     #[test]
     fn resolve_socket_path_returns_valid_path() {
@@ -350,5 +358,101 @@ mod tests {
         let list = capability_list();
         let s = serde_json::to_string(&list).expect("serialize");
         let _: serde_json::Value = serde_json::from_str(&s).expect("deserialize");
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_socket_path_uses_xdg_runtime_dir_when_loamspine_socket_unset() {
+        cleanup_neural_env();
+        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        let path = resolve_socket_path();
+        assert_eq!(
+            path.to_string_lossy(),
+            "/run/user/1000/biomeos/loamspine-default.sock"
+        );
+        std::env::set_var("BIOMEOS_FAMILY_ID", "myfamily");
+        let path = resolve_socket_path();
+        assert_eq!(
+            path.to_string_lossy(),
+            "/run/user/1000/biomeos/loamspine-myfamily.sock"
+        );
+        cleanup_neural_env();
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_neural_api_socket_with_env() {
+        cleanup_neural_env();
+        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", "/custom/neural.sock");
+        let path = super::resolve_neural_api_socket();
+        assert!(path.is_some());
+        assert_eq!(
+            path.as_ref().unwrap().to_string_lossy(),
+            "/custom/neural.sock"
+        );
+        cleanup_neural_env();
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_neural_api_socket_with_xdg_runtime_dir() {
+        cleanup_neural_env();
+        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        let path = super::resolve_neural_api_socket();
+        assert!(path.is_some());
+        assert_eq!(
+            path.as_ref().unwrap().to_string_lossy(),
+            "/run/user/1000/biomeos/neural-api-default.sock"
+        );
+        cleanup_neural_env();
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_neural_api_socket_without_env_returns_none() {
+        cleanup_neural_env();
+        let path = super::resolve_neural_api_socket();
+        assert!(path.is_none());
+        cleanup_neural_env();
+    }
+
+    #[test]
+    fn capability_list_pretty_output_validation() {
+        let pretty = capability_list_pretty();
+        assert!(!pretty.is_empty());
+        assert!(
+            pretty.contains('\n'),
+            "pretty output should contain newlines"
+        );
+        assert!(pretty.contains("  "), "pretty output should be indented");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&pretty).expect("pretty output must be valid JSON");
+        assert!(parsed.get("capabilities").is_some());
+        assert!(parsed.get("primal").is_some());
+        assert_eq!(parsed["primal"], PRIMAL_NAME);
+        let caps = parsed["capabilities"]
+            .as_array()
+            .expect("capabilities array");
+        assert_eq!(caps.len(), CAPABILITIES.len());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn register_with_neural_api_returns_ok_false_when_xdg_runtime_dir_unset() {
+        cleanup_neural_env();
+        let result = register_with_neural_api().await;
+        assert!(result.is_ok());
+        let ok = result.unwrap();
+        assert!(!ok);
+        cleanup_neural_env();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn deregister_from_neural_api_returns_ok_when_xdg_runtime_dir_unset() {
+        cleanup_neural_env();
+        let result = deregister_from_neural_api().await;
+        assert!(result.is_ok());
+        cleanup_neural_env();
     }
 }

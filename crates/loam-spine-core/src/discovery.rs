@@ -193,16 +193,6 @@ impl CapabilityRegistry {
         Ok(registry)
     }
 
-    /// Backward-compatible alias for [`Self::with_service_registry`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the registry connection fails.
-    #[deprecated(since = "0.9.0", note = "Use with_service_registry instead")]
-    pub async fn with_songbird(endpoint: &str) -> LoamSpineResult<Self> {
-        Self::with_service_registry(endpoint).await
-    }
-
     /// Discover and register capabilities from the service registry.
     ///
     /// This method queries the registry for available capabilities and registers them.
@@ -770,9 +760,11 @@ mod tests {
             .advertise_to_songbird("http://localhost:9001", "http://localhost:8080")
             .await
             .is_err());
-        assert!(CapabilityRegistry::with_songbird("http://127.0.0.1:1")
-            .await
-            .is_err());
+        assert!(
+            CapabilityRegistry::with_service_registry("http://127.0.0.1:1")
+                .await
+                .is_err()
+        );
     }
 
     #[test]

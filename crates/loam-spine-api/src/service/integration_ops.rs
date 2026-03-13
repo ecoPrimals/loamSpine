@@ -197,12 +197,13 @@ impl LoamSpineRpcService {
         let merkle_root = hex_to_content_hash(&request.merkle_root)
             .map_err(|e| ApiError::InvalidRequest(format!("invalid merkle_root hex: {e}")))?;
 
-        let committer = Did::new(
-            request
-                .committer_did
-                .as_deref()
-                .unwrap_or("did:key:anonymous"),
-        );
+        let committer_str = request.committer_did.as_deref().ok_or_else(|| {
+            ApiError::InvalidRequest(
+                "committer_did is required — anonymous commits violate sovereignty principles"
+                    .into(),
+            )
+        })?;
+        let committer = Did::new(committer_str);
 
         let spine_id = self.ensure_permanence_spine(&committer).await?;
 

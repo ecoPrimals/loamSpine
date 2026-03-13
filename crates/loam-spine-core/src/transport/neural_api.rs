@@ -174,10 +174,10 @@ impl NeuralApiTransport {
             Vec::new()
         };
 
-        Ok(TransportResponse {
-            status: u16::try_from(status).unwrap_or(500),
+        Ok(TransportResponse::new(
+            u16::try_from(status).unwrap_or(500),
             body,
-        })
+        ))
     }
 }
 
@@ -187,14 +187,11 @@ impl NeuralApiTransport {
 /// the common case; production deployments should validate against the
 /// NeuralAPI response specification.
 fn base64_decode(input: &str) -> Result<Vec<u8>, LoamSpineError> {
-    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    fn val(c: u8) -> Result<u8, LoamSpineError> {
-        #[allow(clippy::match_same_arms)]
+    fn sextet(c: u8) -> Result<u32, LoamSpineError> {
         match c {
-            b'A'..=b'Z' => Ok(c - b'A'),
-            b'a'..=b'z' => Ok(c - b'a' + 26),
-            b'0'..=b'9' => Ok(c - b'0' + 52),
+            b'A'..=b'Z' => Ok(u32::from(c - b'A')),
+            b'a'..=b'z' => Ok(u32::from(c - b'a') + 26),
+            b'0'..=b'9' => Ok(u32::from(c - b'0') + 52),
             b'+' => Ok(62),
             b'/' => Ok(63),
             _ => Err(LoamSpineError::Network(format!(
@@ -202,8 +199,6 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, LoamSpineError> {
             ))),
         }
     }
-
-    let _ = TABLE; // suppress unused warning for the constant
 
     let input = input.as_bytes();
     let mut out = Vec::with_capacity(input.len() * 3 / 4);
@@ -214,11 +209,12 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, LoamSpineError> {
         if byte == b'=' || byte == b'\n' || byte == b'\r' {
             continue;
         }
-        buf = (buf << 6) | u32::from(val(byte)?);
+        buf = (buf << 6) | sextet(byte)?;
         bits += 6;
         if bits >= 8 {
             bits -= 8;
-            out.push((buf >> bits) as u8);
+            #[allow(clippy::cast_possible_truncation)]
+            out.push((buf >> bits) as u8); // bits ∈ [0,6] ⇒ value ∈ [0,255]
             buf &= (1 << bits) - 1;
         }
     }

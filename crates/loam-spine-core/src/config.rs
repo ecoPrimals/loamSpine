@@ -61,20 +61,6 @@ pub struct DiscoveryConfig {
     /// 4. Development fallback (localhost:8082, logged as warning)
     pub discovery_endpoint: Option<String>,
 
-    /// DEPRECATED: Use `discovery_enabled` instead.
-    ///
-    /// This field is maintained for backward compatibility and will be removed in v1.0.0.
-    #[deprecated(since = "0.7.0", note = "Use discovery_enabled instead")]
-    #[serde(default)]
-    pub songbird_enabled: bool,
-
-    /// DEPRECATED: Use `discovery_endpoint` instead.
-    ///
-    /// This field is maintained for backward compatibility and will be removed in v1.0.0.
-    #[deprecated(since = "0.7.0", note = "Use discovery_endpoint instead")]
-    #[serde(default)]
-    pub songbird_endpoint: Option<String>,
-
     /// tarpc endpoint for binary RPC (primal-to-primal communication).
     ///
     /// Set to `0.0.0.0:0` to let the OS assign an available port.
@@ -154,35 +140,13 @@ pub enum DiscoveryMethod {
     Fallback,
 }
 
-impl DiscoveryMethod {
-    /// Backward compatibility alias for Songbird.
-    ///
-    /// # Deprecated
-    ///
-    /// Use `ServiceRegistry` instead. This constant will be removed in v1.0.0.
-    #[deprecated(
-        since = "0.8.0",
-        note = "Use ServiceRegistry instead. Songbird is now one implementation of the generic ServiceRegistry pattern."
-    )]
-    #[allow(non_upper_case_globals)]
-    pub const Songbird: Self = Self::ServiceRegistry;
-}
-
 impl Default for DiscoveryConfig {
     fn default() -> Self {
         Self {
-            // New capability-based fields
             discovery_enabled: true,
-            // Don't hardcode endpoint - let it be discovered
             discovery_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
 
-            // Deprecated fields (for backward compatibility)
-            #[allow(deprecated)]
-            songbird_enabled: true,
-            #[allow(deprecated)]
-            songbird_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
-
-            // Our own endpoints - prefer OS-assigned ports in production
+            // Our own endpoints — prefer OS-assigned ports in production
             tarpc_endpoint: std::env::var("TARPC_ENDPOINT").unwrap_or_else(|_| {
                 format!(
                     "http://{}:{}",
@@ -278,15 +242,6 @@ impl LoamSpineConfig {
         self.discovery.discovery_endpoint = Some(endpoint.into());
         self
     }
-
-    /// DEPRECATED: Use `with_discovery_service` instead.
-    ///
-    /// Enable Songbird discovery.
-    #[deprecated(since = "0.7.0", note = "Use with_discovery_service instead")]
-    #[must_use]
-    pub fn with_songbird(self, endpoint: impl Into<String>) -> Self {
-        self.with_discovery_service(endpoint)
-    }
 }
 
 #[cfg(test)]
@@ -337,17 +292,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(deprecated)]
-    fn config_with_songbird_backward_compat() {
-        let config = LoamSpineConfig::new("Test").with_songbird("http://old.local:8082");
-        assert!(config.discovery.discovery_enabled);
-        assert_eq!(
-            config.discovery.discovery_endpoint.as_deref(),
-            Some("http://old.local:8082")
-        );
-    }
-
-    #[test]
     fn heartbeat_retry_config_default() {
         let retry = HeartbeatRetryConfig::default();
         assert_eq!(retry.backoff_seconds, vec![10, 30, 60, 120]);
@@ -385,12 +329,6 @@ mod tests {
         let json = r#""songbird""#;
         let method: DiscoveryMethod = serde_json::from_str(json).unwrap();
         assert_eq!(method, DiscoveryMethod::ServiceRegistry);
-    }
-
-    #[test]
-    #[allow(deprecated)]
-    fn discovery_method_songbird_constant() {
-        assert_eq!(DiscoveryMethod::Songbird, DiscoveryMethod::ServiceRegistry);
     }
 
     #[test]

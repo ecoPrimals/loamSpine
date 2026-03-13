@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.8.0] - 2026-03-13
 
+### Added (March 13 -- Coverage & Canonical Evolution)
+- **90%+ line coverage achieved**: 700 tests (was 635), line coverage 90.62% (was 88.64%)
+- **`Entry.metadata` evolved from `HashMap` to `BTreeMap`**: Inherent canonical key ordering eliminates sort-before-serialize overhead and fixes a latent non-determinism bug in `to_canonical_bytes()`
+- **65 targeted tests**: lifecycle heartbeat/shutdown paths, spine chain validation, entry type domains, tarpc error/success paths, integration ops validation, backup roundtrip
+- **`tarpc_server.rs` refactored**: Production code (240 lines) extracted from test module (810 lines in `tarpc_server_tests.rs`); all files now under 1000-line limit
+
 ### Added (March 13 -- Deep Debt & NeuralAPI)
 - **NeuralAPI integration**: `neural_api.rs` module with capability registration/deregistration via biomeOS Unix socket IPC, 19 semantic capabilities declared
 - **NeuralAPI lifecycle wiring**: `LifecycleManager::start()` registers with NeuralAPI (non-fatal), `stop()` deregisters
@@ -28,11 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `backup/mod.rs`, `spine.rs` error enums extended with `HashComputationFailed` variants
 
 ### Metrics (March 13)
-- Tests: 549 -> 610 (+61)
-- Source files: 66 -> 78
+- Tests: 549 -> 700 (+151)
+- Line coverage: 88.64% -> 90.62% (target: 90%)
+- Source files: 66 -> 80
 - Clippy: 0 warnings (all targets, `-D warnings`)
 - Unsafe: 0 blocks (maintained)
-- Max file size: 899 lines (all < 1000)
+- Max file size: 949 lines (all < 1000)
 - ecoBin: fully compliant (zero C dependencies)
 
 ### Added (March 12 -- Provenance Trio & Standards)
@@ -227,22 +234,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 
-- `DiscoveryConfig::songbird_enabled` - Use `discovery_enabled` instead
-- `DiscoveryConfig::songbird_endpoint` - Use `discovery_endpoint` instead
-
-These will be removed in v1.0.0.
+- `DiscoveryConfig::songbird_enabled` — **Removed in v0.8.0**. Use `discovery_enabled` instead.
+- `DiscoveryConfig::songbird_endpoint` — **Removed in v0.8.0**. Use `discovery_endpoint` instead.
 
 ### Migration Guide
 
-#### From v0.6.0 to v0.7.0
+#### From v0.6.0 to v0.7.0+
 
-**Configuration Changes** (Backward Compatible):
+**Configuration Changes** (songbird fields removed in v0.8.0):
 ```rust
-// Old (still works but deprecated)
-config.songbird_enabled = true;
-config.songbird_endpoint = Some("http://localhost:8082".to_string());
-
-// New (recommended)
+// Use discovery_ prefixed fields (songbird_ fields no longer exist)
 config.discovery_enabled = true;
 config.discovery_endpoint = Some("http://localhost:8082".to_string());
 ```

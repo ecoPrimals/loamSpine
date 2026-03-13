@@ -410,6 +410,19 @@ impl DiscoveryClient {
             endpoint,
         }
     }
+
+    /// Create a client with a success transport for testing (all operations succeed).
+    ///
+    /// Used to exercise success paths (advertise, heartbeat, deregister) in lifecycle tests.
+    #[cfg(test)]
+    #[must_use]
+    pub fn for_testing_success(endpoint: impl Into<String>) -> Self {
+        let endpoint = endpoint.into();
+        Self {
+            transport: Arc::new(crate::transport::mock::SuccessTransport::new()),
+            endpoint,
+        }
+    }
 }
 
 /// Extract the port from a URL string using the `url` crate (pure Rust).

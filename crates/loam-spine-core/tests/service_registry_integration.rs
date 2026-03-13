@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Integration tests for service registry client with real binary.
+//! Integration tests for service registry discovery client.
 //!
-//! These tests use the actual service registry binary from `../bins/` to test
+//! These tests use a live service registry binary from `../bins/` to test
 //! real service discovery and registration flows. They gracefully skip
 //! if the binary is not available.
+//!
+//! The service registry is vendor-agnostic: any HTTP registry exposing
+//! `/discover?capability=...` and `/register` endpoints works.
 //!
 //! ## Concurrency & Robustness
 //!
@@ -19,34 +22,34 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::time::Duration;
 
-/// Path to songbird-orchestrator binary
-const SONGBIRD_BIN: &str = "../bins/songbird-orchestrator";
+/// Path to service registry binary (discovered at runtime).
+const REGISTRY_BIN: &str = "../bins/songbird-orchestrator";
 
-/// Default Songbird endpoint for tests
-const SONGBIRD_ENDPOINT: &str = "http://localhost:8082";
+/// Default service registry endpoint for tests.
+const REGISTRY_ENDPOINT: &str = "http://localhost:8082";
 
-/// Maximum time to wait for Songbird to become ready
+/// Maximum time to wait for the registry to become ready.
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Polling interval for health checks
+/// Polling interval for health checks.
 const POLL_INTERVAL: Duration = Duration::from_millis(100);
 
-/// Helper to check if Songbird binary exists
-fn songbird_available() -> bool {
-    Path::new(SONGBIRD_BIN).exists()
+/// Helper to check if the service registry binary exists.
+fn registry_available() -> bool {
+    Path::new(REGISTRY_BIN).exists()
 }
 
-/// Start Songbird and wait for it to be ready using proper async polling.
+/// Start registry and wait for it to be ready using proper async polling.
 ///
 /// No blocking sleeps - uses exponential backoff polling with health checks.
-async fn start_songbird_and_wait() -> Option<Child> {
-    if !songbird_available() {
-        eprintln!("⚠️  Skipping Songbird integration tests: binary not found at {SONGBIRD_BIN}");
+async fn start_registry_and_wait() -> Option<Child> {
+    if !registry_available() {
+        eprintln!("⚠️  Skipping service registry integration tests: binary not found at {REGISTRY_BIN}");
         return None;
     }
 
-    // Start Songbird in background
-    let child = match Command::new(SONGBIRD_BIN)
+    // Start registry in background
+    let child = match Command::new(REGISTRY_BIN)
         .arg("--port")
         .arg("8082")
         .arg("--host")
@@ -55,25 +58,25 @@ async fn start_songbird_and_wait() -> Option<Child> {
     {
         Ok(child) => child,
         Err(e) => {
-            eprintln!("⚠️  Failed to start Songbird: {e}");
+            eprintln!("⚠️  Failed to start service registry: {e}");
             return None;
         }
     };
 
     // Poll for readiness with timeout protection
-    match wait_for_songbird_ready().await {
+    match wait_for_registry_ready().await {
         Ok(()) => Some(child),
         Err(e) => {
-            eprintln!("⚠️  Songbird failed to become ready: {e}");
+            eprintln!("⚠️  Service registry failed to become ready: {e}");
             None
         }
     }
 }
 
-/// Wait for Songbird to be ready using async polling with exponential backoff.
+/// Wait for service registry to be ready using async polling with exponential backoff.
 ///
 /// Production-grade: No blind sleeps, proper timeout, error handling.
-async fn wait_for_songbird_ready() -> Result<(), String> {
+async fn wait_for_registry_ready() -> Result<(), String> {
     let start = std::time::Instant::now();
     let mut attempt = 0;
 
@@ -81,7 +84,7 @@ async fn wait_for_songbird_ready() -> Result<(), String> {
         // Check timeout
         if start.elapsed() > STARTUP_TIMEOUT {
             return Err(format!(
-                "Songbird did not become ready within {} seconds",
+                "Service registry did not become ready within {} seconds",
                 STARTUP_TIMEOUT.as_secs()
             ));
         }
@@ -89,7 +92,7 @@ async fn wait_for_songbird_ready() -> Result<(), String> {
         // Try to connect
         match tokio::time::timeout(
             Duration::from_secs(2),
-            DiscoveryClient::connect(SONGBIRD_ENDPOINT),
+            DiscoveryClient::connect(REGISTRY_ENDPOINT),
         )
         .await
         {
@@ -181,15 +184,15 @@ async fn wait_for_service_removed(
 }
 
 #[tokio::test]
-async fn test_songbird_connection() {
-    if !songbird_available() {
-        eprintln!("⚠️  Skipping test: Songbird binary not available");
+async fn test_registry_connection() {
+    if !registry_available() {
+        eprintln!("⚠️  Skipping test: service registry binary not available");
         return;
     }
 
-    // Start Songbird and wait for readiness (async, no blocking)
+    // Start registry and wait for readiness (async, no blocking)
     #[allow(clippy::used_underscore_binding)]
-    let _process = start_songbird_and_wait().await;
+    let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
     }
@@ -197,7 +200,7 @@ async fn test_songbird_connection() {
     // Test connection (with timeout protection)
     let result = tokio::time::timeout(
         Duration::from_secs(5),
-        DiscoveryClient::connect(SONGBIRD_ENDPOINT),
+        DiscoveryClient::connect(REGISTRY_ENDPOINT),
     )
     .await;
 
@@ -206,26 +209,26 @@ async fn test_songbird_connection() {
     let connect_result = result.unwrap();
     assert!(
         connect_result.is_ok(),
-        "Should connect to Songbird successfully"
+        "Should connect to service registry successfully"
     );
 }
 
 #[tokio::test]
-async fn test_songbird_advertise_and_discover() {
-    if !songbird_available() {
-        eprintln!("⚠️  Skipping test: Songbird binary not available");
+async fn test_registry_advertise_and_discover() {
+    if !registry_available() {
+        eprintln!("⚠️  Skipping test: service registry binary not available");
         return;
     }
 
-    // Start Songbird and wait for readiness (async, no blocking)
+    // Start registry and wait for readiness (async, no blocking)
     #[allow(clippy::used_underscore_binding)]
-    let _process = start_songbird_and_wait().await;
+    let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
     }
 
-    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
-        eprintln!("⚠️  Failed to connect to Songbird");
+    let Ok(client) = DiscoveryClient::connect(REGISTRY_ENDPOINT).await else {
+        eprintln!("⚠️  Failed to connect to service registry");
         return;
     };
 
@@ -270,19 +273,19 @@ async fn test_songbird_advertise_and_discover() {
 
 #[tokio::test]
 #[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
-async fn test_songbird_heartbeat() {
-    if !songbird_available() {
-        eprintln!("⚠️  Skipping test: Songbird binary not available");
+async fn test_registry_heartbeat() {
+    if !registry_available() {
+        eprintln!("⚠️  Skipping test: service registry binary not available");
         return;
     }
 
-    // Start Songbird and wait for readiness (async, no blocking)
-    let _process = start_songbird_and_wait().await;
+    // Start registry and wait for readiness (async, no blocking)
+    let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
     }
 
-    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(REGISTRY_ENDPOINT).await else {
         return;
     };
 
@@ -307,19 +310,19 @@ async fn test_songbird_heartbeat() {
 
 #[tokio::test]
 #[allow(clippy::used_underscore_binding)]
-async fn test_songbird_deregister() {
-    if !songbird_available() {
-        eprintln!("⚠️  Skipping test: Songbird binary not available");
+async fn test_registry_deregister() {
+    if !registry_available() {
+        eprintln!("⚠️  Skipping test: service registry binary not available");
         return;
     }
 
-    // Start Songbird and wait for readiness (async, no blocking)
-    let _process = start_songbird_and_wait().await;
+    // Start registry and wait for readiness (async, no blocking)
+    let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
     }
 
-    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(REGISTRY_ENDPOINT).await else {
         return;
     };
 
@@ -361,19 +364,19 @@ async fn test_songbird_deregister() {
 
 #[tokio::test]
 #[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
-async fn test_songbird_discover_all() {
-    if !songbird_available() {
-        eprintln!("⚠️  Skipping test: Songbird binary not available");
+async fn test_registry_discover_all() {
+    if !registry_available() {
+        eprintln!("⚠️  Skipping test: service registry binary not available");
         return;
     }
 
-    // Start Songbird and wait for readiness (async, no blocking)
-    let _process = start_songbird_and_wait().await;
+    // Start registry and wait for readiness (async, no blocking)
+    let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
     }
 
-    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(REGISTRY_ENDPOINT).await else {
         return;
     };
 
@@ -400,19 +403,19 @@ async fn test_songbird_discover_all() {
 
 #[tokio::test]
 #[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
-async fn test_songbird_multiple_capabilities() {
-    if !songbird_available() {
-        eprintln!("⚠️  Skipping test: Songbird binary not available");
+async fn test_registry_multiple_capabilities() {
+    if !registry_available() {
+        eprintln!("⚠️  Skipping test: service registry binary not available");
         return;
     }
 
-    // Start Songbird and wait for readiness (async, no blocking)
-    let _process = start_songbird_and_wait().await;
+    // Start registry and wait for readiness (async, no blocking)
+    let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
     }
 
-    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(REGISTRY_ENDPOINT).await else {
         return;
     };
 
@@ -459,7 +462,7 @@ async fn test_songbird_multiple_capabilities() {
 }
 
 #[tokio::test]
-async fn test_songbird_endpoint_validation() {
+async fn test_registry_endpoint_validation() {
     // Test that invalid endpoints are handled gracefully
     let result = DiscoveryClient::connect("http://invalid-host:99999").await;
     assert!(
@@ -470,19 +473,19 @@ async fn test_songbird_endpoint_validation() {
 
 #[tokio::test]
 #[allow(clippy::used_underscore_binding)]
-async fn test_songbird_concurrent_operations() {
-    if !songbird_available() {
-        eprintln!("⚠️  Skipping test: Songbird binary not available");
+async fn test_registry_concurrent_operations() {
+    if !registry_available() {
+        eprintln!("⚠️  Skipping test: service registry binary not available");
         return;
     }
 
-    // Start Songbird and wait for readiness (async, no blocking)
-    let _process = start_songbird_and_wait().await;
+    // Start registry and wait for readiness (async, no blocking)
+    let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
     }
 
-    let Ok(client) = DiscoveryClient::connect(SONGBIRD_ENDPOINT).await else {
+    let Ok(client) = DiscoveryClient::connect(REGISTRY_ENDPOINT).await else {
         return;
     };
 

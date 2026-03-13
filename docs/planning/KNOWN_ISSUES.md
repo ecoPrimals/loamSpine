@@ -12,39 +12,57 @@ As of v0.8.0 (March 13 deep debt pass), the codebase passes all quality gates:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Tests | 400+ | 610 | PASS |
-| Line Coverage | 90% | 90%+ | PASS |
-| Clippy (all targets) | 0 warnings | 0 | PASS |
+| Tests | 400+ | 700 | PASS |
+| Line Coverage | 90% | 90.62% | PASS |
+| Clippy (all targets, all features) | 0 warnings | 0 | PASS |
 | Formatting | clean | clean | PASS |
 | Documentation | compiles | compiles | PASS |
 | Unsafe Code | 0 | 0 | PASS |
-| Max File Size | <1000 lines | 899 max | PASS |
+| Max File Size | <1000 lines | 949 max | PASS |
 | License | AGPL-3.0-only | AGPL-3.0-only | PASS |
 | SPDX Headers | all files | all files | PASS |
 | cargo deny (bans, licenses, sources) | pass | pass | PASS |
-| ecoBin (zero C deps) | pass | pass | PASS |
+| ecoBin (zero C deps default) | pass | pass (ring via opt feature) | PASS |
 | UniBin subcommands | server, capabilities, socket | all present | PASS |
 
 ---
 
 ## Remaining Technical Debt
 
+### Medium
+
+1. **Remaining uncovered code** (9.38%): Concentrated in areas requiring live external services:
+   - `main.rs` (0% — binary entry point, tested via integration demos)
+   - `neural_api.rs` (51% — requires live NeuralAPI socket)
+   - `jsonrpc/mod.rs` (68% — macro-generated trait impls)
+   - `infant_discovery.rs` (81% — DNS SRV and mDNS paths)
+2. **Storage backends**: `Sqlite`, `Postgres`, `Rocksdb` enum variants defined but not implemented (planned work).
+3. **mDNS experimental**: Feature-gated behind `mdns` feature; stub implementation returns empty when feature enabled.
+4. **Showcase demos**: ~10% complete (2/21 demos fully implemented); remaining are documented/scaffolded.
+
 ### Minor
 
-1. **mDNS experimental**: Feature-gated behind `mdns` feature; stub implementation returns empty when feature enabled.
-2. **`main.rs` 0% coverage**: Binary entry point; tested via integration/showcase demos, not unit tests.
-3. **`thiserror` duplicate versions**: v1 and v2 coexist via transitive deps (non-blocking).
-4. **Storage backends**: `Sqlite`, `Postgres`, `Rocksdb` enum variants defined but not implemented (planned work).
-5. **Showcase demos**: 10% complete (2/21 demos fully implemented); remaining are documented/scaffolded.
-6. **`proc-macro-error` advisory**: Transitive dependency of optional `mdns` feature (not enabled by default).
+1. **`thiserror` duplicate versions**: v1 and v2 coexist via transitive deps (non-blocking).
+2. **`proc-macro-error` advisory**: Transitive dependency of optional `mdns` feature (not enabled by default).
+3. **v0.9.0 deprecated items**: `discover_from_songbird`, `advertise_to_songbird`, `heartbeat_songbird` methods scheduled for removal.
+4. **`reqwest` pulls `ring`**: Only via optional `discovery-http` feature; default path uses pure-Rust `tower-atomic`.
 
 ### Resolved (March 13)
 
-- `songbird` deprecated alias removed (was: scheduled for v1.0.0 removal)
-- `unwrap_or_default()` in production code eliminated (entry.rs, transport/neural_api.rs, cli_signer.rs)
+- v0.7.0 deprecated items removed (`songbird_enabled`, `songbird_endpoint`, `with_songbird`, `DependencyHealth::songbird`)
+- `DiscoveryMethod::Songbird` constant removed (use `ServiceRegistry`)
+- `MockTransport` dead code warnings resolved (made `pub`, re-exported for downstream testing)
+- `u32 as u8` base64 truncation cast resolved (explicit `#[allow]` with invariant proof)
+- Redundant clone in `http.rs` test resolved
+- `TransportResponse.body` evolved from `Vec<u8>` to `Bytes` (zero-copy)
+- Hardcoded `"../bins/beardog"` paths in `cli_signer.rs` replaced with `CliSigner::discover_binary()`
+- `"did:key:anonymous"` default removed; commits now require explicit committer DID
+- `unwrap_or_default()` in production code eliminated
 - `u32 as usize` network casts replaced with `try_from`
-- `MockTransport` dead code warnings resolved via `cfg(test)` gating
 - `entry.rs` JSON serialization replaced with deterministic `bincode` + sorted metadata
+- `Entry.metadata` evolved from `HashMap` to `BTreeMap` for inherent canonical ordering
+- `tarpc_server.rs` split: production code (240 lines) + test file (810 lines) — under 1000-line limit
+- Test coverage raised from 88.64% to 90.62% (635 → 700 tests) covering lifecycle, spine, entry, tarpc, integration, backup paths
 
 ### None Critical
 

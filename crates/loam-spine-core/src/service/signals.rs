@@ -241,7 +241,6 @@ mod tests {
         let service = crate::service::LoamSpineService::new();
         let mut config = crate::config::LoamSpineConfig::default();
         config.discovery.discovery_enabled = false;
-        config.discovery.songbird_enabled = false;
 
         let result = tokio::time::timeout(
             std::time::Duration::from_millis(100),

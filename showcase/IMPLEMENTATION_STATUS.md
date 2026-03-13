@@ -4,7 +4,7 @@
 
 **Level 1 (Local Primal)**: 29% (2/7 complete)  
 **Level 2 (RPC API)**: 0% (0/5 complete)  
-**Level 3 (Songbird)**: 0% (0/4 complete)  
+**Level 3 (Service Registry)**: 0% (0/4 complete, needs rewrite)  
 **Level 4 (Inter-Primal)**: 0% (0/5 complete)
 
 **Total**: 10% (2/21 demos)
@@ -41,13 +41,16 @@
 
 ---
 
-## ⏳ Level 3: Songbird Discovery
+## ⏳ Level 3: Service Registry Discovery
+
+> **Note**: Evolved from "Songbird Discovery" — songbird config fields removed in v0.8.0.
+> Demos in `03-songbird-discovery/` reference stale config and need rewrite.
 
 | # | Demo | Status |
 |---|------|--------|
-| 1 | songbird-connect | ⏳ Pending |
-| 2 | capability-discovery | ⏳ Pending |
-| 3 | auto-advertise | ⏳ Pending |
+| 1 | registry-connect | ⏳ Needs rewrite (was songbird-connect) |
+| 2 | capability-discovery | ⏳ Needs rewrite |
+| 3 | auto-advertise | ⏳ Needs rewrite |
 | 4 | heartbeat-monitoring | ⏳ Pending |
 
 **Progress**: 0/4 complete

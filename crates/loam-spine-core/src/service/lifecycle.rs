@@ -61,18 +61,8 @@ impl LifecycleManager {
     pub async fn start(&mut self) -> LoamSpineResult<()> {
         tracing::info!("🦴 Starting LoamSpine service lifecycle (infant discovery mode)...");
 
-        // Check both new and deprecated fields for backward compatibility
-        #[allow(deprecated)]
-        let discovery_enabled =
-            self.config.discovery.discovery_enabled || self.config.discovery.songbird_enabled;
-
-        #[allow(deprecated)]
-        let discovery_endpoint = self
-            .config
-            .discovery
-            .discovery_endpoint
-            .clone()
-            .or_else(|| self.config.discovery.songbird_endpoint.clone());
+        let discovery_enabled = self.config.discovery.discovery_enabled;
+        let discovery_endpoint = self.config.discovery.discovery_endpoint.clone();
 
         // Connect to discovery service if enabled
         if discovery_enabled {
@@ -365,6 +355,17 @@ impl LifecycleManager {
     ) {
         self.discovery_client = Some(client);
     }
+
+    /// Start heartbeat task for testing (exercises stop-waits-for-task and Drop paths).
+    #[cfg(test)]
+    pub fn start_heartbeat_for_testing(
+        &mut self,
+        client: crate::discovery_client::DiscoveryClient,
+        interval_secs: u64,
+    ) {
+        self.config.discovery.heartbeat_interval_seconds = interval_secs;
+        self.start_heartbeat_task(client);
+    }
 }
 
 impl Drop for LifecycleManager {
@@ -383,6 +384,7 @@ impl Drop for LifecycleManager {
 #[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn lifecycle_manager_creation() {
@@ -642,5 +644,83 @@ mod tests {
 
         assert!(result.is_ok());
         assert!(manager.heartbeat_task.is_none());
+    }
+
+    #[tokio::test]
+    async fn lifecycle_stop_waits_for_heartbeat_task() {
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = false;
+        config.discovery.heartbeat_retry.backoff_seconds = vec![0];
+        config.discovery.heartbeat_retry.max_failures_total = 10;
+
+        let mut manager = LifecycleManager::new(service, config);
+        manager.start().await.expect("start failed");
+
+        let client = crate::discovery_client::DiscoveryClient::for_testing("http://127.0.0.1:1");
+        manager.start_heartbeat_for_testing(client, 1);
+
+        let result = manager.stop().await;
+        assert!(result.is_ok());
+        assert!(manager.shutdown.load(Ordering::Relaxed));
+    }
+
+    #[tokio::test]
+    async fn lifecycle_drop_aborts_heartbeat_task() {
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = false;
+
+        let mut manager = LifecycleManager::new(service, config);
+        manager.start().await.expect("start failed");
+
+        let client = crate::discovery_client::DiscoveryClient::for_testing("http://127.0.0.1:1");
+        manager.start_heartbeat_for_testing(client, 60);
+
+        drop(manager);
+    }
+
+    #[tokio::test]
+    async fn lifecycle_stop_deregister_success() {
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = false;
+
+        let mut manager = LifecycleManager::new(service, config);
+        manager.start().await.expect("start failed");
+
+        let success_client =
+            crate::discovery_client::DiscoveryClient::for_testing_success("http://test:8082");
+        manager.inject_discovery_client_for_testing(success_client);
+
+        let result = manager.stop().await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn send_heartbeat_with_retry_success_immediate() {
+        let client =
+            crate::discovery_client::DiscoveryClient::for_testing_success("http://test:8082");
+        let retry_config = crate::config::HeartbeatRetryConfig::default();
+
+        let result = LifecycleManager::send_heartbeat_with_retry(&client, &retry_config, 0).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn lifecycle_start_with_no_endpoint_clears_env() {
+        std::env::remove_var("DISCOVERY_ENDPOINT");
+
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = true;
+        config.discovery.discovery_endpoint = None;
+
+        let mut manager = LifecycleManager::new(service, config);
+        let result = manager.start().await;
+
+        assert!(result.is_ok());
+        assert!(manager.discovery_client.is_none());
     }
 }

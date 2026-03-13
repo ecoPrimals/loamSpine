@@ -57,13 +57,6 @@ pub struct DependencyHealth {
     /// `Some(true)` indicates discovery service is healthy.
     /// `Some(false)` indicates discovery service is unavailable.
     pub discovery: Option<bool>,
-
-    /// DEPRECATED: Use `discovery` instead.
-    ///
-    /// This field is maintained for backward compatibility and will be removed in v1.0.0.
-    #[deprecated(since = "0.7.0", note = "Use discovery field instead")]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub songbird: Option<bool>,
 }
 
 /// Liveness probe response.
@@ -212,8 +205,6 @@ impl HealthChecker {
             dependencies: DependencyHealth {
                 storage: storage_healthy,
                 discovery: discovery_healthy,
-                #[allow(deprecated)]
-                songbird: discovery_healthy, // Backward compatibility
             },
             capabilities: vec![
                 "persistent-ledger".to_string(),

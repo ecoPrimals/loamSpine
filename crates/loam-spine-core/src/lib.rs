@@ -182,6 +182,10 @@ pub use discovery::{BoxedSigner, BoxedVerifier, CapabilityRegistry, CapabilitySt
 #[cfg(any(test, feature = "testing"))]
 pub use traits::signing::testing::{MockSigner, MockVerifier};
 
+/// Mock transport for testing discovery without a live backend.
+#[cfg(any(test, feature = "testing"))]
+pub use transport::mock::MockTransport;
+
 /// The `LoamSpine` primal - Permanence Layer.
 ///
 /// `LoamSpine` provides sovereign, append-only ledgers for permanent storage

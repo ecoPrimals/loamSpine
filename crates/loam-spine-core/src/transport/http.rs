@@ -56,8 +56,7 @@ impl DiscoveryTransport for HttpTransport {
             let body = resp
                 .bytes()
                 .await
-                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?
-                .to_vec();
+                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
             Ok(TransportResponse { status, body })
         })
     }
@@ -79,8 +78,7 @@ impl DiscoveryTransport for HttpTransport {
             let body = resp
                 .bytes()
                 .await
-                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?
-                .to_vec();
+                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
             Ok(TransportResponse { status, body })
         })
     }
@@ -99,15 +97,11 @@ impl DiscoveryTransport for HttpTransport {
                 .await
                 .map_err(|e| LoamSpineError::Network(format!("POST {url} failed: {e}")))?;
             let status = resp.status().as_u16();
-            let body_bytes = resp
+            let body = resp
                 .bytes()
                 .await
-                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?
-                .to_vec();
-            Ok(TransportResponse {
-                status,
-                body: body_bytes,
-            })
+                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
+            Ok(TransportResponse { status, body })
         })
     }
 }
@@ -132,8 +126,9 @@ mod tests {
 
     #[test]
     fn http_transport_clone() {
-        let transport = HttpTransport::new().unwrap();
-        let _cloned = transport.clone();
+        let original = HttpTransport::new().unwrap();
+        #[allow(clippy::redundant_clone)]
+        let _cloned = original.clone();
     }
 
     #[tokio::test]

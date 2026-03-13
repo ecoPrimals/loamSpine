@@ -566,4 +566,66 @@ mod tests {
             .unwrap_or_else(|| unreachable!());
         assert_eq!(retrieved.height, spine.height);
     }
+
+    // ========================================================================
+    // StorageBackend enum coverage
+    // ========================================================================
+
+    #[test]
+    fn storage_backend_availability() {
+        use crate::storage::StorageBackend;
+
+        assert!(StorageBackend::InMemory.is_available());
+        assert!(StorageBackend::Sled.is_available());
+        assert!(!StorageBackend::Sqlite.is_available());
+        assert!(!StorageBackend::Postgres.is_available());
+        assert!(!StorageBackend::Rocksdb.is_available());
+    }
+
+    #[test]
+    fn storage_backend_names() {
+        use crate::storage::StorageBackend;
+
+        assert_eq!(StorageBackend::InMemory.name(), "in-memory");
+        assert_eq!(StorageBackend::Sled.name(), "sled");
+        assert_eq!(StorageBackend::Sqlite.name(), "sqlite");
+        assert_eq!(StorageBackend::Postgres.name(), "postgres");
+        assert_eq!(StorageBackend::Rocksdb.name(), "rocksdb");
+    }
+
+    #[test]
+    fn storage_backend_display() {
+        use crate::storage::StorageBackend;
+
+        assert_eq!(format!("{}", StorageBackend::InMemory), "in-memory");
+        assert_eq!(format!("{}", StorageBackend::Sled), "sled");
+        assert_eq!(format!("{}", StorageBackend::Sqlite), "sqlite");
+        assert_eq!(format!("{}", StorageBackend::Postgres), "postgres");
+        assert_eq!(format!("{}", StorageBackend::Rocksdb), "rocksdb");
+    }
+
+    #[test]
+    fn storage_backend_default() {
+        use crate::storage::StorageBackend;
+
+        assert_eq!(StorageBackend::default(), StorageBackend::InMemory);
+    }
+
+    #[test]
+    fn storage_backend_clone_and_eq() {
+        use crate::storage::StorageBackend;
+
+        let b1 = StorageBackend::Sled;
+        let b2 = b1;
+        assert_eq!(b1, b2);
+        assert_ne!(StorageBackend::InMemory, StorageBackend::Sled);
+    }
+
+    #[test]
+    fn storage_backend_debug() {
+        use crate::storage::StorageBackend;
+
+        let debug = format!("{:?}", StorageBackend::InMemory);
+        assert!(debug.contains("InMemory"));
+    }
 }

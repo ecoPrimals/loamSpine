@@ -19,10 +19,7 @@
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! use loam_spine_core::transport::TransportResponse;
 //!
-//! let response = TransportResponse {
-//!     status: 200,
-//!     body: b"ok".to_vec(),
-//! };
+//! let response = TransportResponse::new(200, b"ok".to_vec());
 //! assert!(response.is_success());
 //! # Ok(())
 //! # }
@@ -31,6 +28,7 @@
 use std::future::Future;
 use std::pin::Pin;
 
+use bytes::Bytes;
 use serde::de::DeserializeOwned;
 
 use crate::error::LoamSpineError;
@@ -72,15 +70,29 @@ pub trait DiscoveryTransport: Send + Sync + std::fmt::Debug {
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// Simplified HTTP response returned by every [`DiscoveryTransport`].
+///
+/// Uses [`Bytes`] for the response body so clones are O(1) reference-count
+/// bumps and downstream consumers can slice without copying.
 #[derive(Debug, Clone)]
 pub struct TransportResponse {
     /// HTTP status code.
     pub status: u16,
-    /// Raw response body.
-    pub body: Vec<u8>,
+    /// Raw response body (zero-copy via `Bytes`).
+    pub body: Bytes,
 }
 
 impl TransportResponse {
+    /// Construct a response from a status and owned byte vector.
+    ///
+    /// Converts the `Vec<u8>` into `Bytes` without copying.
+    #[must_use]
+    pub fn new(status: u16, body: Vec<u8>) -> Self {
+        Self {
+            status,
+            body: Bytes::from(body),
+        }
+    }
+
     /// Whether the status code is in the 2xx range.
     #[must_use]
     pub const fn is_success(&self) -> bool {
@@ -124,7 +136,7 @@ pub use neural_api::NeuralApiTransport;
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[cfg(any(test, feature = "testing"))]
-pub(crate) mod mock;
+pub mod mock;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Tests
@@ -138,17 +150,11 @@ mod tests {
     #[test]
     fn transport_response_success_range() {
         for code in 200..300_u16 {
-            let r = TransportResponse {
-                status: code,
-                body: Vec::new(),
-            };
+            let r = TransportResponse::new(code, Vec::new());
             assert!(r.is_success(), "status {code} should be success");
         }
         for code in [100, 301, 400, 404, 500] {
-            let r = TransportResponse {
-                status: code,
-                body: Vec::new(),
-            };
+            let r = TransportResponse::new(code, Vec::new());
             assert!(!r.is_success(), "status {code} should not be success");
         }
     }
@@ -156,27 +162,21 @@ mod tests {
     #[test]
     fn transport_response_json_parse() {
         let body = serde_json::to_vec(&serde_json::json!({"key": "value"})).unwrap();
-        let r = TransportResponse { status: 200, body };
+        let r = TransportResponse::new(200, body);
         let parsed: serde_json::Value = r.json().unwrap();
         assert_eq!(parsed["key"], "value");
     }
 
     #[test]
     fn transport_response_json_parse_error() {
-        let r = TransportResponse {
-            status: 200,
-            body: b"not json".to_vec(),
-        };
+        let r = TransportResponse::new(200, b"not json".to_vec());
         let result: Result<serde_json::Value, _> = r.json();
         assert!(result.is_err());
     }
 
     #[test]
     fn transport_response_clone() {
-        let r = TransportResponse {
-            status: 200,
-            body: b"test".to_vec(),
-        };
+        let r = TransportResponse::new(200, b"test".to_vec());
         let cloned = r.clone();
         assert_eq!(cloned.status, r.status);
         assert_eq!(cloned.body, r.body);
@@ -184,10 +184,7 @@ mod tests {
 
     #[test]
     fn transport_response_debug() {
-        let r = TransportResponse {
-            status: 200,
-            body: Vec::new(),
-        };
+        let r = TransportResponse::new(200, Vec::new());
         let debug = format!("{r:?}");
         assert!(debug.contains("200"));
     }

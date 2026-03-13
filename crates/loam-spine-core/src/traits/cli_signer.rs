@@ -387,26 +387,12 @@ mod tests {
         Some((true_path, false_path))
     }
 
-    /// Helper to get the beardog binary path if it exists.
+    /// Discover a signing service binary for integration tests.
+    ///
+    /// Uses the same capability-based discovery as production: checks
+    /// `LOAMSPINE_SIGNER_PATH` env var, then standard `../bins/` candidates.
     fn get_test_binary() -> Option<PathBuf> {
-        // Try Phase 2 bins directory
-        let bins_dir = PathBuf::from("../bins/beardog");
-        if bins_dir.exists() && bins_dir.metadata().map(|m| m.is_file()).unwrap_or(false) {
-            return Some(bins_dir);
-        }
-
-        // Try relative to workspace root
-        let workspace_bins = PathBuf::from("../../bins/beardog");
-        if workspace_bins.exists()
-            && workspace_bins
-                .metadata()
-                .map(|m| m.is_file())
-                .unwrap_or(false)
-        {
-            return Some(workspace_bins);
-        }
-
-        None
+        CliSigner::discover_binary()
     }
 
     #[test]
@@ -448,7 +434,7 @@ mod tests {
     fn signer_creation_fails_with_invalid_key() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
-            eprintln!("⚠️  Skipping test: beardog binary not found");
+            eprintln!("⚠️  Skipping test: signing service binary not found");
             return;
         };
 
@@ -476,7 +462,7 @@ mod tests {
     fn verifier_creation_succeeds_with_valid_binary() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
-            eprintln!("⚠️  Skipping test: beardog binary not found");
+            eprintln!("⚠️  Skipping test: signing service binary not found");
             return;
         };
 
@@ -488,7 +474,7 @@ mod tests {
     fn verifier_binary_path_accessor() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
-            eprintln!("⚠️  Skipping test: beardog binary not found");
+            eprintln!("⚠️  Skipping test: signing service binary not found");
             return;
         };
 
@@ -527,7 +513,7 @@ mod tests {
     fn signer_implements_debug() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
-            eprintln!("⚠️  Skipping test: beardog binary not found");
+            eprintln!("⚠️  Skipping test: signing service binary not found");
             return;
         };
 
@@ -543,7 +529,7 @@ mod tests {
     fn verifier_implements_debug() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
-            eprintln!("⚠️  Skipping test: beardog binary not found");
+            eprintln!("⚠️  Skipping test: signing service binary not found");
             return;
         };
 
@@ -557,7 +543,7 @@ mod tests {
     fn signer_implements_clone() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
-            eprintln!("⚠️  Skipping test: beardog binary not found");
+            eprintln!("⚠️  Skipping test: signing service binary not found");
             return;
         };
 
@@ -572,7 +558,7 @@ mod tests {
     fn verifier_implements_clone() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
-            eprintln!("⚠️  Skipping test: beardog binary not found");
+            eprintln!("⚠️  Skipping test: signing service binary not found");
             return;
         };
 
@@ -585,7 +571,7 @@ mod tests {
     async fn signer_did_accessor() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
-            eprintln!("⚠️  Skipping test: beardog binary not found");
+            eprintln!("⚠️  Skipping test: signing service binary not found");
             return;
         };
 

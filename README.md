@@ -4,8 +4,8 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
 [![Version](https://img.shields.io/badge/version-0.8.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-610%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/line%20coverage-90%25+-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-700%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/line%20coverage-90.6%25-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
 
@@ -158,12 +158,12 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 | Metric | Value |
 |--------|-------|
 | **Version** | 0.8.0 |
-| **Tests** | 610 passing |
-| **Line Coverage** | 90%+ |
+| **Tests** | 700 passing |
+| **Line Coverage** | 90.6% |
 | **Clippy** | 0 warnings (`-D warnings`, all targets) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Max File Size** | 899 lines (all < 1000) |
-| **Source Files** | 78 `.rs` files across 2 crates |
+| **Max File Size** | 949 lines (all < 1000) |
+| **Source Files** | 80 `.rs` files across 2 crates |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust TLS) |
