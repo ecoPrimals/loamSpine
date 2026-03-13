@@ -12,7 +12,7 @@ As of v0.8.0, the codebase passes all quality gates:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Tests | 400+ | 510+ | PASS |
+| Tests | 400+ | 549 | PASS |
 | Line Coverage | 90% | 90.08% | PASS |
 | Clippy (all targets, all features) | 0 warnings | 0 | PASS |
 | Formatting | clean | clean | PASS |
@@ -54,9 +54,11 @@ No critical issues, blockers, or security concerns.
 - `deny.toml` updated: `AGPL-3.0-only`, `CDLA-Permissive-2.0` licenses allowed
 - Environment-touching tests serialized with `#[serial]` to prevent race conditions
 - Coverage pushed from 87% to 90.08% with targeted tests across 8 files
-- 510+ tests (up from 495), 90.08% line coverage (up from 87%)
+- 549 tests (up from 495), 90.08% line coverage (up from 87%)
 - Version aligned to 0.8.0 across workspace
+- `permanent-storage.*` compatibility layer for rhizoCrypt wire format
+- Provenance trio integration tests (10 tests covering full dehydration + braid anchoring flows)
 
 ---
 
-**Last Updated**: March 12, 2026
+**Last Updated**: March 13, 2026

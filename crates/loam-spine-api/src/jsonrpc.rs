@@ -15,9 +15,10 @@ use crate::types::{
     GetCertificateResponse, GetEntryRequest, GetEntryResponse, GetSpineRequest, GetSpineResponse,
     GetTipRequest, GetTipResponse, HealthCheckRequest, HealthCheckResponse, LoanCertificateRequest,
     LoanCertificateResponse, MintCertificateRequest, MintCertificateResponse,
-    ReturnCertificateRequest, ReturnCertificateResponse, SealSpineRequest, SealSpineResponse,
-    TransferCertificateRequest, TransferCertificateResponse, VerifyInclusionProofRequest,
-    VerifyInclusionProofResponse,
+    PermanentStorageCommitRequest, PermanentStorageCommitResponse,
+    PermanentStorageGetCommitRequest, PermanentStorageVerifyRequest, ReturnCertificateRequest,
+    ReturnCertificateResponse, SealSpineRequest, SealSpineResponse, TransferCertificateRequest,
+    TransferCertificateResponse, VerifyInclusionProofRequest, VerifyInclusionProofResponse,
 };
 use jsonrpsee::core::RpcResult;
 use jsonrpsee::proc_macros::rpc;
@@ -187,6 +188,37 @@ pub trait LoamSpineJsonRpcApi {
         &self,
         request: VerifyInclusionProofRequest,
     ) -> RpcResult<VerifyInclusionProofResponse>;
+
+    // ========================================================================
+    // Permanent Storage Compatibility (rhizoCrypt wire format)
+    // ========================================================================
+    // rhizoCrypt's LoamSpineHttpClient calls these `permanent-storage.*`
+    // methods. They translate to loamSpine's native types internally.
+
+    /// Commit a session using the rhizoCrypt wire format.
+    #[method(name = "permanent-storage.commitSession")]
+    async fn permanent_storage_commit_session(
+        &self,
+        request: PermanentStorageCommitRequest,
+    ) -> RpcResult<PermanentStorageCommitResponse>;
+
+    /// Verify a commit using the rhizoCrypt wire format.
+    #[method(name = "permanent-storage.verifyCommit")]
+    async fn permanent_storage_verify_commit(
+        &self,
+        request: PermanentStorageVerifyRequest,
+    ) -> RpcResult<bool>;
+
+    /// Get a commit using the rhizoCrypt wire format.
+    #[method(name = "permanent-storage.getCommit")]
+    async fn permanent_storage_get_commit(
+        &self,
+        request: PermanentStorageGetCommitRequest,
+    ) -> RpcResult<serde_json::Value>;
+
+    /// Health check using the rhizoCrypt wire format.
+    #[method(name = "permanent-storage.healthCheck")]
+    async fn permanent_storage_health_check(&self) -> RpcResult<bool>;
 }
 
 /// JSON-RPC server implementation.
@@ -359,6 +391,40 @@ impl LoamSpineJsonRpcApiServer for LoamSpineJsonRpc {
             .verify_inclusion_proof(request)
             .await
             .map_err(to_rpc_error)
+    }
+
+    async fn permanent_storage_commit_session(
+        &self,
+        request: PermanentStorageCommitRequest,
+    ) -> RpcResult<PermanentStorageCommitResponse> {
+        self.service
+            .permanent_storage_commit_session(request)
+            .await
+            .map_err(to_rpc_error)
+    }
+
+    async fn permanent_storage_verify_commit(
+        &self,
+        request: PermanentStorageVerifyRequest,
+    ) -> RpcResult<bool> {
+        self.service
+            .permanent_storage_verify_commit(request)
+            .await
+            .map_err(to_rpc_error)
+    }
+
+    async fn permanent_storage_get_commit(
+        &self,
+        request: PermanentStorageGetCommitRequest,
+    ) -> RpcResult<serde_json::Value> {
+        self.service
+            .permanent_storage_get_commit(request)
+            .await
+            .map_err(to_rpc_error)
+    }
+
+    async fn permanent_storage_health_check(&self) -> RpcResult<bool> {
+        Ok(true)
     }
 }
 

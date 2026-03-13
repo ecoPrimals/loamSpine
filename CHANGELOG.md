@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.8.0] - 2026-03-12
 
 ### Added
+- **Provenance Trio coordination**: `permanent-storage.*` JSON-RPC compatibility layer bridging rhizoCrypt's wire format to loamSpine's native types
+  - `permanent-storage.commitSession` auto-creates permanence spines per committer, translates hex-encoded merkle roots to `[u8; 32]` and `RpcDehydrationSummary` to native `CommitSessionRequest`
+  - `permanent-storage.verifyCommit`, `permanent-storage.getCommit`, `permanent-storage.healthCheck` methods for full rhizoCrypt client compatibility
+  - sweetGrass braid anchoring validated end-to-end via `braid.commit` with inclusion proof verification
+- **10 provenance trio integration tests**: Dehydration flow (native + compat), braid anchoring, full trio flow, auto-spine creation, error rejection, proof verification
 - **Service registry discovery**: `ServiceRegistry` evolved from stub to real HTTP-based implementation querying any `/discover?capability=...` endpoint
 - **Pure Rust TLS**: `reqwest` switched from `native-tls` to `rustls-tls` -- no more OpenSSL/native-tls in dependency tree
 - **UniBin compliance**: Binary renamed to `loamspine`, CLI uses `clap` with subcommand structure (`loamspine server`)
@@ -32,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 10 stale root documentation files (archived as fossil record)
 
 ### Metrics
-- Tests: 495 -> 510+
+- Tests: 510+ -> 549
 - Line coverage: 87% -> 90.08%
 - Version: 0.7.1 -> 0.8.0
 - File sizes: All < 1000 lines (largest: backup.rs at 863)

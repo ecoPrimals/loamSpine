@@ -3,7 +3,8 @@
 //! Session commit, braid commit, and slice operations.
 //!
 //! Integration points for ephemeral storage, semantic attribution,
-//! and waypoint slice management.
+//! and waypoint slice management. Includes `permanent-storage.*`
+//! compatibility layer for rhizoCrypt's wire format.
 
 use super::LoamSpineRpcService;
 use crate::error::{ApiError, ApiResult};
@@ -11,6 +12,7 @@ use crate::types::*;
 use loam_spine_core::traits::{
     BraidAcceptor, BraidSummary, CommitAcceptor, DehydrationSummary, SliceManager,
 };
+use tracing::debug;
 
 impl LoamSpineRpcService {
     /// Anchor a slice.
@@ -132,11 +134,168 @@ impl LoamSpineRpcService {
             .await
             .map_err(ApiError::from)?;
 
-        // Note: commit_braid returns EntryHash, not index
-        // We return 0 for index since we don't have it
         Ok(CommitBraidResponse {
             commit_hash: hash,
             index: 0,
         })
     }
+
+    // ====================================================================
+    // permanent-storage.* compatibility (rhizoCrypt wire format)
+    // ====================================================================
+
+    /// Translate rhizoCrypt's `permanent-storage.commitSession` to loamSpine's
+    /// native `session.commit`. Auto-creates a permanence spine for the
+    /// committer if one doesn't already exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if translation or commit fails.
+    pub async fn permanent_storage_commit_session(
+        &self,
+        request: PermanentStorageCommitRequest,
+    ) -> ApiResult<PermanentStorageCommitResponse> {
+        debug!(
+            "permanent-storage.commitSession: session_id={}, outcome={}",
+            request.session_id, request.summary.outcome
+        );
+
+        let session_id = request
+            .session_id
+            .parse::<uuid::Uuid>()
+            .map_err(|e| ApiError::InvalidRequest(format!("invalid session_id UUID: {e}")))?;
+
+        let merkle_root = hex_to_content_hash(&request.merkle_root)
+            .map_err(|e| ApiError::InvalidRequest(format!("invalid merkle_root hex: {e}")))?;
+
+        let committer = Did::new(
+            request
+                .committer_did
+                .as_deref()
+                .unwrap_or("did:key:anonymous"),
+        );
+
+        let spine_id = self.ensure_permanence_spine(&committer).await?;
+
+        let native_request = CommitSessionRequest {
+            spine_id,
+            session_id,
+            session_hash: merkle_root,
+            vertex_count: request.summary.vertex_count,
+            committer,
+        };
+
+        match self.commit_session(native_request).await {
+            Ok(resp) => {
+                let hash_hex = bytes_to_hex(&resp.commit_hash);
+                Ok(PermanentStorageCommitResponse {
+                    accepted: true,
+                    commit_id: Some(hash_hex.clone()),
+                    spine_entry_hash: Some(hash_hex),
+                    entry_index: Some(resp.index),
+                    spine_id: Some(spine_id.to_string()),
+                    error: None,
+                })
+            }
+            Err(e) => Ok(PermanentStorageCommitResponse {
+                accepted: false,
+                commit_id: None,
+                spine_entry_hash: None,
+                entry_index: None,
+                spine_id: None,
+                error: Some(e.to_string()),
+            }),
+        }
+    }
+
+    /// Verify a commit exists using rhizoCrypt's wire format.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if verification fails.
+    pub async fn permanent_storage_verify_commit(
+        &self,
+        request: PermanentStorageVerifyRequest,
+    ) -> ApiResult<bool> {
+        let spine_id = request
+            .spine_id
+            .parse::<uuid::Uuid>()
+            .map_err(|e| ApiError::InvalidRequest(format!("invalid spine_id UUID: {e}")))?;
+
+        let entry_hash = hex_to_content_hash(&request.entry_hash)
+            .map_err(|e| ApiError::InvalidRequest(format!("invalid entry_hash hex: {e}")))?;
+
+        let get_resp = self
+            .get_entry(GetEntryRequest {
+                spine_id,
+                entry_hash,
+            })
+            .await?;
+
+        Ok(get_resp.found)
+    }
+
+    /// Get a commit using rhizoCrypt's wire format.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if retrieval fails.
+    pub async fn permanent_storage_get_commit(
+        &self,
+        request: PermanentStorageGetCommitRequest,
+    ) -> ApiResult<serde_json::Value> {
+        let spine_id = request
+            .spine_id
+            .parse::<uuid::Uuid>()
+            .map_err(|e| ApiError::InvalidRequest(format!("invalid spine_id UUID: {e}")))?;
+
+        let entry_hash = hex_to_content_hash(&request.entry_hash)
+            .map_err(|e| ApiError::InvalidRequest(format!("invalid entry_hash hex: {e}")))?;
+
+        let get_resp = self
+            .get_entry(GetEntryRequest {
+                spine_id,
+                entry_hash,
+            })
+            .await?;
+
+        if let Some(entry) = get_resp.entry {
+            serde_json::to_value(&entry)
+                .map_err(|e| ApiError::Internal(format!("serialization failed: {e}")))
+        } else {
+            Ok(serde_json::Value::Null)
+        }
+    }
+
+    /// Ensure a permanence spine exists for the given committer DID.
+    /// Uses the core service's idempotent `ensure_spine` method.
+    async fn ensure_permanence_spine(&self, committer: &Did) -> ApiResult<SpineId> {
+        let core = self.core_mut().await;
+        core.ensure_spine(committer.clone(), None)
+            .await
+            .map_err(ApiError::from)
+    }
+}
+
+/// Parse a hex-encoded string into a 32-byte `ContentHash`.
+fn hex_to_content_hash(hex_str: &str) -> Result<ContentHash, String> {
+    let hex_str = hex_str.strip_prefix("0x").unwrap_or(hex_str);
+    if hex_str.len() != 64 {
+        return Err(format!("expected 64 hex chars, got {}", hex_str.len()));
+    }
+    let mut hash = [0u8; 32];
+    for (i, byte) in hash.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&hex_str[i * 2..i * 2 + 2], 16)
+            .map_err(|e| format!("hex parse at byte {i}: {e}"))?;
+    }
+    Ok(hash)
+}
+
+/// Encode a 32-byte hash as lowercase hex.
+fn bytes_to_hex(bytes: &[u8; 32]) -> String {
+    use std::fmt::Write;
+    bytes.iter().fold(String::with_capacity(64), |mut s, b| {
+        let _ = write!(s, "{b:02x}");
+        s
+    })
 }

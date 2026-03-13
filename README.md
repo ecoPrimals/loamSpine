@@ -4,7 +4,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
 [![Version](https://img.shields.io/badge/version-0.8.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-510%2B%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-549%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/line%20coverage-90.08%25-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 
@@ -128,7 +128,11 @@ loamSpine/
 | **Waypoint** | `slice.anchor` | Anchor borrowed state |
 | **Proof** | `proof.generate_inclusion` | Create proof |
 | **Integration** | `session.commit` | rhizoCrypt commits |
-| **Integration** | `braid.commit` | SweetGrass commits |
+| **Integration** | `braid.commit` | sweetGrass commits |
+| **Compat** | `permanent-storage.commitSession` | rhizoCrypt wire format |
+| **Compat** | `permanent-storage.verifyCommit` | Verify via rhizoCrypt format |
+| **Compat** | `permanent-storage.getCommit` | Retrieve via rhizoCrypt format |
+| **Compat** | `permanent-storage.healthCheck` | Health for rhizoCrypt clients |
 | **Health** | `health.check` | Service status |
 
 ---
@@ -150,7 +154,7 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 | Metric | Value |
 |--------|-------|
 | **Version** | 0.8.0 |
-| **Tests** | 510+ passing |
+| **Tests** | 549 passing |
 | **Line Coverage** | 90.08% |
 | **Clippy** | 0 warnings (all targets) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
