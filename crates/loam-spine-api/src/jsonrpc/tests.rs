@@ -23,7 +23,7 @@ async fn rpc_call<Req: serde::Serialize, Resp: serde::de::DeserializeOwned>(
         params,
         id: serde_json::Value::Number(1.into()),
     };
-    let rpc_resp = server.handle_request(&rpc_req).await;
+    let rpc_resp = server.handle_request(rpc_req).await;
     if let Some(err) = rpc_resp.error {
         return Err(err.message);
     }
@@ -41,7 +41,7 @@ async fn rpc_call_no_params<Resp: serde::de::DeserializeOwned>(
         params: serde_json::Value::Null,
         id: serde_json::Value::Number(1.into()),
     };
-    let rpc_resp = server.handle_request(&rpc_req).await;
+    let rpc_resp = server.handle_request(rpc_req).await;
     if let Some(err) = rpc_resp.error {
         return Err(err.message);
     }
@@ -275,14 +275,14 @@ async fn test_jsonrpc_get_entry_and_tip() {
 async fn test_jsonrpc_liveness_and_readiness() {
     let server = LoamSpineJsonRpc::default_server();
 
-    let liveness: crate::health::LivenessProbe =
-        rpc_call_no_params(&server, "health.liveness").await.unwrap();
+    let liveness: crate::health::LivenessProbe = rpc_call_no_params(&server, "health.liveness")
+        .await
+        .unwrap();
     assert!(liveness.alive);
 
-    let readiness: crate::health::ReadinessProbe =
-        rpc_call_no_params(&server, "health.readiness")
-            .await
-            .unwrap();
+    let readiness: crate::health::ReadinessProbe = rpc_call_no_params(&server, "health.readiness")
+        .await
+        .unwrap();
     assert!(readiness.ready);
 }
 
@@ -485,13 +485,10 @@ async fn test_jsonrpc_legacy_permanence_delegates() {
         },
     };
 
-    let response: crate::types::PermanentStorageCommitResponse = rpc_call(
-        &server,
-        "permanent-storage.commitSession",
-        &commit_request,
-    )
-    .await
-    .unwrap();
+    let response: crate::types::PermanentStorageCommitResponse =
+        rpc_call(&server, "permanent-storage.commitSession", &commit_request)
+            .await
+            .unwrap();
     assert!(response.accepted);
 
     let healthy: bool = rpc_call_no_params(&server, "permanent-storage.healthCheck")
@@ -530,8 +527,9 @@ async fn semantic_commit_session_alias() {
 #[tokio::test]
 async fn capability_list_method() {
     let server = LoamSpineJsonRpc::default_server();
-    let value: serde_json::Value =
-        rpc_call_no_params(&server, "capability.list").await.unwrap();
+    let value: serde_json::Value = rpc_call_no_params(&server, "capability.list")
+        .await
+        .unwrap();
     assert!(value.get("capabilities").is_some());
     assert!(value.get("primal").is_some());
     assert_eq!(value["primal"], "loamspine");
@@ -546,7 +544,7 @@ async fn method_not_found_returns_error() {
         params: serde_json::Value::Null,
         id: serde_json::Value::Number(1.into()),
     };
-    let resp = server.handle_request(&rpc_req).await;
+    let resp = server.handle_request(rpc_req).await;
     assert!(resp.error.is_some());
     assert_eq!(resp.error.unwrap().code, -32601);
 }
@@ -563,7 +561,8 @@ fn json_rpc_types_serde_roundtrip() {
     let parsed: JsonRpcRequest = serde_json::from_str(&json).unwrap();
     assert_eq!(parsed.method, "test.method");
 
-    let resp = JsonRpcResponse::success(serde_json::Value::Number(1.into()), serde_json::json!(true));
+    let resp =
+        JsonRpcResponse::success(serde_json::Value::Number(1.into()), serde_json::json!(true));
     let json = serde_json::to_string(&resp).unwrap();
     let parsed: JsonRpcResponse = serde_json::from_str(&json).unwrap();
     assert!(parsed.error.is_none());

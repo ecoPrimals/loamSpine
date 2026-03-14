@@ -552,7 +552,7 @@ async fn permanent_storage_health_check() {
         params: serde_json::Value::Null,
         id: serde_json::Value::Number(1.into()),
     };
-    let resp = server.handle_request(&req).await;
+    let resp = server.handle_request(req).await;
     assert!(resp.error.is_none());
     assert_eq!(resp.result.unwrap(), serde_json::Value::Bool(true));
 }

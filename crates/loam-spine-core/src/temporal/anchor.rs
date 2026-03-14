@@ -109,7 +109,7 @@ pub enum AnchorType {
 impl Anchor {
     /// Get the type of this anchor.
     #[must_use]
-    pub fn anchor_type(&self) -> AnchorType {
+    pub const fn anchor_type(&self) -> AnchorType {
         match self {
             Self::Crypto(_) => AnchorType::Crypto,
             Self::Atomic(_) => AnchorType::Atomic,

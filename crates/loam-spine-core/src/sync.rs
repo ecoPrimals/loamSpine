@@ -53,7 +53,6 @@ pub struct SyncPeer {
 struct SpineSyncState {
     local_height: u64,
     remote_height: u64,
-    last_sync_ns: u64,
     pending_push: Vec<Entry>,
 }
 
@@ -101,8 +100,8 @@ impl SyncEngine {
     /// Update the local height for a spine (called after append).
     pub async fn notify_local_append(&self, spine_id: SpineId, new_height: u64) {
         let mut states = self.spine_states.write().await;
-        let state = states.entry(spine_id).or_default();
-        state.local_height = new_height;
+        states.entry(spine_id).or_default().local_height = new_height;
+        drop(states);
     }
 }
 
@@ -118,20 +117,25 @@ impl SyncProtocol for SyncEngine {
         spine_id: SpineId,
         entries: Vec<Entry>,
     ) -> LoamSpineResult<SyncResult> {
-        let peers = self.peers.read().await;
-        if peers.is_empty() {
-            return Err(LoamSpineError::Network(
-                "no federation peers registered".to_string(),
-            ));
+        {
+            let peers = self.peers.read().await;
+            if peers.is_empty() {
+                return Err(LoamSpineError::Network(
+                    "no federation peers registered".to_string(),
+                ));
+            }
         }
 
         let entry_count = entries.len() as u64;
 
-        let mut states = self.spine_states.write().await;
-        let state = states.entry(spine_id).or_default();
-        state.pending_push.extend(entries);
+        self.spine_states
+            .write()
+            .await
+            .entry(spine_id)
+            .or_default()
+            .pending_push
+            .extend(entries);
 
-        // Stub: accept all entries locally, actual replication is future work
         Ok(SyncResult {
             accepted: entry_count,
             rejected: 0,
@@ -145,46 +149,48 @@ impl SyncProtocol for SyncEngine {
         from_index: u64,
         limit: u64,
     ) -> LoamSpineResult<Vec<Entry>> {
-        let peers = self.peers.read().await;
-        if peers.is_empty() {
-            return Err(LoamSpineError::Network(
-                "no federation peers registered".to_string(),
-            ));
+        {
+            let peers = self.peers.read().await;
+            if peers.is_empty() {
+                return Err(LoamSpineError::Network(
+                    "no federation peers registered".to_string(),
+                ));
+            }
         }
 
+        let limit_usize = usize::try_from(limit).unwrap_or(usize::MAX);
         let states = self.spine_states.read().await;
-        if let Some(state) = states.get(&spine_id) {
-            let entries: Vec<Entry> = state
+        let entries: Vec<Entry> = states.get(&spine_id).map_or_else(Vec::new, |state| {
+            state
                 .pending_push
                 .iter()
                 .filter(|e| e.index >= from_index)
-                .take(limit as usize)
+                .take(limit_usize)
                 .cloned()
-                .collect();
-            Ok(entries)
-        } else {
-            Ok(Vec::new())
-        }
+                .collect()
+        });
+        drop(states);
+        Ok(entries)
     }
 
     async fn get_sync_status(&self, spine_id: SpineId) -> LoamSpineResult<SyncStatus> {
-        let states = self.spine_states.read().await;
-        match states.get(&spine_id) {
-            Some(state) => {
-                if state.local_height == state.remote_height {
-                    Ok(SyncStatus::InSync)
-                } else if state.local_height > state.remote_height {
-                    Ok(SyncStatus::LocalAhead {
-                        entries_ahead: state.local_height - state.remote_height,
-                    })
-                } else {
-                    Ok(SyncStatus::RemoteAhead {
-                        entries_behind: state.remote_height - state.local_height,
-                    })
-                }
-            }
-            None => Ok(SyncStatus::Unknown),
-        }
+        let state_opt = {
+            let states = self.spine_states.read().await;
+            states
+                .get(&spine_id)
+                .map(|s| (s.local_height, s.remote_height))
+        };
+        state_opt.map_or(Ok(SyncStatus::Unknown), |(local_height, remote_height)| {
+            Ok(match local_height.cmp(&remote_height) {
+                std::cmp::Ordering::Equal => SyncStatus::InSync,
+                std::cmp::Ordering::Greater => SyncStatus::LocalAhead {
+                    entries_ahead: local_height - remote_height,
+                },
+                std::cmp::Ordering::Less => SyncStatus::RemoteAhead {
+                    entries_behind: remote_height - local_height,
+                },
+            })
+        })
     }
 }
 
@@ -245,10 +251,7 @@ mod tests {
 
         engine.notify_local_append(spine_id, 5).await;
         let status = engine.get_sync_status(spine_id).await.unwrap();
-        assert_eq!(
-            status,
-            SyncStatus::LocalAhead { entries_ahead: 5 }
-        );
+        assert_eq!(status, SyncStatus::LocalAhead { entries_ahead: 5 });
     }
 
     #[tokio::test]
@@ -278,10 +281,7 @@ mod tests {
 
         let spine_id = SpineId::now_v7();
         let entries = vec![test_entry(spine_id, 0), test_entry(spine_id, 1)];
-        engine
-            .push_entries(spine_id, entries)
-            .await
-            .unwrap();
+        engine.push_entries(spine_id, entries).await.unwrap();
 
         let pulled = engine.pull_entries(spine_id, 0, 10).await.unwrap();
         assert_eq!(pulled.len(), 2);

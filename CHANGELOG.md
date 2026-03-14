@@ -5,20 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.8.3-dev — 2026-03-14
+## [0.8.3] - 2026-03-14
 
 ### Added
 - `RedbStorage` as default storage backend (pure Rust, zero C dependencies)
 - `CapabilityProvider { capability, message }` error variant for ecosystem consistency
 - `capability_provider()` helper on `LoamSpineError`
+- 16 SQLite storage tests (was 0% coverage)
+- 12 HTTP transport tests with mini-server for success/error paths
+- 5 neural API env-var resolution tests
+- 10 CLI signer DynSigner/DynVerifier trait object tests
+- `# Errors` doc sections on 10 public Result-returning functions
 
 ### Changed
 - sled moved to optional `sled-storage` feature (was default)
 - Default feature: `redb-storage`
 - Benchmarks updated to use redb
+- **Clippy pedantic + nursery**: 67 errors → 0 across all 3 workspace crates
+- 15 functions promoted to `const fn` (identifiers, accessors, constructors)
+- 26 lock guard scoping issues fixed (`significant_drop_tightening`)
+- 6 match blocks rewritten to idiomatic `let...else`
+- `MockTransport` cfg-gated to `#[cfg(any(test, feature = "testing"))]`
+- JSON-RPC `dispatch` takes `serde_json::Value` by value (eliminates `params.clone()`)
+- `handle_request` takes `JsonRpcRequest` by value (eliminates `req.id.clone()`)
+- `storage/tests.rs` split: 1261 → 892 + 370 lines
+- `cli_signer.rs` tests extracted: 1002 → 332 + 673 lines
+
+### Removed
+- Dead field `SpineSyncState.last_sync_ns` (never read)
 
 ### Fixed
 - loamspine-service wired to RedbStorage as default backend
+- `u64 as usize` truncation in sync.rs → `usize::try_from`
+- Type inference regression in SQLite `entry_exists` after block-scoping
+
+### Metrics
+- Tests: 771 → 809 (+38)
+- Line coverage: 80.52% → 84.52% (llvm-cov)
+- Clippy pedantic+nursery: 67 → 0 errors
+- Source files: 92 → 96
+- Max file size: 1261 → 990 (all under 1000)
+- Doc warnings: 0
+- Unsafe: 0 blocks (maintained)
 
 ## [0.8.2] - 2026-03-14
 
@@ -424,6 +452,7 @@ spine.append(entry)?;
 
 ---
 
+[0.8.3]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ecoPrimals/loamSpine/compare/v0.7.1...v0.8.0

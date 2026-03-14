@@ -223,7 +223,7 @@ pub enum ServiceHealth {
 impl LoamSpineCapability {
     /// Get the capability identifier for this capability
     #[must_use]
-    pub fn identifier(&self) -> &'static str {
+    pub const fn identifier(&self) -> &'static str {
         match self {
             Self::PermanentLedger { .. } => loamspine::PERMANENT_LEDGER,
             Self::CertificateAuthority { .. } => loamspine::CERTIFICATE_AUTHORITY,
@@ -287,7 +287,7 @@ impl LoamSpineCapability {
 impl ExternalCapability {
     /// Get the capability identifier for this capability
     #[must_use]
-    pub fn identifier(&self) -> &'static str {
+    pub const fn identifier(&self) -> &'static str {
         match self {
             Self::Signing { .. } => external::SIGNING,
             Self::Storage { .. } => external::STORAGE,

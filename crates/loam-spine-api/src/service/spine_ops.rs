@@ -23,16 +23,17 @@ impl LoamSpineRpcService {
             .await
             .map_err(ApiError::from)?;
 
-        // Get the spine to get genesis hash
         let spine = core
             .get_spine(spine_id)
             .await
             .map_err(ApiError::from)?
             .ok_or_else(|| ApiError::SpineNotFound(format!("{spine_id:?}")))?;
+        let genesis_hash = spine.genesis;
+        drop(core);
 
         Ok(CreateSpineResponse {
             spine_id,
-            genesis_hash: spine.genesis,
+            genesis_hash,
         })
     }
 

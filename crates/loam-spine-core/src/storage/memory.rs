@@ -100,16 +100,18 @@ impl EntryStorage for InMemoryEntryStorage {
         let spine_id = entry.spine_id;
 
         // Save entry
-        self.entries.write().await.insert(hash, entry.clone());
+        {
+            let mut entries = self.entries.write().await;
+            entries.insert(hash, entry.clone());
+        }
 
         // Update spine index
-        {
-            let mut index = self.spine_index.write().await;
-            let hashes = index.entry(spine_id).or_default();
-            if !hashes.contains(&hash) {
-                hashes.push(hash);
-            }
+        let mut index = self.spine_index.write().await;
+        let hashes = index.entry(spine_id).or_default();
+        if !hashes.contains(&hash) {
+            hashes.push(hash);
         }
+        drop(index);
 
         Ok(hash)
     }
@@ -125,22 +127,27 @@ impl EntryStorage for InMemoryEntryStorage {
         start_index: u64,
         limit: u64,
     ) -> LoamSpineResult<Vec<Entry>> {
-        let index = self.spine_index.read().await;
-        let entries = self.entries.read().await;
-
-        let Some(hashes) = index.get(&spine_id) else {
-            return Ok(Vec::new());
+        let hashes: Vec<EntryHash> = {
+            let index = self.spine_index.read().await;
+            index.get(&spine_id).cloned().unwrap_or_default()
         };
+
+        if hashes.is_empty() {
+            return Ok(Vec::new());
+        }
 
         let start = usize::try_from(start_index).unwrap_or(usize::MAX);
         let limit = usize::try_from(limit).unwrap_or(usize::MAX);
 
-        let result: Vec<Entry> = hashes
-            .iter()
-            .skip(start)
-            .take(limit)
-            .filter_map(|hash| entries.get(hash).cloned())
-            .collect();
+        let result: Vec<Entry> = {
+            let entries = self.entries.read().await;
+            hashes
+                .iter()
+                .skip(start)
+                .take(limit)
+                .filter_map(|hash| entries.get(hash).cloned())
+                .collect()
+        };
 
         Ok(result)
     }

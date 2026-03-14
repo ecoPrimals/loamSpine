@@ -248,10 +248,10 @@ pub fn actual_tarpc_port() -> u16 {
 /// ```
 #[must_use]
 pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -> String {
-    match path {
-        Some(p) => format!("{scheme}://{host}:{port}{p}"),
-        None => format!("{scheme}://{host}:{port}"),
-    }
+    path.map_or_else(
+        || format!("{scheme}://{host}:{port}"),
+        |p| format!("{scheme}://{host}:{port}{p}"),
+    )
 }
 
 #[cfg(test)]

@@ -45,22 +45,20 @@ mod sqlite;
 
 // Tests
 #[cfg(test)]
+mod certificate_tests;
+#[cfg(test)]
 mod tests;
 
 // Re-exports
+#[cfg(feature = "redb-storage")]
+pub use self::redb::{RedbCertificateStorage, RedbEntryStorage, RedbSpineStorage, RedbStorage};
+#[cfg(feature = "sled-storage")]
+pub use self::sled::{SledCertificateStorage, SledEntryStorage, SledSpineStorage, SledStorage};
 pub use memory::{
     InMemoryCertificateStorage, InMemoryEntryStorage, InMemorySpineStorage, InMemoryStorage,
 };
-#[cfg(feature = "redb-storage")]
-pub use self::redb::{
-    RedbCertificateStorage, RedbEntryStorage, RedbSpineStorage, RedbStorage,
-};
-#[cfg(feature = "sled-storage")]
-pub use self::sled::{SledCertificateStorage, SledEntryStorage, SledSpineStorage, SledStorage};
 #[cfg(feature = "sqlite")]
-pub use sqlite::{
-    SqliteCertificateStorage, SqliteEntryStorage, SqliteSpineStorage, SqliteStorage,
-};
+pub use sqlite::{SqliteCertificateStorage, SqliteEntryStorage, SqliteSpineStorage, SqliteStorage};
 
 /// Storage backend for spines.
 ///

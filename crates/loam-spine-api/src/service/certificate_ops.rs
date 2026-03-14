@@ -16,16 +16,17 @@ impl LoamSpineRpcService {
         &self,
         request: MintCertificateRequest,
     ) -> ApiResult<MintCertificateResponse> {
-        let core = self.core_mut().await;
-        let (cert_id, mint_hash) = core
-            .mint_certificate(
+        let (cert_id, mint_hash) = {
+            let core = self.core_mut().await;
+            core.mint_certificate(
                 request.spine_id,
                 request.cert_type,
                 request.owner,
                 request.metadata,
             )
             .await
-            .map_err(ApiError::from)?;
+            .map_err(ApiError::from)?
+        };
 
         Ok(MintCertificateResponse {
             certificate_id: cert_id,
@@ -113,16 +114,19 @@ impl LoamSpineRpcService {
         &self,
         request: GetCertificateRequest,
     ) -> ApiResult<GetCertificateResponse> {
-        let core = self.core().await;
-        match core.get_certificate(request.certificate_id).await {
-            Some(cert) => Ok(GetCertificateResponse {
-                found: true,
-                certificate: Some(cert),
-            }),
-            None => Ok(GetCertificateResponse {
+        let result = {
+            let core = self.core().await;
+            core.get_certificate(request.certificate_id).await
+        };
+        Ok(result.map_or(
+            GetCertificateResponse {
                 found: false,
                 certificate: None,
-            }),
-        }
+            },
+            |cert| GetCertificateResponse {
+                found: true,
+                certificate: Some(cert),
+            },
+        ))
     }
 }

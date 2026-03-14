@@ -227,9 +227,15 @@ impl InfantDiscovery {
                         // Query for _discovery._tcp.local SRV record
                         let srv_query = "_discovery._tcp.local";
                         match resolver.srv_lookup(srv_query).await {
-                            Ok(response) => {
-                                // Get the first SRV record (highest priority)
-                                if let Some(srv) = response.iter().next() {
+                            Ok(response) => response.iter().next().map_or_else(
+                                || {
+                                    tracing::debug!(
+                                        "🔍 No SRV records found for {}, trying next method",
+                                        srv_query
+                                    );
+                                    None
+                                },
+                                |srv| {
                                     let target = srv.target().to_utf8();
                                     let port = srv.port();
 
@@ -238,14 +244,8 @@ impl InfantDiscovery {
                                         format!("http://{}:{}", target.trim_end_matches('.'), port);
                                     tracing::info!("✅ DNS SRV discovery successful: {}", endpoint);
                                     Some(endpoint)
-                                } else {
-                                    tracing::debug!(
-                                        "🔍 No SRV records found for {}, trying next method",
-                                        srv_query
-                                    );
-                                    None
-                                }
-                            }
+                                },
+                            ),
                             Err(e) => {
                                 tracing::debug!(
                                     "🔍 DNS SRV lookup failed: {}, trying next method",

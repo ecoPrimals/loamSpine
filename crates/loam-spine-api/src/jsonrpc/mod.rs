@@ -118,9 +118,11 @@ impl LoamSpineJsonRpc {
     }
 
     /// Handle a JSON-RPC request and produce a response.
-    pub async fn handle_request(&self, req: &JsonRpcRequest) -> JsonRpcResponse {
-        let id = req.id.clone();
-        match self.dispatch(&req.method, &req.params).await {
+    pub async fn handle_request(&self, req: JsonRpcRequest) -> JsonRpcResponse {
+        let JsonRpcRequest {
+            id, method, params, ..
+        } = req;
+        match self.dispatch(method.as_str(), params).await {
             Ok(val) => JsonRpcResponse::success(id, val),
             Err(e) => JsonRpcResponse::error(id, e.code, e.message),
         }
@@ -129,7 +131,7 @@ impl LoamSpineJsonRpc {
     async fn dispatch(
         &self,
         method: &str,
-        params: &serde_json::Value,
+        params: serde_json::Value,
     ) -> Result<serde_json::Value, JsonRpcError> {
         macro_rules! rpc {
             ($params:expr, $method:ident) => {{
@@ -202,8 +204,8 @@ fn app_err(e: impl std::fmt::Display) -> JsonRpcError {
     }
 }
 
-fn deser<T: serde::de::DeserializeOwned>(params: &serde_json::Value) -> Result<T, JsonRpcError> {
-    serde_json::from_value(params.clone()).map_err(|e| JsonRpcError {
+fn deser<T: serde::de::DeserializeOwned>(params: serde_json::Value) -> Result<T, JsonRpcError> {
+    serde_json::from_value(params).map_err(|e| JsonRpcError {
         code: INVALID_PARAMS,
         message: format!("invalid params: {e}"),
         data: None,
@@ -364,7 +366,7 @@ async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> Vec<u8> {
         }
     };
 
-    let response = handler.handle_request(&request).await;
+    let response = handler.handle_request(request).await;
     serde_json::to_vec(&response).unwrap_or_default()
 }
 

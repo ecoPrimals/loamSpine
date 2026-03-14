@@ -3,7 +3,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../../scripts/common.sh"
 DEMO_NAME="$(basename "$SCRIPT_DIR")"
-EXAMPLE_NAME="${DEMO_NAME#??-}"
+EXAMPLE_NAME="demo_${DEMO_NAME#??-}"
 EXAMPLE_NAME="${EXAMPLE_NAME//-/_}"
 
 main() {

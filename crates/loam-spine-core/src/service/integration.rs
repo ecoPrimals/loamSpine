@@ -200,16 +200,20 @@ impl SliceManager for LoamSpineService {
     }
 
     async fn mark_sliced(&self, slice_id: SliceId, holder: Did) -> LoamSpineResult<()> {
-        let mut slices = self.active_slices.write().await;
-        if let Some(info) = slices.get_mut(&slice_id) {
-            info.holder = holder;
+        {
+            let mut slices = self.active_slices.write().await;
+            if let Some(info) = slices.get_mut(&slice_id) {
+                info.holder = holder;
+            }
         }
         Ok(())
     }
 
     async fn clear_slice_mark(&self, slice_id: SliceId) -> LoamSpineResult<()> {
-        let mut slices = self.active_slices.write().await;
-        slices.remove(&slice_id);
+        {
+            let mut slices = self.active_slices.write().await;
+            slices.remove(&slice_id);
+        }
         Ok(())
     }
 
@@ -278,35 +282,34 @@ impl SliceManager for LoamSpineService {
     }
 
     async fn get_slice_status(&self, slice_id: SliceId) -> LoamSpineResult<SliceStatus> {
-        let slices = self.active_slices.read().await;
-        match slices.get(&slice_id) {
-            Some(info) => Ok(SliceStatus::Active {
-                holder: info.holder.clone(),
-            }),
-            None => Ok(SliceStatus::Unknown),
-        }
+        let holder = {
+            let slices = self.active_slices.read().await;
+            slices.get(&slice_id).map(|info| info.holder.clone())
+        };
+        Ok(holder.map_or(SliceStatus::Unknown, |h| SliceStatus::Active { holder: h }))
     }
 
     async fn list_active_slices(&self, spine_id: SpineId) -> LoamSpineResult<Vec<ActiveSlice>> {
-        let slices = self.active_slices.read().await;
-        let mut result = Vec::new();
-        for (slice_id, info) in slices.iter() {
-            if info.spine_id == spine_id {
-                result.push(ActiveSlice {
-                    slice_id: *slice_id,
-                    origin: SliceOrigin {
-                        spine_id: info.spine_id,
-                        entry_hash: info.entry_hash,
-                        entry_index: info.entry_index,
-                        certificate_id: None,
-                        owner: info.owner.clone(),
-                    },
-                    holder: info.holder.clone(),
-                    checked_out_at: info.checked_out_at,
-                    session_id: info.session_id,
-                });
-            }
-        }
+        let result: Vec<ActiveSlice> = self
+            .active_slices
+            .read()
+            .await
+            .iter()
+            .filter(|(_, info)| info.spine_id == spine_id)
+            .map(|(slice_id, info)| ActiveSlice {
+                slice_id: *slice_id,
+                origin: SliceOrigin {
+                    spine_id: info.spine_id,
+                    entry_hash: info.entry_hash,
+                    entry_index: info.entry_index,
+                    certificate_id: None,
+                    owner: info.owner.clone(),
+                },
+                holder: info.holder.clone(),
+                checked_out_at: info.checked_out_at,
+                session_id: info.session_id,
+            })
+            .collect();
         Ok(result)
     }
 }

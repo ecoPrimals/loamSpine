@@ -455,4 +455,64 @@ mod tests {
         assert!(result.is_ok());
         cleanup_neural_env();
     }
+
+    #[test]
+    #[serial]
+    fn resolve_socket_path_fallback_to_tmp_when_xdg_unset() {
+        cleanup_neural_env();
+        let path = resolve_socket_path();
+        assert_eq!(
+            path.to_string_lossy(),
+            "/tmp/biomeos/loamspine-default.sock"
+        );
+        cleanup_neural_env();
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_socket_path_tmp_with_custom_family_id() {
+        cleanup_neural_env();
+        std::env::set_var("BIOMEOS_FAMILY_ID", "custom-family");
+        let path = resolve_socket_path();
+        assert_eq!(
+            path.to_string_lossy(),
+            "/tmp/biomeos/loamspine-custom-family.sock"
+        );
+        cleanup_neural_env();
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_socket_path_loamspine_socket_overrides_xdg_and_family() {
+        cleanup_neural_env();
+        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        std::env::set_var("BIOMEOS_FAMILY_ID", "ignored");
+        std::env::set_var("LOAMSPINE_SOCKET", "/override/path.sock");
+        let path = resolve_socket_path();
+        assert_eq!(path.to_string_lossy(), "/override/path.sock");
+        cleanup_neural_env();
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_neural_api_socket_with_family_id() {
+        cleanup_neural_env();
+        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/42");
+        std::env::set_var("BIOMEOS_FAMILY_ID", "my-family");
+        let path = super::resolve_neural_api_socket();
+        assert!(path.is_some());
+        assert_eq!(
+            path.as_ref().unwrap().to_string_lossy(),
+            "/run/user/42/biomeos/neural-api-my-family.sock"
+        );
+        cleanup_neural_env();
+    }
+
+    #[test]
+    fn capability_list_pretty_contains_primal_and_capabilities() {
+        let pretty = capability_list_pretty();
+        assert!(pretty.contains(PRIMAL_NAME));
+        assert!(pretty.contains("permanence"));
+        assert!(pretty.contains("capability.list"));
+    }
 }

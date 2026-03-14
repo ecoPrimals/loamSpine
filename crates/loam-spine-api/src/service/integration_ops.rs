@@ -26,28 +26,31 @@ impl LoamSpineRpcService {
     ) -> ApiResult<AnchorSliceResponse> {
         use loam_spine_core::traits::SpineQuery;
 
-        let core = self.core_mut().await;
-
-        let origin_entry = match core.get_tip(request.origin_spine_id).await {
-            Ok(Some(tip)) => tip.compute_hash().map_err(ApiError::from)?,
-            Ok(None) => {
-                return Err(ApiError::InvalidRequest(format!(
-                    "origin spine {} has no entries",
-                    request.origin_spine_id
-                )));
+        let origin_entry = {
+            let core = self.core_mut().await;
+            match core.get_tip(request.origin_spine_id).await {
+                Ok(Some(tip)) => tip.compute_hash().map_err(ApiError::from)?,
+                Ok(None) => {
+                    return Err(ApiError::InvalidRequest(format!(
+                        "origin spine {} has no entries",
+                        request.origin_spine_id
+                    )));
+                }
+                Err(e) => return Err(ApiError::from(e)),
             }
-            Err(e) => return Err(ApiError::from(e)),
         };
 
-        let anchor_hash = core
-            .anchor_slice(
+        let anchor_hash = {
+            let core = self.core_mut().await;
+            core.anchor_slice(
                 request.waypoint_spine_id,
                 request.slice_id,
                 request.origin_spine_id,
                 origin_entry,
             )
             .await
-            .map_err(ApiError::from)?;
+            .map_err(ApiError::from)?
+        };
 
         Ok(AnchorSliceResponse { anchor_hash })
     }
@@ -116,16 +119,16 @@ impl LoamSpineRpcService {
         &self,
         request: CommitSessionRequest,
     ) -> ApiResult<CommitSessionResponse> {
-        let core = self.core_mut().await;
-
         // Build dehydration summary from request
         let summary = DehydrationSummary::new(request.session_id, "session", request.session_hash)
             .with_vertex_count(request.vertex_count);
 
-        let commit_ref = core
-            .commit_session(request.spine_id, request.committer, summary)
-            .await
-            .map_err(ApiError::from)?;
+        let commit_ref = {
+            let core = self.core_mut().await;
+            core.commit_session(request.spine_id, request.committer, summary)
+                .await
+                .map_err(ApiError::from)?
+        };
 
         Ok(CommitSessionResponse {
             commit_hash: commit_ref.entry_hash,
@@ -142,8 +145,6 @@ impl LoamSpineRpcService {
         &self,
         request: CommitBraidRequest,
     ) -> ApiResult<CommitBraidResponse> {
-        let core = self.core_mut().await;
-
         // Build braid summary from request
         // BraidSummary::new takes (braid_id, braid_type, subject_hash, braid_hash)
         let mut braid = BraidSummary::new(
@@ -158,10 +159,12 @@ impl LoamSpineRpcService {
             braid = braid.with_agent(agent);
         }
 
-        let hash = core
-            .commit_braid(request.spine_id, request.committer, braid)
-            .await
-            .map_err(ApiError::from)?;
+        let hash = {
+            let core = self.core_mut().await;
+            core.commit_braid(request.spine_id, request.committer, braid)
+                .await
+                .map_err(ApiError::from)?
+        };
 
         Ok(CommitBraidResponse {
             commit_hash: hash,
@@ -289,21 +292,22 @@ impl LoamSpineRpcService {
             })
             .await?;
 
-        if let Some(entry) = get_resp.entry {
+        get_resp.entry.map_or(Ok(serde_json::Value::Null), |entry| {
             serde_json::to_value(&entry)
                 .map_err(|e| ApiError::Internal(format!("serialization failed: {e}")))
-        } else {
-            Ok(serde_json::Value::Null)
-        }
+        })
     }
 
     /// Ensure a permanence spine exists for the given committer DID.
     /// Uses the core service's idempotent `ensure_spine` method.
     async fn ensure_permanence_spine(&self, committer: &Did) -> ApiResult<SpineId> {
-        let core = self.core_mut().await;
-        core.ensure_spine(committer.clone(), None)
-            .await
-            .map_err(ApiError::from)
+        let spine_id = {
+            let core = self.core_mut().await;
+            core.ensure_spine(committer.clone(), None)
+                .await
+                .map_err(ApiError::from)?
+        };
+        Ok(spine_id)
     }
 }
 

@@ -126,10 +126,13 @@ impl DiscoveryTransport for HttpTransport {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "discovery-http"))]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread;
 
     #[test]
     fn http_transport_creation() {
@@ -159,6 +162,32 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn http_transport_get_invalid_url() {
+        let transport = HttpTransport::new().unwrap();
+        let result = transport.get("not-a-valid-url").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn http_transport_get_with_query_unreachable() {
+        let transport = HttpTransport::new().unwrap();
+        let result = transport
+            .get_with_query(
+                "http://127.0.0.1:1/health",
+                &[("foo", "bar"), ("baz", "qux")],
+            )
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn http_transport_get_with_query_empty_params() {
+        let transport = HttpTransport::new().unwrap();
+        let result = transport.get_with_query("http://127.0.0.1:1/", &[]).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
     async fn http_transport_post_unreachable() {
         let transport = HttpTransport::new().unwrap();
         let body = serde_json::json!({"name": "test"});
@@ -166,5 +195,111 @@ mod tests {
             .post_json("http://127.0.0.1:1/register", &body)
             .await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn http_transport_post_invalid_url() {
+        let transport = HttpTransport::new().unwrap();
+        let body = serde_json::json!({});
+        let result = transport.post_json("not-a-url", &body).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn http_transport_post_empty_json() {
+        let transport = HttpTransport::new().unwrap();
+        let body = serde_json::json!({});
+        let result = transport.post_json("http://127.0.0.1:1/", &body).await;
+        assert!(result.is_err());
+    }
+
+    /// Spawns a minimal HTTP server that responds with the given status and body.
+    fn spawn_mini_server(status: u16, body: &'static str) -> (u16, thread::JoinHandle<()>) {
+        let reason = match status {
+            200 => "OK",
+            201 => "Created",
+            404 => "Not Found",
+            _ => "OK",
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let handle = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = stream.read(&mut buf);
+            let response = format!(
+                "HTTP/1.1 {} {}\r\nContent-Length: {}\r\n\r\n{}",
+                status,
+                reason,
+                body.len(),
+                body
+            );
+            stream.write_all(response.as_bytes()).unwrap();
+            stream.flush().unwrap();
+        });
+        (port, handle)
+    }
+
+    #[tokio::test]
+    async fn http_transport_get_success_transport_response() {
+        let (port, _handle) = spawn_mini_server(200, "ok");
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        let transport = HttpTransport::new().unwrap();
+        let url = format!("http://127.0.0.1:{port}/");
+        let result = transport.get(&url).await.unwrap();
+
+        assert_eq!(result.status, 200);
+        assert_eq!(result.body.as_ref(), b"ok");
+        assert!(result.is_success());
+    }
+
+    #[tokio::test]
+    async fn http_transport_get_with_query_success() {
+        let (port, _handle) = spawn_mini_server(200, r#"{"query":"received"}"#);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        let transport = HttpTransport::new().unwrap();
+        let url = format!("http://127.0.0.1:{port}/search");
+        let result = transport
+            .get_with_query(&url, &[("q", "test"), ("limit", "10")])
+            .await
+            .unwrap();
+
+        assert_eq!(result.status, 200);
+        let parsed: serde_json::Value = result.json().unwrap();
+        assert_eq!(parsed["query"], "received");
+    }
+
+    #[tokio::test]
+    async fn http_transport_post_json_success() {
+        let (port, _handle) = spawn_mini_server(201, r#"{"id":"created"}"#);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        let transport = HttpTransport::new().unwrap();
+        let url = format!("http://127.0.0.1:{port}/register");
+        let body = serde_json::json!({"name": "test-service"});
+        let result = transport.post_json(&url, &body).await.unwrap();
+
+        assert_eq!(result.status, 201);
+        let parsed: serde_json::Value = result.json().unwrap();
+        assert_eq!(parsed["id"], "created");
+    }
+
+    #[tokio::test]
+    async fn http_transport_get_non_success_status() {
+        let (port, _handle) = spawn_mini_server(404, "Not Found");
+        std::thread::sleep(std::time::Duration::from_millis(50));
+
+        let transport = HttpTransport::new().unwrap();
+        let url = format!("http://127.0.0.1:{port}/");
+        let result = transport.get(&url).await;
+
+        assert!(
+            result.is_err(),
+            "non-2xx HTTP status should produce a Network error"
+        );
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("404") || err.contains("Not Found") || err.contains("failed"));
     }
 }

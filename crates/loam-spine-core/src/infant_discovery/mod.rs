@@ -263,8 +263,10 @@ impl InfantDiscovery {
                 capability
             );
         } else {
-            let mut discovered = self.discovered.write().await;
-            discovered.insert(capability.to_string(), all_services.clone());
+            {
+                let mut discovered = self.discovered.write().await;
+                discovered.insert(capability.to_string(), all_services.clone());
+            }
             info!(
                 "Discovered {} services for capability '{}'",
                 all_services.len(),
@@ -532,15 +534,16 @@ impl InfantDiscovery {
 
     /// Clear cached discoveries (force rediscovery)
     pub async fn clear_cache(&self) {
-        let mut discovered = self.discovered.write().await;
-        discovered.clear();
+        self.discovered.write().await.clear();
         info!("Discovery cache cleared");
     }
 
     /// Get all currently discovered services
     pub async fn all_discovered(&self) -> HashMap<String, Vec<DiscoveredService>> {
-        let discovered = self.discovered.read().await;
-        discovered.clone()
+        {
+            let discovered = self.discovered.read().await;
+            discovered.clone()
+        }
     }
 }
 

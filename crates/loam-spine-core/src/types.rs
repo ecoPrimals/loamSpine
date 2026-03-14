@@ -122,7 +122,7 @@ pub struct Signature(pub ByteBuffer);
 impl Signature {
     /// Create a new signature from zero-copy bytes.
     #[must_use]
-    pub fn new(bytes: ByteBuffer) -> Self {
+    pub const fn new(bytes: ByteBuffer) -> Self {
         Self(bytes)
     }
 
@@ -133,13 +133,19 @@ impl Signature {
     }
 
     /// Create an empty signature (for unsigned entries).
+    ///
+    /// Cannot be `const fn` because `ByteBuffer::new()` (Bytes::new) is not const.
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)]
     pub fn empty() -> Self {
         Self(ByteBuffer::new())
     }
 
     /// Check if the signature is empty.
+    ///
+    /// Cannot be `const fn` because `Bytes::is_empty()` is not const.
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -152,7 +158,7 @@ impl Signature {
 
     /// Get the underlying ByteBuffer for zero-copy sharing.
     #[must_use]
-    pub fn as_byte_buffer(&self) -> &ByteBuffer {
+    pub const fn as_byte_buffer(&self) -> &ByteBuffer {
         &self.0
     }
 }

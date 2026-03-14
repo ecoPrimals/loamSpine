@@ -66,8 +66,7 @@ impl RedbSpineStorage {
             std::fs::create_dir_all(parent)
                 .map_err(|e| LoamSpineError::Storage(format!("create dir: {e}")))?;
         }
-        let db = Database::create(path)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = Database::create(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
         ensure_table(&db, SPINES)?;
         Ok(Self { db: Arc::new(db) })
     }
@@ -80,21 +79,19 @@ impl RedbSpineStorage {
     ///
     /// Returns error if database cannot be created.
     pub fn temporary() -> LoamSpineResult<Self> {
-        let path = std::env::temp_dir()
-            .join(format!("loamspine-redb-{}.redb", uuid::Uuid::now_v7()));
+        let path =
+            std::env::temp_dir().join(format!("loamspine-redb-{}.redb", uuid::Uuid::now_v7()));
         Self::open(path)
     }
 
     /// Get the number of stored spines.
     #[must_use]
     pub fn spine_count(&self) -> usize {
-        let read_txn = match self.db.begin_read() {
-            Ok(t) => t,
-            Err(_) => return 0,
+        let Ok(read_txn) = self.db.begin_read() else {
+            return 0;
         };
-        let table = match read_txn.open_table(SPINES) {
-            Ok(t) => t,
-            Err(_) => return 0,
+        let Ok(table) = read_txn.open_table(SPINES) else {
+            return 0;
         };
         table.len().unwrap_or(0).try_into().unwrap_or(0)
     }
@@ -102,7 +99,12 @@ impl RedbSpineStorage {
     /// Flush all pending writes to disk.
     ///
     /// redb commits on each write transaction; this is a no-op for compatibility.
-    pub fn flush(&self) -> LoamSpineResult<()> {
+    ///
+    /// # Errors
+    ///
+    /// This method is infallible for redb (commits are synchronous) but returns
+    /// Result for trait compatibility.
+    pub const fn flush(&self) -> LoamSpineResult<()> {
         // redb commits synchronously; no explicit flush needed
         Ok(())
     }
@@ -211,42 +213,54 @@ pub struct RedbEntryStorage {
 
 impl RedbEntryStorage {
     /// Open entry storage at the given path.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the database file cannot be created or opened.
     pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
         let path = path.as_ref();
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
                 .map_err(|e| LoamSpineError::Storage(format!("create dir: {e}")))?;
         }
-        let db = Database::create(path)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = Database::create(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
         ensure_table(&db, ENTRIES)?;
         ensure_table(&db, ENTRY_INDEX)?;
         Ok(Self { db: Arc::new(db) })
     }
 
     /// Create storage with a temporary database (for testing).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the temporary database cannot be created.
     pub fn temporary() -> LoamSpineResult<Self> {
-        let path = std::env::temp_dir()
-            .join(format!("loamspine-redb-entries-{}.redb", uuid::Uuid::now_v7()));
+        let path = std::env::temp_dir().join(format!(
+            "loamspine-redb-entries-{}.redb",
+            uuid::Uuid::now_v7()
+        ));
         Self::open(path)
     }
 
     /// Get the number of stored entries.
     #[must_use]
     pub fn entry_count(&self) -> usize {
-        let read_txn = match self.db.begin_read() {
-            Ok(t) => t,
-            Err(_) => return 0,
+        let Ok(read_txn) = self.db.begin_read() else {
+            return 0;
         };
-        let table = match read_txn.open_table(ENTRIES) {
-            Ok(t) => t,
-            Err(_) => return 0,
+        let Ok(table) = read_txn.open_table(ENTRIES) else {
+            return 0;
         };
         table.len().unwrap_or(0).try_into().unwrap_or(0)
     }
 
     /// Flush all pending writes to disk.
-    pub fn flush(&self) -> LoamSpineResult<()> {
+    ///
+    /// # Errors
+    ///
+    /// This method is infallible for redb (commits are synchronous) but returns
+    /// Result for trait compatibility.
+    pub const fn flush(&self) -> LoamSpineResult<()> {
         Ok(())
     }
 
@@ -285,7 +299,7 @@ impl EntryStorage for RedbEntryStorage {
         let hash = entry.compute_hash()?;
         let bytes = bincode::serialize(entry)
             .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
-        let index_key = RedbEntryStorage::make_index_key(entry.spine_id, entry.index);
+        let index_key = Self::make_index_key(entry.spine_id, entry.index);
 
         let write_txn = self
             .db
@@ -332,7 +346,7 @@ impl EntryStorage for RedbEntryStorage {
         start_index: u64,
         limit: u64,
     ) -> LoamSpineResult<Vec<Entry>> {
-        let start_key = RedbEntryStorage::make_index_key(spine_id, start_index);
+        let start_key = Self::make_index_key(spine_id, start_index);
         let limit_usize = usize::try_from(limit).unwrap_or(usize::MAX);
         let spine_prefix = spine_id.as_bytes();
 
@@ -383,41 +397,53 @@ pub struct RedbCertificateStorage {
 
 impl RedbCertificateStorage {
     /// Open certificate storage at the given path.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the database file cannot be created or opened.
     pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
         let path = path.as_ref();
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
                 .map_err(|e| LoamSpineError::Storage(format!("create dir: {e}")))?;
         }
-        let db = Database::create(path)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = Database::create(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
         ensure_table(&db, CERTIFICATES)?;
         Ok(Self { db: Arc::new(db) })
     }
 
     /// Create storage with a temporary database (for testing).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the temporary database cannot be created.
     pub fn temporary() -> LoamSpineResult<Self> {
-        let path = std::env::temp_dir()
-            .join(format!("loamspine-redb-certs-{}.redb", uuid::Uuid::now_v7()));
+        let path = std::env::temp_dir().join(format!(
+            "loamspine-redb-certs-{}.redb",
+            uuid::Uuid::now_v7()
+        ));
         Self::open(path)
     }
 
     /// Get the number of stored certificates.
     #[must_use]
     pub fn certificate_count(&self) -> usize {
-        let read_txn = match self.db.begin_read() {
-            Ok(t) => t,
-            Err(_) => return 0,
+        let Ok(read_txn) = self.db.begin_read() else {
+            return 0;
         };
-        let table = match read_txn.open_table(CERTIFICATES) {
-            Ok(t) => t,
-            Err(_) => return 0,
+        let Ok(table) = read_txn.open_table(CERTIFICATES) else {
+            return 0;
         };
         table.len().unwrap_or(0).try_into().unwrap_or(0)
     }
 
     /// Flush all pending writes to disk.
-    pub fn flush(&self) -> LoamSpineResult<()> {
+    ///
+    /// # Errors
+    ///
+    /// This method is infallible for redb (commits are synchronous) but returns
+    /// Result for trait compatibility.
+    pub const fn flush(&self) -> LoamSpineResult<()> {
         Ok(())
     }
 }
@@ -539,6 +565,10 @@ impl RedbStorage {
     /// - `{base_path}/spines.redb` — Spine storage
     /// - `{base_path}/entries.redb` — Entry storage
     /// - `{base_path}/certificates.redb` — Certificate storage
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the database file cannot be created or opened.
     pub fn open<P: AsRef<Path>>(base_path: P) -> LoamSpineResult<Self> {
         let base = base_path.as_ref();
         let spines = RedbSpineStorage::open(base.join("spines.redb"))?;
@@ -552,6 +582,10 @@ impl RedbStorage {
     }
 
     /// Create storage with temporary databases (for testing).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the temporary database cannot be created.
     pub fn temporary() -> LoamSpineResult<Self> {
         let spines = RedbSpineStorage::temporary()?;
         let entries = RedbEntryStorage::temporary()?;
@@ -564,6 +598,11 @@ impl RedbStorage {
     }
 
     /// Flush all pending writes to disk.
+    ///
+    /// # Errors
+    ///
+    /// This method is infallible for redb (commits are synchronous) but returns
+    /// Result for trait compatibility.
     pub fn flush(&self) -> LoamSpineResult<()> {
         self.spines.flush()?;
         self.entries.flush()?;

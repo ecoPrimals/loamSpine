@@ -16,11 +16,12 @@ impl LoamSpineRpcService {
         &self,
         request: GenerateInclusionProofRequest,
     ) -> ApiResult<GenerateInclusionProofResponse> {
-        let core = self.core().await;
-        let proof = core
-            .generate_inclusion_proof(request.spine_id, request.entry_hash)
-            .await
-            .map_err(crate::error::ApiError::from)?;
+        let proof = {
+            let core = self.core().await;
+            core.generate_inclusion_proof(request.spine_id, request.entry_hash)
+                .await
+                .map_err(crate::error::ApiError::from)?
+        };
 
         Ok(GenerateInclusionProofResponse { proof })
     }

@@ -60,7 +60,7 @@ main() {
     # Run certificate lifecycle example
     cd "${PROJECT_ROOT}"
     
-    if cargo run --example certificate_lifecycle 2>&1 | tee "${LOGS_DIR}/${DEMO_NAME}.log"; then
+    if cargo run --example demo_certificate_lifecycle 2>&1 | tee "${LOGS_DIR}/${DEMO_NAME}.log"; then
         log_success "Certificate lifecycle example completed!"
     else
         log_error "Certificate lifecycle example failed"

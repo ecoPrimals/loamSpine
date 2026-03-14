@@ -197,7 +197,7 @@ impl Entry {
 
     /// Get the entry type domain.
     #[must_use]
-    pub fn domain(&self) -> &'static str {
+    pub const fn domain(&self) -> &'static str {
         self.entry_type.domain()
     }
 }

@@ -23,17 +23,15 @@ impl LoamSpineRpcService {
             .await
             .map_err(ApiError::from)?;
 
-        // Get the spine to get the new height
         let spine = core
             .get_spine(request.spine_id)
             .await
             .map_err(ApiError::from)?
             .ok_or_else(|| ApiError::SpineNotFound(format!("{:?}", request.spine_id)))?;
+        let index = spine.height - 1;
+        drop(core);
 
-        Ok(AppendEntryResponse {
-            entry_hash,
-            index: spine.height - 1,
-        })
+        Ok(AppendEntryResponse { entry_hash, index })
     }
 
     /// Get an entry by hash.
@@ -42,18 +40,20 @@ impl LoamSpineRpcService {
     ///
     /// Returns error if lookup fails.
     pub async fn get_entry(&self, request: GetEntryRequest) -> ApiResult<GetEntryResponse> {
-        let core = self.core().await;
         // Note: Core get_entry takes only hash, not spine_id
-        match core.get_entry(request.entry_hash).await {
-            Ok(Some(entry)) => Ok(GetEntryResponse {
+        let core = self.core().await;
+        let result = core.get_entry(request.entry_hash).await;
+        drop(core);
+        Ok(match result {
+            Ok(Some(entry)) => GetEntryResponse {
                 found: true,
                 entry: Some(entry),
-            }),
-            Ok(None) | Err(_) => Ok(GetEntryResponse {
+            },
+            Ok(None) | Err(_) => GetEntryResponse {
                 found: false,
                 entry: None,
-            }),
-        }
+            },
+        })
     }
 
     /// Get the tip entry.
@@ -74,13 +74,15 @@ impl LoamSpineRpcService {
             .await
             .map_err(ApiError::from)?
             .ok_or_else(|| ApiError::SpineNotFound(format!("{:?}", request.spine_id)))?;
+        let height = spine.height;
+        drop(core);
 
         let tip_hash = entry.hash().map_err(ApiError::from)?;
 
         Ok(GetTipResponse {
             tip_hash,
             entry,
-            height: spine.height,
+            height,
         })
     }
 }

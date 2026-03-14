@@ -61,10 +61,12 @@ impl LoamSpineRpcService {
         &self,
         request: HealthCheckRequest,
     ) -> ApiResult<HealthCheckResponse> {
-        let core = self.core().await;
-        let status = HealthStatus::Healthy;
-        let spine_count = core.spine_count().await;
+        let spine_count = {
+            let core = self.core().await;
+            core.spine_count().await
+        };
 
+        let status = HealthStatus::Healthy;
         let report = if request.include_details {
             Some(HealthReport {
                 name: "LoamSpine".to_string(),
@@ -95,6 +97,7 @@ impl LoamSpineRpcService {
         let core = self.core().await;
         core.spine_count().await;
         core.entry_count().await;
+        drop(core);
         true
     }
 

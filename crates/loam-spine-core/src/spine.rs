@@ -120,13 +120,13 @@ impl Spine {
 
     /// Check if the spine is active.
     #[must_use]
-    pub fn is_active(&self) -> bool {
+    pub const fn is_active(&self) -> bool {
         self.state.is_active()
     }
 
     /// Check if the spine is sealed.
     #[must_use]
-    pub fn is_sealed(&self) -> bool {
+    pub const fn is_sealed(&self) -> bool {
         self.state.is_sealed()
     }
 

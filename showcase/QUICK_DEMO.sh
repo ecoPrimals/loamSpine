@@ -97,7 +97,7 @@ print_info "Certificates in LoamSpine work like NFTs, but without blockchain..."
 sleep 1
 
 # Run certificate example
-cargo run --example certificate_lifecycle 2>/dev/null | grep -A 30 "Certificate" || {
+cargo run --example demo_certificate_lifecycle 2>/dev/null | grep -A 30 "Certificate" || {
     echo "✅ Certificate minted!"
     echo "   ID: cert_game_achievement_001"
     echo "   Owner: did:example:alice"

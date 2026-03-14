@@ -18,11 +18,13 @@ use super::{DiscoveryTransport, TransportResponse};
 /// error paths without a real backend or live socket.
 ///
 /// Re-exported from the crate root when the `testing` feature is enabled.
+#[cfg(any(test, feature = "testing"))]
 #[derive(Clone, Debug)]
 pub struct MockTransport {
     endpoint_hint: String,
 }
 
+#[cfg(any(test, feature = "testing"))]
 impl MockTransport {
     /// Create a new mock transport that reports the given endpoint in errors.
     #[must_use]
@@ -33,6 +35,7 @@ impl MockTransport {
     }
 }
 
+#[cfg(any(test, feature = "testing"))]
 impl DiscoveryTransport for MockTransport {
     fn get<'a>(
         &'a self,
@@ -86,7 +89,7 @@ pub struct SuccessTransport;
 impl SuccessTransport {
     /// Create a new success transport.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 }

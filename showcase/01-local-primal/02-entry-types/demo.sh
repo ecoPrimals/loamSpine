@@ -66,7 +66,7 @@ main() {
     # Run the example
     cd "${PROJECT_ROOT}"
     
-    if cargo run --example entry_types 2>&1 | tee "${LOGS_DIR}/${DEMO_NAME}.log"; then
+    if cargo run --example demo_entry_types 2>&1 | tee "${LOGS_DIR}/${DEMO_NAME}.log"; then
         log_success "Entry types example completed successfully!"
     else
         log_error "Entry types example failed"

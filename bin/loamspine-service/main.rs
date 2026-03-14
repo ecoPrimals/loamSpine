@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! LoamSpine — the permanence layer for ecoPrimals.
+//! `LoamSpine` — the permanence layer for `ecoPrimals`.
 //!
 //! UniBin-compliant single binary with subcommand structure.
 //! Supports dual-protocol RPC (tarpc + JSON-RPC 2.0) with all
@@ -37,7 +37,7 @@ use loam_spine_core::service::LifecycleManager;
 use loam_spine_core::LoamSpineService;
 use tracing::{error, info};
 
-/// LoamSpine — permanent ledger for the ecoPrimals ecosystem.
+/// `LoamSpine` — permanent ledger for the `ecoPrimals` ecosystem.
 #[derive(Parser)]
 #[command(
     name = "loamspine",
@@ -50,28 +50,28 @@ struct Cli {
     command: Command,
 }
 
-/// Available subcommands (UniBin standard).
+/// Available subcommands (`UniBin` standard).
 #[derive(Subcommand)]
 enum Command {
-    /// Start the LoamSpine service (tarpc + JSON-RPC dual protocol).
+    /// Start the `LoamSpine` service (`tarpc` + JSON-RPC dual protocol).
     Server {
-        /// tarpc binary RPC port (env: LOAMSPINE_TARPC_PORT, TARPC_PORT).
+        /// `tarpc` binary RPC port (env: `LOAMSPINE_TARPC_PORT`, `TARPC_PORT`).
         #[arg(long)]
         tarpc_port: Option<u16>,
 
-        /// JSON-RPC 2.0 port (env: LOAMSPINE_JSONRPC_PORT, JSONRPC_PORT).
+        /// JSON-RPC 2.0 port (env: `LOAMSPINE_JSONRPC_PORT`, `JSONRPC_PORT`).
         #[arg(long)]
         jsonrpc_port: Option<u16>,
 
-        /// Bind address (env: LOAMSPINE_BIND_ADDRESS, BIND_ADDRESS).
+        /// Bind address (env: `LOAMSPINE_BIND_ADDRESS`, `BIND_ADDRESS`).
         #[arg(long)]
         bind_address: Option<String>,
     },
 
-    /// List capabilities provided by this primal (UniBin standard).
+    /// List capabilities provided by this primal (`UniBin` standard).
     Capabilities,
 
-    /// Show socket path for NeuralAPI IPC (UniBin standard).
+    /// Show socket path for `NeuralAPI` IPC (`UniBin` standard).
     Socket,
 }
 
@@ -120,9 +120,8 @@ async fn run_server(
 
     let resolved_tarpc_port = tarpc_port_override.unwrap_or_else(network::actual_tarpc_port);
     let resolved_jsonrpc_port = jsonrpc_port_override.unwrap_or_else(network::actual_jsonrpc_port);
-    let resolved_bind: Cow<'static, str> = bind_address_override
-        .map(Cow::Owned)
-        .unwrap_or_else(network::bind_address);
+    let resolved_bind: Cow<'static, str> =
+        bind_address_override.map_or_else(network::bind_address, Cow::Owned);
 
     info!("LoamSpine Standalone Service");
     info!("  version: {}", env!("CARGO_PKG_VERSION"));

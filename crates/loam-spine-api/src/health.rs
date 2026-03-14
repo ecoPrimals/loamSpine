@@ -217,7 +217,7 @@ impl HealthChecker {
 
     /// Check liveness (is process alive?).
     #[must_use]
-    pub fn check_liveness(&self) -> LivenessProbe {
+    pub const fn check_liveness(&self) -> LivenessProbe {
         // If we can execute this code, we're alive
         LivenessProbe { alive: true }
     }
@@ -250,10 +250,7 @@ impl HealthChecker {
     /// Executes the configured storage health check function, or returns `true`
     /// if no check function is configured (optimistic default).
     fn check_storage(&self) -> bool {
-        match &self.storage_check {
-            Some(check) => check(),
-            None => true, // No check configured, assume healthy
-        }
+        self.storage_check.as_deref().is_none_or(|check| check())
     }
 
     /// Check discovery service health (universal adapter).
@@ -266,10 +263,7 @@ impl HealthChecker {
     /// - `Some(true)`: Discovery service is healthy
     /// - `Some(false)`: Discovery service is unavailable
     fn check_discovery(&self) -> Option<bool> {
-        match &self.discovery_check {
-            Some(check) => check(),
-            None => None, // No check configured, discovery not enabled
-        }
+        self.discovery_check.as_ref().and_then(|check| check())
     }
 }
 

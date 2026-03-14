@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.8.2  
+**Current Version**: 0.8.3  
 **Last Updated**: March 14, 2026
 
 ---
@@ -45,12 +45,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 739+ |
-| Coverage | 90%+ | ~91% |
+| Tests | — | 809 |
+| Coverage (llvm-cov) | 90%+ | 84.52% line / 78.88% branch |
 | `unsafe` blocks | 0 | 0 |
-| Clippy warnings | 0 | 0 |
+| Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 422 max |
+| Max file size | < 1000 lines | 990 max |
+| Source files | — | 96 `.rs` files, 35,352 lines |
 
 ---
 
@@ -60,9 +61,11 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features |
-| AGPL-3.0-only | PASS | SPDX headers on all 92+ source files |
+| AGPL-3.0-only | PASS | SPDX headers on all 96 source files |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
-| Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config |
+| Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch |
+| MockTransport | PASS | `cfg(test\|testing)` gated — no mock code in production binary |
+| File size limit | PASS | All files under 1000 lines (max: 990) |
 
 ---
 
@@ -94,6 +97,29 @@ This document tracks implementation progress against the specification suite in 
 - **Certificate lifecycle**: `certificate_lifecycle` returns filtered entry history for a certificate
 - **Mint fix**: `MintInfo.entry` now set to the actual entry hash (was `[0u8; 32]`)
 - **Test count**: 719 → 744 (+25 tests covering new storage, waypoint, and certificate features)
+
+---
+
+## v0.8.3 Quality & Pedantic Audit (March 14, 2026)
+
+- **Clippy pedantic + nursery clean**: 67 errors → 0 across all 3 workspace crates
+- **`significant_drop_tightening`**: 26 lock guard scoping issues fixed with `drop()` and block scoping
+- **`const fn` promotion**: 15 functions made `const` (identifiers, accessors, constructors)
+- **Missing `# Errors` docs**: 10 public Result-returning functions documented
+- **`let...else` modernization**: 6 match blocks rewritten to idiomatic `let...else`
+- **`MockTransport` cfg-gated**: No longer compiled into production binary
+- **Dead field removed**: `SpineSyncState.last_sync_ns` (never read)
+- **Zero-copy JSON-RPC**: `params.clone()` eliminated — `dispatch` takes ownership, `handle_request` takes by value
+- **SQLite storage tests**: 16 new tests (was 0% coverage)
+- **HTTP transport tests**: 12 new tests with mini-server for success/error paths
+- **Neural API tests**: 5 new env-var resolution tests
+- **CLI signer tests**: 10 new DynSigner/DynVerifier trait object tests
+- **Smart file splits**: `storage/tests.rs` (1261→892+370), `cli_signer.rs` (1002→332+673)
+- **All files under 1000 lines**: Max file is 990 lines (was 1261)
+- **Test count**: 771 → 809 (+38 tests)
+- **Coverage**: 80.52% → 84.52% line coverage (llvm-cov)
+- **`cargo fmt`**: Clean (was 6 files with drift)
+- **`cargo doc`**: Zero warnings
 
 ---
 
