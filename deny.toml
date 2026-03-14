@@ -39,7 +39,8 @@ deny = [
     { crate = "native-tls", reason = "Use rustls instead - pure Rust TLS" },
     
     # C++ dependencies we explicitly avoid (primal sovereignty)
-    # Note: protobuf/grpc are NOT used - we use tarpc/jsonrpsee
+    # Note: protobuf/grpc are NOT used - we use tarpc + pure Rust JSON-RPC
+    { crate = "ring", reason = "C/asm dependency — use RustCrypto via BearDog" },
 ]
 
 # Allow these duplicates (transitive deps we can't control)

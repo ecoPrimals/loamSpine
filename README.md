@@ -4,7 +4,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
 [![Version](https://img.shields.io/badge/version-0.8.2-blue)]()
-[![Tests](https://img.shields.io/badge/tests-744%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-739%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/line%20coverage-~91%25-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
@@ -59,6 +59,8 @@ cargo deny check licenses bans sources
 
 **Pure Rust** -- No gRPC, no protobuf, no C/C++ tooling, no OpenSSL. Zero C dependencies (ecoBin compliant).
 
+**Storage backends:** redb (default, pure Rust), memory, sqlite (feature-gated). sled is optional via `--features sled-storage`.
+
 ```
 loamSpine/
 ├── bin/loamspine-service/     # UniBin: server | capabilities | socket
@@ -83,7 +85,7 @@ loamSpine/
 │   │       │   ├── signals.rs     # Signal handling
 │   │       │   └── waypoint.rs    # Anchoring, operations, departure, proofs
 │   │       ├── spine.rs           # Spine structure
-│   │       ├── storage/           # Storage backends (memory, sled, sqlite)
+│   │       ├── storage/           # Storage backends (redb default, memory, sled optional, sqlite)
 │   │       ├── temporal/          # Time tracking (moments, anchors)
 │   │       ├── traits/            # Integration traits
 │   │       ├── transport/         # IPC transports (HTTP, NeuralAPI, mock)

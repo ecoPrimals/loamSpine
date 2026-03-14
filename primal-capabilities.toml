@@ -83,7 +83,7 @@ health_endpoint = "/health"  # JSON-RPC endpoint
 [primals.loamspine.metadata]
 language = "rust"
 rpc_style = "pure-rust"  # No gRPC, no protobuf, no C++
-storage_backend = "sled"  # Pure Rust embedded database
+storage_backend = "redb"  # Pure Rust embedded database (default; sled optional)
 zero_copy = true  # Uses `bytes` crate
 unsafe_code = false  # Forbids unsafe code
 

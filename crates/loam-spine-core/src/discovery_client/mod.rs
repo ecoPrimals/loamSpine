@@ -303,7 +303,7 @@ impl DiscoveryClient {
                 ("version".to_string(), env!("CARGO_PKG_VERSION").to_string()),
                 ("language".to_string(), "rust".to_string()),
                 ("rpc_style".to_string(), "pure-rust".to_string()),
-                ("storage_backend".to_string(), "sled".to_string()),
+                ("storage_backend".to_string(), "redb".to_string()),
                 ("zero_copy".to_string(), "true".to_string()),
                 ("unsafe_code".to_string(), "false".to_string()),
             ]

@@ -33,7 +33,7 @@
 - **Certificate escrow** -- `TransferConditions`, escrow hold/release
 - **SyncProtocol** -- Spine federation per INTEGRATION_SPECIFICATION.md
 - **PrimalAdapter** -- Retry + circuit-breaker for inter-primal calls
-- **Sled certificate storage** -- Extend `SledStorage` to implement `CertificateStorage`
+- **Sled certificate storage** -- Extend `SledStorage` to implement `CertificateStorage` (sled now optional)
 - **BearDog authentication middleware** -- Signature verification on RPC layer
 
 ---

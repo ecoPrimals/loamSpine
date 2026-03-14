@@ -20,12 +20,12 @@ This document tracks implementation progress against the specification suite in 
 | [LOAMSPINE_SPECIFICATION.md](specs/LOAMSPINE_SPECIFICATION.md) | COMPLETE | Master spec implemented |
 | [ARCHITECTURE.md](specs/ARCHITECTURE.md) | COMPLETE | Component layout matches spec |
 | [DATA_MODEL.md](specs/DATA_MODEL.md) | COMPLETE | Entry, Spine, Chain, SpineConfig, EntryType (15+ variants) |
-| [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + jsonrpsee, no gRPC/protobuf. Spec updated to semantic naming. |
+| [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. |
 | [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | PARTIAL | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig`, `PropagationPolicy`, `SliceTerms`, `SliceOperationType` types defined. Missing: relending chain, expiry sweep, Beardog attestation. |
 | [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | PARTIAL | Core CRUD + loan/return + `verify_certificate` + `certificate_lifecycle`. Storage trait-backed. Missing: `generate_provenance_proof`, escrow/`TransferConditions`, `UsageSummary`. |
 | [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 28 JSON-RPC methods, tarpc server, semantic naming. Spec updated to match implementation. |
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | PARTIAL | Provenance trio, session/braid commit. Missing: `SyncProtocol` (federation), `PrimalAdapter` retry/circuit-breaker. |
-| [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory, sled, SQLite (feature-gated). PostgreSQL, RocksDB not yet implemented. |
+| [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory, redb (default), sled (optional), SQLite (feature-gated). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
 
 ---
@@ -45,7 +45,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 744+ |
+| Tests | — | 739+ |
 | Coverage | 90%+ | ~91% |
 | `unsafe` blocks | 0 | 0 |
 | Clippy warnings | 0 | 0 |
@@ -60,7 +60,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features |
-| AGPL-3.0-only | PASS | SPDX headers on all 85+ source files |
+| AGPL-3.0-only | PASS | SPDX headers on all 92+ source files |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config |
 
@@ -94,6 +94,16 @@ This document tracks implementation progress against the specification suite in 
 - **Certificate lifecycle**: `certificate_lifecycle` returns filtered entry history for a certificate
 - **Mint fix**: `MintInfo.entry` now set to the actual entry hash (was `[0u8; 32]`)
 - **Test count**: 719 → 744 (+25 tests covering new storage, waypoint, and certificate features)
+
+---
+
+## v0.8.2+ Pure Rust Evolution (March 14, 2026)
+
+- **redb default storage**: Added `RedbStorage` (pure Rust embedded DB) as default backend; `sled` demoted to optional feature (`sled-storage`)
+- **jsonrpsee removed**: Replaced with hand-rolled pure JSON-RPC 2.0 server (TcpListener + newline-delimited JSON + HTTP POST); eliminates transitive `ring` dependency
+- **reqwest removed**: Replaced with `ureq` (pure Rust, no TLS, no ring) for `discovery-http` feature; HTTPS routes through BearDog/Songbird TLS stack
+- **ecoBin compliant**: Zero C/C++/assembly dependencies in default feature set; `ring` fully eliminated
+- **Test count**: 744 → 739 (5 tests removed during jsonrpsee/reqwest migration — stale integration stubs)
 
 ---
 
