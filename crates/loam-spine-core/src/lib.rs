@@ -77,6 +77,7 @@ pub mod waypoint;
 pub mod discovery;
 pub mod neural_api;
 pub mod service;
+pub mod sync;
 pub mod traits;
 
 // NOTE: The `integration` module was removed in v0.3.0.
