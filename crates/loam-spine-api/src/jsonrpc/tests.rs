@@ -1,7 +1,52 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use super::*;
+use crate::types::{
+    AnchorSliceRequest, AppendEntryRequest, CommitBraidRequest, CommitSessionRequest,
+    CreateSpineRequest, GenerateInclusionProofRequest, GetCertificateRequest, GetEntryRequest,
+    GetSpineRequest, GetTipRequest, MintCertificateRequest, PermanentStorageCommitRequest,
+    PermanentStorageGetCommitRequest, PermanentStorageVerifyRequest, SealSpineRequest,
+    VerifyInclusionProofRequest,
+};
 use crate::types::{CertificateType, Did, EntryType};
+
+/// Helper: build a JSON-RPC request and dispatch through the handler.
+async fn rpc_call<Req: serde::Serialize, Resp: serde::de::DeserializeOwned>(
+    server: &LoamSpineJsonRpc,
+    method: &str,
+    request: &Req,
+) -> Result<Resp, String> {
+    let params = serde_json::to_value(request).unwrap();
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: method.to_string(),
+        params,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let rpc_resp = server.handle_request(&rpc_req).await;
+    if let Some(err) = rpc_resp.error {
+        return Err(err.message);
+    }
+    serde_json::from_value(rpc_resp.result.unwrap_or_default()).map_err(|e| e.to_string())
+}
+
+/// Helper: call a no-params method.
+async fn rpc_call_no_params<Resp: serde::de::DeserializeOwned>(
+    server: &LoamSpineJsonRpc,
+    method: &str,
+) -> Result<Resp, String> {
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: method.to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let rpc_resp = server.handle_request(&rpc_req).await;
+    if let Some(err) = rpc_resp.error {
+        return Err(err.message);
+    }
+    serde_json::from_value(rpc_resp.result.unwrap_or_default()).map_err(|e| e.to_string())
+}
 
 #[test]
 fn test_jsonrpc_creation() {
@@ -18,14 +63,12 @@ fn test_jsonrpc_with_service() {
 #[tokio::test]
 async fn test_jsonrpc_health_check() {
     let server = LoamSpineJsonRpc::default_server();
-    let request = HealthCheckRequest {
+    let request = crate::types::HealthCheckRequest {
         include_details: false,
     };
 
-    let result = LoamSpineJsonRpcApiServer::health_check(&server, request).await;
-    assert!(result.is_ok());
-
-    let response = result.unwrap_or_else(|_| panic!("unexpected error"));
+    let response: crate::types::HealthCheckResponse =
+        rpc_call(&server, "health.check", &request).await.unwrap();
     assert!(response.status.is_healthy());
 }
 
@@ -38,10 +81,8 @@ async fn test_jsonrpc_create_spine() {
         config: None,
     };
 
-    let result = LoamSpineJsonRpcApiServer::create_spine(&server, request).await;
-    assert!(result.is_ok());
-
-    let response = result.unwrap_or_else(|_| panic!("unexpected error"));
+    let response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &request).await.unwrap();
     assert!(!response.spine_id.is_nil());
 }
 
@@ -52,33 +93,33 @@ async fn test_jsonrpc_get_nonexistent_spine() {
         spine_id: uuid::Uuid::nil(),
     };
 
-    let result = LoamSpineJsonRpcApiServer::get_spine(&server, request).await;
-    assert!(result.is_ok());
-
-    let response = result.unwrap_or_else(|_| panic!("unexpected error"));
+    let response: crate::types::GetSpineResponse =
+        rpc_call(&server, "spine.get", &request).await.unwrap();
     assert!(response.spine.is_none());
 }
 
 #[tokio::test]
 async fn test_jsonrpc_seal_spine() {
     let server = LoamSpineJsonRpc::default_server();
-
     let owner = Did::new("did:key:z6MkTest");
+
     let create_request = CreateSpineRequest {
         owner: owner.clone(),
         name: "Test".to_string(),
         config: None,
     };
-    let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
-        .await
-        .unwrap_or_else(|_| panic!("create failed"));
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
 
     let seal_request = SealSpineRequest {
         spine_id: create_response.spine_id,
         sealer: owner,
     };
 
-    let result = LoamSpineJsonRpcApiServer::seal_spine(&server, seal_request).await;
+    let result: Result<crate::types::SealSpineResponse, _> =
+        rpc_call(&server, "spine.seal", &seal_request).await;
     assert!(result.is_ok());
 }
 
@@ -92,9 +133,10 @@ async fn test_jsonrpc_mint_and_get_certificate() {
         name: "Cert Test".to_string(),
         config: None,
     };
-    let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
-        .await
-        .unwrap_or_else(|_| panic!("create failed"));
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
 
     let mint_request = MintCertificateRequest {
         spine_id: create_response.spine_id,
@@ -107,17 +149,18 @@ async fn test_jsonrpc_mint_and_get_certificate() {
         metadata: None,
     };
 
-    let mint_result = LoamSpineJsonRpcApiServer::mint_certificate(&server, mint_request).await;
-    assert!(mint_result.is_ok());
-
-    let mint_response = mint_result.unwrap_or_else(|_| panic!("mint failed"));
+    let mint_response: crate::types::MintCertificateResponse =
+        rpc_call(&server, "certificate.mint", &mint_request)
+            .await
+            .unwrap();
 
     let get_request = GetCertificateRequest {
         certificate_id: mint_response.certificate_id,
     };
 
-    let get_result = LoamSpineJsonRpcApiServer::get_certificate(&server, get_request).await;
-    assert!(get_result.is_ok());
+    let result: Result<crate::types::GetCertificateResponse, _> =
+        rpc_call(&server, "certificate.get", &get_request).await;
+    assert!(result.is_ok());
 }
 
 #[tokio::test]
@@ -130,9 +173,10 @@ async fn test_jsonrpc_commit_session() {
         name: "Session Test".to_string(),
         config: None,
     };
-    let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
-        .await
-        .unwrap_or_else(|_| panic!("create failed"));
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
 
     let commit_request = CommitSessionRequest {
         spine_id: create_response.spine_id,
@@ -142,7 +186,8 @@ async fn test_jsonrpc_commit_session() {
         vertex_count: 42,
     };
 
-    let result = LoamSpineJsonRpcApiServer::commit_session(&server, commit_request).await;
+    let result: Result<crate::types::CommitSessionResponse, _> =
+        rpc_call(&server, "session.commit", &commit_request).await;
     assert!(result.is_ok());
 }
 
@@ -156,9 +201,10 @@ async fn test_jsonrpc_append_entry() {
         name: "Entry Test".to_string(),
         config: None,
     };
-    let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
-        .await
-        .unwrap_or_else(|_| panic!("create failed"));
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
 
     let append_request = AppendEntryRequest {
         spine_id: create_response.spine_id,
@@ -170,9 +216,10 @@ async fn test_jsonrpc_append_entry() {
         committer: owner.clone(),
         payload: None,
     };
-    let result = LoamSpineJsonRpcApiServer::append_entry(&server, append_request).await;
-    assert!(result.is_ok());
-    let response = result.unwrap_or_else(|_| panic!("append failed"));
+    let response: crate::types::AppendEntryResponse =
+        rpc_call(&server, "entry.append", &append_request)
+            .await
+            .unwrap();
     assert!(!response.entry_hash.iter().all(|&b| b == 0));
 }
 
@@ -186,9 +233,10 @@ async fn test_jsonrpc_get_entry_and_tip() {
         name: "Get Entry Test".to_string(),
         config: None,
     };
-    let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
-        .await
-        .unwrap_or_else(|_| panic!("create failed"));
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
 
     let append_request = AppendEntryRequest {
         spine_id: create_response.spine_id,
@@ -200,23 +248,26 @@ async fn test_jsonrpc_get_entry_and_tip() {
         committer: owner.clone(),
         payload: None,
     };
-    let append_response = LoamSpineJsonRpcApiServer::append_entry(&server, append_request)
-        .await
-        .unwrap_or_else(|_| panic!("append failed"));
+    let append_response: crate::types::AppendEntryResponse =
+        rpc_call(&server, "entry.append", &append_request)
+            .await
+            .unwrap();
 
     let get_entry_request = GetEntryRequest {
         spine_id: create_response.spine_id,
         entry_hash: append_response.entry_hash,
     };
-    let result = LoamSpineJsonRpcApiServer::get_entry(&server, get_entry_request).await;
-    assert!(result.is_ok());
-    let response = result.unwrap_or_else(|_| panic!("get_entry failed"));
+    let response: crate::types::GetEntryResponse =
+        rpc_call(&server, "entry.get", &get_entry_request)
+            .await
+            .unwrap();
     assert!(response.found);
 
     let get_tip_request = GetTipRequest {
         spine_id: create_response.spine_id,
     };
-    let result = LoamSpineJsonRpcApiServer::get_tip(&server, get_tip_request).await;
+    let result: Result<crate::types::GetTipResponse, _> =
+        rpc_call(&server, "entry.get_tip", &get_tip_request).await;
     assert!(result.is_ok());
 }
 
@@ -224,11 +275,15 @@ async fn test_jsonrpc_get_entry_and_tip() {
 async fn test_jsonrpc_liveness_and_readiness() {
     let server = LoamSpineJsonRpc::default_server();
 
-    let liveness = LoamSpineJsonRpcApiServer::liveness(&server).await;
-    assert!(liveness.is_ok());
+    let liveness: crate::health::LivenessProbe =
+        rpc_call_no_params(&server, "health.liveness").await.unwrap();
+    assert!(liveness.alive);
 
-    let readiness = LoamSpineJsonRpcApiServer::readiness(&server).await;
-    assert!(readiness.is_ok());
+    let readiness: crate::health::ReadinessProbe =
+        rpc_call_no_params(&server, "health.readiness")
+            .await
+            .unwrap();
+    assert!(readiness.ready);
 }
 
 #[tokio::test]
@@ -241,9 +296,10 @@ async fn test_jsonrpc_commit_braid() {
         name: "Braid Test".to_string(),
         config: None,
     };
-    let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
-        .await
-        .unwrap_or_else(|_| panic!("create failed"));
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
 
     let braid_request = CommitBraidRequest {
         spine_id: create_response.spine_id,
@@ -252,7 +308,8 @@ async fn test_jsonrpc_commit_braid() {
         braid_hash: [3u8; 32],
         subjects: vec![],
     };
-    let result = LoamSpineJsonRpcApiServer::commit_braid(&server, braid_request).await;
+    let result: Result<crate::types::CommitBraidResponse, _> =
+        rpc_call(&server, "braid.commit", &braid_request).await;
     assert!(result.is_ok());
 }
 
@@ -266,18 +323,20 @@ async fn test_jsonrpc_anchor_slice() {
         name: "Waypoint".to_string(),
         config: None,
     };
-    let waypoint_response = LoamSpineJsonRpcApiServer::create_spine(&server, waypoint_request)
-        .await
-        .unwrap_or_else(|_| panic!("create waypoint failed"));
+    let waypoint_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &waypoint_request)
+            .await
+            .unwrap();
 
     let origin_request = CreateSpineRequest {
         owner: owner.clone(),
         name: "Origin".to_string(),
         config: None,
     };
-    let origin_response = LoamSpineJsonRpcApiServer::create_spine(&server, origin_request)
-        .await
-        .unwrap_or_else(|_| panic!("create origin failed"));
+    let origin_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &origin_request)
+            .await
+            .unwrap();
 
     let anchor_request = AnchorSliceRequest {
         waypoint_spine_id: waypoint_response.spine_id,
@@ -285,7 +344,8 @@ async fn test_jsonrpc_anchor_slice() {
         origin_spine_id: origin_response.spine_id,
         committer: owner,
     };
-    let result = LoamSpineJsonRpcApiServer::anchor_slice(&server, anchor_request).await;
+    let result: Result<crate::types::AnchorSliceResponse, _> =
+        rpc_call(&server, "slice.anchor", &anchor_request).await;
     assert!(result.is_ok());
 }
 
@@ -299,9 +359,10 @@ async fn test_jsonrpc_generate_and_verify_inclusion_proof() {
         name: "Proof Test".to_string(),
         config: None,
     };
-    let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
-        .await
-        .unwrap_or_else(|_| panic!("create failed"));
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
 
     let append_request = AppendEntryRequest {
         spine_id: create_response.spine_id,
@@ -313,24 +374,25 @@ async fn test_jsonrpc_generate_and_verify_inclusion_proof() {
         committer: owner,
         payload: None,
     };
-    let append_response = LoamSpineJsonRpcApiServer::append_entry(&server, append_request)
-        .await
-        .unwrap_or_else(|_| panic!("append failed"));
+    let append_response: crate::types::AppendEntryResponse =
+        rpc_call(&server, "entry.append", &append_request)
+            .await
+            .unwrap();
 
     let gen_request = GenerateInclusionProofRequest {
         spine_id: create_response.spine_id,
         entry_hash: append_response.entry_hash,
     };
-    let gen_result =
-        LoamSpineJsonRpcApiServer::generate_inclusion_proof(&server, gen_request).await;
-    assert!(gen_result.is_ok());
+    let proof: crate::types::GenerateInclusionProofResponse =
+        rpc_call(&server, "proof.generate_inclusion", &gen_request)
+            .await
+            .unwrap();
 
-    let proof = gen_result.unwrap_or_else(|_| panic!("generate failed"));
     let verify_request = VerifyInclusionProofRequest { proof: proof.proof };
-    let verify_result =
-        LoamSpineJsonRpcApiServer::verify_inclusion_proof(&server, verify_request).await;
-    assert!(verify_result.is_ok());
-    let response = verify_result.unwrap_or_else(|_| panic!("verify failed"));
+    let response: crate::types::VerifyInclusionProofResponse =
+        rpc_call(&server, "proof.verify_inclusion", &verify_request)
+            .await
+            .unwrap();
     assert!(response.valid);
 }
 
@@ -358,23 +420,16 @@ async fn test_jsonrpc_permanence_commit_and_verify() {
         },
     };
 
-    let result =
-        LoamSpineJsonRpcApiServer::permanence_commit_session(&server, commit_request.clone()).await;
-    assert!(result.is_ok());
-
-    let response = result.unwrap_or_else(|_| panic!("commit failed"));
+    let response: crate::types::PermanentStorageCommitResponse =
+        rpc_call(&server, "permanence.commit_session", &commit_request)
+            .await
+            .unwrap();
     assert!(response.accepted);
     assert!(response.commit_id.is_some());
     assert!(response.spine_id.is_some());
 
-    let spine_id_str = response
-        .spine_id
-        .clone()
-        .unwrap_or_else(|| panic!("no spine_id"));
-    let entry_hash_str = response
-        .spine_entry_hash
-        .clone()
-        .unwrap_or_else(|| panic!("no entry hash"));
+    let spine_id_str = response.spine_id.clone().unwrap();
+    let entry_hash_str = response.spine_entry_hash.clone().unwrap();
     let index = response.entry_index.unwrap_or(0);
 
     let verify_request = PermanentStorageVerifyRequest {
@@ -383,10 +438,10 @@ async fn test_jsonrpc_permanence_commit_and_verify() {
         index,
     };
 
-    let verify_result =
-        LoamSpineJsonRpcApiServer::permanence_verify_commit(&server, verify_request).await;
-    assert!(verify_result.is_ok());
-    assert!(verify_result.unwrap_or_else(|_| panic!("verify failed")));
+    let verified: bool = rpc_call(&server, "permanence.verify_commit", &verify_request)
+        .await
+        .unwrap();
+    assert!(verified);
 
     let get_request = PermanentStorageGetCommitRequest {
         spine_id: spine_id_str,
@@ -394,9 +449,9 @@ async fn test_jsonrpc_permanence_commit_and_verify() {
         index,
     };
 
-    let get_result = LoamSpineJsonRpcApiServer::permanence_get_commit(&server, get_request).await;
-    assert!(get_result.is_ok());
-    let value = get_result.unwrap_or_else(|_| panic!("get failed"));
+    let value: serde_json::Value = rpc_call(&server, "permanence.get_commit", &get_request)
+        .await
+        .unwrap();
     assert!(!value.is_null());
 }
 
@@ -404,9 +459,10 @@ async fn test_jsonrpc_permanence_commit_and_verify() {
 async fn test_jsonrpc_permanence_health_check() {
     let server = LoamSpineJsonRpc::default_server();
 
-    let result = LoamSpineJsonRpcApiServer::permanence_health_check(&server).await;
-    assert!(result.is_ok());
-    assert!(result.unwrap_or_else(|_| panic!("health check failed")));
+    let healthy: bool = rpc_call_no_params(&server, "permanence.health_check")
+        .await
+        .unwrap();
+    assert!(healthy);
 }
 
 #[tokio::test]
@@ -429,15 +485,19 @@ async fn test_jsonrpc_legacy_permanence_delegates() {
         },
     };
 
-    let result =
-        LoamSpineJsonRpcApiServer::permanent_storage_commit_session(&server, commit_request).await;
-    assert!(result.is_ok());
-    let response = result.unwrap_or_else(|_| panic!("legacy commit failed"));
+    let response: crate::types::PermanentStorageCommitResponse = rpc_call(
+        &server,
+        "permanent-storage.commitSession",
+        &commit_request,
+    )
+    .await
+    .unwrap();
     assert!(response.accepted);
 
-    let health_result = LoamSpineJsonRpcApiServer::permanent_storage_health_check(&server).await;
-    assert!(health_result.is_ok());
-    assert!(health_result.unwrap_or_else(|_| panic!("legacy health failed")));
+    let healthy: bool = rpc_call_no_params(&server, "permanent-storage.healthCheck")
+        .await
+        .unwrap();
+    assert!(healthy);
 }
 
 #[tokio::test]
@@ -450,9 +510,10 @@ async fn semantic_commit_session_alias() {
         name: "Semantic Test".to_string(),
         config: None,
     };
-    let create_response = LoamSpineJsonRpcApiServer::create_spine(&server, create_request)
-        .await
-        .unwrap_or_else(|_| panic!("create failed"));
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
 
     let request = CommitSessionRequest {
         spine_id: create_response.spine_id,
@@ -461,17 +522,50 @@ async fn semantic_commit_session_alias() {
         vertex_count: 10,
         committer: owner,
     };
-    let result = LoamSpineJsonRpcApiServer::commit_session_semantic(&server, request).await;
+    let result: Result<crate::types::CommitSessionResponse, _> =
+        rpc_call(&server, "commit.session", &request).await;
     assert!(result.is_ok());
 }
 
 #[tokio::test]
 async fn capability_list_method() {
     let server = LoamSpineJsonRpc::default_server();
-    let result = LoamSpineJsonRpcApiServer::capability_list(&server).await;
-    assert!(result.is_ok());
-    let value = result.unwrap();
+    let value: serde_json::Value =
+        rpc_call_no_params(&server, "capability.list").await.unwrap();
     assert!(value.get("capabilities").is_some());
     assert!(value.get("primal").is_some());
     assert_eq!(value["primal"], "loamspine");
+}
+
+#[tokio::test]
+async fn method_not_found_returns_error() {
+    let server = LoamSpineJsonRpc::default_server();
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "nonexistent.method".to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(&rpc_req).await;
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, -32601);
+}
+
+#[test]
+fn json_rpc_types_serde_roundtrip() {
+    let req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "test.method".to_string(),
+        params: serde_json::json!({"key": "value"}),
+        id: serde_json::Value::Number(42.into()),
+    };
+    let json = serde_json::to_string(&req).unwrap();
+    let parsed: JsonRpcRequest = serde_json::from_str(&json).unwrap();
+    assert_eq!(parsed.method, "test.method");
+
+    let resp = JsonRpcResponse::success(serde_json::Value::Number(1.into()), serde_json::json!(true));
+    let json = serde_json::to_string(&resp).unwrap();
+    let parsed: JsonRpcResponse = serde_json::from_str(&json).unwrap();
+    assert!(parsed.error.is_none());
+    assert_eq!(parsed.result.unwrap(), serde_json::Value::Bool(true));
 }

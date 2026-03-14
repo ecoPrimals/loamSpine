@@ -1,278 +1,109 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! JSON-RPC 2.0 server for `LoamSpine`.
+//! Pure Rust JSON-RPC 2.0 server for `LoamSpine`.
 //!
 //! Universal, language-agnostic RPC for external clients.
 //! Works with Python, JavaScript, curl, etc.
+//!
+//! Zero C dependencies — replaces jsonrpsee (which pulled ring/C-asm)
+//! with a hand-rolled JSON-RPC dispatcher over raw HTTP/TCP.
 
 use crate::error::ServerError;
-use crate::health::{LivenessProbe, ReadinessProbe};
 use crate::service::LoamSpineRpcService;
-use crate::types::{
-    AnchorSliceRequest, AnchorSliceResponse, AppendEntryRequest, AppendEntryResponse,
-    CheckoutSliceRequest, CheckoutSliceResponse, CommitBraidRequest, CommitBraidResponse,
-    CommitSessionRequest, CommitSessionResponse, CreateSpineRequest, CreateSpineResponse,
-    GenerateInclusionProofRequest, GenerateInclusionProofResponse, GetCertificateRequest,
-    GetCertificateResponse, GetEntryRequest, GetEntryResponse, GetSpineRequest, GetSpineResponse,
-    GetTipRequest, GetTipResponse, HealthCheckRequest, HealthCheckResponse, LoanCertificateRequest,
-    LoanCertificateResponse, MintCertificateRequest, MintCertificateResponse,
-    PermanentStorageCommitRequest, PermanentStorageCommitResponse,
-    PermanentStorageGetCommitRequest, PermanentStorageVerifyRequest, ReturnCertificateRequest,
-    ReturnCertificateResponse, SealSpineRequest, SealSpineResponse, TransferCertificateRequest,
-    TransferCertificateResponse, VerifyInclusionProofRequest, VerifyInclusionProofResponse,
-};
-use jsonrpsee::core::RpcResult;
-use jsonrpsee::proc_macros::rpc;
-use jsonrpsee::server::{Server, ServerHandle};
-use jsonrpsee::types::ErrorObject;
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tracing::info;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpListener;
+use tracing::{debug, info, warn};
 
 // ============================================================================
-// JSON-RPC 2.0 Error Codes
+// JSON-RPC 2.0 wire types
 // ============================================================================
-// Standard JSON-RPC 2.0 error codes: -32700 to -32600
-// Server error codes (reserved): -32099 to -32000
-// Application error codes: -32000 and below
 
-/// Application-level error code for `LoamSpine` operations.
-/// Per JSON-RPC 2.0 spec, -32000 to -32099 are reserved for implementation-defined server errors.
-const LOAMSPINE_ERROR_CODE: i32 = -32000;
-
-/// Convert a service error to a JSON-RPC error.
-fn to_rpc_error<E: std::fmt::Display>(e: E) -> ErrorObject<'static> {
-    ErrorObject::owned(LOAMSPINE_ERROR_CODE, e.to_string(), None::<()>)
+/// A JSON-RPC 2.0 request.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JsonRpcRequest {
+    /// Protocol version (must be "2.0").
+    pub jsonrpc: String,
+    /// Method name.
+    pub method: String,
+    /// Method parameters.
+    #[serde(default)]
+    pub params: serde_json::Value,
+    /// Request ID (null for notifications).
+    #[serde(default)]
+    pub id: serde_json::Value,
 }
 
-/// JSON-RPC 2.0 API for `LoamSpine`.
-///
-/// Exposes the same operations as tarpc, but over JSON-RPC
-/// for universal client access.
-#[rpc(server)]
-pub trait LoamSpineJsonRpcApi {
-    // ========================================================================
-    // Spine Operations
-    // ========================================================================
-
-    /// Create a new spine.
-    #[method(name = "spine.create")]
-    async fn create_spine(&self, request: CreateSpineRequest) -> RpcResult<CreateSpineResponse>;
-
-    /// Get a spine by ID.
-    #[method(name = "spine.get")]
-    async fn get_spine(&self, request: GetSpineRequest) -> RpcResult<GetSpineResponse>;
-
-    /// Seal a spine (make immutable).
-    #[method(name = "spine.seal")]
-    async fn seal_spine(&self, request: SealSpineRequest) -> RpcResult<SealSpineResponse>;
-
-    // ========================================================================
-    // Entry Operations
-    // ========================================================================
-
-    /// Append an entry to a spine.
-    #[method(name = "entry.append")]
-    async fn append_entry(&self, request: AppendEntryRequest) -> RpcResult<AppendEntryResponse>;
-
-    /// Get an entry by hash.
-    #[method(name = "entry.get")]
-    async fn get_entry(&self, request: GetEntryRequest) -> RpcResult<GetEntryResponse>;
-
-    /// Get the tip entry of a spine.
-    #[method(name = "entry.get_tip")]
-    async fn get_tip(&self, request: GetTipRequest) -> RpcResult<GetTipResponse>;
-
-    // ========================================================================
-    // Certificate Operations
-    // ========================================================================
-
-    /// Mint a new certificate.
-    #[method(name = "certificate.mint")]
-    async fn mint_certificate(
-        &self,
-        request: MintCertificateRequest,
-    ) -> RpcResult<MintCertificateResponse>;
-
-    /// Transfer a certificate to a new owner.
-    #[method(name = "certificate.transfer")]
-    async fn transfer_certificate(
-        &self,
-        request: TransferCertificateRequest,
-    ) -> RpcResult<TransferCertificateResponse>;
-
-    /// Loan a certificate temporarily.
-    #[method(name = "certificate.loan")]
-    async fn loan_certificate(
-        &self,
-        request: LoanCertificateRequest,
-    ) -> RpcResult<LoanCertificateResponse>;
-
-    /// Return a loaned certificate.
-    #[method(name = "certificate.return")]
-    async fn return_certificate(
-        &self,
-        request: ReturnCertificateRequest,
-    ) -> RpcResult<ReturnCertificateResponse>;
-
-    /// Get a certificate by ID.
-    #[method(name = "certificate.get")]
-    async fn get_certificate(
-        &self,
-        request: GetCertificateRequest,
-    ) -> RpcResult<GetCertificateResponse>;
-
-    // ========================================================================
-    // Health
-    // ========================================================================
-
-    /// Health check (detailed status).
-    #[method(name = "health.check")]
-    async fn health_check(&self, request: HealthCheckRequest) -> RpcResult<HealthCheckResponse>;
-
-    /// Liveness probe (container orchestrator endpoint).
-    #[method(name = "health.liveness")]
-    async fn liveness(&self) -> RpcResult<LivenessProbe>;
-
-    /// Readiness probe (container orchestrator endpoint).
-    #[method(name = "health.readiness")]
-    async fn readiness(&self) -> RpcResult<ReadinessProbe>;
-
-    // ========================================================================
-    // Ephemeral Storage Integration
-    // ========================================================================
-
-    /// Commit a session from an ephemeral storage primal.
-    #[method(name = "session.commit")]
-    async fn commit_session(
-        &self,
-        request: CommitSessionRequest,
-    ) -> RpcResult<CommitSessionResponse>;
-
-    // ========================================================================
-    // Semantic Attribution Integration
-    // ========================================================================
-
-    /// Commit a braid from a semantic attribution primal.
-    #[method(name = "braid.commit")]
-    async fn commit_braid(&self, request: CommitBraidRequest) -> RpcResult<CommitBraidResponse>;
-
-    // ========================================================================
-    // Waypoint Operations
-    // ========================================================================
-
-    /// Anchor a slice on a waypoint spine.
-    #[method(name = "slice.anchor")]
-    async fn anchor_slice(&self, request: AnchorSliceRequest) -> RpcResult<AnchorSliceResponse>;
-
-    /// Checkout a slice from a waypoint.
-    #[method(name = "slice.checkout")]
-    async fn checkout_slice(
-        &self,
-        request: CheckoutSliceRequest,
-    ) -> RpcResult<CheckoutSliceResponse>;
-
-    // ========================================================================
-    // Proof Operations
-    // ========================================================================
-
-    /// Generate an inclusion proof.
-    #[method(name = "proof.generate_inclusion")]
-    async fn generate_inclusion_proof(
-        &self,
-        request: GenerateInclusionProofRequest,
-    ) -> RpcResult<GenerateInclusionProofResponse>;
-
-    /// Verify an inclusion proof.
-    #[method(name = "proof.verify_inclusion")]
-    async fn verify_inclusion_proof(
-        &self,
-        request: VerifyInclusionProofRequest,
-    ) -> RpcResult<VerifyInclusionProofResponse>;
-
-    // ========================================================================
-    // Permanence Operations (semantic naming: permanence.{operation})
-    // ========================================================================
-
-    /// Commit a session to permanent storage.
-    #[method(name = "permanence.commit_session")]
-    async fn permanence_commit_session(
-        &self,
-        request: PermanentStorageCommitRequest,
-    ) -> RpcResult<PermanentStorageCommitResponse>;
-
-    /// Verify a commit in permanent storage.
-    #[method(name = "permanence.verify_commit")]
-    async fn permanence_verify_commit(
-        &self,
-        request: PermanentStorageVerifyRequest,
-    ) -> RpcResult<bool>;
-
-    /// Get a commit from permanent storage.
-    #[method(name = "permanence.get_commit")]
-    async fn permanence_get_commit(
-        &self,
-        request: PermanentStorageGetCommitRequest,
-    ) -> RpcResult<serde_json::Value>;
-
-    /// Health check for permanence layer.
-    #[method(name = "permanence.health_check")]
-    async fn permanence_health_check(&self) -> RpcResult<bool>;
-
-    // ========================================================================
-    // NeuralAPI Semantic Aliases (biomeOS capability routing)
-    // These align with biomeOS capability_domains.rs translations.
-    // ========================================================================
-
-    /// Semantic alias for `session.commit` (used by biomeOS `commit.session` routing).
-    #[method(name = "commit.session")]
-    async fn commit_session_semantic(
-        &self,
-        request: CommitSessionRequest,
-    ) -> RpcResult<CommitSessionResponse>;
-
-    /// List capabilities provided by this primal (Spring-as-Niche standard).
-    #[method(name = "capability.list")]
-    async fn capability_list(&self) -> RpcResult<serde_json::Value>;
-
-    // ========================================================================
-    // Legacy compatibility (deprecated camelCase wire format)
-    // These aliases will be removed in v1.0.0.
-    // ========================================================================
-
-    /// DEPRECATED: Use `permanence.commit_session` instead.
-    #[method(name = "permanent-storage.commitSession")]
-    async fn permanent_storage_commit_session(
-        &self,
-        request: PermanentStorageCommitRequest,
-    ) -> RpcResult<PermanentStorageCommitResponse>;
-
-    /// DEPRECATED: Use `permanence.verify_commit` instead.
-    #[method(name = "permanent-storage.verifyCommit")]
-    async fn permanent_storage_verify_commit(
-        &self,
-        request: PermanentStorageVerifyRequest,
-    ) -> RpcResult<bool>;
-
-    /// DEPRECATED: Use `permanence.get_commit` instead.
-    #[method(name = "permanent-storage.getCommit")]
-    async fn permanent_storage_get_commit(
-        &self,
-        request: PermanentStorageGetCommitRequest,
-    ) -> RpcResult<serde_json::Value>;
-
-    /// DEPRECATED: Use `permanence.health_check` instead.
-    #[method(name = "permanent-storage.healthCheck")]
-    async fn permanent_storage_health_check(&self) -> RpcResult<bool>;
+/// A JSON-RPC 2.0 response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JsonRpcResponse {
+    /// Protocol version.
+    pub jsonrpc: String,
+    /// Successful result (mutually exclusive with `error`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result: Option<serde_json::Value>,
+    /// Error (mutually exclusive with `result`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<JsonRpcError>,
+    /// Request ID (echoed from the request).
+    pub id: serde_json::Value,
 }
 
-/// JSON-RPC server implementation.
+/// A JSON-RPC 2.0 error.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JsonRpcError {
+    /// Error code.
+    pub code: i32,
+    /// Error message.
+    pub message: String,
+    /// Additional data.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
+}
+
+// Standard error codes
+const PARSE_ERROR: i32 = -32700;
+const METHOD_NOT_FOUND: i32 = -32601;
+const INVALID_PARAMS: i32 = -32602;
+const LOAMSPINE_ERROR: i32 = -32000;
+
+impl JsonRpcResponse {
+    fn success(id: serde_json::Value, result: serde_json::Value) -> Self {
+        Self {
+            jsonrpc: "2.0".to_string(),
+            result: Some(result),
+            error: None,
+            id,
+        }
+    }
+
+    fn error(id: serde_json::Value, code: i32, message: String) -> Self {
+        Self {
+            jsonrpc: "2.0".to_string(),
+            result: None,
+            error: Some(JsonRpcError {
+                code,
+                message,
+                data: None,
+            }),
+            id,
+        }
+    }
+}
+
+// ============================================================================
+// Dispatcher
+// ============================================================================
+
+/// JSON-RPC server implementation — pure Rust, no jsonrpsee.
 pub struct LoamSpineJsonRpc {
-    service: Arc<LoamSpineRpcService>,
+    pub(crate) service: Arc<LoamSpineRpcService>,
 }
 
 impl LoamSpineJsonRpc {
-    /// Create a new JSON-RPC server.
+    /// Create a new JSON-RPC handler.
     #[must_use]
     pub fn new(service: LoamSpineRpcService) -> Self {
         Self {
@@ -285,249 +116,247 @@ impl LoamSpineJsonRpc {
     pub fn default_server() -> Self {
         Self::new(LoamSpineRpcService::default_service())
     }
-}
 
-#[jsonrpsee::core::async_trait]
-impl LoamSpineJsonRpcApiServer for LoamSpineJsonRpc {
-    async fn create_spine(&self, request: CreateSpineRequest) -> RpcResult<CreateSpineResponse> {
-        self.service
-            .create_spine(request)
-            .await
-            .map_err(to_rpc_error)
+    /// Handle a JSON-RPC request and produce a response.
+    pub async fn handle_request(&self, req: &JsonRpcRequest) -> JsonRpcResponse {
+        let id = req.id.clone();
+        match self.dispatch(&req.method, &req.params).await {
+            Ok(val) => JsonRpcResponse::success(id, val),
+            Err(e) => JsonRpcResponse::error(id, e.code, e.message),
+        }
     }
 
-    async fn get_spine(&self, request: GetSpineRequest) -> RpcResult<GetSpineResponse> {
-        self.service.get_spine(request).await.map_err(to_rpc_error)
-    }
-
-    async fn seal_spine(&self, request: SealSpineRequest) -> RpcResult<SealSpineResponse> {
-        self.service.seal_spine(request).await.map_err(to_rpc_error)
-    }
-
-    async fn append_entry(&self, request: AppendEntryRequest) -> RpcResult<AppendEntryResponse> {
-        self.service
-            .append_entry(request)
-            .await
-            .map_err(to_rpc_error)
-    }
-
-    async fn get_entry(&self, request: GetEntryRequest) -> RpcResult<GetEntryResponse> {
-        self.service.get_entry(request).await.map_err(to_rpc_error)
-    }
-
-    async fn get_tip(&self, request: GetTipRequest) -> RpcResult<GetTipResponse> {
-        self.service.get_tip(request).await.map_err(to_rpc_error)
-    }
-
-    async fn mint_certificate(
+    async fn dispatch(
         &self,
-        request: MintCertificateRequest,
-    ) -> RpcResult<MintCertificateResponse> {
-        self.service
-            .mint_certificate(request)
-            .await
-            .map_err(to_rpc_error)
-    }
+        method: &str,
+        params: &serde_json::Value,
+    ) -> Result<serde_json::Value, JsonRpcError> {
+        macro_rules! rpc {
+            ($params:expr, $method:ident) => {{
+                let req = deser($params)?;
+                let res = self.service.$method(req).await.map_err(app_err)?;
+                ser(res)
+            }};
+        }
 
-    async fn transfer_certificate(
-        &self,
-        request: TransferCertificateRequest,
-    ) -> RpcResult<TransferCertificateResponse> {
-        self.service
-            .transfer_certificate(request)
-            .await
-            .map_err(to_rpc_error)
-    }
+        match method {
+            "spine.create" => rpc!(params, create_spine),
+            "spine.get" => rpc!(params, get_spine),
+            "spine.seal" => rpc!(params, seal_spine),
 
-    async fn loan_certificate(
-        &self,
-        request: LoanCertificateRequest,
-    ) -> RpcResult<LoanCertificateResponse> {
-        self.service
-            .loan_certificate(request)
-            .await
-            .map_err(to_rpc_error)
-    }
+            "entry.append" => rpc!(params, append_entry),
+            "entry.get" => rpc!(params, get_entry),
+            "entry.get_tip" => rpc!(params, get_tip),
 
-    async fn return_certificate(
-        &self,
-        request: ReturnCertificateRequest,
-    ) -> RpcResult<ReturnCertificateResponse> {
-        self.service
-            .return_certificate(request)
-            .await
-            .map_err(to_rpc_error)
-    }
+            "certificate.mint" => rpc!(params, mint_certificate),
+            "certificate.transfer" => rpc!(params, transfer_certificate),
+            "certificate.loan" => rpc!(params, loan_certificate),
+            "certificate.return" => rpc!(params, return_certificate),
+            "certificate.get" => rpc!(params, get_certificate),
 
-    async fn get_certificate(
-        &self,
-        request: GetCertificateRequest,
-    ) -> RpcResult<GetCertificateResponse> {
-        self.service
-            .get_certificate(request)
-            .await
-            .map_err(to_rpc_error)
-    }
+            "health.check" => rpc!(params, health_check),
+            "health.liveness" => ser(self.service.liveness().await),
+            "health.readiness" => {
+                let probe = self.service.readiness().await.map_err(app_err)?;
+                ser(probe)
+            }
 
-    async fn health_check(&self, request: HealthCheckRequest) -> RpcResult<HealthCheckResponse> {
-        self.service
-            .health_check(request)
-            .await
-            .map_err(to_rpc_error)
-    }
+            "session.commit" | "commit.session" => rpc!(params, commit_session),
+            "braid.commit" => rpc!(params, commit_braid),
 
-    async fn liveness(&self) -> RpcResult<crate::health::LivenessProbe> {
-        Ok(self.service.liveness().await)
-    }
+            "slice.anchor" => rpc!(params, anchor_slice),
+            "slice.checkout" => rpc!(params, checkout_slice),
 
-    async fn readiness(&self) -> RpcResult<crate::health::ReadinessProbe> {
-        self.service.readiness().await.map_err(to_rpc_error)
-    }
+            "proof.generate_inclusion" => rpc!(params, generate_inclusion_proof),
+            "proof.verify_inclusion" => rpc!(params, verify_inclusion_proof),
 
-    async fn commit_session(
-        &self,
-        request: CommitSessionRequest,
-    ) -> RpcResult<CommitSessionResponse> {
-        self.service
-            .commit_session(request)
-            .await
-            .map_err(to_rpc_error)
-    }
+            "permanence.commit_session" | "permanent-storage.commitSession" => {
+                rpc!(params, permanent_storage_commit_session)
+            }
+            "permanence.verify_commit" | "permanent-storage.verifyCommit" => {
+                rpc!(params, permanent_storage_verify_commit)
+            }
+            "permanence.get_commit" | "permanent-storage.getCommit" => {
+                rpc!(params, permanent_storage_get_commit)
+            }
+            "permanence.health_check" | "permanent-storage.healthCheck" => {
+                ser(self.service.permanence_healthy().await)
+            }
 
-    async fn commit_braid(&self, request: CommitBraidRequest) -> RpcResult<CommitBraidResponse> {
-        self.service
-            .commit_braid(request)
-            .await
-            .map_err(to_rpc_error)
-    }
+            "capability.list" => Ok(loam_spine_core::neural_api::capability_list()),
 
-    async fn anchor_slice(&self, request: AnchorSliceRequest) -> RpcResult<AnchorSliceResponse> {
-        self.service
-            .anchor_slice(request)
-            .await
-            .map_err(to_rpc_error)
-    }
-
-    async fn checkout_slice(
-        &self,
-        request: CheckoutSliceRequest,
-    ) -> RpcResult<CheckoutSliceResponse> {
-        self.service
-            .checkout_slice(request)
-            .await
-            .map_err(to_rpc_error)
-    }
-
-    async fn generate_inclusion_proof(
-        &self,
-        request: GenerateInclusionProofRequest,
-    ) -> RpcResult<GenerateInclusionProofResponse> {
-        self.service
-            .generate_inclusion_proof(request)
-            .await
-            .map_err(to_rpc_error)
-    }
-
-    async fn verify_inclusion_proof(
-        &self,
-        request: VerifyInclusionProofRequest,
-    ) -> RpcResult<VerifyInclusionProofResponse> {
-        self.service
-            .verify_inclusion_proof(request)
-            .await
-            .map_err(to_rpc_error)
-    }
-
-    async fn permanence_commit_session(
-        &self,
-        request: PermanentStorageCommitRequest,
-    ) -> RpcResult<PermanentStorageCommitResponse> {
-        self.service
-            .permanent_storage_commit_session(request)
-            .await
-            .map_err(to_rpc_error)
-    }
-
-    async fn permanence_verify_commit(
-        &self,
-        request: PermanentStorageVerifyRequest,
-    ) -> RpcResult<bool> {
-        self.service
-            .permanent_storage_verify_commit(request)
-            .await
-            .map_err(to_rpc_error)
-    }
-
-    async fn permanence_get_commit(
-        &self,
-        request: PermanentStorageGetCommitRequest,
-    ) -> RpcResult<serde_json::Value> {
-        self.service
-            .permanent_storage_get_commit(request)
-            .await
-            .map_err(to_rpc_error)
-    }
-
-    async fn permanence_health_check(&self) -> RpcResult<bool> {
-        Ok(self.service.permanence_healthy().await)
-    }
-
-    async fn permanent_storage_commit_session(
-        &self,
-        request: PermanentStorageCommitRequest,
-    ) -> RpcResult<PermanentStorageCommitResponse> {
-        self.permanence_commit_session(request).await
-    }
-
-    async fn permanent_storage_verify_commit(
-        &self,
-        request: PermanentStorageVerifyRequest,
-    ) -> RpcResult<bool> {
-        self.permanence_verify_commit(request).await
-    }
-
-    async fn permanent_storage_get_commit(
-        &self,
-        request: PermanentStorageGetCommitRequest,
-    ) -> RpcResult<serde_json::Value> {
-        self.permanence_get_commit(request).await
-    }
-
-    async fn permanent_storage_health_check(&self) -> RpcResult<bool> {
-        self.permanence_health_check().await
-    }
-
-    async fn commit_session_semantic(
-        &self,
-        request: CommitSessionRequest,
-    ) -> RpcResult<CommitSessionResponse> {
-        self.commit_session(request).await
-    }
-
-    async fn capability_list(&self) -> RpcResult<serde_json::Value> {
-        Ok(loam_spine_core::neural_api::capability_list())
+            _ => Err(JsonRpcError {
+                code: METHOD_NOT_FOUND,
+                message: format!("method not found: {method}"),
+                data: None,
+            }),
+        }
     }
 }
 
-/// Run the JSON-RPC server.
+fn app_err(e: impl std::fmt::Display) -> JsonRpcError {
+    JsonRpcError {
+        code: LOAMSPINE_ERROR,
+        message: e.to_string(),
+        data: None,
+    }
+}
+
+fn deser<T: serde::de::DeserializeOwned>(params: &serde_json::Value) -> Result<T, JsonRpcError> {
+    serde_json::from_value(params.clone()).map_err(|e| JsonRpcError {
+        code: INVALID_PARAMS,
+        message: format!("invalid params: {e}"),
+        data: None,
+    })
+}
+
+fn ser<T: serde::Serialize>(val: T) -> Result<serde_json::Value, JsonRpcError> {
+    serde_json::to_value(val).map_err(|e| JsonRpcError {
+        code: LOAMSPINE_ERROR,
+        message: format!("serialization error: {e}"),
+        data: None,
+    })
+}
+
+// ============================================================================
+// TCP/HTTP server
+// ============================================================================
+
+/// Server handle for graceful shutdown.
+pub struct ServerHandle {
+    shutdown: tokio::sync::watch::Sender<bool>,
+}
+
+impl ServerHandle {
+    /// Stop the server.
+    pub fn stop(&self) {
+        let _ = self.shutdown.send(true);
+    }
+}
+
+/// Run the JSON-RPC server (pure Rust, no jsonrpsee).
+///
+/// Accepts both raw newline-delimited JSON and HTTP POST requests.
 ///
 /// # Errors
 ///
-/// Returns error if server fails to start.
+/// Returns error if server fails to bind.
 pub async fn run_jsonrpc_server(
     addr: SocketAddr,
     service: LoamSpineRpcService,
 ) -> Result<ServerHandle, ServerError> {
-    let server = Server::builder()
-        .build(addr)
+    let listener = TcpListener::bind(addr)
         .await
         .map_err(|e| ServerError::Bind(e.to_string()))?;
-    let jsonrpc = LoamSpineJsonRpc::new(service);
 
-    info!("🌐 LoamSpine JSON-RPC server listening on http://{}", addr);
+    let handler = Arc::new(LoamSpineJsonRpc::new(service));
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
 
-    let handle = server.start(jsonrpc.into_rpc());
-    Ok(handle)
+    info!("LoamSpine JSON-RPC server listening on http://{}", addr);
+
+    tokio::spawn(async move {
+        let mut rx = shutdown_rx;
+        loop {
+            tokio::select! {
+                result = listener.accept() => {
+                    match result {
+                        Ok((stream, peer)) => {
+                            debug!("JSON-RPC connection from {peer}");
+                            let h = Arc::clone(&handler);
+                            tokio::spawn(async move {
+                                if let Err(e) = handle_connection(h, stream).await {
+                                    warn!("connection error: {e}");
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            warn!("accept error: {e}");
+                        }
+                    }
+                }
+                _ = rx.changed() => {
+                    info!("JSON-RPC server shutting down");
+                    break;
+                }
+            }
+        }
+    });
+
+    Ok(ServerHandle {
+        shutdown: shutdown_tx,
+    })
+}
+
+async fn handle_connection(
+    handler: Arc<LoamSpineJsonRpc>,
+    stream: tokio::net::TcpStream,
+) -> Result<(), std::io::Error> {
+    let (reader, mut writer) = stream.into_split();
+    let mut buf_reader = BufReader::new(reader);
+
+    let mut first_line = String::new();
+    buf_reader.read_line(&mut first_line).await?;
+
+    let is_http = first_line.starts_with("POST")
+        || first_line.starts_with("GET")
+        || first_line.starts_with("HTTP");
+
+    if is_http {
+        let mut content_length: usize = 0;
+        let mut header_line = String::new();
+        loop {
+            header_line.clear();
+            buf_reader.read_line(&mut header_line).await?;
+            if header_line.trim().is_empty() {
+                break;
+            }
+            if let Some(val) = header_line
+                .strip_prefix("Content-Length:")
+                .or_else(|| header_line.strip_prefix("content-length:"))
+            {
+                content_length = val.trim().parse().unwrap_or(0);
+            }
+        }
+
+        let mut body = vec![0u8; content_length];
+        buf_reader.read_exact(&mut body).await?;
+
+        let response_body = process_request(&handler, &body).await;
+
+        let http_response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            response_body.len()
+        );
+        writer.write_all(http_response.as_bytes()).await?;
+        writer.write_all(&response_body).await?;
+    } else {
+        let body = first_line.trim().as_bytes().to_vec();
+        if !body.is_empty() {
+            let response_body = process_request(&handler, &body).await;
+            writer.write_all(&response_body).await?;
+            writer.write_all(b"\n").await?;
+        }
+    }
+
+    writer.flush().await?;
+    Ok(())
+}
+
+async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> Vec<u8> {
+    let request: JsonRpcRequest = match serde_json::from_slice(body) {
+        Ok(r) => r,
+        Err(e) => {
+            let err = JsonRpcResponse::error(
+                serde_json::Value::Null,
+                PARSE_ERROR,
+                format!("parse error: {e}"),
+            );
+            return serde_json::to_vec(&err).unwrap_or_default();
+        }
+    };
+
+    let response = handler.handle_request(&request).await;
+    serde_json::to_vec(&response).unwrap_or_default()
 }
 
 #[cfg(test)]

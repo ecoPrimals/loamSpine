@@ -14,9 +14,6 @@ loam-spine-core = { path = "../loam-spine-core" }
 # Pure Rust RPC - tarpc (no protobuf, no gRPC, no C++ tooling)
 tarpc = { version = "0.34", features = ["full"] }
 
-# JSON-RPC 2.0 for external clients (Python, JS, curl)
-jsonrpsee = { version = "0.24", features = ["server", "macros"] }
-
 # Workspace dependencies
 tokio = { workspace = true }
 serde = { workspace = true }

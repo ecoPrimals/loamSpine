@@ -3,7 +3,7 @@
 //! Mock transport for unit testing.
 //!
 //! Always returns a network error. Used by `DiscoveryClient::for_testing` so
-//! that tests compile and run without pulling in `reqwest` or a live socket.
+//! that tests compile and run without pulling in `ureq` or a live socket.
 
 use std::future::Future;
 use std::pin::Pin;

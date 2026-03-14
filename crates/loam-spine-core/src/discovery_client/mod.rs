@@ -14,7 +14,7 @@
 //! | Constructor | Transport | Feature | ecoBin? |
 //! |---|---|---|---|
 //! | [`connect`] | Tower Atomic (NeuralAPI → Songbird) | `tower-atomic` | **Yes** |
-//! | `connect_http` | reqwest (rustls → ring) | `discovery-http` | No |
+//! | `connect_http` | ureq (pure Rust HTTP) | `discovery-http` | **Yes** |
 //! | [`connect_with_transport`] | Caller-provided | — | Depends |
 //!
 //! [`connect`]: DiscoveryClient::connect
@@ -112,7 +112,7 @@ impl DiscoveryClient {
     ///
     /// Transport selection order:
     /// 1. **Tower Atomic** (feature `tower-atomic`) — ecoBin compliant, zero C deps
-    /// 2. **reqwest HTTP** (feature `discovery-http`) — development fallback
+    /// 2. **ureq HTTP** (feature `discovery-http`) — pure Rust fallback
     ///
     /// Verifies the registry is reachable via its `/health` endpoint.
     ///
@@ -141,7 +141,7 @@ impl DiscoveryClient {
             }
         }
 
-        // Fall back to reqwest HTTP
+        // Fall back to ureq HTTP
         #[cfg(feature = "discovery-http")]
         {
             let transport = crate::transport::HttpTransport::new()?;
@@ -160,7 +160,7 @@ impl DiscoveryClient {
         )))
     }
 
-    /// Connect using the reqwest HTTP transport explicitly.
+    /// Connect using the ureq HTTP transport explicitly.
     ///
     /// # Errors
     ///

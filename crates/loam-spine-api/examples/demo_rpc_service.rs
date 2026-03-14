@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("---------------------");
     let service = LoamSpineRpcService::default_service();
     println!("✓ RPC service created");
-    println!("  Pure Rust: tarpc + jsonrpsee");
+    println!("  Pure Rust: tarpc + pure JSON-RPC");
     println!("  No gRPC, no protobuf!");
     println!();
 

@@ -19,17 +19,17 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughpu
 use loam_spine_core::{
     entry::{Entry, EntryType, SpineConfig},
     spine::Spine,
-    storage::{EntryStorage, SledStorage, SpineStorage},
+    storage::{EntryStorage, RedbStorage, SpineStorage},
     types::{Did, SessionId},
 };
 use tokio::runtime::Runtime;
 
-fn bench_sled_spine_save(c: &mut Criterion) {
+fn bench_redb_spine_save(c: &mut Criterion) {
     let rt = Runtime::new().expect("Failed to create runtime");
 
-    c.bench_function("sled_spine_save", |b| {
+    c.bench_function("redb_spine_save", |b| {
         b.iter(|| {
-            let storage = SledStorage::temporary().expect("Failed to create storage");
+            let storage = RedbStorage::temporary().expect("Failed to create storage");
             let owner = Did::new(format!("did:key:z6Mk{}", uuid::Uuid::now_v7()));
             let spine = Spine::new(owner, Some("Bench".into()), SpineConfig::default())
                 .expect("Failed to create spine");
@@ -47,9 +47,9 @@ fn bench_sled_spine_save(c: &mut Criterion) {
     });
 }
 
-fn bench_sled_spine_load(c: &mut Criterion) {
+fn bench_redb_spine_load(c: &mut Criterion) {
     let rt = Runtime::new().expect("Failed to create runtime");
-    let storage = SledStorage::temporary().expect("Failed to create storage");
+    let storage = RedbStorage::temporary().expect("Failed to create storage");
     let owner = Did::new("did:key:z6MkBenchOwner");
     let spine = Spine::new(owner, Some("Bench".into()), SpineConfig::default())
         .expect("Failed to create spine");
@@ -63,7 +63,7 @@ fn bench_sled_spine_load(c: &mut Criterion) {
             .expect("Failed to save spine");
     });
 
-    c.bench_function("sled_spine_load", |b| {
+    c.bench_function("redb_spine_load", |b| {
         b.iter(|| {
             rt.block_on(async {
                 black_box(
@@ -78,12 +78,12 @@ fn bench_sled_spine_load(c: &mut Criterion) {
     });
 }
 
-fn bench_sled_entry_save(c: &mut Criterion) {
+fn bench_redb_entry_save(c: &mut Criterion) {
     let rt = Runtime::new().expect("Failed to create runtime");
 
-    c.bench_function("sled_entry_save", |b| {
+    c.bench_function("redb_entry_save", |b| {
         b.iter(|| {
-            let storage = SledStorage::temporary().expect("Failed to create storage");
+            let storage = RedbStorage::temporary().expect("Failed to create storage");
             let owner = Did::new("did:key:z6MkBenchOwner");
             let spine = Spine::new(owner.clone(), Some("Bench".into()), SpineConfig::default())
                 .expect("Failed to create spine");
@@ -115,9 +115,9 @@ fn bench_sled_entry_save(c: &mut Criterion) {
     });
 }
 
-fn bench_sled_entry_load(c: &mut Criterion) {
+fn bench_redb_entry_load(c: &mut Criterion) {
     let rt = Runtime::new().expect("Failed to create runtime");
-    let storage = SledStorage::temporary().expect("Failed to create storage");
+    let storage = RedbStorage::temporary().expect("Failed to create storage");
     let owner = Did::new("did:key:z6MkBenchOwner");
     let spine = Spine::new(owner.clone(), Some("Bench".into()), SpineConfig::default())
         .expect("Failed to create spine");
@@ -144,7 +144,7 @@ fn bench_sled_entry_load(c: &mut Criterion) {
             .expect("Failed to save entry");
     });
 
-    c.bench_function("sled_entry_load", |b| {
+    c.bench_function("redb_entry_load", |b| {
         b.iter(|| {
             rt.block_on(async {
                 black_box(
@@ -159,15 +159,15 @@ fn bench_sled_entry_load(c: &mut Criterion) {
     });
 }
 
-fn bench_sled_bulk_entry_save(c: &mut Criterion) {
+fn bench_redb_bulk_entry_save(c: &mut Criterion) {
     let rt = Runtime::new().expect("Failed to create runtime");
 
-    let mut group = c.benchmark_group("sled_bulk_entry_save");
+    let mut group = c.benchmark_group("redb_bulk_entry_save");
     group.throughput(Throughput::Elements(100));
 
     group.bench_function("100_entries", |b| {
         b.iter(|| {
-            let storage = SledStorage::temporary().expect("Failed to create storage");
+            let storage = RedbStorage::temporary().expect("Failed to create storage");
             let owner = Did::new("did:key:z6MkBenchOwner");
             let spine = Spine::new(owner.clone(), Some("Bench".into()), SpineConfig::default())
                 .expect("Failed to create spine");
@@ -201,9 +201,9 @@ fn bench_sled_bulk_entry_save(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_sled_flush(c: &mut Criterion) {
+fn bench_redb_flush(c: &mut Criterion) {
     let rt = Runtime::new().expect("Failed to create runtime");
-    let storage = SledStorage::temporary().expect("Failed to create storage");
+    let storage = RedbStorage::temporary().expect("Failed to create storage");
 
     // Add some data first
     let owner = Did::new("did:key:z6MkBenchOwner");
@@ -218,18 +218,18 @@ fn bench_sled_flush(c: &mut Criterion) {
             .expect("Failed to save spine");
     });
 
-    c.bench_function("sled_flush", |b| {
+    c.bench_function("redb_flush", |b| {
         b.iter(|| black_box(storage.flush().expect("Failed to flush")));
     });
 }
 
 criterion_group!(
     benches,
-    bench_sled_spine_save,
-    bench_sled_spine_load,
-    bench_sled_entry_save,
-    bench_sled_entry_load,
-    bench_sled_bulk_entry_save,
-    bench_sled_flush,
+    bench_redb_spine_save,
+    bench_redb_spine_load,
+    bench_redb_entry_save,
+    bench_redb_entry_load,
+    bench_redb_bulk_entry_save,
+    bench_redb_flush,
 );
 criterion_main!(benches);

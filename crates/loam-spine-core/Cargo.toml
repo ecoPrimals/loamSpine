@@ -21,7 +21,8 @@ blake3 = "1.5"
 uuid = { version = "1.11", features = ["v7", "serde"] }
 
 # Persistent storage (pure Rust embedded database)
-sled = "0.34"
+sled = { version = "0.34", optional = true }
+redb = { version = "2.4", optional = true }
 
 # Binary serialization for storage
 bincode = "1.3"
@@ -36,9 +37,10 @@ serde_bytes = "0.11"
 # URL parsing (pure Rust, no C dependencies)
 url = "2.5"
 
-# HTTP client for service discovery — OPTIONAL, pulls ring (C/asm).
+# HTTP client for service discovery — OPTIONAL, pure Rust (no TLS = no ring).
 # Production path: Songbird via Tower Atomic (Pure Rust).
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"], optional = true }
+# For HTTPS, route through BearDog/Songbird TLS stack.
+ureq = { version = "2.12", default-features = false, optional = true }
 
 # DNS resolution for service discovery
 hickory-resolver = "0.24"
@@ -52,12 +54,14 @@ futures-util = { version = "0.3", optional = true }
 async-std = { version = "1.6", optional = true }
 
 [features]
-default = []
+default = ["redb-storage"]
+redb-storage = ["dep:redb"]
+sled-storage = ["dep:sled"]
 # Enable testing utilities (MockSigner, MockVerifier) for use in downstream crates
 testing = []
-# Enable direct HTTP via reqwest (pulls ring C/asm — non-ecoBin).
-# Use only for development or when Tower Atomic is unavailable.
-discovery-http = ["dep:reqwest"]
+# Enable direct HTTP via ureq (pure Rust, no TLS, no ring/C).
+# For HTTPS, route through BearDog/Songbird TLS stack.
+discovery-http = ["dep:ureq"]
 # Enable Tower Atomic transport (Songbird/NeuralAPI via Unix socket JSON-RPC).
 # This is the ecoBin-compliant production transport — zero C dependencies.
 tower-atomic = []

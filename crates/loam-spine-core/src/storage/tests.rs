@@ -8,12 +8,16 @@ mod tests {
 
     use crate::entry::{Entry, EntryType, SpineConfig};
     use crate::spine::Spine;
-    use crate::storage::{
-        EntryStorage, InMemoryEntryStorage, InMemorySpineStorage, SledEntryStorage,
-        SledSpineStorage, SledStorage, SpineStorage,
-    };
+    use crate::storage::{EntryStorage, InMemoryEntryStorage, InMemorySpineStorage, SpineStorage};
     use crate::types::{Did, SpineId};
     use serial_test::serial;
+
+    #[cfg(feature = "redb-storage")]
+    use crate::storage::{RedbEntryStorage, RedbSpineStorage, RedbStorage};
+    #[cfg(feature = "sled-storage")]
+    use crate::storage::{
+        SledCertificateStorage, SledEntryStorage, SledSpineStorage, SledStorage,
+    };
 
     fn create_test_spine() -> Spine {
         let owner = Did::new("did:key:z6MkOwner");
@@ -155,9 +159,252 @@ mod tests {
     }
 
     // ========================================================================
+    // redb Storage Tests
+    // ========================================================================
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_spine_storage_crud() {
+        let storage = RedbSpineStorage::temporary().unwrap_or_else(|_| unreachable!());
+
+        let spine = create_test_spine();
+        let id = spine.id;
+
+        // Save
+        storage
+            .save_spine(&spine)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(storage.spine_count(), 1);
+
+        // Get
+        let retrieved = storage
+            .get_spine(id)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert!(retrieved.is_some());
+        assert_eq!(retrieved.unwrap_or_else(|| unreachable!()).id, id);
+
+        // List
+        let ids = storage
+            .list_spines()
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(ids.len(), 1);
+        assert!(ids.contains(&id));
+
+        // Delete
+        storage
+            .delete_spine(id)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(storage.spine_count(), 0);
+
+        // Get after delete
+        let retrieved = storage
+            .get_spine(id)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert!(retrieved.is_none());
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_entry_storage_crud() {
+        let storage = RedbEntryStorage::temporary().unwrap_or_else(|_| unreachable!());
+
+        let owner = Did::new("did:key:z6MkOwner");
+        let spine_id = SpineId::now_v7();
+        let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
+
+        // Save
+        let hash = storage
+            .save_entry(&entry)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(storage.entry_count(), 1);
+
+        // Get
+        let retrieved = storage
+            .get_entry(hash)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert!(retrieved.is_some());
+
+        // Exists
+        let exists = storage
+            .entry_exists(hash)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert!(exists);
+
+        // Not exists
+        let not_exists = storage
+            .entry_exists([0u8; 32])
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert!(!not_exists);
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_entry_spine_index() {
+        let storage = RedbEntryStorage::temporary().unwrap_or_else(|_| unreachable!());
+
+        let owner = Did::new("did:key:z6MkOwner");
+        let spine_id = SpineId::now_v7();
+
+        // Add 5 entries
+        let mut prev_hash = None;
+        for i in 0..5 {
+            let entry = if i == 0 {
+                Entry::genesis(owner.clone(), spine_id, SpineConfig::default())
+            } else {
+                Entry::new(
+                    i,
+                    prev_hash,
+                    owner.clone(),
+                    EntryType::SpineSealed { reason: None },
+                )
+                .with_spine_id(spine_id)
+            };
+            prev_hash = Some(
+                storage
+                    .save_entry(&entry)
+                    .await
+                    .unwrap_or_else(|_| unreachable!()),
+            );
+        }
+
+        // Get all
+        let entries = storage
+            .get_entries_for_spine(spine_id, 0, 10)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(entries.len(), 5);
+
+        // Get range
+        let entries = storage
+            .get_entries_for_spine(spine_id, 1, 2)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(entries.len(), 2);
+
+        // Get from non-existent spine
+        let entries = storage
+            .get_entries_for_spine(SpineId::now_v7(), 0, 10)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert!(entries.is_empty());
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_combined_storage() {
+        let storage = RedbStorage::temporary().unwrap_or_else(|_| unreachable!());
+
+        // Save a spine
+        let spine = create_test_spine();
+        storage
+            .spines
+            .save_spine(&spine)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        // Save an entry
+        let owner = Did::new("did:key:z6MkOwner");
+        let entry = Entry::genesis(owner, spine.id, SpineConfig::default());
+        let hash = storage
+            .entries
+            .save_entry(&entry)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        // Flush
+        storage.flush().unwrap_or_else(|_| unreachable!());
+
+        // Verify both are stored
+        assert_eq!(storage.spines.spine_count(), 1);
+        assert_eq!(storage.entries.entry_count(), 1);
+
+        // Retrieve both
+        let retrieved_spine = storage
+            .spines
+            .get_spine(spine.id)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert!(retrieved_spine.is_some());
+
+        let retrieved_entry = storage
+            .entries
+            .get_entry(hash)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+        assert!(retrieved_entry.is_some());
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    #[serial]
+    async fn redb_storage_persistence() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("loamspine-redb-test-{}", uuid::Uuid::now_v7()));
+
+        {
+            let storage = RedbStorage::open(&temp_dir)
+                .unwrap_or_else(|e| unreachable!("redb open failed: {e}"));
+            let spine = create_test_spine();
+            storage
+                .spines
+                .save_spine(&spine)
+                .await
+                .unwrap_or_else(|e| unreachable!("save spine failed: {e}"));
+            storage
+                .flush()
+                .unwrap_or_else(|e| unreachable!("flush failed: {e}"));
+        }
+
+        {
+            let storage = RedbStorage::open(&temp_dir)
+                .unwrap_or_else(|e| unreachable!("redb reopen failed: {e}"));
+            assert_eq!(storage.spines.spine_count(), 1);
+        }
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_concurrent_operations() {
+        let storage = Arc::new(
+            RedbStorage::temporary()
+                .unwrap_or_else(|e| unreachable!("temporary redb failed: {e}")),
+        );
+
+        let mut handles = vec![];
+        for i in 0..10 {
+            let stor = Arc::clone(&storage);
+            let handle = tokio::spawn(async move {
+                let owner = Did::new(format!("did:key:z6MkOwner{i}"));
+                let spine = Spine::new(owner, Some(format!("Spine {i}")), SpineConfig::default())
+                    .unwrap_or_else(|_| unreachable!());
+                stor.spines.save_spine(&spine).await
+            });
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            assert!(handle.await.unwrap_or_else(|_| unreachable!()).is_ok());
+        }
+
+        assert_eq!(storage.spines.spine_count(), 10);
+    }
+
+    // ========================================================================
     // Sled Storage Tests
     // ========================================================================
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_spine_storage_crud() {
         let storage = SledSpineStorage::temporary().unwrap_or_else(|_| unreachable!());
@@ -203,6 +450,7 @@ mod tests {
         assert!(retrieved.is_none());
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_entry_storage_crud() {
         let storage = SledEntryStorage::temporary().unwrap_or_else(|_| unreachable!());
@@ -240,6 +488,7 @@ mod tests {
         assert!(!not_exists);
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_entry_spine_index() {
         let storage = SledEntryStorage::temporary().unwrap_or_else(|_| unreachable!());
@@ -291,6 +540,7 @@ mod tests {
         assert!(entries.is_empty());
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_combined_storage() {
         let storage = SledStorage::temporary().unwrap_or_else(|_| unreachable!());
@@ -469,6 +719,7 @@ mod tests {
         assert_eq!(entries[2].index, 7);
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     #[serial]
     async fn sled_storage_persistence() {
@@ -503,6 +754,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_concurrent_operations() {
         let storage = Arc::new(
@@ -576,7 +828,14 @@ mod tests {
         use crate::storage::StorageBackend;
 
         assert!(StorageBackend::InMemory.is_available());
-        assert!(StorageBackend::Sled.is_available());
+        assert_eq!(
+            StorageBackend::Redb.is_available(),
+            cfg!(feature = "redb-storage"),
+        );
+        assert_eq!(
+            StorageBackend::Sled.is_available(),
+            cfg!(feature = "sled-storage"),
+        );
         assert_eq!(
             StorageBackend::Sqlite.is_available(),
             cfg!(feature = "sqlite"),
@@ -590,6 +849,7 @@ mod tests {
         use crate::storage::StorageBackend;
 
         assert_eq!(StorageBackend::InMemory.name(), "in-memory");
+        assert_eq!(StorageBackend::Redb.name(), "redb");
         assert_eq!(StorageBackend::Sled.name(), "sled");
         assert_eq!(StorageBackend::Sqlite.name(), "sqlite");
         assert_eq!(StorageBackend::Postgres.name(), "postgres");
@@ -601,6 +861,7 @@ mod tests {
         use crate::storage::StorageBackend;
 
         assert_eq!(format!("{}", StorageBackend::InMemory), "in-memory");
+        assert_eq!(format!("{}", StorageBackend::Redb), "redb");
         assert_eq!(format!("{}", StorageBackend::Sled), "sled");
         assert_eq!(format!("{}", StorageBackend::Sqlite), "sqlite");
         assert_eq!(format!("{}", StorageBackend::Postgres), "postgres");
@@ -611,17 +872,17 @@ mod tests {
     fn storage_backend_default() {
         use crate::storage::StorageBackend;
 
-        assert_eq!(StorageBackend::default(), StorageBackend::InMemory);
+        assert_eq!(StorageBackend::default(), StorageBackend::Redb);
     }
 
     #[test]
     fn storage_backend_clone_and_eq() {
         use crate::storage::StorageBackend;
 
-        let b1 = StorageBackend::Sled;
+        let b1 = StorageBackend::Redb;
         let b2 = b1;
         assert_eq!(b1, b2);
-        assert_ne!(StorageBackend::InMemory, StorageBackend::Sled);
+        assert_ne!(StorageBackend::InMemory, StorageBackend::Redb);
     }
 
     #[test]
@@ -786,6 +1047,7 @@ mod tests {
         )
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_certificate_storage_crud() {
         use crate::storage::{CertificateStorage, SledCertificateStorage};
@@ -814,6 +1076,7 @@ mod tests {
         assert!(storage.get_certificate(cert_id).await.unwrap().is_none());
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_certificate_storage_upsert() {
         use crate::storage::{CertificateStorage, SledCertificateStorage};
@@ -828,6 +1091,7 @@ mod tests {
         assert_eq!(storage.certificate_count(), 1);
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_certificate_storage_delete_nonexistent() {
         use crate::storage::{CertificateStorage, SledCertificateStorage};
@@ -840,6 +1104,7 @@ mod tests {
             .unwrap();
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_combined_storage_includes_certificates() {
         use crate::storage::CertificateStorage;
@@ -867,11 +1132,120 @@ mod tests {
         storage.flush().unwrap();
     }
 
+    #[cfg(feature = "sled-storage")]
     #[tokio::test]
     async fn sled_certificate_storage_multiple() {
         use crate::storage::{CertificateStorage, SledCertificateStorage};
 
         let storage = SledCertificateStorage::temporary().unwrap();
+        let owner = Did::new("did:key:z6MkOwner");
+
+        for _ in 0..10 {
+            let spine_id = SpineId::now_v7();
+            let cert = create_test_certificate(&owner, spine_id);
+            storage.save_certificate(&cert, spine_id).await.unwrap();
+        }
+
+        assert_eq!(storage.certificate_count(), 10);
+        let ids = storage.list_certificates().await.unwrap();
+        assert_eq!(ids.len(), 10);
+    }
+
+    // ========================================================================
+    // redb Certificate Storage Tests
+    // ========================================================================
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_certificate_storage_crud() {
+        use crate::storage::{CertificateStorage, RedbCertificateStorage};
+
+        let storage = RedbCertificateStorage::temporary().unwrap();
+        let owner = Did::new("did:key:z6MkOwner");
+        let spine_id = SpineId::now_v7();
+        let cert = create_test_certificate(&owner, spine_id);
+        let cert_id = cert.id;
+
+        storage.save_certificate(&cert, spine_id).await.unwrap();
+        assert_eq!(storage.certificate_count(), 1);
+
+        let retrieved = storage.get_certificate(cert_id).await.unwrap();
+        assert!(retrieved.is_some());
+        let (retrieved_cert, retrieved_spine) = retrieved.unwrap();
+        assert_eq!(retrieved_cert.id, cert_id);
+        assert_eq!(retrieved_spine, spine_id);
+
+        let ids = storage.list_certificates().await.unwrap();
+        assert_eq!(ids.len(), 1);
+        assert!(ids.contains(&cert_id));
+
+        storage.delete_certificate(cert_id).await.unwrap();
+        assert_eq!(storage.certificate_count(), 0);
+        assert!(storage.get_certificate(cert_id).await.unwrap().is_none());
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_certificate_storage_upsert() {
+        use crate::storage::{CertificateStorage, RedbCertificateStorage};
+
+        let storage = RedbCertificateStorage::temporary().unwrap();
+        let owner = Did::new("did:key:z6MkOwner");
+        let spine_id = SpineId::now_v7();
+        let cert = create_test_certificate(&owner, spine_id);
+
+        storage.save_certificate(&cert, spine_id).await.unwrap();
+        storage.save_certificate(&cert, spine_id).await.unwrap();
+        assert_eq!(storage.certificate_count(), 1);
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_certificate_storage_delete_nonexistent() {
+        use crate::storage::{CertificateStorage, RedbCertificateStorage};
+        use crate::types::CertificateId;
+
+        let storage = RedbCertificateStorage::temporary().unwrap();
+        storage
+            .delete_certificate(CertificateId::now_v7())
+            .await
+            .unwrap();
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_combined_storage_includes_certificates() {
+        use crate::storage::CertificateStorage;
+
+        let storage = RedbStorage::temporary().unwrap();
+        let owner = Did::new("did:key:z6MkOwner");
+        let spine_id = SpineId::now_v7();
+        let cert = create_test_certificate(&owner, spine_id);
+        let cert_id = cert.id;
+
+        storage
+            .certificates
+            .save_certificate(&cert, spine_id)
+            .await
+            .unwrap();
+        assert_eq!(storage.certificates.certificate_count(), 1);
+
+        let retrieved = storage
+            .certificates
+            .get_certificate(cert_id)
+            .await
+            .unwrap();
+        assert!(retrieved.is_some());
+
+        storage.flush().unwrap();
+    }
+
+    #[cfg(feature = "redb-storage")]
+    #[tokio::test]
+    async fn redb_certificate_storage_multiple() {
+        use crate::storage::{CertificateStorage, RedbCertificateStorage};
+
+        let storage = RedbCertificateStorage::temporary().unwrap();
         let owner = Did::new("did:key:z6MkOwner");
 
         for _ in 0..10 {

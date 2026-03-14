@@ -543,10 +543,16 @@ async fn provenance_trio_via_compat_layer() {
 
 #[tokio::test]
 async fn permanent_storage_health_check() {
-    use loam_spine_api::jsonrpc::{LoamSpineJsonRpc, LoamSpineJsonRpcApiServer};
+    use loam_spine_api::jsonrpc::{JsonRpcRequest, LoamSpineJsonRpc};
 
     let server = LoamSpineJsonRpc::default_server();
-    let result = LoamSpineJsonRpcApiServer::permanent_storage_health_check(&server).await;
-    assert!(result.is_ok());
-    assert!(result.expect("health check should return true"));
+    let req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "permanence.health_check".to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(&req).await;
+    assert!(resp.error.is_none());
+    assert_eq!(resp.result.unwrap(), serde_json::Value::Bool(true));
 }

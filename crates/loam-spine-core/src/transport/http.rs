@@ -1,28 +1,29 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Direct HTTP transport backed by `reqwest`.
+//! Direct HTTP transport backed by `ureq` (pure Rust, no TLS, no ring).
 //!
-//! **Feature-gated** behind `discovery-http`. This transport pulls `ring`
-//! (C/asm) via `reqwest → hyper-rustls → rustls → ring` and is therefore
-//! **not ecoBin compliant**. Use only for development or when the Tower Atomic
-//! stack is unavailable.
+//! **Feature-gated** behind `discovery-http`. This transport is fully ecoBin
+//! compliant — zero C dependencies. For HTTPS, route through the
+//! BearDog/Songbird TLS stack via Tower Atomic.
 
 use std::future::Future;
+use std::io::Read;
 use std::pin::Pin;
-use std::time::Duration;
 
 use crate::error::LoamSpineError;
 
 use super::{DiscoveryTransport, TransportResponse};
 
-/// Direct HTTP transport using `reqwest`.
+/// Direct HTTP transport using `ureq` (pure Rust, synchronous under the hood).
 ///
-/// Wraps a [`reqwest::Client`] behind the [`DiscoveryTransport`] trait so that
+/// Wraps [`ureq::Agent`] behind the [`DiscoveryTransport`] trait so that
 /// [`DiscoveryClient`](crate::discovery_client::DiscoveryClient) can use it
 /// interchangeably with the Tower Atomic transport.
+///
+/// Since `ureq` is blocking, calls are dispatched to `tokio::task::spawn_blocking`.
 #[derive(Clone, Debug)]
 pub struct HttpTransport {
-    client: reqwest::Client,
+    agent: ureq::Agent,
 }
 
 impl HttpTransport {
@@ -32,11 +33,11 @@ impl HttpTransport {
     ///
     /// Returns an error if the underlying HTTP client cannot be constructed.
     pub fn new() -> Result<Self, LoamSpineError> {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .map_err(|e| LoamSpineError::Network(format!("Failed to create HTTP client: {e}")))?;
-        Ok(Self { client })
+        let agent = ureq::AgentBuilder::new()
+            .timeout_connect(std::time::Duration::from_secs(5))
+            .timeout_read(std::time::Duration::from_secs(30))
+            .build();
+        Ok(Self { agent })
     }
 }
 
@@ -45,19 +46,23 @@ impl DiscoveryTransport for HttpTransport {
         &'a self,
         url: &'a str,
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
+        let url = url.to_string();
+        let agent = self.agent.clone();
         Box::pin(async move {
-            let resp = self
-                .client
-                .get(url)
-                .send()
-                .await
-                .map_err(|e| LoamSpineError::Network(format!("GET {url} failed: {e}")))?;
-            let status = resp.status().as_u16();
-            let body = resp
-                .bytes()
-                .await
-                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
-            Ok(TransportResponse { status, body })
+            tokio::task::spawn_blocking(move || {
+                let resp = agent
+                    .get(&url)
+                    .call()
+                    .map_err(|e| LoamSpineError::Network(format!("GET {url} failed: {e}")))?;
+                let status = resp.status();
+                let mut body = Vec::new();
+                resp.into_reader()
+                    .read_to_end(&mut body)
+                    .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
+                Ok(TransportResponse::new(status, body))
+            })
+            .await
+            .map_err(|e| LoamSpineError::Network(format!("spawn_blocking: {e}")))?
         })
     }
 
@@ -66,20 +71,30 @@ impl DiscoveryTransport for HttpTransport {
         url: &'a str,
         query: &'a [(&'a str, &'a str)],
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
+        let url = url.to_string();
+        let query_owned: Vec<(String, String)> = query
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        let agent = self.agent.clone();
         Box::pin(async move {
-            let resp = self
-                .client
-                .get(url)
-                .query(query)
-                .send()
-                .await
-                .map_err(|e| LoamSpineError::Network(format!("GET {url} failed: {e}")))?;
-            let status = resp.status().as_u16();
-            let body = resp
-                .bytes()
-                .await
-                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
-            Ok(TransportResponse { status, body })
+            tokio::task::spawn_blocking(move || {
+                let mut req = agent.get(&url);
+                for (k, v) in &query_owned {
+                    req = req.query(k, v);
+                }
+                let resp = req
+                    .call()
+                    .map_err(|e| LoamSpineError::Network(format!("GET {url} failed: {e}")))?;
+                let status = resp.status();
+                let mut body = Vec::new();
+                resp.into_reader()
+                    .read_to_end(&mut body)
+                    .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
+                Ok(TransportResponse::new(status, body))
+            })
+            .await
+            .map_err(|e| LoamSpineError::Network(format!("spawn_blocking: {e}")))?
         })
     }
 
@@ -88,20 +103,25 @@ impl DiscoveryTransport for HttpTransport {
         url: &'a str,
         body: &'a serde_json::Value,
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
+        let url = url.to_string();
+        let body_str = body.to_string();
+        let agent = self.agent.clone();
         Box::pin(async move {
-            let resp = self
-                .client
-                .post(url)
-                .json(body)
-                .send()
-                .await
-                .map_err(|e| LoamSpineError::Network(format!("POST {url} failed: {e}")))?;
-            let status = resp.status().as_u16();
-            let body = resp
-                .bytes()
-                .await
-                .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
-            Ok(TransportResponse { status, body })
+            tokio::task::spawn_blocking(move || {
+                let resp = agent
+                    .post(&url)
+                    .set("Content-Type", "application/json")
+                    .send_string(&body_str)
+                    .map_err(|e| LoamSpineError::Network(format!("POST {url} failed: {e}")))?;
+                let status = resp.status();
+                let mut body = Vec::new();
+                resp.into_reader()
+                    .read_to_end(&mut body)
+                    .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
+                Ok(TransportResponse::new(status, body))
+            })
+            .await
+            .map_err(|e| LoamSpineError::Network(format!("spawn_blocking: {e}")))?
         })
     }
 }

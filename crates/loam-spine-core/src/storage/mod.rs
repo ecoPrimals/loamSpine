@@ -9,20 +9,21 @@
 //!
 //! - **Traits**: `SpineStorage`, `EntryStorage` — Define storage interfaces
 //! - **InMemory**: Fast, transient storage for testing and development
-//! - **Sled**: Persistent, embedded database for production
+//! - **redb**: Persistent, Pure Rust embedded database (default)
+//! - **Sled**: Persistent, embedded database (optional)
 //!
 //! # Example
 //!
 //! ```no_run
-//! use loam_spine_core::storage::{SledStorage, SpineStorage, EntryStorage};
+//! use loam_spine_core::storage::{RedbStorage, SpineStorage, EntryStorage};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create persistent storage
-//! let storage = SledStorage::open("./data")?;
+//! // Create persistent storage (redb is default)
+//! let storage = RedbStorage::open("./data")?;
 //!
 //! // Storage implements both traits
-//! // storage.save_spine(&spine).await?;
-//! // storage.save_entry(&entry).await?;
+//! // storage.spines.save_spine(&spine).await?;
+//! // storage.entries.save_entry(&entry).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -35,6 +36,9 @@ use crate::types::{CertificateId, EntryHash, SpineId};
 
 // Submodules
 mod memory;
+#[cfg(feature = "redb-storage")]
+mod redb;
+#[cfg(feature = "sled-storage")]
 mod sled;
 #[cfg(feature = "sqlite")]
 mod sqlite;
@@ -47,7 +51,12 @@ mod tests;
 pub use memory::{
     InMemoryCertificateStorage, InMemoryEntryStorage, InMemorySpineStorage, InMemoryStorage,
 };
-pub use sled::{SledCertificateStorage, SledEntryStorage, SledSpineStorage, SledStorage};
+#[cfg(feature = "redb-storage")]
+pub use self::redb::{
+    RedbCertificateStorage, RedbEntryStorage, RedbSpineStorage, RedbStorage,
+};
+#[cfg(feature = "sled-storage")]
+pub use self::sled::{SledCertificateStorage, SledEntryStorage, SledSpineStorage, SledStorage};
 #[cfg(feature = "sqlite")]
 pub use sqlite::{
     SqliteCertificateStorage, SqliteEntryStorage, SqliteSpineStorage, SqliteStorage,
@@ -173,12 +182,17 @@ pub enum StorageBackend {
     /// In-memory storage (for testing and development).
     ///
     /// Fast but transient — data is lost when the process exits.
-    #[default]
     InMemory,
 
-    /// Sled-backed persistent storage (for production).
+    /// redb-backed persistent storage (for production, default).
     ///
-    /// Embedded, pure-Rust database. Good default for single-node deployments.
+    /// 100% Pure Rust embedded database. ecoBin compliant.
+    #[default]
+    Redb,
+
+    /// Sled-backed persistent storage (optional).
+    ///
+    /// Embedded, pure-Rust database.
     Sled,
 
     /// SQLite-backed persistent storage (planned).
@@ -205,7 +219,9 @@ impl StorageBackend {
     #[must_use]
     pub const fn is_available(&self) -> bool {
         match self {
-            Self::InMemory | Self::Sled => true,
+            Self::InMemory => true,
+            Self::Redb => cfg!(feature = "redb-storage"),
+            Self::Sled => cfg!(feature = "sled-storage"),
             Self::Sqlite => cfg!(feature = "sqlite"),
             Self::Postgres | Self::Rocksdb => false,
         }
@@ -216,6 +232,7 @@ impl StorageBackend {
     pub const fn name(&self) -> &'static str {
         match self {
             Self::InMemory => "in-memory",
+            Self::Redb => "redb",
             Self::Sled => "sled",
             Self::Sqlite => "sqlite",
             Self::Postgres => "postgres",

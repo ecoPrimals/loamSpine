@@ -3,7 +3,7 @@
 //! HTTP transport abstraction for service discovery.
 //!
 //! Decouples [`DiscoveryClient`](crate::discovery_client::DiscoveryClient) from
-//! any specific HTTP library, enabling both the legacy `reqwest` path and the
+//! any specific HTTP library, enabling both the `ureq` path and the
 //! ecoBin-compliant **Tower Atomic** path (Songbird via NeuralAPI).
 //!
 //! ## Transport Hierarchy
@@ -11,7 +11,7 @@
 //! | Transport | Feature | C deps? | Use case |
 //! |---|---|---|---|
 //! | `NeuralApiTransport` | `tower-atomic` | **None** | Production (ecoBin) |
-//! | `HttpTransport` | `discovery-http` | `ring` | Development / fallback |
+//! | `HttpTransport` | `discovery-http` | **None** | Pure Rust HTTP fallback |
 //!
 //! ## Example
 //!
@@ -126,7 +126,7 @@ impl TransportResponse {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// reqwest-backed transport (feature = "discovery-http")
+// ureq-backed transport (feature = "discovery-http")
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[cfg(feature = "discovery-http")]
