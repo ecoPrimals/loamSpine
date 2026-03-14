@@ -83,6 +83,10 @@ impl From<loam_spine_core::error::LoamSpineError> for ApiError {
             | LoamSpineError::CapabilityUnavailable(msg)
             | LoamSpineError::Network(msg) => Self::Internal(msg),
             LoamSpineError::Serialization(msg) => Self::Serialization(msg),
+            LoamSpineError::CapabilityProvider {
+                capability,
+                message,
+            } => Self::Internal(format!("capability provider ({capability}): {message}")),
         }
     }
 }

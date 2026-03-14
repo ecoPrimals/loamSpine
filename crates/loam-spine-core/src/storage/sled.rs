@@ -27,12 +27,13 @@
 
 use std::path::Path;
 
+use crate::certificate::Certificate;
 use crate::entry::Entry;
 use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::spine::Spine;
-use crate::types::{EntryHash, SpineId};
+use crate::types::{CertificateId, EntryHash, SpineId};
 
-use super::{EntryStorage, SpineStorage};
+use super::{CertificateStorage, EntryStorage, SpineStorage};
 
 /// Sled-backed spine storage for production use.
 ///
@@ -318,6 +319,116 @@ impl EntryStorage for SledEntryStorage {
     }
 }
 
+/// Sled-backed certificate storage for production use.
+///
+/// Stores `(Certificate, SpineId)` pairs in a dedicated `certificates` tree,
+/// keyed by `CertificateId` (UUID, 16 bytes). Uses bincode for serialization.
+#[derive(Clone)]
+pub struct SledCertificateStorage {
+    db: sled::Db,
+    tree: sled::Tree,
+}
+
+impl SledCertificateStorage {
+    /// Open certificate storage at the given path.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if database cannot be opened.
+    pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
+        let db = sled::open(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let tree = db
+            .open_tree("certificates")
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(Self { db, tree })
+    }
+
+    /// Create storage with a temporary database (for testing).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if database cannot be created.
+    pub fn temporary() -> LoamSpineResult<Self> {
+        let config = sled::Config::new().temporary(true);
+        let db = config
+            .open()
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let tree = db
+            .open_tree("certificates")
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(Self { db, tree })
+    }
+
+    /// Get the number of stored certificates.
+    #[must_use]
+    pub fn certificate_count(&self) -> usize {
+        self.tree.len()
+    }
+
+    /// Flush all pending writes to disk.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if flush fails.
+    pub fn flush(&self) -> LoamSpineResult<()> {
+        self.db
+            .flush()
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(())
+    }
+}
+
+impl CertificateStorage for SledCertificateStorage {
+    async fn get_certificate(
+        &self,
+        id: CertificateId,
+    ) -> LoamSpineResult<Option<(Certificate, SpineId)>> {
+        match self.tree.get(id.as_bytes()) {
+            Ok(Some(bytes)) => {
+                let pair: (Certificate, SpineId) = bincode::deserialize(&bytes)
+                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+                Ok(Some(pair))
+            }
+            Ok(None) => Ok(None),
+            Err(e) => Err(LoamSpineError::Storage(e.to_string())),
+        }
+    }
+
+    async fn save_certificate(
+        &self,
+        certificate: &Certificate,
+        spine_id: SpineId,
+    ) -> LoamSpineResult<()> {
+        let key = certificate.id.as_bytes();
+        let bytes = bincode::serialize(&(certificate, spine_id))
+            .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
+        self.tree
+            .insert(key, bytes)
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn delete_certificate(&self, id: CertificateId) -> LoamSpineResult<()> {
+        self.tree
+            .remove(id.as_bytes())
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn list_certificates(&self) -> LoamSpineResult<Vec<CertificateId>> {
+        let mut ids = Vec::new();
+        for item in &self.tree {
+            let (key, _) = item.map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            if key.len() == 16 {
+                let mut bytes = [0u8; 16];
+                bytes.copy_from_slice(&key);
+                ids.push(CertificateId::from_bytes(bytes));
+            }
+        }
+        Ok(ids)
+    }
+}
+
 /// Combined Sled storage for both spines and entries.
 ///
 /// Convenience wrapper that provides persistent storage for both types.
@@ -346,6 +457,8 @@ pub struct SledStorage {
     pub spines: SledSpineStorage,
     /// Entry storage component.
     pub entries: SledEntryStorage,
+    /// Certificate storage component.
+    pub certificates: SledCertificateStorage,
 }
 
 impl SledStorage {
@@ -354,6 +467,7 @@ impl SledStorage {
     /// Creates subdirectories:
     /// - `{base_path}/spines` — Spine storage
     /// - `{base_path}/entries` — Entry storage
+    /// - `{base_path}/certificates` — Certificate storage
     ///
     /// # Errors
     ///
@@ -362,7 +476,12 @@ impl SledStorage {
         let base = base_path.as_ref();
         let spines = SledSpineStorage::open(base.join("spines"))?;
         let entries = SledEntryStorage::open(base.join("entries"))?;
-        Ok(Self { spines, entries })
+        let certificates = SledCertificateStorage::open(base.join("certificates"))?;
+        Ok(Self {
+            spines,
+            entries,
+            certificates,
+        })
     }
 
     /// Create storage with temporary databases (for testing).
@@ -375,7 +494,12 @@ impl SledStorage {
     pub fn temporary() -> LoamSpineResult<Self> {
         let spines = SledSpineStorage::temporary()?;
         let entries = SledEntryStorage::temporary()?;
-        Ok(Self { spines, entries })
+        let certificates = SledCertificateStorage::temporary()?;
+        Ok(Self {
+            spines,
+            entries,
+            certificates,
+        })
     }
 
     /// Flush all pending writes to disk.
@@ -389,6 +513,7 @@ impl SledStorage {
     pub fn flush(&self) -> LoamSpineResult<()> {
         self.spines.flush()?;
         self.entries.flush()?;
+        self.certificates.flush()?;
         Ok(())
     }
 }

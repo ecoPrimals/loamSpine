@@ -47,9 +47,11 @@ mod tests;
 pub use memory::{
     InMemoryCertificateStorage, InMemoryEntryStorage, InMemorySpineStorage, InMemoryStorage,
 };
-pub use sled::{SledEntryStorage, SledSpineStorage, SledStorage};
+pub use sled::{SledCertificateStorage, SledEntryStorage, SledSpineStorage, SledStorage};
 #[cfg(feature = "sqlite")]
-pub use sqlite::{SqliteEntryStorage, SqliteSpineStorage, SqliteStorage};
+pub use sqlite::{
+    SqliteCertificateStorage, SqliteEntryStorage, SqliteSpineStorage, SqliteStorage,
+};
 
 /// Storage backend for spines.
 ///

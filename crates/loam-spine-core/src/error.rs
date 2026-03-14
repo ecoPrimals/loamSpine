@@ -78,6 +78,18 @@ pub enum LoamSpineError {
     #[error("capability unavailable: {0}")]
     CapabilityUnavailable(String),
 
+    /// Capability provider error (structured, vendor-agnostic).
+    ///
+    /// Used when a capability (signing, storage, etc.) fails at the provider level.
+    /// Matches rhizoCrypt's `CapabilityProvider` for ecosystem consistency.
+    #[error("capability provider error ({capability}): {message}")]
+    CapabilityProvider {
+        /// The capability that failed.
+        capability: String,
+        /// Error detail.
+        message: String,
+    },
+
     /// Network error (service registry, HTTP, etc.).
     #[error("network error: {0}")]
     Network(String),
@@ -89,6 +101,17 @@ pub enum LoamSpineError {
 
 /// Result type for LoamSpine operations.
 pub type LoamSpineResult<T> = Result<T, LoamSpineError>;
+
+impl LoamSpineError {
+    /// Create a capability provider error.
+    #[must_use]
+    pub fn capability_provider(capability: impl Into<String>, message: impl Into<String>) -> Self {
+        Self::CapabilityProvider {
+            capability: capability.into(),
+            message: message.into(),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -109,5 +132,13 @@ mod tests {
         };
         assert!(err.to_string().contains("42"));
         assert!(err.to_string().contains("hash mismatch"));
+    }
+
+    #[test]
+    fn capability_provider_error() {
+        let err = LoamSpineError::capability_provider("signing", "HSM unavailable");
+        assert!(err.to_string().contains("capability provider error"));
+        assert!(err.to_string().contains("signing"));
+        assert!(err.to_string().contains("HSM unavailable"));
     }
 }

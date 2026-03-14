@@ -10,12 +10,13 @@ use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
 
+use crate::certificate::Certificate;
 use crate::entry::Entry;
 use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::spine::Spine;
-use crate::types::{EntryHash, SpineId};
+use crate::types::{CertificateId, EntryHash, SpineId};
 
-use super::{EntryStorage, SpineStorage};
+use super::{CertificateStorage, EntryStorage, SpineStorage};
 
 /// SQLite-backed spine storage.
 ///
@@ -369,6 +370,181 @@ impl EntryStorage for SqliteEntryStorage {
     }
 }
 
+/// SQLite-backed certificate storage.
+///
+/// Stores `(Certificate, SpineId)` pairs in a `certificates` table,
+/// keyed by `CertificateId` (UUID text). Uses JSON serialization for queryability.
+#[derive(Clone)]
+pub struct SqliteCertificateStorage {
+    conn: Arc<Mutex<Connection>>,
+}
+
+impl SqliteCertificateStorage {
+    /// Open certificate storage at the given path.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if database cannot be opened or schema creation fails.
+    pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
+        let conn = Connection::open(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Self::init_conn(&conn)?;
+        Ok(Self {
+            conn: Arc::new(Mutex::new(conn)),
+        })
+    }
+
+    /// Create storage with an in-memory database (for testing).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if database cannot be created.
+    pub fn temporary() -> LoamSpineResult<Self> {
+        let conn =
+            Connection::open_in_memory().map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Self::init_conn(&conn)?;
+        Ok(Self {
+            conn: Arc::new(Mutex::new(conn)),
+        })
+    }
+
+    fn init_conn(conn: &Connection) -> LoamSpineResult<()> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS certificates (
+                id TEXT PRIMARY KEY,
+                spine_id TEXT NOT NULL,
+                data BLOB NOT NULL
+            )",
+            [],
+        )
+        .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(())
+    }
+
+    /// Get the number of stored certificates.
+    #[must_use]
+    pub fn certificate_count(&self) -> usize {
+        let Ok(conn) = self.conn.lock() else {
+            return 0;
+        };
+        conn.query_row("SELECT COUNT(*) FROM certificates", [], |row| {
+            row.get::<_, i64>(0)
+        })
+        .map_or(0, |n| usize::try_from(n).unwrap_or(0))
+    }
+
+    /// Flush all pending writes to disk.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if checkpoint/flush fails.
+    pub fn flush(&self) -> LoamSpineResult<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| LoamSpineError::Storage(format!("sqlite mutex poisoned: {e}")))?;
+        conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(())
+    }
+}
+
+impl CertificateStorage for SqliteCertificateStorage {
+    async fn get_certificate(
+        &self,
+        id: CertificateId,
+    ) -> LoamSpineResult<Option<(Certificate, SpineId)>> {
+        let id_str = id.to_string();
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| LoamSpineError::Storage(format!("sqlite mutex poisoned: {e}")))?;
+        let mut stmt = conn
+            .prepare("SELECT spine_id, data FROM certificates WHERE id = ?1")
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let mut rows = stmt
+            .query([&id_str])
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+
+        if let Some(row) = rows
+            .next()
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?
+        {
+            let spine_id_str: String = row
+                .get(0)
+                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let data: Vec<u8> = row
+                .get(1)
+                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let spine_id = SpineId::parse_str(&spine_id_str)
+                .map_err(|e| LoamSpineError::Storage(format!("invalid spine_id: {e}")))?;
+            let cert: Certificate = serde_json::from_slice(&data)
+                .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+            Ok(Some((cert, spine_id)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn save_certificate(
+        &self,
+        certificate: &Certificate,
+        spine_id: SpineId,
+    ) -> LoamSpineResult<()> {
+        let id_str = certificate.id.to_string();
+        let spine_id_str = spine_id.to_string();
+        let data = serde_json::to_vec(certificate)
+            .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| LoamSpineError::Storage(format!("sqlite mutex poisoned: {e}")))?;
+        conn.execute(
+            "INSERT OR REPLACE INTO certificates (id, spine_id, data) VALUES (?1, ?2, ?3)",
+            rusqlite::params![&id_str, &spine_id_str, &data],
+        )
+        .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn delete_certificate(&self, id: CertificateId) -> LoamSpineResult<()> {
+        let id_str = id.to_string();
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| LoamSpineError::Storage(format!("sqlite mutex poisoned: {e}")))?;
+        conn.execute("DELETE FROM certificates WHERE id = ?1", [&id_str])
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn list_certificates(&self) -> LoamSpineResult<Vec<CertificateId>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| LoamSpineError::Storage(format!("sqlite mutex poisoned: {e}")))?;
+        let mut stmt = conn
+            .prepare("SELECT id FROM certificates")
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let mut rows = stmt
+            .query([])
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+
+        let mut ids = Vec::new();
+        while let Some(row) = rows
+            .next()
+            .map_err(|e| LoamSpineError::Storage(e.to_string()))?
+        {
+            let id_str: String = row
+                .get(0)
+                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            if let Ok(uuid) = CertificateId::parse_str(&id_str) {
+                ids.push(uuid);
+            }
+        }
+        Ok(ids)
+    }
+}
+
 /// Combined SQLite storage for both spines and entries.
 ///
 /// Uses a single database file with separate tables for spines and entries.
@@ -392,12 +568,14 @@ pub struct SqliteStorage {
     pub spines: SqliteSpineStorage,
     /// Entry storage component.
     pub entries: SqliteEntryStorage,
+    /// Certificate storage component.
+    pub certificates: SqliteCertificateStorage,
 }
 
 impl SqliteStorage {
     /// Open storage at the given path.
     ///
-    /// Uses a single database file with `spines` and `entries` tables.
+    /// Uses a single database file with `spines`, `entries`, and `certificates` tables.
     ///
     /// # Errors
     ///
@@ -407,16 +585,19 @@ impl SqliteStorage {
         let conn =
             Connection::open(path_ref).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
 
-        // Create both tables
         SqliteSpineStorage::init_conn(&conn)?;
         SqliteEntryStorage::init_conn(&conn)?;
+        SqliteCertificateStorage::init_conn(&conn)?;
 
         let conn = Arc::new(Mutex::new(conn));
         Ok(Self {
             spines: SqliteSpineStorage {
                 conn: Arc::clone(&conn),
             },
-            entries: SqliteEntryStorage { conn },
+            entries: SqliteEntryStorage {
+                conn: Arc::clone(&conn),
+            },
+            certificates: SqliteCertificateStorage { conn },
         })
     }
 
@@ -432,13 +613,17 @@ impl SqliteStorage {
             Connection::open_in_memory().map_err(|e| LoamSpineError::Storage(e.to_string()))?;
         SqliteSpineStorage::init_conn(&conn)?;
         SqliteEntryStorage::init_conn(&conn)?;
+        SqliteCertificateStorage::init_conn(&conn)?;
 
         let conn = Arc::new(Mutex::new(conn));
         Ok(Self {
             spines: SqliteSpineStorage {
                 conn: Arc::clone(&conn),
             },
-            entries: SqliteEntryStorage { conn },
+            entries: SqliteEntryStorage {
+                conn: Arc::clone(&conn),
+            },
+            certificates: SqliteCertificateStorage { conn },
         })
     }
 
@@ -452,6 +637,7 @@ impl SqliteStorage {
     pub fn flush(&self) -> LoamSpineResult<()> {
         self.spines.flush()?;
         self.entries.flush()?;
+        self.certificates.flush()?;
         Ok(())
     }
 }
