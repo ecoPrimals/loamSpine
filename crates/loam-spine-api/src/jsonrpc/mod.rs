@@ -225,12 +225,18 @@ fn ser<T: serde::Serialize>(val: T) -> Result<serde_json::Value, JsonRpcError> {
 /// Server handle for graceful shutdown.
 pub struct ServerHandle {
     shutdown: tokio::sync::watch::Sender<bool>,
+    done: tokio::sync::watch::Receiver<bool>,
 }
 
 impl ServerHandle {
     /// Stop the server.
     pub fn stop(&self) {
         let _ = self.shutdown.send(true);
+    }
+
+    /// Wait until the server has stopped.
+    pub async fn stopped(&mut self) {
+        let _ = self.done.changed().await;
     }
 }
 
@@ -251,6 +257,7 @@ pub async fn run_jsonrpc_server(
 
     let handler = Arc::new(LoamSpineJsonRpc::new(service));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let (done_tx, done_rx) = tokio::sync::watch::channel(false);
 
     info!("LoamSpine JSON-RPC server listening on http://{}", addr);
 
@@ -280,10 +287,12 @@ pub async fn run_jsonrpc_server(
                 }
             }
         }
+        let _ = done_tx.send(true);
     });
 
     Ok(ServerHandle {
         shutdown: shutdown_tx,
+        done: done_rx,
     })
 }
 

@@ -152,7 +152,7 @@ async fn run_server(
     let jsonrpc_handle = tokio::spawn(async move {
         info!("Starting JSON-RPC server on {jsonrpc_addr}");
         match run_jsonrpc_server(jsonrpc_addr, rpc_service).await {
-            Ok(handle) => handle.stopped().await,
+            Ok(mut handle) => handle.stopped().await,
             Err(e) => error!("JSON-RPC server error: {e}"),
         }
     });
