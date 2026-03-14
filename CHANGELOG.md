@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-03-14
+
+### Added
+- **SQLite storage backend**: Feature-gated `sqlite` with `rusqlite` (bundled). `SqliteSpineStorage`, `SqliteEntryStorage`, `SqliteStorage` implementing same traits as sled/memory. Non-ecoBin (bundles C SQLite), documented accordingly.
+- **Real mDNS discovery**: Replaced stub with working implementation using `mdns` crate v3.0. Queries DNS-SD service types, parses SRV/A records, returns `DiscoveredService`. Uses `tokio::task::spawn_blocking` for async compat.
+- **STATUS.md**: Implementation status per spec area (referenced from specs/00_SPECIFICATIONS_INDEX.md)
+- **WHATS_NEXT.md**: Development roadmap for v0.9.0, v1.0.0, and long-term
+
+### Changed
+- **Error types evolved**: `main.rs` uses `anyhow::Result`, API server functions use typed `ServerError` enum (replaces `Box<dyn Error>`)
+- **Large files refactored**: `entry.rs` (949→464+488), `discovery_client.rs` (912→435+478), `infant_discovery.rs` (831→685+258) — all split into module dirs with separate test files
+- **Zero-copy evolution**: `bind_address()` returns `Cow<'static, str>` instead of `String`
+- **StorageBackend::is_available()** now reflects `sqlite` feature gate
+
+### Metrics
+- Tests: 700 (maintained)
+- Source files: 80 → 88 (+8 from refactoring and new backends)
+- Max file size: 949 → 810 (down from refactoring)
+- Clippy: 0 warnings (all targets, all features, `-D warnings`)
+- Unsafe: 0 blocks (maintained)
+- ecoBin: fully compliant (default features)
+
 ## [0.8.0] - 2026-03-13
 
 ### Added (March 13 -- Coverage & Canonical Evolution)

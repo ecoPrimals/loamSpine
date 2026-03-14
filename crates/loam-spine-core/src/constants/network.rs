@@ -6,6 +6,7 @@
 //! following the "infant discovery" pattern where all configuration is
 //! discovered from the environment rather than hardcoded.
 
+use std::borrow::Cow;
 use std::env;
 use tracing::{debug, warn};
 
@@ -128,25 +129,25 @@ pub fn tarpc_port() -> u16 {
 /// std::env::remove_var("BIND_ADDRESS");
 /// assert_eq!(bind_address(), "0.0.0.0");
 /// ```
-pub fn bind_address() -> String {
+pub fn bind_address() -> Cow<'static, str> {
     // Try LoamSpine-specific env var first
     if let Ok(addr) = env::var("LOAMSPINE_BIND_ADDRESS") {
         debug!("Using bind address from LOAMSPINE_BIND_ADDRESS: {}", addr);
-        return addr;
+        return Cow::Owned(addr);
     }
 
     // Try generic env var
     if let Ok(addr) = env::var("BIND_ADDRESS") {
         debug!("Using bind address from BIND_ADDRESS: {}", addr);
-        return addr;
+        return Cow::Owned(addr);
     }
 
-    // Default to all interfaces
+    // Default to all interfaces (zero-copy: borrow static constant)
     debug!(
         "Using default bind address: {}",
         crate::constants::BIND_ALL_IPV4
     );
-    crate::constants::BIND_ALL_IPV4.to_string()
+    Cow::Borrowed(crate::constants::BIND_ALL_IPV4)
 }
 
 /// Check if we should use OS-assigned ports (recommended for production)

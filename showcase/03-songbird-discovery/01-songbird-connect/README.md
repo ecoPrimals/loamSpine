@@ -149,5 +149,5 @@ curl http://localhost:3000/services/loamspine
 ---
 
 **Status**: ⏳ Example needed  
-**Related**: `crates/loam-spine-core/src/songbird.rs:advertise_loamspine`
+**Related**: `crates/loam-spine-core/src/discovery.rs:advertise_to_registry`
 

@@ -5,6 +5,7 @@
 //! Universal, language-agnostic RPC for external clients.
 //! Works with Python, JavaScript, curl, etc.
 
+use crate::error::ServerError;
 use crate::health::{LivenessProbe, ReadinessProbe};
 use crate::service::LoamSpineRpcService;
 use crate::types::{
@@ -516,8 +517,11 @@ impl LoamSpineJsonRpcApiServer for LoamSpineJsonRpc {
 pub async fn run_jsonrpc_server(
     addr: SocketAddr,
     service: LoamSpineRpcService,
-) -> Result<ServerHandle, Box<dyn std::error::Error + Send + Sync>> {
-    let server = Server::builder().build(addr).await?;
+) -> Result<ServerHandle, ServerError> {
+    let server = Server::builder()
+        .build(addr)
+        .await
+        .map_err(|e| ServerError::Bind(e.to_string()))?;
     let jsonrpc = LoamSpineJsonRpc::new(service);
 
     info!("🌐 LoamSpine JSON-RPC server listening on http://{}", addr);

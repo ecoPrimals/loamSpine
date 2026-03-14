@@ -15,7 +15,7 @@ cd showcase && ./QUICK_DEMO.sh
 cd showcase && ./RUN_ME_FIRST.sh
 
 # Core examples
-cargo run --example hello_loamspine
+cargo run --example demo_hello_loamspine
 cargo run --example certificate_lifecycle
 
 # Read orientation

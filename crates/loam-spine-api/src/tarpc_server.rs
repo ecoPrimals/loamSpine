@@ -7,7 +7,7 @@
 
 #![allow(clippy::wildcard_imports)]
 
-use crate::error::ApiError;
+use crate::error::{ApiError, ServerError};
 use crate::rpc::LoamSpineRpc;
 use crate::service::LoamSpineRpcService;
 use crate::types::*;
@@ -198,8 +198,10 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
 pub async fn run_tarpc_server(
     addr: SocketAddr,
     service: LoamSpineRpcService,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let listener = tarpc::serde_transport::tcp::listen(&addr, Json::default).await?;
+) -> Result<(), ServerError> {
+    let listener = tarpc::serde_transport::tcp::listen(&addr, Json::default)
+        .await
+        .map_err(|e| ServerError::Bind(e.to_string()))?;
     let server = LoamSpineTarpcServer::new(service);
 
     info!("🚀 LoamSpine tarpc server listening on {}", addr);

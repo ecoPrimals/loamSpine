@@ -508,7 +508,7 @@ echo "  🔒 ${BOLD}Sovereign${NC}: You own and control everything"
 echo "  🔐 ${BOLD}Provable${NC}: Cryptographic proofs of all operations"
 echo "  🚀 ${BOLD}Fast${NC}: Pure Rust, zero-copy, optimized"
 echo "  🤝 ${BOLD}Composable${NC}: Seamlessly integrates with ecosystem"
-echo "  🏆 ${BOLD}World-Class${NC}: A+ (98/100), 416 tests, 77.68% coverage"
+echo "  🏆 ${BOLD}World-Class${NC}: A+ (98/100), 700 tests, 90%+ coverage"
 echo ""
 
 echo -e "${MAGENTA}The ecoPrimals Promise:${NC}"

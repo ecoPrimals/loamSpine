@@ -117,7 +117,7 @@ cd showcase/01-local-primal/01-hello-loamspine
 Or run examples directly:
 
 ```bash
-cargo run --example hello_loamspine
+cargo run --example demo_hello_loamspine
 cargo run --example entry_types
 cargo run --example certificate_lifecycle
 cargo run --example proofs

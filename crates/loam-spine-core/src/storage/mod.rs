@@ -35,6 +35,8 @@ use crate::types::{EntryHash, SpineId};
 // Submodules
 mod memory;
 mod sled;
+#[cfg(feature = "sqlite")]
+mod sqlite;
 
 // Tests
 #[cfg(test)]
@@ -43,6 +45,8 @@ mod tests;
 // Re-exports
 pub use memory::{InMemoryEntryStorage, InMemorySpineStorage, InMemoryStorage};
 pub use sled::{SledEntryStorage, SledSpineStorage, SledStorage};
+#[cfg(feature = "sqlite")]
+pub use sqlite::{SqliteEntryStorage, SqliteSpineStorage, SqliteStorage};
 
 /// Storage backend for spines.
 ///
@@ -160,7 +164,11 @@ impl StorageBackend {
     /// Check if this backend is currently implemented and available.
     #[must_use]
     pub const fn is_available(&self) -> bool {
-        matches!(self, Self::InMemory | Self::Sled)
+        match self {
+            Self::InMemory | Self::Sled => true,
+            Self::Sqlite => cfg!(feature = "sqlite"),
+            Self::Postgres | Self::Rocksdb => false,
+        }
     }
 
     /// Get a human-readable name for this backend.

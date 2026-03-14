@@ -55,7 +55,7 @@ pub mod service;
 pub mod tarpc_server;
 pub mod types;
 
-pub use error::{ApiError, ApiResult};
+pub use error::{ApiError, ApiResult, ServerError};
 pub use jsonrpc::{run_jsonrpc_server, LoamSpineJsonRpc};
 pub use rpc::LoamSpineRpc;
 pub use service::LoamSpineRpcService;

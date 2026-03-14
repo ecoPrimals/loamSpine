@@ -11,6 +11,7 @@ name = "loamspine"
 path = "main.rs"
 
 [dependencies]
+anyhow = { workspace = true }
 loam-spine-core = { path = "../../crates/loam-spine-core" }
 loam-spine-api = { path = "../../crates/loam-spine-api" }
 tokio = { workspace = true }

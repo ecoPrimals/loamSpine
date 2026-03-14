@@ -224,7 +224,7 @@ By the end of Level 3, you should:
 ---
 
 **Status**: ⏳ Documentation complete, examples pending  
-**Related**: `crates/loam-spine-core/src/songbird.rs`
+**Related**: `crates/loam-spine-core/src/discovery.rs`
 
 🦴 **LoamSpine: Where memories become permanent.**
 

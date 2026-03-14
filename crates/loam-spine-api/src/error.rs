@@ -93,6 +93,21 @@ impl From<loam_spine_core::error::LoamSpineError> for ApiError {
 /// Result type for API operations.
 pub type ApiResult<T> = Result<T, ApiError>;
 
+/// Server startup and transport errors.
+///
+/// Used by `run_tarpc_server` and `run_jsonrpc_server` for typed error handling
+/// instead of `Box<dyn Error>`.
+#[derive(Debug, Error)]
+pub enum ServerError {
+    /// TCP/socket bind failure (e.g. address in use, permission denied).
+    #[error("bind failed: {0}")]
+    Bind(String),
+
+    /// Transport-layer error (e.g. connection accept, I/O).
+    #[error("transport error: {0}")]
+    Transport(String),
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {

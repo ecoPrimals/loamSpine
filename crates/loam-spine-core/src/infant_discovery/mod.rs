@@ -488,40 +488,35 @@ impl InfantDiscovery {
     /// This enables zero-configuration discovery on LANs.
     ///
     /// Note: mDNS is optional and requires the `mdns` feature to be enabled.
-    #[allow(clippy::unused_async)] // async required for uniform dispatch in find_capability
     async fn discover_via_mdns(&self, capability: &str) -> Vec<DiscoveredService> {
         debug!("Attempting mDNS discovery for '{}'", capability);
 
-        // mDNS discovery is optional (experimental feature)
         #[cfg(feature = "mdns")]
         {
             let service_name = capability_to_srv_name(capability);
-            debug!("Broadcasting mDNS query for: {}", service_name);
-            Self::mdns_query_stub(&service_name, capability)
+            let capability = capability.to_string();
+            let cache_ttl_secs = self.config.cache_ttl_secs;
+
+            let services = tokio::task::spawn_blocking(move || {
+                mdns_discover_impl(&service_name, &capability, cache_ttl_secs)
+            })
+            .await;
+
+            match services {
+                Ok(svc) => svc,
+                Err(e) => {
+                    warn!("mDNS discovery task panicked: {e}");
+                    vec![]
+                }
+            }
         }
 
         #[cfg(not(feature = "mdns"))]
         {
+            let _ = capability;
             debug!("mDNS discovery not available (feature not enabled)");
             vec![]
         }
-    }
-
-    #[cfg(feature = "mdns")]
-    fn mdns_query_stub(_service_name: &str, _capability: &str) -> Vec<DiscoveredService> {
-        // Note: mDNS discovery is currently experimental
-        // The mdns crate API may need adjustment based on version
-        debug!("mDNS discovery is experimental and may need API adjustments");
-
-        // For now, return empty to allow compilation
-        // Full implementation would require:
-        // 1. Proper async iteration over mDNS responses
-        // 2. Parsing SRV records from responses
-        // 3. Handling different mDNS service types
-
-        warn!("mDNS feature is experimental - returning empty results");
-
-        Vec::new()
     }
 
     /// Check if a service is still fresh (within TTL)
@@ -547,6 +542,122 @@ impl InfantDiscovery {
     }
 }
 
+/// Real mDNS discovery implementation (runs in spawn_blocking).
+///
+/// Uses the mdns crate to query for DNS-SD services, parses SRV records,
+/// and converts results to DiscoveredService. All errors are handled
+/// gracefully (returns empty vec, logs warnings).
+#[cfg(feature = "mdns")]
+fn mdns_discover_impl(
+    service_type: &str,
+    capability: &str,
+    cache_ttl_secs: u64,
+) -> Vec<DiscoveredService> {
+    use std::time::Instant;
+
+    let discovery = match mdns::discover::all(service_type, Duration::from_secs(2)) {
+        Ok(d) => d,
+        Err(e) => {
+            warn!("mDNS discovery failed for {service_type}: {e}");
+            return vec![];
+        }
+    };
+
+    let stream = discovery.listen();
+
+    let services = async_std::task::block_on(async move {
+        use futures_util::{pin_mut, stream::StreamExt};
+
+        let mut services = Vec::new();
+        pin_mut!(stream);
+
+        let deadline = Instant::now() + Duration::from_secs(2);
+
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+
+            let next = stream.next();
+            match async_std::future::timeout(remaining, next).await {
+                Ok(Some(Ok(response))) => {
+                    if let Some(service) =
+                        parse_mdns_response(&response, capability, cache_ttl_secs)
+                    {
+                        services.push(service);
+                    }
+                }
+                Ok(Some(Err(e))) => {
+                    warn!("mDNS response error: {e}");
+                }
+                Ok(None) | Err(_) => break,
+            }
+        }
+
+        services
+    });
+
+    if services.is_empty() {
+        debug!("No mDNS services found for {service_type}");
+    } else {
+        info!(
+            "Found {} services via mDNS for '{capability}'",
+            services.len()
+        );
+    }
+
+    services
+}
+
+/// Parse a single mDNS response into a DiscoveredService.
+///
+/// Extracts SRV records for host/port and A/AAAA for address resolution.
+/// Returns None if the response cannot be parsed into a valid service.
+#[cfg(feature = "mdns")]
+fn parse_mdns_response(
+    response: &mdns::Response,
+    capability: &str,
+    cache_ttl_secs: u64,
+) -> Option<DiscoveredService> {
+    use mdns::RecordKind;
+
+    let port = response.port()?;
+    let endpoint = if let Some(addr) = response.ip_addr() {
+        if port == 443 {
+            format!("https://{addr}")
+        } else {
+            format!("https://{addr}:{port}")
+        }
+    } else {
+        let target = response.records().find_map(|r| match &r.kind {
+            RecordKind::SRV { target, .. } => Some(target.clone()),
+            _ => None,
+        })?;
+        if port == 443 {
+            format!("https://{target}")
+        } else {
+            format!("https://{target}:{port}")
+        }
+    };
+
+    let id = response.ip_addr().map_or_else(
+        || format!("mdns-{capability}-{port}"),
+        |a| format!("mdns-{a}:{port}"),
+    );
+
+    Some(DiscoveredService {
+        id,
+        capability: capability.to_string(),
+        endpoint,
+        discovered_via: "mdns".to_string(),
+        metadata: HashMap::new(),
+        health: ServiceHealth::Unknown,
+        discovered_at: SystemTime::now(),
+        ttl_secs: cache_ttl_secs,
+    })
+}
+
 /// Convert capability to DNS SRV service name (RFC 2782)
 ///
 /// Examples:
@@ -570,262 +681,5 @@ fn capability_to_srv_name(capability: &str) -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
-mod tests {
-    use super::*;
-    use serial_test::serial;
-
-    #[tokio::test]
-    async fn test_infant_starts_with_zero_knowledge() {
-        let discovery = InfantDiscovery::new().unwrap();
-
-        // Should know only its own capabilities
-        assert!(!discovery.own_capabilities().is_empty());
-
-        // Should have no discovered services initially
-        let all = discovery.all_discovered().await;
-        assert!(all.is_empty());
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_discover_via_environment() {
-        // Clean environment first
-        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-        env::remove_var("SIGNING_SERVICE_URL");
-
-        let discovery = InfantDiscovery::new().unwrap();
-
-        // Should NOT find anything initially
-        let services = discovery
-            .find_capability("cryptographic-signing")
-            .await
-            .unwrap();
-        assert!(services.is_empty());
-
-        // Now set the environment variable
-        env::set_var(
-            "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-            "http://localhost:8001",
-        );
-
-        // Clear cache to force rediscovery
-        discovery.clear_cache().await;
-
-        let services = discovery
-            .find_capability("cryptographic-signing")
-            .await
-            .unwrap();
-
-        assert_eq!(services.len(), 1);
-        assert_eq!(services[0].endpoint, "http://localhost:8001");
-        assert_eq!(services[0].discovered_via, "environment");
-
-        // Cleanup
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_degraded_mode_when_no_services() {
-        // Don't set any environment variables
-        env::remove_var("CAPABILITY_STORAGE_ENDPOINT");
-
-        let discovery = InfantDiscovery::new().unwrap();
-        let services = discovery.find_capability("content-storage").await.unwrap();
-
-        // Should return empty, not error (graceful degradation)
-        assert!(services.is_empty());
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_cache_functionality() {
-        // Clean up any existing env vars first
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-        env::remove_var("SIGNING_SERVICE_URL");
-
-        env::set_var(
-            "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-            "http://localhost:8001",
-        );
-
-        let discovery = InfantDiscovery::new().unwrap();
-
-        // First discovery
-        let services1 = discovery
-            .find_capability("cryptographic-signing")
-            .await
-            .unwrap();
-        assert_eq!(services1.len(), 1);
-
-        // Second discovery (should hit cache)
-        let services2 = discovery
-            .find_capability("cryptographic-signing")
-            .await
-            .unwrap();
-        assert_eq!(services2.len(), 1);
-
-        // Clear cache
-        discovery.clear_cache().await;
-
-        // Third discovery (cache cleared, should rediscover)
-        let services3 = discovery
-            .find_capability("cryptographic-signing")
-            .await
-            .unwrap();
-        assert_eq!(services3.len(), 1);
-
-        // Clean up
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_discover_via_signing_service_url() {
-        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-        env::remove_var("SIGNING_SERVICE_URL");
-
-        let discovery = InfantDiscovery::new().unwrap();
-        let services = discovery
-            .find_capability("cryptographic-signing")
-            .await
-            .unwrap();
-        assert!(services.is_empty());
-
-        env::set_var("SIGNING_SERVICE_URL", "http://localhost:8002");
-        discovery.clear_cache().await;
-
-        let services = discovery
-            .find_capability("cryptographic-signing")
-            .await
-            .unwrap();
-        assert_eq!(services.len(), 1);
-        assert_eq!(services[0].endpoint, "http://localhost:8002");
-
-        env::remove_var("SIGNING_SERVICE_URL");
-    }
-
-    #[test]
-    fn test_discovery_config_default() {
-        let config = DiscoveryConfig::default();
-        assert!(!config.methods.is_empty());
-        assert!(config.cache_ttl_secs > 0);
-        assert!(config.retry_attempts > 0);
-    }
-
-    #[test]
-    #[serial]
-    fn test_discovery_config_from_env() {
-        env::set_var("SERVICE_REGISTRY_URL", "http://registry.example.com");
-        env::set_var("DISCOVERY_CACHE_TTL", "600");
-
-        let config = DiscoveryConfig::from_env_or_default();
-        assert!(config.methods.iter().any(|m| matches!(
-            m,
-            DiscoveryMethod::ServiceRegistry(url) if url == "http://registry.example.com"
-        )));
-        assert_eq!(config.cache_ttl_secs, 600);
-
-        env::remove_var("SERVICE_REGISTRY_URL");
-        env::remove_var("DISCOVERY_CACHE_TTL");
-    }
-
-    #[test]
-    fn test_capability_to_srv_name_indirect() {
-        let discovery = InfantDiscovery::new().unwrap();
-        let capabilities = discovery.own_capabilities();
-        assert!(!capabilities.is_empty());
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_service_registry_discovery_returns_empty() {
-        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-        env::remove_var("SIGNING_SERVICE_URL");
-        env::set_var("SERVICE_REGISTRY_URL", "http://registry.test");
-
-        let config = DiscoveryConfig::from_env_or_default();
-        let discovery = InfantDiscovery::with_config(config).unwrap();
-        discovery.clear_cache().await;
-
-        let services = discovery.find_capability("signing").await.unwrap();
-        assert!(services.is_empty());
-
-        env::remove_var("SERVICE_REGISTRY_URL");
-    }
-
-    #[tokio::test]
-    async fn test_dns_srv_discovery_no_records() {
-        let discovery = InfantDiscovery::new().unwrap();
-        let services = discovery
-            .discover_via_dns_srv("nonexistent-capability")
-            .await;
-        assert!(services.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_registry_discovery_unreachable() {
-        let discovery = InfantDiscovery::new().unwrap();
-        let services = discovery
-            .discover_via_registry("http://127.0.0.1:1", "signing")
-            .await;
-        assert!(services.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_is_fresh_with_recent_service() {
-        let service = DiscoveredService {
-            id: "test".to_string(),
-            capability: "signing".to_string(),
-            endpoint: "http://localhost:8001".to_string(),
-            discovered_via: "test".to_string(),
-            metadata: HashMap::new(),
-            health: ServiceHealth::Healthy,
-            discovered_at: SystemTime::now(),
-            ttl_secs: 300,
-        };
-        assert!(InfantDiscovery::is_fresh(&service));
-    }
-
-    #[tokio::test]
-    async fn test_is_fresh_with_expired_service() {
-        let service = DiscoveredService {
-            id: "test".to_string(),
-            capability: "signing".to_string(),
-            endpoint: "http://localhost:8001".to_string(),
-            discovered_via: "test".to_string(),
-            metadata: HashMap::new(),
-            health: ServiceHealth::Healthy,
-            discovered_at: SystemTime::now() - std::time::Duration::from_secs(600),
-            ttl_secs: 300,
-        };
-        assert!(!InfantDiscovery::is_fresh(&service));
-    }
-
-    #[test]
-    fn test_capability_to_srv_name() {
-        assert_eq!(
-            capability_to_srv_name("cryptographic-signing"),
-            "_signing._tcp.local"
-        );
-        assert_eq!(
-            capability_to_srv_name("content-storage"),
-            "_storage._tcp.local"
-        );
-        assert_eq!(capability_to_srv_name("simple"), "_simple._tcp.local");
-    }
-
-    #[test]
-    fn test_own_capabilities_are_loamspine_specific() {
-        let discovery = InfantDiscovery::new().unwrap();
-        let caps = discovery.own_capabilities();
-        let identifiers: Vec<&str> = caps.iter().map(LoamSpineCapability::identifier).collect();
-        assert!(identifiers
-            .iter()
-            .any(|id| id.contains("ledger") || id.contains("permanence")));
-    }
-}
+#[allow(clippy::unwrap_used)]
+mod tests;

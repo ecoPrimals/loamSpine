@@ -44,7 +44,9 @@ fn registry_available() -> bool {
 /// No blocking sleeps - uses exponential backoff polling with health checks.
 async fn start_registry_and_wait() -> Option<Child> {
     if !registry_available() {
-        eprintln!("⚠️  Skipping service registry integration tests: binary not found at {REGISTRY_BIN}");
+        eprintln!(
+            "⚠️  Skipping service registry integration tests: binary not found at {REGISTRY_BIN}"
+        );
         return None;
     }
 

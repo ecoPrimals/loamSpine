@@ -72,7 +72,7 @@ print_info "Creating a sovereign spine with owner DID..."
 sleep 1
 
 # Run the hello example
-cargo run --example hello_loamspine 2>/dev/null | grep -A 20 "🦴" || {
+cargo run -p loam-spine-core --example demo_hello_loamspine 2>/dev/null | grep -A 20 "🦴" || {
     echo "✅ Spine created!"
     echo "   Owner: did:example:alice123"
     echo "   Entries: 2 (Text, Metadata)"

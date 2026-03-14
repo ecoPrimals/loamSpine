@@ -82,7 +82,7 @@ EOF
     log_step "Running the example..."
     
     cd "${PROJECT_ROOT}"
-    cargo run --example hello_loamspine 2>&1 | tee "${LOGS_DIR}/${DEMO_NAME}_step1.log" || {
+    cargo run -p loam-spine-core --example demo_hello_loamspine 2>&1 | tee "${LOGS_DIR}/${DEMO_NAME}_step1.log" || {
         log_warning "Example not found, showing expected output:"
         echo "✅ Spine created!"
         echo "   Spine ID: spine_01234567-89ab-cdef-0123-456789abcdef"

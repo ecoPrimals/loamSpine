@@ -1,14 +1,14 @@
 # Known Issues - LoamSpine
 
-**Date**: March 13, 2026
-**Version**: 0.8.0
+**Date**: March 14, 2026
+**Version**: 0.8.1
 **Status**: Production Ready
 
 ---
 
 ## Current State
 
-As of v0.8.0 (March 13 deep debt pass), the codebase passes all quality gates:
+As of v0.8.1 (March 14), the codebase passes all quality gates:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
@@ -18,7 +18,8 @@ As of v0.8.0 (March 13 deep debt pass), the codebase passes all quality gates:
 | Formatting | clean | clean | PASS |
 | Documentation | compiles | compiles | PASS |
 | Unsafe Code | 0 | 0 | PASS |
-| Max File Size | <1000 lines | 949 max | PASS |
+| Max File Size | <1000 lines | 810 max | PASS |
+| Source Files | — | 88 | — |
 | License | AGPL-3.0-only | AGPL-3.0-only | PASS |
 | SPDX Headers | all files | all files | PASS |
 | cargo deny (bans, licenses, sources) | pass | pass | PASS |
@@ -36,16 +37,15 @@ As of v0.8.0 (March 13 deep debt pass), the codebase passes all quality gates:
    - `neural_api.rs` (51% — requires live NeuralAPI socket)
    - `jsonrpc/mod.rs` (68% — macro-generated trait impls)
    - `infant_discovery.rs` (81% — DNS SRV and mDNS paths)
-2. **Storage backends**: `Sqlite`, `Postgres`, `Rocksdb` enum variants defined but not implemented (planned work).
-3. **mDNS experimental**: Feature-gated behind `mdns` feature; stub implementation returns empty when feature enabled.
+2. **Storage backends**: `Sqlite` implemented (feature-gated); `Postgres`, `Rocksdb` planned.
+3. **mDNS**: Real implementation via `mdns` crate v3.0. Requires network access for LAN discovery.
 4. **Showcase demos**: ~10% complete (2/21 demos fully implemented); remaining are documented/scaffolded.
 
 ### Minor
 
 1. **`thiserror` duplicate versions**: v1 and v2 coexist via transitive deps (non-blocking).
 2. **`proc-macro-error` advisory**: Transitive dependency of optional `mdns` feature (not enabled by default).
-3. **v0.9.0 deprecated items**: `discover_from_songbird`, `advertise_to_songbird`, `heartbeat_songbird` methods scheduled for removal.
-4. **`reqwest` pulls `ring`**: Only via optional `discovery-http` feature; default path uses pure-Rust `tower-atomic`.
+3. **`reqwest` pulls `ring`**: Only via optional `discovery-http` feature; default path uses pure-Rust `tower-atomic`.
 
 ### Resolved (March 13)
 
@@ -70,4 +70,4 @@ No critical issues, blockers, or security concerns.
 
 ---
 
-**Last Updated**: March 13, 2026
+**Last Updated**: March 14, 2026

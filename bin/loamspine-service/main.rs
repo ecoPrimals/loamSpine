@@ -25,6 +25,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+use std::borrow::Cow;
 use std::net::{IpAddr, SocketAddr};
 
 use clap::{Parser, Subcommand};
@@ -74,7 +75,7 @@ enum Command {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
@@ -101,7 +102,7 @@ async fn run_server(
     tarpc_port_override: Option<u16>,
     jsonrpc_port_override: Option<u16>,
     bind_address_override: Option<String>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -111,7 +112,9 @@ async fn run_server(
 
     let resolved_tarpc_port = tarpc_port_override.unwrap_or_else(network::actual_tarpc_port);
     let resolved_jsonrpc_port = jsonrpc_port_override.unwrap_or_else(network::actual_jsonrpc_port);
-    let resolved_bind = bind_address_override.unwrap_or_else(network::bind_address);
+    let resolved_bind: Cow<'static, str> = bind_address_override
+        .map(Cow::Owned)
+        .unwrap_or_else(network::bind_address);
 
     info!("LoamSpine Standalone Service");
     info!("  version: {}", env!("CARGO_PKG_VERSION"));

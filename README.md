@@ -162,8 +162,8 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 | **Line Coverage** | 90.6% |
 | **Clippy** | 0 warnings (`-D warnings`, all targets) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Max File Size** | 949 lines (all < 1000) |
-| **Source Files** | 80 `.rs` files across 2 crates |
+| **Max File Size** | 810 lines (all < 1000) |
+| **Source Files** | 88 `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust TLS) |
