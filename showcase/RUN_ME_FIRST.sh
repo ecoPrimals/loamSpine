@@ -185,7 +185,7 @@ EOF
     pause_if_interactive
     
     # Demo 6: Storage Backends
-    print_step "Demo 6/7: Storage Backends — InMemory vs Sled"
+    print_step "Demo 6/7: Storage Backends — InMemory vs redb vs Sled"
     cd 01-local-primal/06-storage-backends
     ./demo.sh || print_warning "Demo completed with warnings"
     cd ../..

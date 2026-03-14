@@ -337,7 +337,8 @@ loamSpine/
 │   │   │   ├── lib.rs
 │   │   │   ├── traits.rs         # EntryStore, SpineStore traits
 │   │   │   ├── sqlite.rs         # SQLite implementation
-│   │   │   └── sled.rs           # Sled embedded implementation
+│   │   │   ├── redb.rs           # redb embedded (default)
+│   │   │   └── sled.rs           # Sled embedded (optional, sled-storage feature)
 │   │   └── Cargo.toml
 │   │
 │   └── loam-spine-service/       # Runnable service
@@ -359,7 +360,7 @@ LoamSpine follows the **Primal Sovereignty** principle:
 | gRPC | tarpc (pure Rust) |
 | protobuf/proto files | serde (native Rust) |
 | protoc (C++ compiler) | cargo build only |
-| tonic | jsonrpsee (JSON-RPC 2.0) |
+| tonic | pure JSON-RPC 2.0 (hand-rolled) |
 | Generated code | Rust macros (compile-time safe) |
 
 See [PURE_RUST_RPC.md](./PURE_RUST_RPC.md) for the full rationale.
@@ -418,7 +419,7 @@ LoamSpine uses Tokio as its async runtime with pure Rust RPC:
 │                                                               │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
 │  │tarpc Server │  │  JSON-RPC   │  │  Background Tasks   │   │
-│  │  (binary)   │  │ (jsonrpsee) │  │                     │   │
+│  │  (binary)   │  │ (pure JSON-RPC) │  │                     │   │
 │  │             │  │             │  │  - Replication sync │   │
 │  │Primal ↔ Prim│  │External API │  │  - Rollup sweep     │   │
 │  └──────┬──────┘  └──────┬──────┘  │  - Archive move     │   │
@@ -658,13 +659,16 @@ LoamSpine adheres to the **Primal Sovereignty** principle:
 
 ```
 ✅ tarpc     → Binary RPC (Rust-native)
-✅ jsonrpsee → JSON-RPC 2.0 (Rust-native)
+✅ pure JSON-RPC 2.0 (hand-rolled, no jsonrpsee)
 ✅ serde     → Serialization (community standard)
 ✅ blake3    → Hashing (Rust-native)
 ✅ tokio     → Async runtime (Rust-native)
+✅ ureq      → HTTP client (pure Rust, no TLS, no ring)
 
 ❌ gRPC      → Requires protoc (C++ compiler)
 ❌ protobuf  → Google-controlled protocol
+❌ reqwest   → Replaced with ureq (pure Rust)
+❌ ring      → Eliminated from dependency tree
 ❌ tonic     → gRPC implementation (C++ deps)
 ❌ prost     → Protobuf codegen (external tooling)
 ```

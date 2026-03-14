@@ -31,7 +31,7 @@ showcase/
 │   ├── 03-certificate-lifecycle/# Mint → Transfer → Loan → Return
 │   ├── 04-proofs/              # Inclusion and provenance proofs
 │   ├── 05-backup-restore/      # Binary + JSON backup
-│   └── 06-storage-backends/    # InMemory + Sled
+│   └── 06-storage-backends/    # InMemory + redb + Sled
 │
 ├── 02-rpc-api/                 # Pure Rust RPC Demos
 │   ├── 01-tarpc-basics/        # Binary RPC (primal-to-primal)
@@ -88,7 +88,7 @@ cd showcase
 | Certificate Lifecycle | Mint, transfer, loan, return | 20 min |
 | Proofs | Inclusion and provenance proofs | 15 min |
 | Backup/Restore | Export and import spines | 10 min |
-| Storage Backends | InMemory vs Sled | 10 min |
+| Storage Backends | InMemory vs redb vs Sled | 10 min |
 
 ### Phase 2: RPC API (30-45 min)
 

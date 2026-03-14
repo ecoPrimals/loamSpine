@@ -73,7 +73,7 @@ Our Solution:
 │                                                              │
 ├─────────────────────────────────────────────────────────────┤
 │                    Transport Layer                           │
-│              TCP (tarpc) │ HTTP (jsonrpsee)                 │
+│              TCP (tarpc) │ HTTP (pure JSON-RPC)             │
 ├─────────────────────────────────────────────────────────────┤
 │                    Serialization                             │
 │                  serde + serde_json                         │
@@ -385,10 +385,10 @@ class LoamSpineClient:
         return response.json()["result"]
     
     def health_check(self, include_details=True):
-        return self._call("healthCheck", {"include_details": include_details})
+        return self._call("health.check", {"include_details": include_details})
     
     def create_spine(self, name, owner):
-        return self._call("createSpine", {
+        return self._call("spine.create", {
             "name": name,
             "owner": {"value": owner}
         })
@@ -465,8 +465,7 @@ pub struct Timestamp(u64);         // Nanoseconds since epoch
 # Pure Rust RPC - no protobuf, no gRPC, no C++ tooling
 tarpc = { version = "0.34", features = ["full"] }
 
-# JSON-RPC 2.0 for external clients
-jsonrpsee = { version = "0.24", features = ["server", "macros"] }
+# JSON-RPC 2.0 for external clients (hand-rolled implementation, no jsonrpsee)
 
 # Serialization - native Rust serde (no protobuf)
 serde = { version = "1.0", features = ["derive"] }
@@ -525,8 +524,7 @@ LoamSpine follows the same RPC philosophy as Songbird (see `specs/TARPC_JSON_RPC
 
 - [Songbird tarpc Specification](../../../phase1/songBird/specs/TARPC_JSON_RPC_PROTOCOL_SPEC.md)
 - [tarpc Documentation](https://docs.rs/tarpc/)
-- [jsonrpsee Documentation](https://docs.rs/jsonrpsee/)
-- [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification)
+- [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification) — Hand-rolled implementation (no jsonrpsee)
 
 ---
 

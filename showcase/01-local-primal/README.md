@@ -15,7 +15,7 @@ Before showing how LoamSpine integrates with the ecosystem, let's show what make
 - ✅ Full certificate lifecycle (mint, transfer, loan, return)
 - ✅ Cryptographic proofs (inclusion, provenance)
 - ✅ Backup/restore with verification
-- ✅ Pure Rust storage (InMemory + Sled)
+- ✅ Pure Rust storage (InMemory + redb + Sled)
 - ✅ Zero hardcoded dependencies
 
 ---
@@ -107,12 +107,12 @@ Export and import spines with verification.
 ### Level 6: Storage Backends (10 min)
 **Directory**: `06-storage-backends/`
 
-InMemory for testing, Sled for production.
+InMemory for testing, redb for production (Sled optional).
 
 **Demos**:
 - `demo_storage.rs` - Both storage backends
 
-**Learn**: SpineStorage, EntryStorage, Sled persistence
+**Learn**: SpineStorage, EntryStorage, redb/Sled persistence
 
 ---
 

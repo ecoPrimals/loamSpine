@@ -111,7 +111,7 @@ kill $SONGBIRD_PID
     }
   ],
   "metadata": {
-    "storage": "sled",
+    "storage": "redb",
     "uptime": 3600,
     "spines": 42
   }

@@ -8,10 +8,12 @@
 
 ## 1. Overview
 
-LoamSpine uses a pluggable storage architecture with three primary backends:
+LoamSpine uses a pluggable storage architecture. **redb** is the default embedded backend for local storage. **sled** is optional and available via the `sled-storage` feature. Additional backends:
 
 | Backend | Use Case | Scalability | Query Power |
 |---------|----------|-------------|-------------|
+| **redb** | Default embedded, local | Single node | Key-value |
+| **sled** | Optional embedded (feature-gated) | Single node | Key-value |
 | **SQLite** | Personal spines, portable | Single node | Full SQL |
 | **PostgreSQL** | Community spines, scalable | Multi-node | Full SQL |
 | **RocksDB** | High-performance local | Single node | Key-value |

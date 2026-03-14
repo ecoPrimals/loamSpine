@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.7.0  
+**Version**: 0.8.2  
 **Status**: ✅ Production Ready (A+ 98/100)  
-**Date**: December 27, 2025  
-**Latest**: 🌟 Temporal primitives (Moments, Anchors, TimeMarkers) added in v0.7.0!
+**Date**: March 14, 2026  
+**Latest**: 🌟 redb default storage, pure JSON-RPC 2.0 in v0.8.2!
 
 ---
 
@@ -61,7 +61,7 @@ This showcase is organized into **4 progressive levels**:
 - Certificate lifecycle (mint, transfer, loan, return)
 - Cryptographic proofs (inclusion, provenance)
 - Backup and restore with verification
-- Storage backends (InMemory + Sled)
+- Storage backends (InMemory + redb + Sled)
 - Concurrent operations
 
 **Path**: `01-local-primal/`  
@@ -523,6 +523,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.7.0 - ecoPrimals Ecosystem*  
-*December 27, 2025*
+*LoamSpine v0.8.2 - ecoPrimals Ecosystem*  
+*March 14, 2026*
 

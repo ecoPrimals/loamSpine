@@ -14,7 +14,7 @@ log_info "  • All 15+ entry types"
 log_info "  • Certificate lifecycle (mint, transfer, loan, return)"
 log_info "  • Inclusion and provenance proofs"
 log_info "  • Backup and restore"
-log_info "  • Storage backends (InMemory vs Sled)"
+log_info "  • Storage backends (InMemory vs redb vs Sled)"
 log_info ""
 
 # Parse arguments

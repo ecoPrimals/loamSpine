@@ -359,7 +359,7 @@ cd 02-jsonrpc-basics && ./demo.sh
 cd 03-health-monitoring && ./demo.sh
 cd 06-service-lifecycle && ./demo.sh
 
-# Or run all at once (TODO: add RUN_ALL.sh)
+# Or run all at once (RUN_ALL.sh may be stale — run individual demos above)
 ```
 
 ---

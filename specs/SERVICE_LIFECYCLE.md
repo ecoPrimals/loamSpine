@@ -78,7 +78,7 @@ This specification defines the lifecycle protocol for coordinating LoamSpine wit
 
 ```rust
 1. Load configuration from env/file
-2. Initialize storage backend (Sled/InMemory)
+2. Initialize storage backend (redb/InMemory)
 3. Verify storage integrity
 4. Initialize capability registry
 5. Start RPC servers (tarpc + JSON-RPC)
@@ -189,7 +189,7 @@ On service failure:
   "services": {
     "storage": {
       "available": true,
-      "backend": "sled",
+      "backend": "redb",
       "healthy": true
     },
     "rpc": {
@@ -436,7 +436,7 @@ name = "loamspine"
 version = "0.6.1"
 
 [storage]
-backend = "sled"
+backend = "redb"
 path = "/var/lib/loamspine"
 
 [discovery]

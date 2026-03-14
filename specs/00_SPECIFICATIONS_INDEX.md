@@ -36,7 +36,7 @@ This directory contains the complete specification suite for LoamSpine, the perm
 | Document | Purpose | Status |
 |----------|---------|--------|
 | [INTEGRATION_SPECIFICATION.md](./INTEGRATION_SPECIFICATION.md) | RhizoCrypt, BearDog, SweetGrass | ✅ Complete |
-| [STORAGE_BACKENDS.md](./STORAGE_BACKENDS.md) | SQLite, PostgreSQL, RocksDB | ✅ Complete |
+| [STORAGE_BACKENDS.md](./STORAGE_BACKENDS.md) | redb (default), sled (optional), SQLite, PostgreSQL, RocksDB | ✅ Complete |
 
 ---
 

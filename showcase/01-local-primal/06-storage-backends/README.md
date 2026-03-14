@@ -1,4 +1,4 @@
-# 🗄️ Storage Backends - InMemory vs Sled
+# 🗄️ Storage Backends - InMemory vs redb vs Sled
 
 **Time**: 10 minutes  
 **Difficulty**: Beginner  
@@ -9,7 +9,8 @@
 ## 🎯 What You'll Learn
 
 - InMemory storage for testing
-- Sled storage for production
+- redb storage for production (default)
+- Sled storage (optional, legacy)
 - Performance comparison
 - When to use each backend
 
@@ -22,8 +23,13 @@
 - **Pros**: Fast, no I/O, easy setup
 - **Cons**: Lost on restart, memory limited
 
-### 2. Sled
+### 2. redb (Default Production)
 - **Use**: Production, persistence required
+- **Pros**: Durable, pure Rust, ACID, default backend
+- **Cons**: Disk I/O
+
+### 3. Sled (Optional)
+- **Use**: Legacy, alternative persistence
 - **Pros**: Durable, pure Rust, ACID
 - **Cons**: Disk I/O, needs flush
 
@@ -31,18 +37,18 @@
 
 ## 🔍 Comparison
 
-| Feature | InMemory | Sled |
-|---------|----------|------|
-| **Speed** | ⚡ Fastest | 🚀 Fast |
-| **Persistence** | ❌ No | ✅ Yes |
-| **Setup** | 🟢 Trivial | 🟢 Easy |
-| **Use Case** | Testing | Production |
+| Feature | InMemory | redb | Sled |
+|---------|----------|------|------|
+| **Speed** | ⚡ Fastest | 🚀 Fast | 🚀 Fast |
+| **Persistence** | ❌ No | ✅ Yes | ✅ Yes |
+| **Setup** | 🟢 Trivial | 🟢 Easy | 🟢 Easy |
+| **Use Case** | Testing | Production (default) | Optional |
 
 ---
 
 ## 💡 Key Features
 
-- ✅ Same API for both backends
+- ✅ Same API for all backends
 - ✅ Easy migration (export/import)
 - ✅ Pure Rust (no C dependencies)
 - ✅ Thread-safe operations

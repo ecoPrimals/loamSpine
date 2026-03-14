@@ -1,7 +1,7 @@
 # 🦴 LoamSpine Showcase Index
 
-**Version**: 0.7.0  
-**Last Updated**: December 27, 2025  
+**Version**: 0.8.2  
+**Last Updated**: March 14, 2026  
 **Status**: ✅ Production Ready (matches Squirrel's excellence!)
 
 ---
@@ -183,7 +183,7 @@ All levels complete + code review + contribution
 | 03-certificate-lifecycle | Mint → Transfer → Loan | 20 min | ✅ Complete |
 | 04-proofs | Inclusion & provenance | 15 min | ✅ Complete |
 | 05-backup-restore | Export & import | 10 min | ✅ Complete |
-| 06-storage-backends | InMemory vs Sled | 10 min | ✅ Complete |
+| 06-storage-backends | InMemory vs redb vs Sled | 10 min | ✅ Complete |
 | 07-concurrent-ops | Thread-safe operations | 10 min | ✅ Complete |
 
 **What you'll learn**:
@@ -386,4 +386,4 @@ LoamSpine uses capability discovery for all external services:
 
 🦴 **LoamSpine: Where memories become permanent.** 🚀
 
-*Last updated: December 27, 2025 — Showcase Evolution Complete*
+*Last updated: March 14, 2026 — Showcase Evolution Complete*

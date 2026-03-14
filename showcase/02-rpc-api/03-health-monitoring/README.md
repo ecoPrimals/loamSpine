@@ -55,7 +55,7 @@
   "uptime_seconds": 3600,
   "spines_count": 42,
   "total_entries": 1337,
-  "storage_backend": "Sled",
+  "storage_backend": "Redb",
   "discovery_connected": true,
   "last_heartbeat": "2025-12-24T12:00:00Z"
 }

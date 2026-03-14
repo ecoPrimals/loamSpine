@@ -68,7 +68,7 @@
     "braid_commit"
   ],
   "metadata": {
-    "storage": "sled",
+    "storage": "redb",
     "forbid_unsafe": true,
     "phase": 2
   }

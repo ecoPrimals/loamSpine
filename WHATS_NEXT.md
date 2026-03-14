@@ -21,6 +21,10 @@
 - Waypoint types (`WaypointConfig`, `PropagationPolicy`, `SliceTerms`)
 - `verify_certificate`, `certificate_lifecycle`, `record_operation`, `depart_slice`
 - Smart file refactoring (all files < 422 lines)
+- **redb** default storage backend (pure Rust, sled demoted to optional)
+- **jsonrpsee removed** -- pure JSON-RPC 2.0 server (no ring/C)
+- **reqwest removed** -- ureq for HTTP discovery (no ring/C)
+- **ring fully eliminated** -- ecoBin compliant, zero C dependencies
 
 ---
 

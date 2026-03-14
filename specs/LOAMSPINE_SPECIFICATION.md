@@ -1307,7 +1307,7 @@ LoamSpine uses **pure Rust RPC**—no gRPC, no protobuf, no C++ tooling.
 | gRPC | tarpc (pure Rust) |
 | protobuf/proto files | serde (native Rust) |
 | protoc (C++ compiler) | cargo build only |
-| tonic | jsonrpsee (JSON-RPC 2.0) |
+| tonic | pure Rust JSON-RPC 2.0 |
 
 This aligns with the **Primal Sovereignty** principle: no external tooling, no vendor lock-in, no C++ dependencies.
 

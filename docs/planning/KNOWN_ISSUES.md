@@ -47,7 +47,7 @@ As of v0.8.2 (March 14), the codebase passes all quality gates:
 
 1. **`thiserror` duplicate versions**: v1 and v2 coexist via transitive deps (non-blocking).
 2. **`proc-macro-error` advisory**: Transitive dependency of optional `mdns` feature (not enabled by default).
-3. **`reqwest` pulls `ring`**: Only via optional `discovery-http` feature; default path uses pure-Rust `tower-atomic`.
+3. ~~**`reqwest` pulls `ring`**~~: **RESOLVED** — `reqwest` replaced with `ureq` (pure Rust, no TLS); `ring` explicitly banned in `deny.toml`.
 4. **Build infra**: Global `CARGO_TARGET_DIR` on noexec mount requires `CARGO_TARGET_DIR` env override.
 
 ### Resolved (March 14 — v0.8.2)
