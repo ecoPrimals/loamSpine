@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2026-03-14
+
+### Added
+- **`CertificateStorage` trait**: Async trait with `get`, `save`, `delete`, `list` — abstracts certificate persistence behind a clean interface
+- **`InMemoryCertificateStorage`**: First implementation of `CertificateStorage` using `Arc<RwLock<HashMap>>`
+- **`verify_certificate`**: Integrity check returning `CertificateVerification` with granular `VerificationCheck` enum (replaces bool-heavy struct)
+- **`certificate_lifecycle`**: Filtered history of all entries referencing a specific certificate
+- **Waypoint types module**: `WaypointConfig`, `PropagationPolicy`, `DepartureReason`, `WaypointSummary`, `SliceOperationType`, `SliceTerms` — data model for waypoint semantics
+- **`record_operation`**: Records slice operations on a waypoint spine
+- **`depart_slice`**: Records slice departure with `DepartureReason`
+- **25 new tests**: Certificate storage CRUD, verification, lifecycle, waypoint operations, departure
+
+### Changed
+- **`must_use_candidate` lint enabled**: Removed crate-level `#[allow]`, applied `#[must_use]` to 11 public functions via `cargo fix`
+- **`discovery.rs` refactored to module directory**: `mod.rs` (337 lines) + `dyn_traits.rs` (117 lines) + `tests.rs` (345 lines) — extracted object-safe trait wrappers
+- **`manager.rs` refactored to module directory**: `mod.rs` (299 lines) + `tests.rs` (422 lines) — clean separation of production code and tests
+- **`LoamSpineService.certificates` → `certificate_storage`**: Uses `InMemoryCertificateStorage` instead of raw `Arc<RwLock<HashMap>>`
+- **`get_certificate_history` → `certificate_lifecycle`**: Renamed to avoid shadowing `ProvenanceSource` trait method
+
+### Fixed
+- **`MintInfo.entry` was `[0u8; 32]`**: Now correctly stores the actual entry hash computed during minting
+- **`#[allow]` attribute audit**: All remaining production `#[allow]` attributes confirmed justified
+
+### Metrics
+- Tests: 700 → 744 (+44)
+- Source files: 88 → 92+ (+4 from module refactoring)
+- Max file size: 810 → 422 lines (all files well under 1000)
+- Clippy: 0 warnings (all targets, all features, `-D warnings`)
+- Docs: 0 warnings (`-D warnings`)
+- Unsafe: 0 blocks (maintained)
+
 ## [0.8.1] - 2026-03-14
 
 ### Added
@@ -378,6 +409,10 @@ spine.append(entry)?;
 
 ---
 
+[0.8.2]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/ecoPrimals/loamSpine/compare/v0.7.1...v0.8.0
+[0.7.1]: https://github.com/ecoPrimals/loamSpine/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/ecoPrimals/loamSpine/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ecoPrimals/loamSpine/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ecoPrimals/loamSpine/compare/v0.4.0...v0.5.0

@@ -274,7 +274,7 @@ impl DiscoveryClient {
             extract_port(jsonrpc_endpoint).unwrap_or(crate::constants::DEFAULT_JSONRPC_PORT);
 
         let advertisement = ServiceAdvertisement {
-            name: "loamspine".to_string(),
+            name: crate::neural_api::PRIMAL_NAME.to_string(),
             primary_role: "permanence".to_string(),
             capabilities: vec![
                 "permanence".to_string(),
@@ -353,7 +353,7 @@ impl DiscoveryClient {
     /// Returns an error if the heartbeat fails.
     pub async fn heartbeat(&self) -> LoamSpineResult<()> {
         let url = format!("{}/heartbeat", self.endpoint);
-        let body = serde_json::json!({ "name": "loamspine" });
+        let body = serde_json::json!({ "name": crate::neural_api::PRIMAL_NAME });
         let response = self
             .transport
             .post_json(&url, &body)
@@ -377,7 +377,7 @@ impl DiscoveryClient {
     /// Returns an error if the deregistration fails.
     pub async fn deregister(&self) -> LoamSpineResult<()> {
         let url = format!("{}/deregister", self.endpoint);
-        let body = serde_json::json!({ "name": "loamspine" });
+        let body = serde_json::json!({ "name": crate::neural_api::PRIMAL_NAME });
         let response = self
             .transport
             .post_json(&url, &body)

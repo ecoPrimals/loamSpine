@@ -160,33 +160,43 @@ Content-Type: application/json
 
 ### 3.2 Available Methods
 
+Methods follow the `{domain}.{operation}` semantic naming standard
+(see `wateringHole/SEMANTIC_METHOD_NAMING_STANDARD.md`).
+
 | Method | Description |
 |--------|-------------|
-| `loamspine.createSpine` | Create a new spine |
-| `loamspine.getSpine` | Get spine by ID |
-| `loamspine.sealSpine` | Seal a spine |
-| `loamspine.appendEntry` | Append entry to spine |
-| `loamspine.getEntry` | Get entry by hash |
-| `loamspine.getTip` | Get tip entry |
-| `loamspine.mintCertificate` | Mint certificate |
-| `loamspine.getCertificate` | Get certificate |
-| `loamspine.transferCertificate` | Transfer certificate |
-| `loamspine.loanCertificate` | Loan certificate |
-| `loamspine.returnCertificate` | Return certificate |
-| `loamspine.anchorSlice` | Anchor slice |
-| `loamspine.checkoutSlice` | Checkout slice |
-| `loamspine.generateInclusionProof` | Generate proof |
-| `loamspine.verifyInclusionProof` | Verify proof |
-| `loamspine.commitSession` | Commit session |
-| `loamspine.commitBraid` | Commit braid |
-| `loamspine.healthCheck` | Health check |
+| `spine.create` | Create a new spine |
+| `spine.get` | Get spine by ID |
+| `spine.seal` | Seal a spine |
+| `entry.append` | Append entry to spine |
+| `entry.get` | Get entry by hash |
+| `entry.get_tip` | Get tip entry |
+| `certificate.mint` | Mint certificate |
+| `certificate.get` | Get certificate |
+| `certificate.transfer` | Transfer certificate |
+| `certificate.loan` | Loan certificate |
+| `certificate.return` | Return certificate |
+| `slice.anchor` | Anchor slice |
+| `slice.checkout` | Checkout slice |
+| `proof.generate_inclusion` | Generate proof |
+| `proof.verify_inclusion` | Verify proof |
+| `session.commit` | Commit session |
+| `braid.commit` | Commit braid |
+| `health.check` | Health check |
+| `health.liveness` | Liveness probe |
+| `health.readiness` | Readiness probe |
+| `capability.list` | List capabilities |
+| `permanence.commit_session` | Commit session (permanence alias) |
+| `permanence.verify_commit` | Verify a commit |
+| `permanence.get_commit` | Get a commit |
+| `permanence.health_check` | Permanence health check |
 
 ### 3.3 Request Format
 
 ```json
 {
     "jsonrpc": "2.0",
-    "method": "loamspine.<method>",
+    "method": "{domain}.{operation}",
     "params": { ... },
     "id": <number>
 }
@@ -223,7 +233,7 @@ curl -X POST http://localhost:8080/rpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "loamspine.healthCheck",
+    "method": "health.check",
     "params": { "include_details": true },
     "id": 1
   }'
@@ -235,7 +245,7 @@ curl -X POST http://localhost:8080/rpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "loamspine.createSpine",
+    "method": "spine.create",
     "params": {
       "name": "my-history",
       "owner": { "value": "did:key:z6MkOwner" }
@@ -250,7 +260,7 @@ curl -X POST http://localhost:8080/rpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "loamspine.getSpine",
+    "method": "spine.get",
     "params": {
       "spine_id": "01234567-89ab-cdef-0123-456789abcdef"
     },
@@ -264,7 +274,7 @@ curl -X POST http://localhost:8080/rpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "loamspine.commitSession",
+    "method": "session.commit",
     "params": {
       "spine_id": "01234567-89ab-cdef-0123-456789abcdef",
       "session_id": "fedcba98-7654-3210-fedc-ba9876543210",

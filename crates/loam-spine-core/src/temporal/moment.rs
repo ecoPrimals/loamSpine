@@ -125,6 +125,7 @@ pub enum MomentContext {
 
 impl MomentContext {
     /// Get a human-readable category name.
+    #[must_use]
     pub fn category(&self) -> &str {
         match self {
             Self::CodeChange { .. } => "code",

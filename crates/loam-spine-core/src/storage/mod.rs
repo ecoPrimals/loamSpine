@@ -27,10 +27,11 @@
 //! # }
 //! ```
 
+use crate::certificate::Certificate;
 use crate::entry::Entry;
 use crate::error::LoamSpineResult;
 use crate::spine::Spine;
-use crate::types::{EntryHash, SpineId};
+use crate::types::{CertificateId, EntryHash, SpineId};
 
 // Submodules
 mod memory;
@@ -43,7 +44,9 @@ mod sqlite;
 mod tests;
 
 // Re-exports
-pub use memory::{InMemoryEntryStorage, InMemorySpineStorage, InMemoryStorage};
+pub use memory::{
+    InMemoryCertificateStorage, InMemoryEntryStorage, InMemorySpineStorage, InMemoryStorage,
+};
 pub use sled::{SledEntryStorage, SledSpineStorage, SledStorage};
 #[cfg(feature = "sqlite")]
 pub use sqlite::{SqliteEntryStorage, SqliteSpineStorage, SqliteStorage};
@@ -122,6 +125,41 @@ pub trait EntryStorage: Send + Sync {
         start_index: u64,
         limit: u64,
     ) -> impl std::future::Future<Output = LoamSpineResult<Vec<Entry>>> + Send;
+}
+
+/// Storage backend for certificates.
+///
+/// Certificates live alongside spines and entries but are indexed by their own
+/// `CertificateId`.  The `spine_id` association is stored so that certificate
+/// operations can locate the spine that records the certificate's lifecycle.
+///
+/// Implementations must be thread-safe (`Send + Sync`) for use in async contexts.
+pub trait CertificateStorage: Send + Sync {
+    /// Get a certificate and its associated spine ID.
+    ///
+    /// Returns `None` if the certificate doesn't exist.
+    fn get_certificate(
+        &self,
+        id: CertificateId,
+    ) -> impl std::future::Future<Output = LoamSpineResult<Option<(Certificate, SpineId)>>> + Send;
+
+    /// Save (upsert) a certificate and its spine association.
+    fn save_certificate(
+        &self,
+        certificate: &Certificate,
+        spine_id: SpineId,
+    ) -> impl std::future::Future<Output = LoamSpineResult<()>> + Send;
+
+    /// Delete a certificate by ID. Idempotent.
+    fn delete_certificate(
+        &self,
+        id: CertificateId,
+    ) -> impl std::future::Future<Output = LoamSpineResult<()>> + Send;
+
+    /// List all certificate IDs.
+    fn list_certificates(
+        &self,
+    ) -> impl std::future::Future<Output = LoamSpineResult<Vec<CertificateId>>> + Send;
 }
 
 /// Storage backend type.

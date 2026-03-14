@@ -9,9 +9,11 @@
 //! - Size constants for testing and configuration
 //! - Zero-copy buffer types (`ByteBuffer`)
 
+use std::fmt;
+use std::sync::Arc;
+
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 // ============================================================================
 // Size Constants
@@ -54,13 +56,16 @@ pub type PeerId = String;
 ///
 /// Format: `did:key:z6Mk...` or `did:web:...`
 /// Used for ownership, signing identity, and access control.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Did(pub String);
+///
+/// Backed by `Arc<str>` for O(1) cloning — DIDs are shared across spines,
+/// entries, certificates, and RPC boundaries without allocation.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Did(Arc<str>);
 
 impl Did {
     /// Create a new DID.
     #[must_use]
-    pub fn new(value: impl Into<String>) -> Self {
+    pub fn new(value: impl Into<Arc<str>>) -> Self {
         Self(value.into())
     }
 
@@ -73,19 +78,38 @@ impl Did {
 
 impl fmt::Display for Did {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        f.write_str(&self.0)
     }
 }
 
 impl From<String> for Did {
     fn from(s: String) -> Self {
-        Self(s)
+        Self(Arc::from(s))
     }
 }
 
 impl From<&str> for Did {
     fn from(s: &str) -> Self {
-        Self(s.to_string())
+        Self(Arc::from(s))
+    }
+}
+
+impl Serialize for Did {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+impl<'de> Deserialize<'de> for Did {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self(Arc::from(s)))
     }
 }
 
@@ -321,7 +345,7 @@ mod tests {
     #[test]
     fn did_from_string() {
         let did: Did = "did:key:z6MkTest".into();
-        assert_eq!(did.0, "did:key:z6MkTest");
+        assert_eq!(did.as_str(), "did:key:z6MkTest");
     }
 
     #[test]

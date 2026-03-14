@@ -16,6 +16,7 @@ use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::proof::InclusionProof;
 use crate::storage::{EntryStorage, SpineStorage};
 use crate::types::{EntryHash, SliceId, SpineId};
+use crate::waypoint::DepartureReason;
 
 use super::LoamSpineService;
 
@@ -57,6 +58,77 @@ impl LoamSpineService {
         self.spine_storage.save_spine(&waypoint).await?;
 
         Ok(anchor_hash)
+    }
+
+    /// Record an operation on an anchored slice at a waypoint spine.
+    ///
+    /// The operation is validated against the entry's `allowed_in_waypoint`
+    /// check and appended as a `SliceOperation` entry.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if waypoint spine not found or sealed.
+    pub async fn record_operation(
+        &self,
+        waypoint_spine_id: SpineId,
+        slice_id: SliceId,
+        operation: String,
+    ) -> LoamSpineResult<EntryHash> {
+        let mut waypoint = self
+            .spine_storage
+            .get_spine(waypoint_spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(waypoint_spine_id))?;
+
+        let entry = waypoint.create_entry(EntryType::SliceOperation {
+            slice_id,
+            operation,
+        });
+
+        if !entry.entry_type.allowed_in_waypoint() {
+            return Err(LoamSpineError::InvalidEntryType(
+                "entry type not allowed in waypoint".into(),
+            ));
+        }
+
+        let op_hash = waypoint.append(entry.clone())?;
+
+        self.entry_storage.save_entry(&entry).await?;
+        self.spine_storage.save_spine(&waypoint).await?;
+
+        Ok(op_hash)
+    }
+
+    /// Depart a slice from a waypoint spine.
+    ///
+    /// Records a `SliceDeparture` entry on the waypoint with the given reason.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if waypoint spine not found or sealed.
+    pub async fn depart_slice(
+        &self,
+        waypoint_spine_id: SpineId,
+        slice_id: SliceId,
+        reason: DepartureReason,
+    ) -> LoamSpineResult<EntryHash> {
+        let mut waypoint = self
+            .spine_storage
+            .get_spine(waypoint_spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(waypoint_spine_id))?;
+
+        let entry = waypoint.create_entry(EntryType::SliceDeparture {
+            slice_id,
+            reason: reason.to_string(),
+        });
+
+        let departure_hash = waypoint.append(entry.clone())?;
+
+        self.entry_storage.save_entry(&entry).await?;
+        self.spine_storage.save_spine(&waypoint).await?;
+
+        Ok(departure_hash)
     }
 
     // ========================================================================
@@ -158,5 +230,84 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_record_operation() {
+        let service = LoamSpineService::new();
+        let owner = Did::new("did:key:z6MkOwner");
+
+        let spine_id = service
+            .ensure_spine(owner.clone(), Some("Waypoint".into()))
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        let slice_id = SliceId::now_v7();
+
+        // Anchor a slice first
+        service
+            .anchor_slice(spine_id, slice_id, spine_id, [1u8; 32])
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        // Record an operation
+        let result = service
+            .record_operation(spine_id, slice_id, "use".into())
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_depart_slice() {
+        let service = LoamSpineService::new();
+        let owner = Did::new("did:key:z6MkOwner");
+
+        let spine_id = service
+            .ensure_spine(owner.clone(), Some("Waypoint".into()))
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        let slice_id = SliceId::now_v7();
+
+        // Anchor first
+        service
+            .anchor_slice(spine_id, slice_id, spine_id, [1u8; 32])
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        // Record an operation
+        service
+            .record_operation(spine_id, slice_id, "view".into())
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        // Depart
+        let result = service
+            .depart_slice(spine_id, slice_id, DepartureReason::ManualReturn)
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_depart_slice_expired() {
+        let service = LoamSpineService::new();
+        let owner = Did::new("did:key:z6MkOwner");
+
+        let spine_id = service
+            .ensure_spine(owner.clone(), Some("Waypoint".into()))
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        let slice_id = SliceId::now_v7();
+
+        service
+            .anchor_slice(spine_id, slice_id, spine_id, [1u8; 32])
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        let result = service
+            .depart_slice(spine_id, slice_id, DepartureReason::Expired)
+            .await;
+        assert!(result.is_ok());
     }
 }

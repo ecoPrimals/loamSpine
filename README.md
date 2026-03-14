@@ -3,9 +3,9 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
-[![Version](https://img.shields.io/badge/version-0.8.0-blue)]()
-[![Tests](https://img.shields.io/badge/tests-700%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/line%20coverage-90.6%25-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.8.2-blue)]()
+[![Tests](https://img.shields.io/badge/tests-744%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/line%20coverage-~91%25-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
 
@@ -63,35 +63,31 @@ cargo deny check licenses bans sources
 loamSpine/
 ├── bin/loamspine-service/     # UniBin: server | capabilities | socket
 ├── crates/
-│   ├── loam-spine-core/       # Core library (45 source files)
+│   ├── loam-spine-core/       # Core library (50+ source files)
 │   │   └── src/
 │   │       ├── backup/            # Backup/restore
 │   │       ├── capabilities.rs    # Capability definitions
 │   │       ├── certificate.rs     # Loam Certificates
 │   │       ├── config.rs          # Configuration
-│   │       ├── discovery.rs       # Capability registry
-│   │       ├── discovery_client.rs # HTTP discovery client
-│   │       ├── entry.rs           # Entry types (15+ variants, bincode canonical)
-│   │       ├── infant_discovery.rs # DNS-SRV, mDNS, registry discovery
-│   │       ├── manager.rs         # Spine manager
+│   │       ├── discovery/         # Capability registry + DynSigner/DynVerifier
+│   │       ├── discovery_client/  # HTTP discovery client
+│   │       ├── entry/             # Entry types (15+ variants, bincode canonical)
+│   │       ├── infant_discovery/  # DNS-SRV, mDNS, registry discovery
+│   │       ├── manager/           # Certificate manager
 │   │       ├── neural_api.rs      # NeuralAPI / biomeOS integration
 │   │       ├── proof.rs           # Inclusion proofs
 │   │       ├── service/           # Modular service layer
-│   │       │   ├── lifecycle.rs   # Startup/shutdown + NeuralAPI registration
-│   │       │   ├── infant_discovery.rs
-│   │       │   ├── certificate.rs
+│   │       │   ├── lifecycle.rs   # Startup/shutdown + ServiceState + NeuralAPI
+│   │       │   ├── certificate.rs # Certificate CRUD + verify + lifecycle
 │   │       │   ├── integration.rs # Trait implementations
 │   │       │   ├── signals.rs     # Signal handling
-│   │       │   └── waypoint.rs    # Proof generation
+│   │       │   └── waypoint.rs    # Anchoring, operations, departure, proofs
 │   │       ├── spine.rs           # Spine structure
-│   │       ├── storage/           # Storage backends (memory, sled)
+│   │       ├── storage/           # Storage backends (memory, sled, sqlite)
 │   │       ├── temporal/          # Time tracking (moments, anchors)
 │   │       ├── traits/            # Integration traits
-│   │       │   ├── cli_signer.rs  # CLI-based signing
-│   │       │   ├── signing.rs     # Signer, Verifier
-│   │       │   ├── commit.rs      # CommitAcceptor, SpineQuery
-│   │       │   └── slice.rs       # SliceManager
 │   │       ├── transport/         # IPC transports (HTTP, NeuralAPI, mock)
+│   │       ├── waypoint.rs        # Waypoint types (config, terms, policy)
 │   │       └── trio_types.rs      # Provenance trio type bridging
 │   └── loam-spine-api/        # RPC layer (14 source files)
 │       └── src/
@@ -126,7 +122,11 @@ loamSpine/
 | **Certificate** | `certificate.loan` | Temporary access |
 | **Certificate** | `certificate.return` | End loan |
 | **Certificate** | `certificate.get` | Query certificate |
+| **Certificate** | `certificate.verify` | Verify integrity |
+| **Certificate** | `certificate.lifecycle` | Ownership/loan history |
 | **Waypoint** | `slice.anchor` | Anchor borrowed state |
+| **Waypoint** | `slice.record_operation` | Record waypoint operation |
+| **Waypoint** | `slice.depart` | Depart from waypoint |
 | **Proof** | `proof.generate_inclusion` | Create proof |
 | **Integration** | `session.commit` | rhizoCrypt commits |
 | **Integration** | `commit.session` | Semantic alias (biomeOS routing) |
@@ -157,13 +157,13 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.8.0 |
-| **Tests** | 700 passing |
-| **Line Coverage** | 90.6% |
+| **Version** | 0.8.2 |
+| **Tests** | 744 passing |
+| **Line Coverage** | ~91% |
 | **Clippy** | 0 warnings (`-D warnings`, all targets) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Max File Size** | 810 lines (all < 1000) |
-| **Source Files** | 88 `.rs` files across 2 crates + binary |
+| **Max File Size** | 422 lines (all < 1000) |
+| **Source Files** | 92+ `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust TLS) |

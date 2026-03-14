@@ -93,6 +93,21 @@ impl TransportResponse {
         }
     }
 
+    /// Construct from a status and pre-existing `Bytes` (true zero-copy).
+    #[must_use]
+    pub const fn from_bytes(status: u16, body: Bytes) -> Self {
+        Self { status, body }
+    }
+
+    /// Construct from a static byte slice (compile-time zero-copy).
+    #[must_use]
+    pub fn from_static(status: u16, body: &'static [u8]) -> Self {
+        Self {
+            status,
+            body: Bytes::from_static(body),
+        }
+    }
+
     /// Whether the status code is in the 2xx range.
     #[must_use]
     pub const fn is_success(&self) -> bool {

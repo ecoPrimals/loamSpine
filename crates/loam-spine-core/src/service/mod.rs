@@ -24,21 +24,23 @@ mod lifecycle;
 pub mod signals;
 mod waypoint;
 
-// Re-export lifecycle manager and infant discovery
+// Re-export lifecycle manager, service state, and infant discovery
 pub use infant_discovery::InfantDiscovery;
-pub use lifecycle::LifecycleManager;
+pub use lifecycle::{LifecycleManager, ServiceState};
 
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::certificate::Certificate;
 use crate::discovery::CapabilityRegistry;
 use crate::entry::{EntryType, SpineConfig};
 use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::spine::Spine;
-use crate::storage::{EntryStorage, InMemoryEntryStorage, InMemorySpineStorage, SpineStorage};
-use crate::types::{CertificateId, Did, EntryHash, SliceId, SpineId};
+use crate::storage::{
+    EntryStorage, InMemoryCertificateStorage, InMemoryEntryStorage, InMemorySpineStorage,
+    SpineStorage,
+};
+use crate::types::{Did, EntryHash, SliceId, SpineId};
 
 /// Stored metadata for an active slice, tracked in the in-memory registry.
 #[derive(Clone, Debug)]
@@ -78,8 +80,8 @@ pub struct LoamSpineService {
     pub(crate) entry_storage: InMemoryEntryStorage,
     /// Active slices: slice_id -> (spine_id, entry_hash, holder)
     pub(crate) active_slices: Arc<RwLock<HashMap<SliceId, ActiveSliceInfo>>>,
-    /// Certificate storage: cert_id -> (certificate, spine_id)
-    pub(crate) certificates: Arc<RwLock<HashMap<CertificateId, (Certificate, SpineId)>>>,
+    /// Certificate storage (trait-backed, currently in-memory).
+    pub(crate) certificate_storage: InMemoryCertificateStorage,
     /// Capability registry for runtime discovery.
     capabilities: CapabilityRegistry,
 }
@@ -98,7 +100,7 @@ impl LoamSpineService {
             spine_storage: InMemorySpineStorage::new(),
             entry_storage: InMemoryEntryStorage::new(),
             active_slices: Arc::new(RwLock::new(HashMap::new())),
-            certificates: Arc::new(RwLock::new(HashMap::new())),
+            certificate_storage: InMemoryCertificateStorage::new(),
             capabilities: CapabilityRegistry::new(),
         }
     }
@@ -112,7 +114,7 @@ impl LoamSpineService {
             spine_storage: InMemorySpineStorage::new(),
             entry_storage: InMemoryEntryStorage::new(),
             active_slices: Arc::new(RwLock::new(HashMap::new())),
-            certificates: Arc::new(RwLock::new(HashMap::new())),
+            certificate_storage: InMemoryCertificateStorage::new(),
             capabilities,
         }
     }

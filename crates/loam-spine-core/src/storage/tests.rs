@@ -577,7 +577,10 @@ mod tests {
 
         assert!(StorageBackend::InMemory.is_available());
         assert!(StorageBackend::Sled.is_available());
-        assert!(!StorageBackend::Sqlite.is_available());
+        assert_eq!(
+            StorageBackend::Sqlite.is_available(),
+            cfg!(feature = "sqlite"),
+        );
         assert!(!StorageBackend::Postgres.is_available());
         assert!(!StorageBackend::Rocksdb.is_available());
     }
@@ -627,5 +630,130 @@ mod tests {
 
         let debug = format!("{:?}", StorageBackend::InMemory);
         assert!(debug.contains("InMemory"));
+    }
+
+    // ========================================================================
+    // Certificate Storage Tests
+    // ========================================================================
+
+    #[tokio::test]
+    async fn certificate_storage_crud() {
+        use crate::certificate::{Certificate, CertificateType, MintInfo};
+        use crate::storage::{CertificateStorage, InMemoryCertificateStorage};
+        use crate::types::{CertificateId, Timestamp};
+
+        let storage = InMemoryCertificateStorage::new();
+        let cert_id = CertificateId::now_v7();
+        let owner = Did::new("did:key:z6MkOwner");
+        let spine_id = SpineId::now_v7();
+
+        let mint_info = MintInfo {
+            minter: owner.clone(),
+            spine: spine_id,
+            entry: [0u8; 32],
+            timestamp: Timestamp::now(),
+            authority: None,
+        };
+
+        let cert = Certificate::new(
+            cert_id,
+            CertificateType::DigitalGame {
+                platform: "steam".into(),
+                game_id: "hl3".into(),
+                edition: None,
+            },
+            &owner,
+            &mint_info,
+        );
+
+        // Save
+        storage.save_certificate(&cert, spine_id).await.unwrap();
+        assert_eq!(storage.certificate_count().await, 1);
+
+        // Get
+        let retrieved = storage.get_certificate(cert_id).await.unwrap();
+        assert!(retrieved.is_some());
+        let (retrieved_cert, retrieved_spine) = retrieved.unwrap();
+        assert_eq!(retrieved_cert.id, cert_id);
+        assert_eq!(retrieved_spine, spine_id);
+
+        // List
+        let ids = storage.list_certificates().await.unwrap();
+        assert_eq!(ids.len(), 1);
+        assert!(ids.contains(&cert_id));
+
+        // Delete
+        storage.delete_certificate(cert_id).await.unwrap();
+        assert_eq!(storage.certificate_count().await, 0);
+        assert!(storage.get_certificate(cert_id).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn certificate_storage_upsert() {
+        use crate::certificate::{Certificate, CertificateType, MintInfo};
+        use crate::storage::{CertificateStorage, InMemoryCertificateStorage};
+        use crate::types::{CertificateId, Timestamp};
+
+        let storage = InMemoryCertificateStorage::new();
+        let cert_id = CertificateId::now_v7();
+        let owner = Did::new("did:key:z6MkOwner");
+        let spine_id = SpineId::now_v7();
+
+        let mint_info = MintInfo {
+            minter: owner.clone(),
+            spine: spine_id,
+            entry: [0u8; 32],
+            timestamp: Timestamp::now(),
+            authority: None,
+        };
+
+        let cert = Certificate::new(
+            cert_id,
+            CertificateType::DigitalGame {
+                platform: "steam".into(),
+                game_id: "hl3".into(),
+                edition: None,
+            },
+            &owner,
+            &mint_info,
+        );
+
+        // Save twice (upsert)
+        storage.save_certificate(&cert, spine_id).await.unwrap();
+        storage.save_certificate(&cert, spine_id).await.unwrap();
+
+        // Still only one
+        assert_eq!(storage.certificate_count().await, 1);
+    }
+
+    #[tokio::test]
+    async fn certificate_storage_delete_idempotent() {
+        use crate::storage::{CertificateStorage, InMemoryCertificateStorage};
+        use crate::types::CertificateId;
+
+        let storage = InMemoryCertificateStorage::new();
+        let fake_id = CertificateId::now_v7();
+
+        // Delete non-existent is OK
+        storage.delete_certificate(fake_id).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn certificate_storage_get_nonexistent() {
+        use crate::storage::{CertificateStorage, InMemoryCertificateStorage};
+        use crate::types::CertificateId;
+
+        let storage = InMemoryCertificateStorage::new();
+        let fake_id = CertificateId::now_v7();
+
+        assert!(storage.get_certificate(fake_id).await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn combined_storage_has_certificates() {
+        use crate::storage::InMemoryStorage;
+
+        let storage = InMemoryStorage::new();
+        assert_eq!(storage.certificates.certificate_count().await, 0);
     }
 }

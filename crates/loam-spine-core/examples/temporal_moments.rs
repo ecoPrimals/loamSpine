@@ -187,19 +187,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Show all moment categories
     println!("\n🎯 Moment categories tracked:");
-    let moments = spine
-        .entries()
-        .iter()
-        .filter_map(|e| {
-            if let EntryType::TemporalMoment { moment, .. } = &e.entry_type {
-                Some(moment.context.category())
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-
-    for category in moments {
+    for category in spine.entries().iter().filter_map(|e| {
+        if let EntryType::TemporalMoment { moment, .. } = &e.entry_type {
+            Some(moment.context.category())
+        } else {
+            None
+        }
+    }) {
         println!("   - {}", category);
     }
 

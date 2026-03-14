@@ -12,13 +12,53 @@ use crate::error::LoamSpineResult;
 use crate::service::LoamSpineService;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tokio::time::{interval, Duration};
+
+/// Service lifecycle state per `SERVICE_LIFECYCLE.md` specification.
+///
+/// Transitions: `Starting` → `Ready` → `Running` → `Stopping` → `Stopped`.
+/// Error paths:  any state → `Degraded` (recoverable) or `Error` (needs restart).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ServiceState {
+    /// Service is initializing (discovery, registration, storage warm-up).
+    Starting,
+    /// Initialization complete, ready to accept traffic.
+    Ready,
+    /// Actively serving requests.
+    Running,
+    /// Non-critical subsystem failure (e.g., heartbeat loss). Still serving.
+    Degraded,
+    /// Graceful shutdown in progress — draining in-flight requests.
+    Stopping,
+    /// Shutdown complete.
+    Stopped,
+    /// Unrecoverable failure — requires restart.
+    Error,
+}
+
+impl std::fmt::Display for ServiceState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Starting => "STARTING",
+            Self::Ready => "READY",
+            Self::Running => "RUNNING",
+            Self::Degraded => "DEGRADED",
+            Self::Stopping => "STOPPING",
+            Self::Stopped => "STOPPED",
+            Self::Error => "ERROR",
+        })
+    }
+}
 
 /// Lifecycle manager for LoamSpine service.
 ///
 /// Handles service startup, runtime tasks, and graceful shutdown following
 /// the **infant discovery** philosophy: start with zero knowledge, discover everything.
+///
+/// Exposes an observable [`ServiceState`] via a `watch` channel so that
+/// health checks, readiness probes, and metrics can react to transitions.
 pub struct LifecycleManager {
     /// Service instance.
     service: LoamSpineService,
@@ -30,18 +70,45 @@ pub struct LifecycleManager {
     heartbeat_task: Option<JoinHandle<()>>,
     /// Shutdown signal.
     shutdown: Arc<AtomicBool>,
+    /// Observable service state.
+    state_tx: watch::Sender<ServiceState>,
+    state_rx: watch::Receiver<ServiceState>,
 }
 
 impl LifecycleManager {
     /// Create a new lifecycle manager.
     #[must_use]
     pub fn new(service: LoamSpineService, config: LoamSpineConfig) -> Self {
+        let (state_tx, state_rx) = watch::channel(ServiceState::Stopped);
         Self {
             service,
             config,
             discovery_client: None,
             heartbeat_task: None,
             shutdown: Arc::new(AtomicBool::new(false)),
+            state_tx,
+            state_rx,
+        }
+    }
+
+    /// Current service state.
+    #[must_use]
+    pub fn state(&self) -> ServiceState {
+        *self.state_rx.borrow()
+    }
+
+    /// Subscribe to state transitions (e.g., for health probes).
+    #[must_use]
+    pub fn subscribe_state(&self) -> watch::Receiver<ServiceState> {
+        self.state_rx.clone()
+    }
+
+    /// Transition to a new state, logging the change.
+    fn transition(&self, new: ServiceState) {
+        let old = *self.state_rx.borrow();
+        if old != new {
+            tracing::info!("Service state: {old} → {new}");
+            let _ = self.state_tx.send(new);
         }
     }
 
@@ -59,6 +126,7 @@ impl LifecycleManager {
     ///
     /// Returns an error if startup operations fail.
     pub async fn start(&mut self) -> LoamSpineResult<()> {
+        self.transition(ServiceState::Starting);
         tracing::info!("🦴 Starting LoamSpine service lifecycle (infant discovery mode)...");
 
         let discovery_enabled = self.config.discovery.discovery_enabled;
@@ -97,34 +165,18 @@ impl LifecycleManager {
                             }
                         }
 
-                        tracing::info!("✅ LoamSpine service lifecycle started");
-                        match crate::neural_api::register_with_neural_api().await {
-                            Ok(true) => tracing::info!("✅ Registered with NeuralAPI"),
-                            Ok(false) => {
-                                tracing::debug!("NeuralAPI not available, running standalone");
-                            }
-                            Err(err) => tracing::warn!(
-                                "⚠️  NeuralAPI registration failed (non-fatal): {err}"
-                            ),
-                        }
+                        self.transition(ServiceState::Ready);
+                        self.register_neural_api().await;
+                        self.transition(ServiceState::Running);
                         return Ok(());
                     }
                     Err(e) => {
                         tracing::warn!(
                             "⚠️  Infant discovery failed: {e}. Continuing without discovery."
                         );
-                        tracing::info!(
-                            "✅ LoamSpine service lifecycle started (without discovery)"
-                        );
-                        match crate::neural_api::register_with_neural_api().await {
-                            Ok(true) => tracing::info!("✅ Registered with NeuralAPI"),
-                            Ok(false) => {
-                                tracing::debug!("NeuralAPI not available, running standalone");
-                            }
-                            Err(err) => tracing::warn!(
-                                "⚠️  NeuralAPI registration failed (non-fatal): {err}"
-                            ),
-                        }
+                        self.transition(ServiceState::Ready);
+                        self.register_neural_api().await;
+                        self.transition(ServiceState::Running);
                         return Ok(());
                     }
                 }
@@ -160,16 +212,20 @@ impl LifecycleManager {
             tracing::debug!("Discovery service disabled");
         }
 
-        tracing::info!("✅ LoamSpine service lifecycle started");
+        self.transition(ServiceState::Ready);
+        self.register_neural_api().await;
+        self.transition(ServiceState::Running);
 
-        // Register with NeuralAPI (biomeOS orchestration) — non-fatal
+        Ok(())
+    }
+
+    /// Register with NeuralAPI (biomeOS orchestration) — non-fatal.
+    async fn register_neural_api(&self) {
         match crate::neural_api::register_with_neural_api().await {
             Ok(true) => tracing::info!("✅ Registered with NeuralAPI"),
             Ok(false) => tracing::debug!("NeuralAPI not available, running standalone"),
             Err(err) => tracing::warn!("⚠️  NeuralAPI registration failed (non-fatal): {err}"),
         }
-
-        Ok(())
     }
 
     /// Advertise capabilities to discovery service.
@@ -312,7 +368,7 @@ impl LifecycleManager {
     ///
     /// Returns an error if shutdown operations fail.
     pub async fn stop(&mut self) -> LoamSpineResult<()> {
-        tracing::info!("🛑 Stopping LoamSpine service lifecycle...");
+        self.transition(ServiceState::Stopping);
 
         // Signal shutdown
         self.shutdown.store(true, Ordering::Relaxed);
@@ -337,7 +393,7 @@ impl LifecycleManager {
             }
         }
 
-        tracing::info!("✅ LoamSpine service lifecycle stopped");
+        self.transition(ServiceState::Stopped);
         Ok(())
     }
 
@@ -394,6 +450,54 @@ mod tests {
 
         assert!(manager.heartbeat_task.is_none());
         assert!(!manager.shutdown.load(Ordering::Relaxed));
+        assert_eq!(manager.state(), ServiceState::Stopped);
+    }
+
+    #[test]
+    fn service_state_display() {
+        assert_eq!(ServiceState::Starting.to_string(), "STARTING");
+        assert_eq!(ServiceState::Ready.to_string(), "READY");
+        assert_eq!(ServiceState::Running.to_string(), "RUNNING");
+        assert_eq!(ServiceState::Degraded.to_string(), "DEGRADED");
+        assert_eq!(ServiceState::Stopping.to_string(), "STOPPING");
+        assert_eq!(ServiceState::Stopped.to_string(), "STOPPED");
+        assert_eq!(ServiceState::Error.to_string(), "ERROR");
+    }
+
+    #[test]
+    fn service_state_serialization() {
+        let state = ServiceState::Running;
+        let json = serde_json::to_string(&state).unwrap();
+        let parsed: ServiceState = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, state);
+    }
+
+    #[test]
+    fn service_state_subscribe() {
+        let service = LoamSpineService::new();
+        let config = LoamSpineConfig::default();
+        let manager = LifecycleManager::new(service, config);
+        let rx = manager.subscribe_state();
+        assert_eq!(*rx.borrow(), ServiceState::Stopped);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn lifecycle_transitions_through_states() {
+        std::env::remove_var("DISCOVERY_ENDPOINT");
+
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = false;
+        let mut manager = LifecycleManager::new(service, config);
+
+        assert_eq!(manager.state(), ServiceState::Stopped);
+
+        manager.start().await.unwrap();
+        assert_eq!(manager.state(), ServiceState::Running);
+
+        manager.stop().await.unwrap();
+        assert_eq!(manager.state(), ServiceState::Stopped);
     }
 
     #[tokio::test]

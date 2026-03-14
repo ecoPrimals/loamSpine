@@ -50,7 +50,6 @@
 #![forbid(unsafe_code)]
 // Allow some pedantic lints that are too noisy
 #![allow(clippy::module_name_repetitions)]
-#![allow(clippy::must_use_candidate)]
 #![allow(clippy::doc_markdown)] // Allow product names without backticks in docs
 
 // Core modules
@@ -72,6 +71,7 @@ pub mod temporal;
 pub mod transport;
 pub mod trio_types;
 pub mod types;
+pub mod waypoint;
 
 // New architecture modules
 pub mod discovery;

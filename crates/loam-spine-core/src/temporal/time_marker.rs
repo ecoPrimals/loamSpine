@@ -44,6 +44,7 @@ pub enum MarkerType {
 
 impl TimeMarker {
     /// Create a new mutable marker (branch-like).
+    #[must_use]
     pub fn branch(name: String, moment: MomentId, created_by: String) -> Self {
         Self {
             name,
@@ -56,6 +57,7 @@ impl TimeMarker {
     }
 
     /// Create a new immutable marker (tag-like).
+    #[must_use]
     pub fn tag(
         name: String,
         moment: MomentId,
@@ -73,6 +75,7 @@ impl TimeMarker {
     }
 
     /// Can this marker be updated?
+    #[must_use]
     pub fn is_mutable(&self) -> bool {
         self.marker_type == MarkerType::Mutable
     }

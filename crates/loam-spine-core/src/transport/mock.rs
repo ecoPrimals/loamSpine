@@ -14,8 +14,8 @@ use super::{DiscoveryTransport, TransportResponse};
 
 /// Transport that always fails with a descriptive network error.
 ///
-/// Used by [`DiscoveryClient::for_testing`](crate::discovery_client::DiscoveryClient::for_testing)
-/// so tests can exercise the client's error paths without a real backend.
+/// Enables testing of [`DiscoveryClient`](crate::discovery_client::DiscoveryClient)
+/// error paths without a real backend or live socket.
 ///
 /// Re-exported from the crate root when the `testing` feature is enabled.
 #[derive(Clone, Debug)]
@@ -75,8 +75,9 @@ impl DiscoveryTransport for MockTransport {
 
 /// Transport that always succeeds with 200 OK.
 ///
-/// Used by [`DiscoveryClient::for_testing_success`] to test success paths
-/// (advertise, heartbeat, deregister) without a real discovery server.
+/// Used to test success paths (advertise, heartbeat, deregister) on
+/// [`DiscoveryClient`](crate::discovery_client::DiscoveryClient)
+/// without a real discovery server.
 #[cfg(any(test, feature = "testing"))]
 #[derive(Clone, Debug)]
 pub struct SuccessTransport;
@@ -103,7 +104,7 @@ impl DiscoveryTransport for SuccessTransport {
         &'a self,
         _url: &'a str,
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
-        Box::pin(async move { Ok(TransportResponse::new(200, b"{}".to_vec())) })
+        Box::pin(async move { Ok(TransportResponse::from_static(200, b"{}")) })
     }
 
     fn get_with_query<'a>(
@@ -111,7 +112,7 @@ impl DiscoveryTransport for SuccessTransport {
         _url: &'a str,
         _query: &'a [(&'a str, &'a str)],
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
-        Box::pin(async move { Ok(TransportResponse::new(200, b"[]".to_vec())) })
+        Box::pin(async move { Ok(TransportResponse::from_static(200, b"[]")) })
     }
 
     fn post_json<'a>(
@@ -119,7 +120,7 @@ impl DiscoveryTransport for SuccessTransport {
         _url: &'a str,
         _body: &'a serde_json::Value,
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
-        Box::pin(async move { Ok(TransportResponse::new(200, b"{}".to_vec())) })
+        Box::pin(async move { Ok(TransportResponse::from_static(200, b"{}")) })
     }
 }
 

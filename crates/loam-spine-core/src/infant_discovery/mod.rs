@@ -110,6 +110,7 @@ impl Default for DiscoveryConfig {
 
 impl DiscoveryConfig {
     /// Create configuration from environment or defaults
+    #[must_use]
     pub fn from_env_or_default() -> Self {
         let mut config = Self::default();
 
@@ -175,6 +176,7 @@ impl InfantDiscovery {
     }
 
     /// Get our own capabilities (self-knowledge)
+    #[must_use]
     pub fn own_capabilities(&self) -> &[LoamSpineCapability] {
         &self.own_capabilities
     }

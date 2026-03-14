@@ -54,7 +54,6 @@ pub enum ApiError {
 }
 
 impl From<loam_spine_core::error::LoamSpineError> for ApiError {
-    #[allow(clippy::match_same_arms)]
     fn from(err: loam_spine_core::error::LoamSpineError) -> Self {
         use loam_spine_core::error::LoamSpineError;
         match err {
@@ -74,18 +73,16 @@ impl From<loam_spine_core::error::LoamSpineError> for ApiError {
             LoamSpineError::ChainValidation { index, reason } => {
                 Self::InvalidRequest(format!("chain validation at {index}: {reason}"))
             }
-            // All these map to InvalidRequest
             LoamSpineError::Config(msg)
             | LoamSpineError::SignatureVerification(msg)
             | LoamSpineError::InvalidEntryType(msg)
-            | LoamSpineError::LoanTermsViolation(msg) => Self::InvalidRequest(msg),
-            // All these map to Internal
+            | LoamSpineError::LoanTermsViolation(msg)
+            | LoamSpineError::InvalidData(msg) => Self::InvalidRequest(msg),
             LoamSpineError::Storage(msg)
             | LoamSpineError::Internal(msg)
             | LoamSpineError::CapabilityUnavailable(msg)
             | LoamSpineError::Network(msg) => Self::Internal(msg),
             LoamSpineError::Serialization(msg) => Self::Serialization(msg),
-            LoamSpineError::InvalidData(msg) => Self::InvalidRequest(msg),
         }
     }
 }

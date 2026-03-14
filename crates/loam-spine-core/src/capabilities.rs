@@ -222,6 +222,7 @@ pub enum ServiceHealth {
 
 impl LoamSpineCapability {
     /// Get the capability identifier for this capability
+    #[must_use]
     pub fn identifier(&self) -> &'static str {
         match self {
             Self::PermanentLedger { .. } => loamspine::PERMANENT_LEDGER,
@@ -236,6 +237,7 @@ impl LoamSpineCapability {
     ///
     /// This is the ONLY hardcoded knowledge - what WE can do.
     /// Everything else is discovered at runtime.
+    #[must_use]
     pub fn introspect() -> Vec<Self> {
         vec![
             Self::PermanentLedger {
@@ -284,6 +286,7 @@ impl LoamSpineCapability {
 
 impl ExternalCapability {
     /// Get the capability identifier for this capability
+    #[must_use]
     pub fn identifier(&self) -> &'static str {
         match self {
             Self::Signing { .. } => external::SIGNING,

@@ -26,6 +26,7 @@
 #![warn(missing_docs)]
 
 use std::borrow::Cow;
+use std::io::{stdout, Write as _};
 use std::net::{IpAddr, SocketAddr};
 
 use clap::{Parser, Subcommand};
@@ -87,11 +88,18 @@ async fn main() -> anyhow::Result<()> {
             run_server(tarpc_port, jsonrpc_port, bind_address).await?;
         }
         Command::Capabilities => {
-            println!("{}", loam_spine_core::neural_api::capability_list_pretty());
+            writeln!(
+                stdout(),
+                "{}",
+                loam_spine_core::neural_api::capability_list_pretty()
+            )?;
         }
         Command::Socket => {
-            let path = loam_spine_core::neural_api::resolve_socket_path();
-            println!("{}", path.display());
+            writeln!(
+                stdout(),
+                "{}",
+                loam_spine_core::neural_api::resolve_socket_path().display()
+            )?;
         }
     }
 

@@ -173,6 +173,7 @@ pub fn bind_address() -> Cow<'static, str> {
 ///     tarpc_port()  // Use configured or default port
 /// };
 /// ```
+#[must_use]
 pub fn use_os_assigned_ports() -> bool {
     env::var("USE_OS_ASSIGNED_PORTS")
         .or_else(|_| env::var("LOAMSPINE_OS_PORTS"))
@@ -245,6 +246,7 @@ pub fn actual_tarpc_port() -> u16 {
 /// let endpoint = build_endpoint("http", "localhost", 8080, Some("/api"));
 /// assert_eq!(endpoint, "http://localhost:8080/api");
 /// ```
+#[must_use]
 pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -> String {
     match path {
         Some(p) => format!("{scheme}://{host}:{port}{p}"),

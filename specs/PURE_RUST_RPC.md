@@ -290,7 +290,7 @@ Content-Type: application/json
 
 {
     "jsonrpc": "2.0",
-    "method": "loamspine.<method>",
+    "method": "{domain}.{operation}",
     "params": { ... },
     "id": 1
 }
@@ -298,22 +298,25 @@ Content-Type: application/json
 
 ### 4.3 Available Methods
 
+Methods follow the `{domain}.{operation}` semantic naming standard
+(see `wateringHole/SEMANTIC_METHOD_NAMING_STANDARD.md`).
+
 | Method | Description |
 |--------|-------------|
-| `loamspine.createSpine` | Create a new spine |
-| `loamspine.getSpine` | Get spine by ID |
-| `loamspine.sealSpine` | Seal a spine |
-| `loamspine.appendEntry` | Append entry |
-| `loamspine.getEntry` | Get entry by hash |
-| `loamspine.getTip` | Get tip entry |
-| `loamspine.mintCertificate` | Mint certificate |
-| `loamspine.transferCertificate` | Transfer certificate |
-| `loamspine.loanCertificate` | Loan certificate |
-| `loamspine.returnCertificate` | Return certificate |
-| `loamspine.getCertificate` | Get certificate |
-| `loamspine.healthCheck` | Health check |
-| `loamspine.commitSession` | Commit RhizoCrypt session |
-| `loamspine.commitBraid` | Commit SweetGrass braid |
+| `spine.create` | Create a new spine |
+| `spine.get` | Get spine by ID |
+| `spine.seal` | Seal a spine |
+| `entry.append` | Append entry |
+| `entry.get` | Get entry by hash |
+| `entry.get_tip` | Get tip entry |
+| `certificate.mint` | Mint certificate |
+| `certificate.transfer` | Transfer certificate |
+| `certificate.loan` | Loan certificate |
+| `certificate.return` | Return certificate |
+| `certificate.get` | Get certificate |
+| `health.check` | Health check |
+| `session.commit` | Commit session (dehydration) |
+| `braid.commit` | Commit braid (attribution) |
 
 ### 4.4 Example Requests
 
@@ -323,7 +326,7 @@ curl -X POST http://localhost:8080/rpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "loamspine.healthCheck",
+    "method": "health.check",
     "params": { "include_details": true },
     "id": 1
   }'
@@ -353,7 +356,7 @@ curl -X POST http://localhost:8080/rpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "loamspine.createSpine",
+    "method": "spine.create",
     "params": {
       "name": "my-history",
       "owner": { "value": "did:key:z6MkOwner" }
@@ -375,7 +378,7 @@ class LoamSpineClient:
         self.id += 1
         response = requests.post(self.url, json={
             "jsonrpc": "2.0",
-            "method": f"loamspine.{method}",
+            "method": method,
             "params": params,
             "id": self.id
         })

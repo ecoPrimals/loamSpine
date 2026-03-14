@@ -15,7 +15,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe**: `#![forbid(unsafe_code)]` is enforced
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 90.6%, 700 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: ~91%, 744 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -42,7 +42,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 # Build
 cargo build
 
-# Test (700 tests)
+# Test (744 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -292,10 +292,10 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.8.0 |
-| Tests | 700 |
-| Line Coverage | 90.6% |
-| Max File Size | 949 lines |
+| Version | 0.8.2 |
+| Tests | 744 |
+| Line Coverage | ~91% |
+| Max File Size | 422 lines |
 | Clippy | pedantic + nursery (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | License | AGPL-3.0-only |
@@ -303,7 +303,7 @@ Look for issues labeled `good-first-issue`:
 | Pure Rust TLS | rustls (no OpenSSL) |
 | cargo deny | bans, licenses, sources pass |
 | UniBin | `loamspine server` subcommand |
-| JSON-RPC Methods | 24 (semantic naming) |
+| JSON-RPC Methods | 27 (semantic naming) |
 | Provenance Trio | Tested (rhizoCrypt + sweetGrass) |
 
 ---

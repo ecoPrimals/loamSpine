@@ -214,7 +214,9 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, LoamSpineError> {
         if bits >= 8 {
             bits -= 8;
             #[allow(clippy::cast_possible_truncation)]
-            out.push((buf >> bits) as u8); // bits ∈ [0,6] ⇒ value ∈ [0,255]
+            // SAFETY invariant: bits ∈ [0,6] after subtraction ⇒ (buf >> bits) ∈ [0,255]
+            let byte = (buf >> bits) as u8;
+            out.push(byte);
             buf &= (1 << bits) - 1;
         }
     }

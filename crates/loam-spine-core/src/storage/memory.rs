@@ -9,12 +9,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::certificate::Certificate;
 use crate::entry::Entry;
 use crate::error::LoamSpineResult;
 use crate::spine::Spine;
-use crate::types::{EntryHash, SpineId};
+use crate::types::{CertificateId, EntryHash, SpineId};
 
-use super::{EntryStorage, SpineStorage};
+use super::{CertificateStorage, EntryStorage, SpineStorage};
 
 /// In-memory spine storage implementation.
 ///
@@ -145,10 +146,65 @@ impl EntryStorage for InMemoryEntryStorage {
     }
 }
 
-/// Combined in-memory storage for both spines and entries.
+/// In-memory certificate storage implementation.
 ///
-/// Convenience wrapper that implements both `SpineStorage` and `EntryStorage`.
-/// Ideal for simple use cases where you need both types of storage.
+/// Thread-safe storage using `Arc<RwLock<HashMap>>` that pairs each
+/// `Certificate` with the `SpineId` of the spine containing its lifecycle
+/// entries.  All data is lost when dropped.
+#[derive(Debug, Clone, Default)]
+pub struct InMemoryCertificateStorage {
+    certs: Arc<RwLock<HashMap<CertificateId, (Certificate, SpineId)>>>,
+}
+
+impl InMemoryCertificateStorage {
+    /// Create a new in-memory certificate storage.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Get the number of stored certificates.
+    pub async fn certificate_count(&self) -> usize {
+        self.certs.read().await.len()
+    }
+}
+
+impl CertificateStorage for InMemoryCertificateStorage {
+    async fn get_certificate(
+        &self,
+        id: CertificateId,
+    ) -> LoamSpineResult<Option<(Certificate, SpineId)>> {
+        let certs = self.certs.read().await;
+        Ok(certs.get(&id).cloned())
+    }
+
+    async fn save_certificate(
+        &self,
+        certificate: &Certificate,
+        spine_id: SpineId,
+    ) -> LoamSpineResult<()> {
+        self.certs
+            .write()
+            .await
+            .insert(certificate.id, (certificate.clone(), spine_id));
+        Ok(())
+    }
+
+    async fn delete_certificate(&self, id: CertificateId) -> LoamSpineResult<()> {
+        self.certs.write().await.remove(&id);
+        Ok(())
+    }
+
+    async fn list_certificates(&self) -> LoamSpineResult<Vec<CertificateId>> {
+        let certs = self.certs.read().await;
+        Ok(certs.keys().copied().collect())
+    }
+}
+
+/// Combined in-memory storage for spines, entries, and certificates.
+///
+/// Convenience wrapper that implements `SpineStorage`, `EntryStorage`,
+/// and `CertificateStorage`.
 ///
 /// # Example
 ///
@@ -169,6 +225,8 @@ pub struct InMemoryStorage {
     pub spines: InMemorySpineStorage,
     /// Entry storage component.
     pub entries: InMemoryEntryStorage,
+    /// Certificate storage component.
+    pub certificates: InMemoryCertificateStorage,
 }
 
 impl InMemoryStorage {
