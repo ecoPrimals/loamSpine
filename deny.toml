@@ -95,7 +95,7 @@ registries = []
 #   cargo deny check licenses bans sources
 # instead of the full check.
 #
-# Track: https://github.com/EmbarkStudios/cargo-deny/issues/XXX
+# Track: upstream cargo-deny advisory resolution
 ignore = []
 
 # =============================================================================

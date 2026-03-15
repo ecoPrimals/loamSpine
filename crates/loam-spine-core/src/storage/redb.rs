@@ -264,10 +264,10 @@ impl RedbEntryStorage {
         Ok(())
     }
 
-    fn make_index_key(spine_id: SpineId, entry_index: u64) -> Vec<u8> {
-        let mut key = Vec::with_capacity(24);
-        key.extend_from_slice(spine_id.as_bytes());
-        key.extend_from_slice(&entry_index.to_be_bytes());
+    fn make_index_key(spine_id: SpineId, entry_index: u64) -> [u8; 24] {
+        let mut key = [0u8; 24];
+        key[..16].copy_from_slice(spine_id.as_bytes());
+        key[16..].copy_from_slice(&entry_index.to_be_bytes());
         key
     }
 }

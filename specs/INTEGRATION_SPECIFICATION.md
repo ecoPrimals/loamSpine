@@ -417,18 +417,19 @@ let entry_hash = store.append_entry(spine.id, entry).await?;
 
 ---
 
-## 6. Songbird Integration
+## 6. Service Registry Integration
 
-Songbird provides service discovery and capability routing.
+A service registry (Songbird, Consul, etcd, or any compatible HTTP registry) provides
+service discovery and capability routing.
 
 ### 6.1 UPA Registration
 
 ```rust
-/// Register LoamSpine with Songbird
-pub async fn register_with_songbird(
+/// Register LoamSpine with the service registry
+pub async fn register_with_registry(
     loamspine: &LoamSpine,
-    songbird: &impl SongbirdClient,
-) -> Result<RegistrationReceipt, SongbirdError> {
+    registry: &impl RegistryClient,
+) -> Result<RegistrationReceipt, RegistryError> {
     let capabilities = vec![
         Capability::new("loamspine:spine:create"),
         Capability::new("loamspine:spine:read"),
@@ -457,29 +458,29 @@ pub async fn register_with_songbird(
         ],
         health_check: Some(HealthCheck {
             endpoint: "/rpc".to_string(),
-            method: "loamspine.healthCheck".to_string(),
+            method: "health.check".to_string(),
             interval: Duration::from_secs(30),
         }),
     };
     
-    songbird.register(service_info).await
+    registry.register(service_info).await
 }
 ```
 
 ### 6.2 Service Discovery
 
 ```rust
-/// Songbird client interface
+/// Service registry client interface (vendor-agnostic)
 #[async_trait]
-pub trait SongbirdClient: Send + Sync {
+pub trait RegistryClient: Send + Sync {
     /// Register a service
-    async fn register(&self, service: ServiceInfo) -> Result<RegistrationReceipt, SongbirdError>;
+    async fn register(&self, service: ServiceInfo) -> Result<RegistrationReceipt, RegistryError>;
     
     /// Discover services by capability
-    async fn discover(&self, capability: &str) -> Result<Vec<ServiceEndpoint>, SongbirdError>;
+    async fn discover(&self, capability: &str) -> Result<Vec<ServiceEndpoint>, RegistryError>;
     
     /// Get specific service
-    async fn get_service(&self, name: &str) -> Result<Option<ServiceInfo>, SongbirdError>;
+    async fn get_service(&self, name: &str) -> Result<Option<ServiceInfo>, RegistryError>;
 }
 ```
 

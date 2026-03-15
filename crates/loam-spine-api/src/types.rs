@@ -501,6 +501,30 @@ pub struct PermanentStorageGetCommitRequest {
     pub index: u64,
 }
 
+impl From<&provenance_trio_types::DehydrationSummary> for PermanentStorageDehydrationSummary {
+    fn from(w: &provenance_trio_types::DehydrationSummary) -> Self {
+        Self {
+            session_type: w.session_type.clone(),
+            vertex_count: w.vertex_count,
+            leaf_count: w.branch_count,
+            started_at: w.session_start,
+            ended_at: w.dehydrated_at,
+            outcome: w.outcome.clone(),
+        }
+    }
+}
+
+impl From<&provenance_trio_types::DehydrationSummary> for PermanentStorageCommitRequest {
+    fn from(w: &provenance_trio_types::DehydrationSummary) -> Self {
+        Self {
+            session_id: w.session_id.clone(),
+            merkle_root: w.merkle_root.clone(),
+            summary: PermanentStorageDehydrationSummary::from(w),
+            committer_did: w.agents.first().cloned(),
+        }
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {

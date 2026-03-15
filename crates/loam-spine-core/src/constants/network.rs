@@ -254,6 +254,75 @@ pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -
     )
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Protocol Escalation (UNIVERSAL_IPC_STANDARD_V3)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// IPC protocol level resolved at runtime.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IpcProtocol {
+    /// JSON-RPC 2.0 over Unix socket (primary, always available).
+    JsonRpc,
+    /// tarpc/bincode over Unix socket (high-performance primal-to-primal).
+    Tarpc,
+}
+
+/// Resolve the IPC socket path for a given primal, following the wateringHole
+/// `UNIVERSAL_IPC_STANDARD_V3` and `PRIMAL_IPC_PROTOCOL` conventions.
+///
+/// Socket naming: `{primal}-{family_id}.sock` for JSON-RPC,
+/// `{primal}-{family_id}.tarpc.sock` for tarpc.
+///
+/// Resolution order:
+/// 1. `$XDG_RUNTIME_DIR/biomeos/`
+/// 2. `/run/user/{uid}/biomeos/`
+/// 3. `/tmp/biomeos/`
+#[must_use]
+pub fn resolve_primal_socket(primal: &str, family_id: &str) -> std::path::PathBuf {
+    let base = resolve_socket_base_dir();
+    base.join(format!("{primal}-{family_id}.sock"))
+}
+
+/// Resolve the tarpc socket path for a given primal.
+#[must_use]
+pub fn resolve_primal_tarpc_socket(primal: &str, family_id: &str) -> std::path::PathBuf {
+    let base = resolve_socket_base_dir();
+    base.join(format!("{primal}-{family_id}.tarpc.sock"))
+}
+
+/// Protocol escalation: prefer tarpc when `.tarpc.sock` exists,
+/// fall back to JSON-RPC `.sock`.
+///
+/// This implements the wateringHole `PRIMAL_IPC_PROTOCOL` standard:
+/// JSON-RPC is always available; tarpc is optional and higher-performance.
+#[must_use]
+pub fn negotiate_protocol(primal: &str, family_id: &str) -> (IpcProtocol, std::path::PathBuf) {
+    let tarpc_sock = resolve_primal_tarpc_socket(primal, family_id);
+    if tarpc_sock.exists() {
+        debug!(
+            "Protocol escalation: tarpc socket found at {}",
+            tarpc_sock.display()
+        );
+        return (IpcProtocol::Tarpc, tarpc_sock);
+    }
+
+    let jsonrpc_sock = resolve_primal_socket(primal, family_id);
+    debug!(
+        "Using JSON-RPC socket at {} (tarpc not available)",
+        jsonrpc_sock.display()
+    );
+    (IpcProtocol::JsonRpc, jsonrpc_sock)
+}
+
+fn resolve_socket_base_dir() -> std::path::PathBuf {
+    if let Ok(runtime_dir) = env::var("XDG_RUNTIME_DIR") {
+        return std::path::PathBuf::from(format!("{runtime_dir}/biomeos"));
+    }
+
+    // Fallback: /tmp/biomeos/
+    std::path::PathBuf::from("/tmp/biomeos")
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
 mod tests {
@@ -483,5 +552,94 @@ mod tests {
         assert_eq!(actual_jsonrpc_port(), 3333);
         assert_eq!(actual_tarpc_port(), 4444);
         cleanup_env_vars();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Protocol escalation tests
+    // ──────────────────────────────────────────────────────────────────────
+
+    #[test]
+    #[serial]
+    fn test_resolve_primal_socket_path() {
+        cleanup_env_vars();
+        env::remove_var("XDG_RUNTIME_DIR");
+        let path = resolve_primal_socket("loamspine", "default");
+        assert_eq!(
+            path.to_string_lossy(),
+            "/tmp/biomeos/loamspine-default.sock"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_resolve_primal_tarpc_socket_path() {
+        cleanup_env_vars();
+        env::remove_var("XDG_RUNTIME_DIR");
+        let path = resolve_primal_tarpc_socket("loamspine", "default");
+        assert_eq!(
+            path.to_string_lossy(),
+            "/tmp/biomeos/loamspine-default.tarpc.sock"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_resolve_primal_socket_with_xdg() {
+        cleanup_env_vars();
+        env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        let path = resolve_primal_socket("rhizocrypt", "myfamily");
+        assert_eq!(
+            path.to_string_lossy(),
+            "/run/user/1000/biomeos/rhizocrypt-myfamily.sock"
+        );
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_negotiate_protocol_prefers_tarpc_when_available() {
+        cleanup_env_vars();
+        let tmp = tempfile::tempdir().unwrap();
+        env::set_var("XDG_RUNTIME_DIR", tmp.path().to_str().unwrap());
+
+        let biomeos_dir = tmp.path().join("biomeos");
+        std::fs::create_dir_all(&biomeos_dir).unwrap();
+
+        // Create both socket files
+        std::fs::write(biomeos_dir.join("testprimal-dev.sock"), "").unwrap();
+        std::fs::write(biomeos_dir.join("testprimal-dev.tarpc.sock"), "").unwrap();
+
+        let (protocol, path) = negotiate_protocol("testprimal", "dev");
+        assert_eq!(protocol, IpcProtocol::Tarpc);
+        assert!(path.to_string_lossy().contains("tarpc.sock"));
+
+        cleanup_env_vars();
+    }
+
+    #[test]
+    #[serial]
+    fn test_negotiate_protocol_falls_back_to_jsonrpc() {
+        cleanup_env_vars();
+        let tmp = tempfile::tempdir().unwrap();
+        env::set_var("XDG_RUNTIME_DIR", tmp.path().to_str().unwrap());
+
+        let biomeos_dir = tmp.path().join("biomeos");
+        std::fs::create_dir_all(&biomeos_dir).unwrap();
+
+        // Only JSON-RPC socket exists
+        std::fs::write(biomeos_dir.join("testprimal-dev.sock"), "").unwrap();
+
+        let (protocol, path) = negotiate_protocol("testprimal", "dev");
+        assert_eq!(protocol, IpcProtocol::JsonRpc);
+        assert!(!path.to_string_lossy().contains("tarpc"));
+
+        cleanup_env_vars();
+    }
+
+    #[test]
+    fn test_ipc_protocol_equality() {
+        assert_eq!(IpcProtocol::JsonRpc, IpcProtocol::JsonRpc);
+        assert_eq!(IpcProtocol::Tarpc, IpcProtocol::Tarpc);
+        assert_ne!(IpcProtocol::JsonRpc, IpcProtocol::Tarpc);
     }
 }

@@ -268,12 +268,12 @@ Returns:
 ```toml
 [discovery]
 # Methods to try, in order
-methods = ["environment", "songbird", "mdns", "local_binaries", "config_file"]
+methods = ["environment", "service-registry", "mdns", "local_binaries", "config_file"]
 
-# Songbird connection
-songbird_endpoint = "http://localhost:8082"
-songbird_timeout_ms = 5000
-songbird_retry_interval_s = 60
+# Service registry connection (Songbird, Consul, etcd, or any compatible registry)
+service_registry_endpoint = "http://localhost:8082"
+service_registry_timeout_ms = 5000
+service_registry_retry_interval_s = 60
 
 # Advertisement
 advertise_on_startup = true
@@ -433,15 +433,15 @@ LOAMSPINE_REQUIRED_SERVICES=""  # Comma-separated
 # loamspine.toml
 [service]
 name = "loamspine"
-version = "0.6.1"
+version = "0.8.4"
 
 [storage]
 backend = "redb"
 path = "/var/lib/loamspine"
 
 [discovery]
-methods = ["songbird", "environment"]
-songbird_endpoint = "http://localhost:8082"
+methods = ["service-registry", "environment"]
+service_registry_endpoint = "http://localhost:8082"
 startup_timeout_seconds = 5
 heartbeat_interval_seconds = 30
 

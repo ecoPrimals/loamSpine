@@ -2,14 +2,15 @@
 
 # Development Roadmap
 
-**Current Version**: 0.8.3  
-**Last Updated**: March 14, 2026
+**Current Version**: 0.8.4  
+**Last Updated**: March 15, 2026
 
 ---
 
-## Completed (v0.8.0 -- v0.8.3)
+## Completed (v0.8.0 -- v0.8.4)
 
 - SQLite storage backend (feature-gated) with full test coverage
+- SQLite smart refactoring: modular `sqlite/` directory (`mod.rs`, `common.rs`, `spine.rs`, `entry.rs`, `certificate.rs`, `tests.rs`)
 - Real mDNS implementation (feature-gated)
 - Deprecated songbird fields removed
 - `Cow<'static, str>` for config/bind paths
@@ -27,20 +28,26 @@
 - **Clippy pedantic + nursery**: 0 errors across all 3 workspace crates
 - **Zero-copy JSON-RPC dispatch**: `params.clone()` eliminated, by-value ownership
 - **MockTransport cfg-gated**: No mock code in production binary
-- **Smart file splits**: All files under 1000 lines (max: 990)
+- **Smart file splits**: All production files under 1000 lines (max: 915)
 - **15 const fn promotions**, `let...else` modernization, lock scope tightening
+- **Scyborg license schema**: `CertificateType::scyborg_license()`, metadata builders, constants
+- **Protocol escalation**: `IpcProtocol` negotiation (prefers tarpc Unix socket, fallback JSON-RPC)
+- **SyncProtocol evolved**: JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer`, graceful fallback
+- **Zero-copy storage keys**: `[u8; 24]` stack allocation for redb/sled index keys
+- **CI cross-compilation**: musl targets (`x86_64`, `aarch64`, `armv7`) via `cross-rs/cross`
+- **Coverage boost**: 84.52% → 86.47% line coverage (+61 tests)
 
 ---
 
 ## v0.9.0 Targets
 
-- **90%+ test coverage** -- Raise from 84.52% (transport/http, infant_discovery, neural_api gaps)
+- **90%+ test coverage** -- Raise from 86.47% (remaining gaps in jsonrpc server loop, main.rs, DNS SRV/mDNS network paths)
+- **Split `storage/tests.rs`** -- Currently 1122 lines; split into per-backend test modules (redb, sled, sqlite, memory)
 - **Broader `Cow<'a, str>` / `Arc<str>` adoption** -- EntryType string fields, metadata keys
 - **Waypoint relending chain** -- Depth-limited relend with term inheritance
 - **Waypoint expiry sweep** -- Background task for expired anchor auto-return
 - **Certificate provenance proof** -- `generate_provenance_proof` per CERTIFICATE_LAYER.md
 - **Certificate escrow** -- `TransferConditions`, escrow hold/release
-- **SyncProtocol** -- Spine federation per INTEGRATION_SPECIFICATION.md
 - **PrimalAdapter** -- Retry + circuit-breaker for inter-primal calls
 - **Signing capability middleware** -- Signature verification on RPC layer (capability-discovered)
 

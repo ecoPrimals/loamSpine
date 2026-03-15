@@ -889,4 +889,234 @@ mod tests {
         let debug = format!("{:?}", StorageBackend::InMemory);
         assert!(debug.contains("InMemory"));
     }
+
+    // -------------------------------------------------------------------
+    // Storage backend error-path and edge-case coverage
+    // -------------------------------------------------------------------
+
+    #[cfg(feature = "redb-storage")]
+    mod redb_error_tests {
+        use crate::entry::{Entry, EntryType, SpineConfig};
+        use crate::spine::Spine;
+        use crate::storage::{EntryStorage, RedbEntryStorage, RedbSpineStorage, SpineStorage};
+        use crate::types::{Did, SpineId};
+
+        fn create_test_spine() -> Spine {
+            let owner = Did::new("did:key:z6MkRedbOwner");
+            Spine::new(owner, Some("RedbTest".into()), SpineConfig::default())
+                .unwrap_or_else(|_| unreachable!())
+        }
+
+        #[tokio::test]
+        async fn redb_spine_count_on_fresh_db() {
+            let storage = RedbSpineStorage::temporary().unwrap();
+            assert_eq!(storage.spine_count(), 0);
+        }
+
+        #[tokio::test]
+        async fn redb_entry_count_on_fresh_db() {
+            let storage = RedbEntryStorage::temporary().unwrap();
+            assert_eq!(storage.entry_count(), 0);
+        }
+
+        #[tokio::test]
+        async fn redb_get_nonexistent_spine() {
+            let storage = RedbSpineStorage::temporary().unwrap();
+            let result = storage.get_spine(SpineId::now_v7()).await.unwrap();
+            assert!(result.is_none());
+        }
+
+        #[tokio::test]
+        async fn redb_get_nonexistent_entry() {
+            let storage = RedbEntryStorage::temporary().unwrap();
+            let result = storage.get_entry([0u8; 32]).await.unwrap();
+            assert!(result.is_none());
+        }
+
+        #[tokio::test]
+        async fn redb_list_spines_empty() {
+            let storage = RedbSpineStorage::temporary().unwrap();
+            let ids = storage.list_spines().await.unwrap();
+            assert!(ids.is_empty());
+        }
+
+        #[tokio::test]
+        async fn redb_get_entries_for_spine_empty() {
+            let storage = RedbEntryStorage::temporary().unwrap();
+            let entries = storage
+                .get_entries_for_spine(SpineId::now_v7(), 0, 100)
+                .await
+                .unwrap();
+            assert!(entries.is_empty());
+        }
+
+        #[tokio::test]
+        async fn redb_save_and_retrieve_multiple_entries() {
+            let spine_storage = RedbSpineStorage::temporary().unwrap();
+            let entry_storage = RedbEntryStorage::temporary().unwrap();
+
+            let spine = create_test_spine();
+            let owner = Did::new("did:key:z6MkRedbOwner");
+            spine_storage.save_spine(&spine).await.unwrap();
+
+            let mut prev_hash = None;
+            for i in 0..5 {
+                let entry = if i == 0 {
+                    Entry::genesis(owner.clone(), spine.id, SpineConfig::default())
+                } else {
+                    Entry::new(
+                        i,
+                        prev_hash,
+                        owner.clone(),
+                        EntryType::SpineSealed { reason: None },
+                    )
+                    .with_spine_id(spine.id)
+                };
+                prev_hash = Some(entry_storage.save_entry(&entry).await.unwrap());
+            }
+
+            let entries = entry_storage
+                .get_entries_for_spine(spine.id, 0, 10)
+                .await
+                .unwrap();
+            assert_eq!(entries.len(), 5);
+            assert_eq!(entry_storage.entry_count(), 5);
+        }
+
+        #[tokio::test]
+        async fn redb_flush_is_infallible() {
+            let storage = RedbSpineStorage::temporary().unwrap();
+            assert!(storage.flush().is_ok());
+        }
+
+        #[tokio::test]
+        async fn redb_entry_exists_false_for_missing() {
+            let storage = RedbEntryStorage::temporary().unwrap();
+            let exists = storage.entry_exists([42u8; 32]).await.unwrap();
+            assert!(!exists);
+        }
+
+        #[tokio::test]
+        async fn redb_spine_delete() {
+            let storage = RedbSpineStorage::temporary().unwrap();
+            let spine = create_test_spine();
+            storage.save_spine(&spine).await.unwrap();
+            assert_eq!(storage.spine_count(), 1);
+            let _ = storage.delete_spine(spine.id).await;
+            assert_eq!(storage.spine_count(), 0);
+        }
+    }
+
+    #[cfg(feature = "sled-storage")]
+    mod sled_error_tests {
+        use crate::entry::{Entry, EntryType, SpineConfig};
+        use crate::spine::Spine;
+        use crate::storage::{EntryStorage, SledEntryStorage, SledSpineStorage, SpineStorage};
+        use crate::types::{Did, SpineId};
+
+        fn create_test_spine() -> Spine {
+            let owner = Did::new("did:key:z6MkSledOwner");
+            Spine::new(owner, Some("SledTest".into()), SpineConfig::default())
+                .unwrap_or_else(|_| unreachable!())
+        }
+
+        #[tokio::test]
+        async fn sled_spine_count_on_fresh_db() {
+            let storage = SledSpineStorage::temporary().unwrap();
+            assert_eq!(storage.spine_count(), 0);
+        }
+
+        #[tokio::test]
+        async fn sled_entry_count_on_fresh_db() {
+            let storage = SledEntryStorage::temporary().unwrap();
+            assert_eq!(storage.entry_count(), 0);
+        }
+
+        #[tokio::test]
+        async fn sled_get_nonexistent_spine() {
+            let storage = SledSpineStorage::temporary().unwrap();
+            let result = storage.get_spine(SpineId::now_v7()).await.unwrap();
+            assert!(result.is_none());
+        }
+
+        #[tokio::test]
+        async fn sled_get_nonexistent_entry() {
+            let storage = SledEntryStorage::temporary().unwrap();
+            let result = storage.get_entry([0u8; 32]).await.unwrap();
+            assert!(result.is_none());
+        }
+
+        #[tokio::test]
+        async fn sled_list_spines_empty() {
+            let storage = SledSpineStorage::temporary().unwrap();
+            let ids = storage.list_spines().await.unwrap();
+            assert!(ids.is_empty());
+        }
+
+        #[tokio::test]
+        async fn sled_get_entries_for_spine_empty() {
+            let storage = SledEntryStorage::temporary().unwrap();
+            let entries = storage
+                .get_entries_for_spine(SpineId::now_v7(), 0, 100)
+                .await
+                .unwrap();
+            assert!(entries.is_empty());
+        }
+
+        #[tokio::test]
+        async fn sled_save_and_retrieve_multiple_entries() {
+            let spine_storage = SledSpineStorage::temporary().unwrap();
+            let entry_storage = SledEntryStorage::temporary().unwrap();
+
+            let spine = create_test_spine();
+            let owner = Did::new("did:key:z6MkSledOwner");
+            spine_storage.save_spine(&spine).await.unwrap();
+
+            let mut prev_hash = None;
+            for i in 0..5 {
+                let entry = if i == 0 {
+                    Entry::genesis(owner.clone(), spine.id, SpineConfig::default())
+                } else {
+                    Entry::new(
+                        i,
+                        prev_hash,
+                        owner.clone(),
+                        EntryType::SpineSealed { reason: None },
+                    )
+                    .with_spine_id(spine.id)
+                };
+                prev_hash = Some(entry_storage.save_entry(&entry).await.unwrap());
+            }
+
+            let entries = entry_storage
+                .get_entries_for_spine(spine.id, 0, 10)
+                .await
+                .unwrap();
+            assert_eq!(entries.len(), 5);
+            assert_eq!(entry_storage.entry_count(), 5);
+        }
+
+        #[tokio::test]
+        async fn sled_flush_succeeds() {
+            let storage = SledSpineStorage::temporary().unwrap();
+            assert!(storage.flush().is_ok());
+        }
+
+        #[tokio::test]
+        async fn sled_entry_exists_false_for_missing() {
+            let storage = SledEntryStorage::temporary().unwrap();
+            let exists = storage.entry_exists([42u8; 32]).await.unwrap();
+            assert!(!exists);
+        }
+
+        #[tokio::test]
+        async fn sled_spine_delete() {
+            let storage = SledSpineStorage::temporary().unwrap();
+            let spine = create_test_spine();
+            storage.save_spine(&spine).await.unwrap();
+            assert_eq!(storage.spine_count(), 1);
+            let _ = storage.delete_spine(spine.id).await;
+            assert_eq!(storage.spine_count(), 0);
+        }
+    }
 }

@@ -256,3 +256,221 @@ fn test_own_capabilities_are_loamspine_specific() {
         .iter()
         .any(|id| id.contains("ledger") || id.contains("permanence")));
 }
+
+#[tokio::test]
+#[serial]
+async fn test_cache_hit_with_stale_services_triggers_rediscovery() {
+    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env::remove_var("SIGNING_SERVICE_URL");
+    env::remove_var("SERVICE_REGISTRY_URL");
+
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::Environment],
+        cache_ttl_secs: 0, // TTL of 0 means everything is immediately stale
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    env::set_var("SIGNING_SERVICE_URL", "http://localhost:9999");
+
+    let services = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services.len(), 1);
+
+    // Second call: cache exists but all entries are stale (ttl=0).
+    // Should rediscover via environment.
+    let services2 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services2.len(), 1);
+
+    env::remove_var("SIGNING_SERVICE_URL");
+}
+
+#[test]
+#[serial]
+fn test_discovery_config_from_env_invalid_ttl_uses_default() {
+    env::remove_var("SERVICE_REGISTRY_URL");
+    env::set_var("DISCOVERY_CACHE_TTL", "not-a-number");
+
+    let config = DiscoveryConfig::from_env_or_default();
+    assert_eq!(
+        config.cache_ttl_secs, 300,
+        "invalid TTL should leave default"
+    );
+
+    env::remove_var("DISCOVERY_CACHE_TTL");
+}
+
+#[test]
+fn test_capability_to_srv_name_all_known_capabilities() {
+    assert_eq!(
+        capability_to_srv_name("session-management"),
+        "_session._tcp.local"
+    );
+    assert_eq!(
+        capability_to_srv_name("compute-orchestration"),
+        "_compute._tcp.local"
+    );
+    assert_eq!(
+        capability_to_srv_name("service-discovery"),
+        "_discovery._tcp.local"
+    );
+}
+
+#[test]
+fn test_capability_to_srv_name_unknown_uses_last_segment() {
+    assert_eq!(
+        capability_to_srv_name("custom-capability"),
+        "_capability._tcp.local"
+    );
+    assert_eq!(capability_to_srv_name("single"), "_single._tcp.local");
+}
+
+#[tokio::test]
+async fn test_is_fresh_with_zero_ttl() {
+    let service = DiscoveredService {
+        id: "test".to_string(),
+        capability: "signing".to_string(),
+        endpoint: "http://localhost:8001".to_string(),
+        discovered_via: "test".to_string(),
+        metadata: HashMap::new(),
+        health: ServiceHealth::Healthy,
+        discovered_at: SystemTime::now(),
+        ttl_secs: 0,
+    };
+    assert!(
+        !InfantDiscovery::is_fresh(&service),
+        "zero TTL should be stale"
+    );
+}
+
+#[tokio::test]
+async fn test_all_discovered_returns_populated_cache() {
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::Environment],
+        cache_ttl_secs: 300,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    // Inject a service into the cache by running find_capability with an env var
+    env::set_var("CAPABILITY_TEST_ENDPOINT", "http://localhost:1234");
+    let _ = discovery.find_capability("test").await.unwrap();
+    env::remove_var("CAPABILITY_TEST_ENDPOINT");
+
+    let all = discovery.all_discovered().await;
+    assert!(all.contains_key("test"));
+    assert_eq!(all["test"].len(), 1);
+}
+
+#[test]
+fn test_discovery_method_equality() {
+    assert_eq!(DiscoveryMethod::Environment, DiscoveryMethod::Environment);
+    assert_eq!(DiscoveryMethod::MDns, DiscoveryMethod::MDns);
+    assert_eq!(DiscoveryMethod::DnsSrv, DiscoveryMethod::DnsSrv);
+    assert_ne!(DiscoveryMethod::Environment, DiscoveryMethod::DnsSrv);
+    assert_eq!(
+        DiscoveryMethod::ServiceRegistry("http://a".into()),
+        DiscoveryMethod::ServiceRegistry("http://a".into())
+    );
+    assert_ne!(
+        DiscoveryMethod::ServiceRegistry("http://a".into()),
+        DiscoveryMethod::ServiceRegistry("http://b".into())
+    );
+}
+
+#[tokio::test]
+#[serial]
+async fn test_discover_via_environment_pattern2_service_url() {
+    env::remove_var("CAPABILITY_STORAGE_ENDPOINT");
+    env::remove_var("CAPABILITY_CONTENT_STORAGE_ENDPOINT");
+    env::remove_var("STORAGE_SERVICE_URL");
+
+    env::set_var("STORAGE_SERVICE_URL", "http://localhost:7777");
+
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::Environment],
+        cache_ttl_secs: 300,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    let services = discovery.find_capability("content-storage").await.unwrap();
+    assert_eq!(services.len(), 1);
+    assert_eq!(services[0].endpoint, "http://localhost:7777");
+    assert_eq!(services[0].discovered_via, "environment");
+
+    env::remove_var("STORAGE_SERVICE_URL");
+}
+
+#[tokio::test]
+#[serial]
+async fn test_cache_hit_with_fresh_services_skips_rediscovery() {
+    env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
+    env::remove_var("SIGNING_SERVICE_URL");
+
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::Environment],
+        cache_ttl_secs: 3600,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    env::set_var("SIGNING_SERVICE_URL", "http://localhost:1111");
+    let services1 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services1.len(), 1);
+
+    // Change env var — but cache is fresh, so we should get old value
+    env::set_var("SIGNING_SERVICE_URL", "http://localhost:2222");
+    let services2 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services2.len(), 1);
+    assert_eq!(
+        services2[0].endpoint, "http://localhost:1111",
+        "should use cached value"
+    );
+
+    env::remove_var("SIGNING_SERVICE_URL");
+}
+
+#[tokio::test]
+async fn test_with_config_custom_timeout() {
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::DnsSrv],
+        cache_ttl_secs: 60,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_millis(100),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+    assert_eq!(
+        discovery.own_capabilities().len(),
+        LoamSpineCapability::introspect().len()
+    );
+}
+
+#[tokio::test]
+async fn test_mdns_not_enabled_returns_empty() {
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::MDns],
+        cache_ttl_secs: 300,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+    let services = discovery.find_capability("signing").await.unwrap();
+    // Without mdns feature (or with it but no LAN services), should be empty
+    assert!(services.is_empty());
+}

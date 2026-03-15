@@ -15,6 +15,32 @@ use crate::types::{CertificateId, Did, EntryHash, PayloadRef, SpineId, Timestamp
 // Time Constants
 // ============================================================================
 
+// ============================================================================
+// Scyborg License Constants
+// ============================================================================
+
+/// Type URI for scyborg license certificates.
+pub const SCYBORG_LICENSE_TYPE_URI: &str = "scyborg:license";
+
+/// Current schema version for scyborg license certificates.
+pub const SCYBORG_LICENSE_SCHEMA_VERSION: u32 = 1;
+
+/// Metadata key for SPDX license expression.
+pub const SCYBORG_META_SPDX: &str = "scyborg:spdx_expression";
+
+/// Metadata key for content category (code, creative, mechanics).
+pub const SCYBORG_META_CATEGORY: &str = "scyborg:content_category";
+
+/// Metadata key for copyright holder.
+pub const SCYBORG_META_COPYRIGHT: &str = "scyborg:copyright_holder";
+
+/// Metadata key for share-alike requirement.
+pub const SCYBORG_META_SHARE_ALIKE: &str = "scyborg:share_alike";
+
+// ============================================================================
+// Time Constants
+// ============================================================================
+
 /// Seconds in a minute.
 pub const SECONDS_PER_MINUTE: u64 = 60;
 
@@ -274,6 +300,30 @@ impl CertificateType {
             Self::ArtworkProvenance { .. } | Self::DataProvenance { .. } => "provenance",
             Self::Custom { .. } => "custom",
         }
+    }
+
+    /// Create a scyborg license certificate type.
+    ///
+    /// The scyborg licensing model uses Loam Certificates to immutably record
+    /// license terms. This encodes the tri-license structure:
+    /// - **Code**: AGPL-3.0-or-later
+    /// - **Creative**: CC-BY-SA-4.0
+    /// - **Mechanics**: ORC (reserved material)
+    ///
+    /// License-specific metadata (SPDX, copyright holder, share-alike) is stored
+    /// on `CertificateMetadata` via `with_scyborg_license()`.
+    #[must_use]
+    pub fn scyborg_license() -> Self {
+        Self::Custom {
+            type_uri: SCYBORG_LICENSE_TYPE_URI.to_string(),
+            schema_version: SCYBORG_LICENSE_SCHEMA_VERSION,
+        }
+    }
+
+    /// Check if this is a scyborg license certificate.
+    #[must_use]
+    pub fn is_scyborg_license(&self) -> bool {
+        matches!(self, Self::Custom { type_uri, .. } if type_uri == SCYBORG_LICENSE_TYPE_URI)
     }
 
     /// Check if this certificate type can expire.
@@ -539,6 +589,44 @@ impl CertificateMetadata {
         self.attributes.insert(key.into(), value.into());
         self
     }
+
+    /// Populate metadata for a scyborg license certificate.
+    ///
+    /// Sets the canonical scyborg metadata fields used by sweetGrass (attribution)
+    /// and rhizoCrypt (derivation chains) to enforce tri-license compliance.
+    #[must_use]
+    pub fn with_scyborg_license(
+        self,
+        spdx_expression: impl Into<String>,
+        content_category: impl Into<String>,
+        copyright_holder: impl Into<String>,
+        share_alike: bool,
+    ) -> Self {
+        self.with_attribute(SCYBORG_META_SPDX, spdx_expression)
+            .with_attribute(SCYBORG_META_CATEGORY, content_category)
+            .with_attribute(SCYBORG_META_COPYRIGHT, copyright_holder)
+            .with_attribute(SCYBORG_META_SHARE_ALIKE, share_alike.to_string())
+    }
+
+    /// Check if this metadata contains scyborg license fields.
+    #[must_use]
+    pub fn is_scyborg_license(&self) -> bool {
+        self.attributes.contains_key(SCYBORG_META_SPDX)
+    }
+
+    /// Get the SPDX expression from scyborg metadata.
+    #[must_use]
+    pub fn scyborg_spdx(&self) -> Option<&str> {
+        self.attributes.get(SCYBORG_META_SPDX).map(String::as_str)
+    }
+
+    /// Get the content category from scyborg metadata.
+    #[must_use]
+    pub fn scyborg_category(&self) -> Option<&str> {
+        self.attributes
+            .get(SCYBORG_META_CATEGORY)
+            .map(String::as_str)
+    }
 }
 
 /// Certificate ownership record.
@@ -741,5 +829,87 @@ mod tests {
         let borrower = Did::new("did:key:z6MkBorrower");
         cert.holder = Some(borrower.clone());
         assert_eq!(cert.effective_holder(), &borrower);
+    }
+
+    #[test]
+    fn scyborg_license_certificate_type() {
+        let cert_type = CertificateType::scyborg_license();
+        assert!(cert_type.is_scyborg_license());
+        assert_eq!(cert_type.category(), "custom");
+    }
+
+    #[test]
+    fn scyborg_license_metadata() {
+        let metadata = CertificateMetadata::new()
+            .with_name("ecoPrimals Code License")
+            .with_scyborg_license("AGPL-3.0-or-later", "code", "ecoPrimals Contributors", true);
+
+        assert!(metadata.is_scyborg_license());
+        assert_eq!(metadata.scyborg_spdx(), Some("AGPL-3.0-or-later"));
+        assert_eq!(metadata.scyborg_category(), Some("code"));
+        assert_eq!(
+            metadata.attributes.get(SCYBORG_META_COPYRIGHT),
+            Some(&"ecoPrimals Contributors".to_string())
+        );
+        assert_eq!(
+            metadata.attributes.get(SCYBORG_META_SHARE_ALIKE),
+            Some(&"true".to_string())
+        );
+    }
+
+    #[test]
+    fn scyborg_license_full_certificate() {
+        let owner = Did::new("did:key:z6MkLicensor");
+        let mint_info = MintInfo {
+            minter: owner.clone(),
+            spine: SpineId::now_v7(),
+            entry: [1u8; 32],
+            timestamp: Timestamp::now(),
+            authority: None,
+        };
+
+        let cert = Certificate::new(
+            CertificateId::now_v7(),
+            CertificateType::scyborg_license(),
+            &owner,
+            &mint_info,
+        )
+        .with_metadata(
+            CertificateMetadata::new()
+                .with_name("LoamSpine AGPL License")
+                .with_description("Immutable proof that AGPL-3.0-or-later applies")
+                .with_scyborg_license("AGPL-3.0-or-later", "code", "ecoPrimals Contributors", true),
+        );
+
+        assert!(cert.cert_type.is_scyborg_license());
+        assert!(cert.is_active());
+        assert!(cert.metadata.is_scyborg_license());
+        assert_eq!(cert.metadata.scyborg_spdx(), Some("AGPL-3.0-or-later"));
+    }
+
+    #[test]
+    fn scyborg_creative_commons_license() {
+        let metadata = CertificateMetadata::new().with_scyborg_license(
+            "CC-BY-SA-4.0",
+            "creative",
+            "ecoPrimals Authors",
+            true,
+        );
+
+        assert!(metadata.is_scyborg_license());
+        assert_eq!(metadata.scyborg_spdx(), Some("CC-BY-SA-4.0"));
+        assert_eq!(metadata.scyborg_category(), Some("creative"));
+    }
+
+    #[test]
+    fn non_scyborg_certificate_is_not_scyborg() {
+        let cert_type = CertificateType::Custom {
+            type_uri: "other:custom".to_string(),
+            schema_version: 1,
+        };
+        assert!(!cert_type.is_scyborg_license());
+
+        let metadata = CertificateMetadata::new().with_name("Not a license");
+        assert!(!metadata.is_scyborg_license());
     }
 }

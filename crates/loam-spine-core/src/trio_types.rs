@@ -9,6 +9,9 @@
 //!
 //! This module provides conversion types and `TryFrom` implementations to bridge
 //! between these representations for trio-coordinated commits.
+//!
+//! The canonical wire types live in [`provenance_trio_types`] and are re-exported
+//! here for convenience. All IPC boundaries should use the canonical types.
 
 use std::fmt;
 
@@ -16,6 +19,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::LoamSpineError;
 use crate::types::{Did, EntryHash, Signature, SpineId, Timestamp};
+
+pub use provenance_trio_types::{
+    self as wire, AgentRef as WireAgentRef, AttestationRef as WireAttestationRef,
+    DehydrationSummary as WireDehydrationSummary, PipelineRequest, PipelineResult,
+    SessionOperationRef as WireSessionOperationRef,
+};
 
 /// Ephemeral session ID from rhizoCrypt (opaque string, typically UUID v7 hex).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -192,6 +201,33 @@ pub struct TrioCommitReceipt {
     /// Timestamp of the commit.
     pub committed_at: Timestamp,
 }
+
+impl TrioCommitReceipt {
+    /// Convert to the canonical [`PipelineResult`] for biomeOS graph execution.
+    #[must_use]
+    pub fn to_pipeline_result(
+        &self,
+        merkle_root: &str,
+        braid_ref: Option<String>,
+    ) -> PipelineResult {
+        use std::fmt::Write;
+        let commit_ref = self
+            .entry_hash
+            .iter()
+            .fold(String::with_capacity(64), |mut acc, b| {
+                let _ = write!(acc, "{b:02x}");
+                acc
+            });
+        PipelineResult {
+            dehydration_merkle_root: merkle_root.to_string(),
+            commit_ref,
+            braid_ref,
+            signature: None,
+            content_ref: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)]
@@ -292,5 +328,37 @@ mod tests {
         };
         let json = serde_json::to_string(&receipt).expect("serialize");
         let _: TrioCommitReceipt = serde_json::from_str(&json).expect("deserialize");
+    }
+
+    #[test]
+    fn wire_dehydration_summary_deserializes() {
+        let payload = serde_json::json!({
+            "session_id": "sess-1",
+            "source_primal": "rhizoCrypt",
+            "merkle_root": "sha256:abc",
+            "vertex_count": 10,
+            "agents": ["did:key:z6MkAlice"],
+            "session_type": "experiment",
+            "outcome": "Success"
+        });
+        let s: WireDehydrationSummary = serde_json::from_value(payload).unwrap();
+        assert_eq!(s.session_id, "sess-1");
+        assert_eq!(s.vertex_count, 10);
+        assert_eq!(s.branch_count, 0); // serde default
+    }
+
+    #[test]
+    fn trio_receipt_to_pipeline_result() {
+        let hash: EntryHash = blake3::hash(b"test").into();
+        let receipt = TrioCommitReceipt {
+            spine_id: uuid::Uuid::now_v7(),
+            entry_hash: hash,
+            entry_index: 1,
+            committed_at: Timestamp::now(),
+        };
+        let result = receipt.to_pipeline_result("sha256:abc", Some("urn:braid:123".into()));
+        assert_eq!(result.dehydration_merkle_root, "sha256:abc");
+        assert!(!result.commit_ref.is_empty());
+        assert_eq!(result.braid_ref.as_deref(), Some("urn:braid:123"));
     }
 }

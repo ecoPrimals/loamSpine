@@ -515,4 +515,184 @@ mod tests {
         assert!(pretty.contains("permanence"));
         assert!(pretty.contains("capability.list"));
     }
+
+    /// Helper: spawn a mock NeuralAPI Unix socket server that responds to
+    /// length-prefixed JSON-RPC with a canned response.
+    async fn spawn_mock_neural_api(
+        socket_path: &std::path::Path,
+        response: serde_json::Value,
+    ) -> tokio::task::JoinHandle<()> {
+        let listener = tokio::net::UnixListener::bind(socket_path).unwrap();
+        let resp_bytes = serde_json::to_vec(&response).unwrap();
+
+        tokio::spawn(async move {
+            if let Ok((mut stream, _)) = listener.accept().await {
+                let mut len_buf = [0u8; 4];
+                let _ = stream.read_exact(&mut len_buf).await;
+                let req_len = u32::from_be_bytes(len_buf) as usize;
+                let mut req_buf = vec![0u8; req_len];
+                let _ = stream.read_exact(&mut req_buf).await;
+
+                let len = (resp_bytes.len() as u32).to_be_bytes();
+                let _ = stream.write_all(&len).await;
+                let _ = stream.write_all(&resp_bytes).await;
+                let _ = stream.flush().await;
+            }
+        })
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn register_with_neural_api_succeeds_with_mock_server() {
+        cleanup_neural_env();
+
+        let tmp = tempfile::tempdir().unwrap();
+        let sock = tmp.path().join("neural-api.sock");
+
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "result": { "registered": true },
+            "id": 1
+        });
+        let handle = spawn_mock_neural_api(&sock, response).await;
+
+        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        let result = register_with_neural_api().await;
+        cleanup_neural_env();
+
+        assert!(result.is_ok());
+        assert!(result.unwrap(), "should return true on successful register");
+
+        handle.abort();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn register_with_neural_api_returns_error_on_jsonrpc_error() {
+        cleanup_neural_env();
+
+        let tmp = tempfile::tempdir().unwrap();
+        let sock = tmp.path().join("neural-api-err.sock");
+
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "error": { "code": -32601, "message": "method not found" },
+            "id": 1
+        });
+        let handle = spawn_mock_neural_api(&sock, response).await;
+
+        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        let result = register_with_neural_api().await;
+        cleanup_neural_env();
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("method not found"), "error: {err}");
+
+        handle.abort();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn deregister_from_neural_api_succeeds_with_mock_server() {
+        cleanup_neural_env();
+
+        let tmp = tempfile::tempdir().unwrap();
+        let sock = tmp.path().join("neural-api-dereg.sock");
+
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "result": { "deregistered": true },
+            "id": 2
+        });
+        let handle = spawn_mock_neural_api(&sock, response).await;
+
+        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        let result = deregister_from_neural_api().await;
+        cleanup_neural_env();
+
+        assert!(result.is_ok());
+        handle.abort();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn deregister_from_neural_api_handles_jsonrpc_error_gracefully() {
+        cleanup_neural_env();
+
+        let tmp = tempfile::tempdir().unwrap();
+        let sock = tmp.path().join("neural-api-dereg-err.sock");
+
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "error": { "code": -32601, "message": "not supported" },
+            "id": 2
+        });
+        let handle = spawn_mock_neural_api(&sock, response).await;
+
+        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        let result = deregister_from_neural_api().await;
+        cleanup_neural_env();
+
+        assert!(
+            result.is_ok(),
+            "deregister should succeed even on JSON-RPC error"
+        );
+        handle.abort();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn deregister_from_neural_api_handles_malformed_response() {
+        cleanup_neural_env();
+
+        let tmp = tempfile::tempdir().unwrap();
+        let sock = tmp.path().join("neural-api-dereg-bad.sock");
+
+        let listener = tokio::net::UnixListener::bind(&sock).unwrap();
+        let handle = tokio::spawn(async move {
+            if let Ok((mut stream, _)) = listener.accept().await {
+                let mut len_buf = [0u8; 4];
+                let _ = stream.read_exact(&mut len_buf).await;
+                let req_len = u32::from_be_bytes(len_buf) as usize;
+                let mut req_buf = vec![0u8; req_len];
+                let _ = stream.read_exact(&mut req_buf).await;
+
+                let garbage = b"not json";
+                let len = (garbage.len() as u32).to_be_bytes();
+                let _ = stream.write_all(&len).await;
+                let _ = stream.write_all(garbage).await;
+                let _ = stream.flush().await;
+            }
+        });
+
+        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        let result = deregister_from_neural_api().await;
+        cleanup_neural_env();
+
+        assert!(
+            result.is_ok(),
+            "deregister should succeed even on malformed response"
+        );
+        handle.abort();
+    }
+
+    #[test]
+    fn capabilities_has_no_duplicates() {
+        let mut seen = std::collections::HashSet::new();
+        for cap in CAPABILITIES {
+            assert!(seen.insert(cap), "duplicate capability: {cap}");
+        }
+    }
+
+    #[test]
+    fn capabilities_follow_semantic_naming() {
+        for cap in CAPABILITIES {
+            assert!(
+                !cap.contains("loamspine"),
+                "capability '{cap}' should not reference primal name"
+            );
+            assert!(!cap.is_empty(), "capability should not be empty");
+        }
+    }
 }

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.4] - 2026-03-15
+
+### Added
+- **Scyborg license schema**: `CertificateType::scyborg_license()` constructor, `CertificateMetadata::with_scyborg_license()` builder, schema constants (`SCYBORG_LICENSE_TYPE_URI`, `SCYBORG_LICENSE_SCHEMA_VERSION`, `SCYBORG_META_SPDX`, `SCYBORG_META_CATEGORY`, `SCYBORG_META_COPYRIGHT`, `SCYBORG_META_SHARE_ALIKE`)
+- **Protocol escalation**: `IpcProtocol` enum (`JsonRpc`, `Tarpc`), `negotiate_protocol()` preferring tarpc Unix socket, `resolve_primal_socket()` and `resolve_primal_tarpc_socket()` path builders
+- **SyncProtocol evolved**: From local-only stub to JSON-RPC/TCP sync engine with `rpc_call()`, `push_to_peer()`, `pull_from_peer()`, `best_peer_endpoint()`, graceful fallback to local queues
+- **CI cross-compilation**: GitHub Actions job for musl targets (`x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`, `armv7-unknown-linux-musleabihf`) via `cross-rs/cross`
+- 61 new tests across neural_api, transport, infant_discovery, storage backends
+
+### Changed
+- **SQLite smart refactoring**: 990-line `sqlite.rs` → modular `sqlite/` directory (`mod.rs` 104 lines, `common.rs` 38 lines, `spine.rs` 155 lines, `entry.rs` 185 lines, `certificate.rs` 164 lines, `tests.rs` 293 lines)
+- **Zero-copy storage keys**: `Vec<u8>` index keys in redb/sled → `[u8; 24]` stack-allocated fixed arrays
+- Neural API coverage: 57% → 88% (mock Unix socket server tests for register/deregister/error paths)
+- Transport coverage: 70% → 92% (mock server tests for `jsonrpc_call`, `get_with_query`, `post_json`, base64 edge cases)
+- `deny.toml` placeholder XXX URL cleaned to descriptive comment
+
+### Metrics
+- Tests: 809 → 870 (+61)
+- Line coverage: 84.52% → 86.47% (llvm-cov)
+- Source files: 96 → 97
+- Max production file: 990 → 915 lines (sqlite refactored)
+- Clippy: 0 warnings (maintained)
+- Doc warnings: 0 (maintained)
+- Unsafe: 0 blocks (maintained)
+
 ## [0.8.3] - 2026-03-14
 
 ### Added
@@ -452,6 +477,7 @@ spine.append(entry)?;
 
 ---
 
+[0.8.4]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.0...v0.8.1

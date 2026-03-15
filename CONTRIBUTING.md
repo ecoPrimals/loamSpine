@@ -15,7 +15,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe**: `#![forbid(unsafe_code)]` is enforced
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 84.52%, 809 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: 86.47%, 870 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -292,14 +292,14 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.8.3 |
-| Tests | 809 |
-| Line Coverage | 84.52% (llvm-cov) |
-| Max File Size | 990 lines (all < 1000) |
+| Version | 0.8.4 |
+| Tests | 870 |
+| Line Coverage | 86.47% (llvm-cov) |
+| Max File Size | 915 lines production (all < 1000) |
 | Clippy | pedantic + nursery (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | License | AGPL-3.0-only |
-| SPDX Headers | All 96 source files |
+| SPDX Headers | All 97 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | bans, licenses, sources pass |
 | UniBin | `loamspine server` subcommand |

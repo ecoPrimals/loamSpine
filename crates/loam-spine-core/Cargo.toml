@@ -34,6 +34,9 @@ rusqlite = { version = "0.32", features = ["bundled"], optional = true }
 bytes = "1.9"
 serde_bytes = "0.11"
 
+# Provenance trio canonical wire types
+provenance-trio-types = { workspace = true }
+
 # URL parsing (pure Rust, no C dependencies)
 url = "2.5"
 

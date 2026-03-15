@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.8.3"
+version = "0.8.4"
 edition = "2021"
 license = "AGPL-3.0-only"
 repository = "https://github.com/ecoPrimals/loamSpine"
@@ -38,6 +38,9 @@ uuid = { version = "1.11", features = ["v7", "serde"] }
 
 # Testing
 serial_test = "3.0"
+
+# Provenance trio canonical wire types
+provenance-trio-types = { path = "../provenance-trio-types" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
