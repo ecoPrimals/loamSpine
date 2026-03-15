@@ -383,10 +383,10 @@ impl BraidAcceptor for LoamSpineService {
                 .get_entries_for_spine(spine_id, 0, DEFAULT_SEARCH_LIMIT)
                 .await?;
             for entry in entries {
-                if let EntryType::BraidCommit { braid_id: bid, .. } = &entry.entry_type {
-                    if *bid == braid_id {
-                        return Ok(true);
-                    }
+                if let EntryType::BraidCommit { braid_id: bid, .. } = &entry.entry_type
+                    && *bid == braid_id
+                {
+                    return Ok(true);
                 }
             }
         }
@@ -408,10 +408,9 @@ impl BraidAcceptor for LoamSpineService {
                 if let EntryType::BraidCommit {
                     subject_hash: sh, ..
                 } = &entry.entry_type
+                    && *sh == subject_hash
                 {
-                    if *sh == subject_hash {
-                        results.push(entry.compute_hash()?);
-                    }
+                    results.push(entry.compute_hash()?);
                 }
             }
         }
@@ -433,10 +432,10 @@ impl ProvenanceSource for LoamSpineService {
                 .get_entries_for_spine(spine_id, 0, DEFAULT_SEARCH_LIMIT)
                 .await?;
             for entry in entries {
-                if let EntryType::DataAnchor { data_hash, .. } = &entry.entry_type {
-                    if *data_hash == content_hash {
-                        results.push(entry);
-                    }
+                if let EntryType::DataAnchor { data_hash, .. } = &entry.entry_type
+                    && *data_hash == content_hash
+                {
+                    results.push(entry);
                 }
             }
         }
@@ -481,21 +480,21 @@ impl ProvenanceSource for LoamSpineService {
                 .get_entries_for_spine(*spine_id, 0, DEFAULT_SEARCH_LIMIT)
                 .await?;
             for entry in &entries {
-                if let EntryType::DataAnchor { data_hash, .. } = &entry.entry_type {
-                    if *data_hash == content_hash {
-                        let spine = self.spine_storage.get_spine(*spine_id).await?;
-                        let creator = spine
-                            .as_ref()
-                            .map_or_else(|| Did::new("did:key:unknown"), |s| s.owner.clone());
+                if let EntryType::DataAnchor { data_hash, .. } = &entry.entry_type
+                    && *data_hash == content_hash
+                {
+                    let spine = self.spine_storage.get_spine(*spine_id).await?;
+                    let creator = spine
+                        .as_ref()
+                        .map_or_else(|| Did::new("did:key:unknown"), |s| s.owner.clone());
 
-                        return Ok(Some(AttributionRecord {
-                            content_hash,
-                            creator,
-                            contributors: Vec::new(),
-                            certificate_id: None,
-                            recorded_at: entry.timestamp,
-                        }));
-                    }
+                    return Ok(Some(AttributionRecord {
+                        content_hash,
+                        creator,
+                        contributors: Vec::new(),
+                        certificate_id: None,
+                        recorded_at: entry.timestamp,
+                    }));
                 }
             }
         }

@@ -351,9 +351,11 @@ mod tests {
         let checker = HealthChecker::new();
         let health = checker.check_health().await.unwrap();
         assert!(!health.capabilities.is_empty());
-        assert!(health
-            .capabilities
-            .contains(&"persistent-ledger".to_string()));
+        assert!(
+            health
+                .capabilities
+                .contains(&"persistent-ledger".to_string())
+        );
     }
 
     #[tokio::test]

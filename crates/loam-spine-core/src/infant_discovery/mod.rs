@@ -52,9 +52,9 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use hickory_resolver::{
+    TokioAsyncResolver,
     config::{ResolverConfig, ResolverOpts},
     lookup::SrvLookup,
-    TokioAsyncResolver,
 };
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
@@ -122,10 +122,10 @@ impl DiscoveryConfig {
         }
 
         // Allow overriding cache TTL
-        if let Ok(ttl_str) = env::var("DISCOVERY_CACHE_TTL") {
-            if let Ok(ttl) = ttl_str.parse::<u64>() {
-                config.cache_ttl_secs = ttl;
-            }
+        if let Ok(ttl_str) = env::var("DISCOVERY_CACHE_TTL")
+            && let Ok(ttl) = ttl_str.parse::<u64>()
+        {
+            config.cache_ttl_secs = ttl;
         }
 
         config
@@ -216,19 +216,19 @@ impl InfantDiscovery {
         // Check cache first
         {
             let discovered = self.discovered.read().await;
-            if let Some(services) = discovered.get(capability) {
-                if !services.is_empty() {
-                    // Verify services are still fresh
-                    let fresh: Vec<_> = services
-                        .iter()
-                        .filter(|s| Self::is_fresh(s))
-                        .cloned()
-                        .collect();
+            if let Some(services) = discovered.get(capability)
+                && !services.is_empty()
+            {
+                // Verify services are still fresh
+                let fresh: Vec<_> = services
+                    .iter()
+                    .filter(|s| Self::is_fresh(s))
+                    .cloned()
+                    .collect();
 
-                    if !fresh.is_empty() {
-                        debug!("Found {} cached services for '{}'", fresh.len(), capability);
-                        return Ok(fresh);
-                    }
+                if !fresh.is_empty() {
+                    debug!("Found {} cached services for '{}'", fresh.len(), capability);
+                    return Ok(fresh);
                 }
             }
         }
@@ -687,5 +687,5 @@ fn capability_to_srv_name(capability: &str) -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
 mod tests;

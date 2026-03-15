@@ -2,12 +2,12 @@
 
 # Development Roadmap
 
-**Current Version**: 0.8.7  
+**Current Version**: 0.8.8  
 **Last Updated**: March 15, 2026
 
 ---
 
-## Completed (v0.8.0 -- v0.8.7)
+## Completed (v0.8.0 -- v0.8.8)
 
 - SQLite storage backend (feature-gated) with full test coverage
 - SQLite smart refactoring: modular `sqlite/` directory
@@ -48,6 +48,13 @@
 - **WAYPOINT_SEMANTICS.md**: Promoted from PARTIAL → COMPLETE
 - **CERTIFICATE_LAYER.md**: Promoted from PARTIAL → COMPLETE
 - **Coverage**: 89.64% line, 91.71% region (1,114 tests)
+- **Edition 2024**: Migrated from 2021, let-chains, `unsafe` env mutations in tests
+- **JSON-RPC batch support**: Full JSON-RPC 2.0 batch array processing
+- **Proptest**: 7 property-based roundtrip tests for core newtypes
+- **Named resilience constants**: `CIRCUIT_*`, `RETRY_*` with documented provenance
+- **Enriched `capability.list`**: Methods with domain/cost/deps per operation
+- **Platform-agnostic temp paths**: `std::env::temp_dir()` replaces hardcoded `/tmp`
+- **Coverage**: 89.64% line, 91.71% region (1,123 tests)
 
 ---
 

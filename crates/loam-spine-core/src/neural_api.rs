@@ -43,7 +43,7 @@ pub const CAPABILITIES: &[&str] = &[
 /// Resolution order:
 /// 1. `LOAMSPINE_SOCKET` environment variable
 /// 2. `$XDG_RUNTIME_DIR/biomeos/loamspine-{family_id}.sock`
-/// 3. `/tmp/biomeos/loamspine-{family_id}.sock`
+/// 3. `{temp_dir}/biomeos/loamspine-{family_id}.sock`
 #[must_use]
 pub fn resolve_socket_path() -> PathBuf {
     if let Ok(s) = std::env::var("LOAMSPINE_SOCKET") {
@@ -53,7 +53,9 @@ pub fn resolve_socket_path() -> PathBuf {
     if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
         return PathBuf::from(format!("{runtime_dir}/biomeos/loamspine-{family_id}.sock"));
     }
-    PathBuf::from(format!("/tmp/biomeos/loamspine-{family_id}.sock"))
+    std::env::temp_dir()
+        .join("biomeos")
+        .join(format!("loamspine-{family_id}.sock"))
 }
 
 /// Resolve the NeuralAPI socket path for connecting to biomeOS.
@@ -257,11 +259,38 @@ pub async fn deregister_from_neural_api() -> crate::error::LoamSpineResult<()> {
 
 /// Return the capability list as a JSON-RPC response payload.
 /// Implements the `capability.list` semantic method.
+/// Aligns with ludoSpring's enhanced format: domain, method, dependencies, cost tier.
 #[must_use]
 pub fn capability_list() -> serde_json::Value {
     serde_json::json!({
-        "capabilities": CAPABILITIES,
         "primal": PRIMAL_NAME,
+        "version": env!("CARGO_PKG_VERSION"),
+        "capabilities": CAPABILITIES,
+        "methods": [
+            { "method": "spine.create", "domain": "spine", "cost": "low", "deps": [] },
+            { "method": "spine.get", "domain": "spine", "cost": "low", "deps": [] },
+            { "method": "spine.seal", "domain": "spine", "cost": "low", "deps": [] },
+            { "method": "entry.append", "domain": "entry", "cost": "low", "deps": ["spine.create"] },
+            { "method": "entry.get", "domain": "entry", "cost": "low", "deps": [] },
+            { "method": "entry.get_tip", "domain": "entry", "cost": "low", "deps": [] },
+            { "method": "certificate.mint", "domain": "certificate", "cost": "low", "deps": ["spine.create"] },
+            { "method": "certificate.transfer", "domain": "certificate", "cost": "low", "deps": ["certificate.mint"] },
+            { "method": "certificate.loan", "domain": "certificate", "cost": "low", "deps": ["certificate.mint"] },
+            { "method": "certificate.return", "domain": "certificate", "cost": "low", "deps": ["certificate.loan"] },
+            { "method": "certificate.get", "domain": "certificate", "cost": "low", "deps": [] },
+            { "method": "certificate.verify", "domain": "certificate", "cost": "medium", "deps": [] },
+            { "method": "certificate.lifecycle", "domain": "certificate", "cost": "medium", "deps": [] },
+            { "method": "slice.anchor", "domain": "waypoint", "cost": "low", "deps": ["spine.create"] },
+            { "method": "slice.checkout", "domain": "waypoint", "cost": "low", "deps": [] },
+            { "method": "slice.record_operation", "domain": "waypoint", "cost": "low", "deps": ["slice.anchor"] },
+            { "method": "slice.depart", "domain": "waypoint", "cost": "low", "deps": ["slice.anchor"] },
+            { "method": "proof.generate_inclusion", "domain": "proof", "cost": "medium", "deps": ["entry.append"] },
+            { "method": "proof.verify_inclusion", "domain": "proof", "cost": "medium", "deps": [] },
+            { "method": "session.commit", "domain": "integration", "cost": "medium", "deps": ["spine.create"] },
+            { "method": "braid.commit", "domain": "integration", "cost": "medium", "deps": ["spine.create"] },
+            { "method": "health.check", "domain": "health", "cost": "low", "deps": [] },
+            { "method": "capability.list", "domain": "meta", "cost": "low", "deps": [] },
+        ],
     })
 }
 
@@ -273,16 +302,24 @@ pub fn capability_list_pretty() -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
 mod tests {
     use super::*;
     use serial_test::serial;
 
     fn cleanup_neural_env() {
-        std::env::remove_var("LOAMSPINE_SOCKET");
-        std::env::remove_var("XDG_RUNTIME_DIR");
-        std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        std::env::remove_var("BIOMEOS_FAMILY_ID");
+        unsafe {
+            std::env::remove_var("LOAMSPINE_SOCKET");
+        }
+        unsafe {
+            std::env::remove_var("XDG_RUNTIME_DIR");
+        }
+        unsafe {
+            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        }
+        unsafe {
+            std::env::remove_var("BIOMEOS_FAMILY_ID");
+        }
     }
 
     #[test]
@@ -295,11 +332,17 @@ mod tests {
     #[test]
     fn capability_list_includes_all_expected() {
         let list = capability_list();
+        assert!(list.get("primal").is_some());
+        assert!(list.get("version").is_some());
+        assert!(list.get("capabilities").is_some());
+        assert!(list.get("methods").is_some());
         let caps = list["capabilities"].as_array().expect("capabilities array");
         assert!(caps.contains(&serde_json::json!("permanence")));
         assert!(caps.contains(&serde_json::json!("spine.create")));
         assert!(caps.contains(&serde_json::json!("capability.list")));
         assert_eq!(caps.len(), CAPABILITIES.len());
+        let methods = list["methods"].as_array().expect("methods array");
+        assert!(!methods.is_empty());
     }
 
     #[test]
@@ -319,24 +362,30 @@ mod tests {
     #[test]
     fn socket_path_respects_env() {
         let prev = std::env::var("LOAMSPINE_SOCKET").ok();
-        std::env::set_var("LOAMSPINE_SOCKET", "/custom/loamspine.sock");
+        unsafe {
+            std::env::set_var("LOAMSPINE_SOCKET", "/custom/loamspine.sock");
+        }
         let path = resolve_socket_path();
         assert_eq!(path.to_string_lossy(), "/custom/loamspine.sock");
         match prev {
-            Some(v) => std::env::set_var("LOAMSPINE_SOCKET", v),
-            None => std::env::remove_var("LOAMSPINE_SOCKET"),
+            Some(v) => unsafe { std::env::set_var("LOAMSPINE_SOCKET", v) },
+            None => unsafe { std::env::remove_var("LOAMSPINE_SOCKET") },
         }
     }
 
     #[tokio::test]
     async fn registration_gracefully_handles_missing_socket() {
         // Use a non-existent socket path so we get Ok(false) without connecting
-        std::env::set_var(
-            "BIOMEOS_NEURAL_API_SOCKET",
-            "/tmp/nonexistent-neural-api-loamspine-test.sock",
-        );
+        unsafe {
+            std::env::set_var(
+                "BIOMEOS_NEURAL_API_SOCKET",
+                "/tmp/nonexistent-neural-api-loamspine-test.sock",
+            );
+        }
         let result = register_with_neural_api().await;
-        std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        unsafe {
+            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        }
         assert!(result.is_ok());
         let ok = result.unwrap();
         assert!(!ok);
@@ -344,12 +393,16 @@ mod tests {
 
     #[tokio::test]
     async fn deregistration_gracefully_handles_missing_socket() {
-        std::env::set_var(
-            "BIOMEOS_NEURAL_API_SOCKET",
-            "/tmp/nonexistent-neural-api-loamspine-test.sock",
-        );
+        unsafe {
+            std::env::set_var(
+                "BIOMEOS_NEURAL_API_SOCKET",
+                "/tmp/nonexistent-neural-api-loamspine-test.sock",
+            );
+        }
         let result = deregister_from_neural_api().await;
-        std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        unsafe {
+            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        }
         assert!(result.is_ok());
     }
 
@@ -364,13 +417,17 @@ mod tests {
     #[serial]
     fn resolve_socket_path_uses_xdg_runtime_dir_when_loamspine_socket_unset() {
         cleanup_neural_env();
-        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        unsafe {
+            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        }
         let path = resolve_socket_path();
         assert_eq!(
             path.to_string_lossy(),
             "/run/user/1000/biomeos/loamspine-default.sock"
         );
-        std::env::set_var("BIOMEOS_FAMILY_ID", "myfamily");
+        unsafe {
+            std::env::set_var("BIOMEOS_FAMILY_ID", "myfamily");
+        }
         let path = resolve_socket_path();
         assert_eq!(
             path.to_string_lossy(),
@@ -383,7 +440,9 @@ mod tests {
     #[serial]
     fn resolve_neural_api_socket_with_env() {
         cleanup_neural_env();
-        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", "/custom/neural.sock");
+        unsafe {
+            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", "/custom/neural.sock");
+        }
         let path = super::resolve_neural_api_socket();
         assert!(path.is_some());
         assert_eq!(
@@ -397,7 +456,9 @@ mod tests {
     #[serial]
     fn resolve_neural_api_socket_with_xdg_runtime_dir() {
         cleanup_neural_env();
-        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        unsafe {
+            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        }
         let path = super::resolve_neural_api_socket();
         assert!(path.is_some());
         assert_eq!(
@@ -429,6 +490,8 @@ mod tests {
             serde_json::from_str(&pretty).expect("pretty output must be valid JSON");
         assert!(parsed.get("capabilities").is_some());
         assert!(parsed.get("primal").is_some());
+        assert!(parsed.get("version").is_some());
+        assert!(parsed.get("methods").is_some());
         assert_eq!(parsed["primal"], PRIMAL_NAME);
         let caps = parsed["capabilities"]
             .as_array()
@@ -463,7 +526,10 @@ mod tests {
         let path = resolve_socket_path();
         assert_eq!(
             path.to_string_lossy(),
-            "/tmp/biomeos/loamspine-default.sock"
+            format!(
+                "{}/biomeos/loamspine-default.sock",
+                std::env::temp_dir().display()
+            )
         );
         cleanup_neural_env();
     }
@@ -472,11 +538,16 @@ mod tests {
     #[serial]
     fn resolve_socket_path_tmp_with_custom_family_id() {
         cleanup_neural_env();
-        std::env::set_var("BIOMEOS_FAMILY_ID", "custom-family");
+        unsafe {
+            std::env::set_var("BIOMEOS_FAMILY_ID", "custom-family");
+        }
         let path = resolve_socket_path();
         assert_eq!(
             path.to_string_lossy(),
-            "/tmp/biomeos/loamspine-custom-family.sock"
+            format!(
+                "{}/biomeos/loamspine-custom-family.sock",
+                std::env::temp_dir().display()
+            )
         );
         cleanup_neural_env();
     }
@@ -485,9 +556,15 @@ mod tests {
     #[serial]
     fn resolve_socket_path_loamspine_socket_overrides_xdg_and_family() {
         cleanup_neural_env();
-        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
-        std::env::set_var("BIOMEOS_FAMILY_ID", "ignored");
-        std::env::set_var("LOAMSPINE_SOCKET", "/override/path.sock");
+        unsafe {
+            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        }
+        unsafe {
+            std::env::set_var("BIOMEOS_FAMILY_ID", "ignored");
+        }
+        unsafe {
+            std::env::set_var("LOAMSPINE_SOCKET", "/override/path.sock");
+        }
         let path = resolve_socket_path();
         assert_eq!(path.to_string_lossy(), "/override/path.sock");
         cleanup_neural_env();
@@ -497,8 +574,12 @@ mod tests {
     #[serial]
     fn resolve_neural_api_socket_with_family_id() {
         cleanup_neural_env();
-        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/42");
-        std::env::set_var("BIOMEOS_FAMILY_ID", "my-family");
+        unsafe {
+            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/42");
+        }
+        unsafe {
+            std::env::set_var("BIOMEOS_FAMILY_ID", "my-family");
+        }
         let path = super::resolve_neural_api_socket();
         assert!(path.is_some());
         assert_eq!(
@@ -558,7 +639,9 @@ mod tests {
         });
         let handle = spawn_mock_neural_api(&sock, &response);
 
-        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        unsafe {
+            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        }
         let result = register_with_neural_api().await;
         cleanup_neural_env();
 
@@ -583,7 +666,9 @@ mod tests {
         });
         let handle = spawn_mock_neural_api(&sock, &response);
 
-        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        unsafe {
+            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        }
         let result = register_with_neural_api().await;
         cleanup_neural_env();
 
@@ -609,7 +694,9 @@ mod tests {
         });
         let handle = spawn_mock_neural_api(&sock, &response);
 
-        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        unsafe {
+            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        }
         let result = deregister_from_neural_api().await;
         cleanup_neural_env();
 
@@ -632,7 +719,9 @@ mod tests {
         });
         let handle = spawn_mock_neural_api(&sock, &response);
 
-        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        unsafe {
+            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        }
         let result = deregister_from_neural_api().await;
         cleanup_neural_env();
 
@@ -670,7 +759,9 @@ mod tests {
             }
         });
 
-        std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        unsafe {
+            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
+        }
         let result = deregister_from_neural_api().await;
         cleanup_neural_env();
 

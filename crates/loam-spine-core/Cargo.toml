@@ -79,6 +79,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 chrono = "0.4"
 serial_test = { workspace = true }
 tempfile = "3.14"
+proptest = "1.10.0"
 
 [[bench]]
 name = "core_ops"

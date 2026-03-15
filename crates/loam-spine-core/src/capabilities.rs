@@ -322,12 +322,16 @@ mod tests {
         assert!(capabilities.len() >= 5);
 
         // Verify we have core capabilities
-        assert!(capabilities
-            .iter()
-            .any(|c| matches!(c, LoamSpineCapability::PermanentLedger { .. })));
-        assert!(capabilities
-            .iter()
-            .any(|c| matches!(c, LoamSpineCapability::TemporalTracking { .. })));
+        assert!(
+            capabilities
+                .iter()
+                .any(|c| matches!(c, LoamSpineCapability::PermanentLedger { .. }))
+        );
+        assert!(
+            capabilities
+                .iter()
+                .any(|c| matches!(c, LoamSpineCapability::TemporalTracking { .. }))
+        );
     }
 
     #[test]

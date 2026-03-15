@@ -117,24 +117,24 @@ impl CapabilityRegistry {
             })?
         };
 
-        if let Ok(services) = client.discover_capability("signing").await {
-            if let Some(service) = services.first() {
-                tracing::info!(
-                    "Discovered signing service: {} at {}",
-                    service.name,
-                    service.endpoint
-                );
-            }
+        if let Ok(services) = client.discover_capability("signing").await
+            && let Some(service) = services.first()
+        {
+            tracing::info!(
+                "Discovered signing service: {} at {}",
+                service.name,
+                service.endpoint
+            );
         }
 
-        if let Ok(services) = client.discover_capability("verification").await {
-            if let Some(service) = services.first() {
-                tracing::info!(
-                    "Discovered verification service: {} at {}",
-                    service.name,
-                    service.endpoint
-                );
-            }
+        if let Ok(services) = client.discover_capability("verification").await
+            && let Some(service) = services.first()
+        {
+            tracing::info!(
+                "Discovered verification service: {} at {}",
+                service.name,
+                service.endpoint
+            );
         }
 
         Ok(())

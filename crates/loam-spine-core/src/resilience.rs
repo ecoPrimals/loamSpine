@@ -5,7 +5,7 @@
 //! Provides circuit-breaker and retry with exponential backoff for
 //! transient failures when communicating with discovered primals.
 
-use std::sync::atomic::{AtomicU32, AtomicU64, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicU8, AtomicU32, AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::error::{LoamSpineError, LoamSpineResult};
@@ -21,6 +21,18 @@ pub enum CircuitState {
     HalfOpen,
 }
 
+/// Default failure count before circuit opens.
+/// Tolerates transient bursts (network blips, GC pauses) without premature tripping.
+pub const CIRCUIT_FAILURE_THRESHOLD: u32 = 5;
+
+/// Seconds before an open circuit transitions to half-open for recovery probe.
+/// Allows downstream services 30s to recover from transient overload.
+pub const CIRCUIT_RECOVERY_TIMEOUT_SECS: u64 = 30;
+
+/// Successful probes in half-open required to close the circuit.
+/// Requires two consecutive successes to confirm genuine recovery.
+pub const CIRCUIT_SUCCESS_THRESHOLD: u32 = 2;
+
 /// Configuration for the circuit breaker.
 #[derive(Clone, Debug)]
 pub struct CircuitBreakerConfig {
@@ -35,9 +47,9 @@ pub struct CircuitBreakerConfig {
 impl Default for CircuitBreakerConfig {
     fn default() -> Self {
         Self {
-            failure_threshold: 5,
-            recovery_timeout_secs: 30,
-            success_threshold: 2,
+            failure_threshold: CIRCUIT_FAILURE_THRESHOLD,
+            recovery_timeout_secs: CIRCUIT_RECOVERY_TIMEOUT_SECS,
+            success_threshold: CIRCUIT_SUCCESS_THRESHOLD,
         }
     }
 }
@@ -208,6 +220,18 @@ impl CircuitBreaker {
     }
 }
 
+/// Base delay in milliseconds for exponential backoff.
+/// First retry after 100ms provides fast recovery for transient errors.
+pub const RETRY_BASE_DELAY_MS: u64 = 100;
+
+/// Maximum delay cap in milliseconds for exponential backoff.
+/// Caps at 10s to prevent unbounded waits while allowing meaningful cooldown.
+pub const RETRY_MAX_DELAY_MS: u64 = 10_000;
+
+/// Maximum number of retry attempts before giving up.
+/// Three retries with exponential backoff covers ~1.5s of transient failures.
+pub const RETRY_MAX_ATTEMPTS: u32 = 3;
+
 /// Configuration for retry with exponential backoff.
 #[derive(Clone, Debug)]
 pub struct RetryPolicyConfig {
@@ -222,9 +246,9 @@ pub struct RetryPolicyConfig {
 impl Default for RetryPolicyConfig {
     fn default() -> Self {
         Self {
-            max_retries: 3,
-            base_delay_ms: 100,
-            max_delay_ms: 5_000,
+            max_retries: RETRY_MAX_ATTEMPTS,
+            base_delay_ms: RETRY_BASE_DELAY_MS,
+            max_delay_ms: RETRY_MAX_DELAY_MS,
         }
     }
 }

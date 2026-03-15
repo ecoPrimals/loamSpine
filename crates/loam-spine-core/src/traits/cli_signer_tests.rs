@@ -2,6 +2,7 @@
 
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::uninlined_format_args)]
+#[allow(unsafe_code)]
 mod tests {
     use super::super::*;
     use crate::discovery::{DynSigner, DynVerifier};
@@ -73,7 +74,9 @@ mod tests {
     #[test]
     fn discover_binary_returns_none_if_not_found() {
         // Clear env var to test discovery
-        env::remove_var(ENV_SIGNER_PATH);
+        unsafe {
+            env::remove_var(ENV_SIGNER_PATH);
+        }
         // Discovery may or may not find binary depending on environment
         let result = CliSigner::discover_binary();
         // Just verify it doesn't panic
@@ -84,12 +87,16 @@ mod tests {
     fn discover_binary_respects_env_var() {
         // Set env var to a test path
         let test_path = "/tmp/test-signer";
-        env::set_var(ENV_SIGNER_PATH, test_path);
+        unsafe {
+            env::set_var(ENV_SIGNER_PATH, test_path);
+        }
 
         let result = CliSigner::discover_binary();
 
         // Clean up
-        env::remove_var(ENV_SIGNER_PATH);
+        unsafe {
+            env::remove_var(ENV_SIGNER_PATH);
+        }
 
         // Should return None because the path doesn't exist, but it checked the env var
         assert!(result.is_none());
@@ -177,10 +184,10 @@ mod tests {
     fn signer_binary_path_accessor() {
         let result = CliSigner::new("/nonexistent/binary", "key");
         assert!(result.is_err());
-        if let Some(binary) = get_test_binary() {
-            if let Ok(signer) = CliSigner::new(&binary, "default") {
-                assert_eq!(signer.binary_path(), binary.as_path());
-            }
+        if let Some(binary) = get_test_binary()
+            && let Ok(signer) = CliSigner::new(&binary, "default")
+        {
+            assert_eq!(signer.binary_path(), binary.as_path());
         }
     }
 
@@ -297,16 +304,22 @@ mod tests {
         let original = env::var(ENV_SIGNER_PATH).ok();
 
         // Set a test path
-        env::set_var(ENV_SIGNER_PATH, "/test/priority/path");
+        unsafe {
+            env::set_var(ENV_SIGNER_PATH, "/test/priority/path");
+        }
 
         // Discovery should check this first
         let result = CliSigner::discover_binary();
 
         // Restore original
         if let Some(val) = original {
-            env::set_var(ENV_SIGNER_PATH, val);
+            unsafe {
+                env::set_var(ENV_SIGNER_PATH, val);
+            }
         } else {
-            env::remove_var(ENV_SIGNER_PATH);
+            unsafe {
+                env::remove_var(ENV_SIGNER_PATH);
+            }
         }
 
         // Should return None (path doesn't exist) but proved it checked env var
@@ -317,14 +330,18 @@ mod tests {
     fn binary_discovery_searches_multiple_locations() {
         // Clear env to test fallback locations
         let original = env::var(ENV_SIGNER_PATH).ok();
-        env::remove_var(ENV_SIGNER_PATH);
+        unsafe {
+            env::remove_var(ENV_SIGNER_PATH);
+        }
 
         // Discovery should search multiple locations without panicking
         let result = CliSigner::discover_binary();
 
         // Restore
         if let Some(val) = original {
-            env::set_var(ENV_SIGNER_PATH, val);
+            unsafe {
+                env::set_var(ENV_SIGNER_PATH, val);
+            }
         }
 
         // Result depends on environment, but shouldn't panic
@@ -651,14 +668,20 @@ esac
 
         let path_str = true_path.to_string_lossy();
         let original = env::var(ENV_SIGNER_PATH).ok();
-        env::set_var(ENV_SIGNER_PATH, path_str.as_ref());
+        unsafe {
+            env::set_var(ENV_SIGNER_PATH, path_str.as_ref());
+        }
 
         let result = CliSigner::discover_binary();
 
         if let Some(val) = original {
-            env::set_var(ENV_SIGNER_PATH, val);
+            unsafe {
+                env::set_var(ENV_SIGNER_PATH, val);
+            }
         } else {
-            env::remove_var(ENV_SIGNER_PATH);
+            unsafe {
+                env::remove_var(ENV_SIGNER_PATH);
+            }
         }
 
         assert!(result.is_some());

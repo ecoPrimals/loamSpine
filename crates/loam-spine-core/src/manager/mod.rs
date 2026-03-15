@@ -240,7 +240,7 @@ impl CertificateManager {
             _ => {
                 return Err(LoamSpineError::LoanTermsViolation(
                     "certificate is not loaned".into(),
-                ))
+                ));
             }
         };
 
@@ -281,14 +281,12 @@ impl CertificateManager {
         let mut expired: Vec<(CertificateId, Did)> = Vec::new();
 
         for cert in self.certificates.values() {
-            if let Some(loan) = &cert.active_loan {
-                if loan.terms.auto_return {
-                    if let Some(expires_at) = loan.expires_at {
-                        if now.as_nanos() > expires_at.as_nanos() {
-                            expired.push((cert.id, loan.borrower.clone()));
-                        }
-                    }
-                }
+            if let Some(loan) = &cert.active_loan
+                && loan.terms.auto_return
+                && let Some(expires_at) = loan.expires_at
+                && now.as_nanos() > expires_at.as_nanos()
+            {
+                expired.push((cert.id, loan.borrower.clone()));
             }
         }
 

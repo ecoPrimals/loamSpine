@@ -147,10 +147,10 @@ impl LoamSpineService {
         // Check if we already have a spine for this owner
         let spines = self.spine_storage.list_spines().await?;
         for spine_id in spines {
-            if let Some(spine) = self.spine_storage.get_spine(spine_id).await? {
-                if spine.owner == owner {
-                    return Ok(spine_id);
-                }
+            if let Some(spine) = self.spine_storage.get_spine(spine_id).await?
+                && spine.owner == owner
+            {
+                return Ok(spine_id);
             }
         }
 

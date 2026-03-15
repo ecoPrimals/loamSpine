@@ -17,10 +17,10 @@
 
 // Examples allow patterns for demonstration purposes
 use loam_spine_core::{
+    Did, LoamSpineResult, SpineId,
     certificate::{CertificateType, LoanTerms, SECONDS_PER_DAY, SECONDS_PER_HOUR},
     service::LoamSpineService,
     types::CertificateId,
-    Did, LoamSpineResult, SpineId,
 };
 
 /// Print certificate state from service.

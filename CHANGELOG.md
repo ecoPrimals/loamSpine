@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.8] - 2026-03-15
+
+### Added
+- **JSON-RPC batch support**: `process_request` handles JSON-RPC 2.0 batch arrays per spec — empty batch returns parse error, notifications suppress responses, mixed batches processed correctly. 3 new batch tests.
+- **Proptest roundtrip invariants**: 7 property-based tests for core newtypes — `Did` serde/display/clone, `SpineId` serde, `ContentHash` roundtrip, `Signature` serde, `ByteBuffer` roundtrip. New `proptest` dev dependency.
+- **Named resilience constants**: `CIRCUIT_FAILURE_THRESHOLD`, `CIRCUIT_RECOVERY_TIMEOUT_SECS`, `CIRCUIT_SUCCESS_THRESHOLD`, `RETRY_BASE_DELAY_MS`, `RETRY_MAX_DELAY_MS`, `RETRY_MAX_ATTEMPTS` — all with documented provenance following `{DOMAIN}_{METRIC}_{QUALIFIER}` convention.
+- **Enriched `capability.list`**: Response now includes `version`, `methods` array with `method`, `domain`, `cost`, `deps` per operation (23 methods documented). Enables downstream primals to understand operation dependencies and cost tiers.
+
+### Changed
+- **Edition 2024**: Migrated from edition 2021. `env::set_var`/`remove_var` wrapped in `unsafe` blocks in test modules. `env_set!`/`env_rm!` macros reduce verbosity in infant discovery tests. `unsafe_code` lint: `forbid` → `deny` (allows `#[allow(unsafe_code)]` in test modules only). 19 `collapsible_if` patterns modernized to let-chains via `clippy --fix`.
+- **Platform-agnostic paths**: Hardcoded `/tmp/biomeos/` fallback in `neural_api.rs` and `constants/network.rs` replaced with `std::env::temp_dir().join("biomeos")`.
+- **Showcase cleanup**: Removed stale `IMPLEMENTATION_STATUS.md`, fixed broken link to `ROOT_DOCS_INDEX.md`, aligned showcase index with actual directory structure.
+- **Dockerfile**: Updated from `rust:1.83` to `rust:1.85` (minimum for edition 2024).
+- `primal-capabilities.toml` version bumped to 0.8.8.
+
+### Metrics
+- Tests: 1,114 → 1,123 (+9: 3 batch + 7 proptest - 1 replaced)
+- Coverage: 89.64% line, 91.71% region (maintained)
+- Source files: 117 → 112 (showcase cleanup)
+- Max file size: 955 lines (maintained)
+- Clippy: 0 warnings (maintained)
+- Doc warnings: 0 (maintained)
+- Unsafe: 0 in production (test-only `unsafe` for edition 2024 `env::set_var`)
+- Edition: 2021 → 2024
+
 ## [0.8.7] - 2026-03-15
 
 ### Added
@@ -553,6 +578,7 @@ spine.append(entry)?;
 
 ---
 
+[0.8.8]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.4...v0.8.5

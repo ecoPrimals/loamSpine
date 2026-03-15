@@ -11,7 +11,7 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(missing_docs)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use loam_spine_core::{
     service::LoamSpineService,
     traits::{CommitAcceptor, DehydrationSummary},

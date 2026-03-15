@@ -369,20 +369,55 @@ async fn handle_connection(
 }
 
 pub(crate) async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> Vec<u8> {
-    let request: JsonRpcRequest = match serde_json::from_slice(body) {
-        Ok(r) => r,
-        Err(e) => {
+    // Try single request first
+    if let Ok(request) = serde_json::from_slice::<JsonRpcRequest>(body) {
+        let response = handler.handle_request(request).await;
+        return serde_json::to_vec(&response).unwrap_or_default();
+    }
+
+    // Try batch request
+    if let Ok(batch) = serde_json::from_slice::<Vec<serde_json::Value>>(body) {
+        if batch.is_empty() {
             let err = JsonRpcResponse::error(
                 serde_json::Value::Null,
                 PARSE_ERROR,
-                format!("parse error: {e}"),
+                "empty batch".to_string(),
             );
             return serde_json::to_vec(&err).unwrap_or_default();
         }
-    };
+        let mut responses = Vec::with_capacity(batch.len());
+        for item in batch {
+            let is_notification =
+                item.get("id").is_none() || item.get("id").is_some_and(serde_json::Value::is_null);
+            match serde_json::from_value::<JsonRpcRequest>(item) {
+                Ok(req) => {
+                    let resp = handler.handle_request(req).await;
+                    if !is_notification {
+                        responses.push(resp);
+                    }
+                }
+                Err(e) => {
+                    responses.push(JsonRpcResponse::error(
+                        serde_json::Value::Null,
+                        PARSE_ERROR,
+                        format!("parse error in batch element: {e}"),
+                    ));
+                }
+            }
+        }
+        if responses.is_empty() {
+            return Vec::new();
+        }
+        return serde_json::to_vec(&responses).unwrap_or_default();
+    }
 
-    let response = handler.handle_request(request).await;
-    serde_json::to_vec(&response).unwrap_or_default()
+    // Neither single nor batch
+    let err = JsonRpcResponse::error(
+        serde_json::Value::Null,
+        PARSE_ERROR,
+        "parse error: expected JSON-RPC request or batch array".to_string(),
+    );
+    serde_json::to_vec(&err).unwrap_or_default()
 }
 
 #[cfg(test)]

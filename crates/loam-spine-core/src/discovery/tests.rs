@@ -319,10 +319,12 @@ async fn deprecated_songbird_aliases_work() {
     let registry = CapabilityRegistry::new();
     assert!(registry.discover_from_songbird().await.is_err());
     assert!(registry.heartbeat_songbird().await.is_err());
-    assert!(registry
-        .advertise_to_songbird("http://localhost:9001", "http://localhost:8080")
-        .await
-        .is_err());
+    assert!(
+        registry
+            .advertise_to_songbird("http://localhost:9001", "http://localhost:8080")
+            .await
+            .is_err()
+    );
     assert!(
         CapabilityRegistry::with_service_registry("http://127.0.0.1:1")
             .await

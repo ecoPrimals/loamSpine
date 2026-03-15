@@ -533,6 +533,8 @@ async fn capability_list_method() {
         .unwrap();
     assert!(value.get("capabilities").is_some());
     assert!(value.get("primal").is_some());
+    assert!(value.get("version").is_some());
+    assert!(value.get("methods").is_some());
     assert_eq!(value["primal"], "loamspine");
 }
 
@@ -609,12 +611,13 @@ async fn invalid_method_returns_method_not_found() {
     let resp = server.handle_request(rpc_req).await;
     assert!(resp.error.is_some());
     assert_eq!(resp.error.as_ref().unwrap().code, -32601);
-    assert!(resp
-        .error
-        .as_ref()
-        .unwrap()
-        .message
-        .contains("method not found"));
+    assert!(
+        resp.error
+            .as_ref()
+            .unwrap()
+            .message
+            .contains("method not found")
+    );
 }
 
 #[tokio::test]
@@ -625,12 +628,14 @@ async fn invalid_json_returns_parse_error() {
     let parsed: JsonRpcResponse = serde_json::from_slice(&response).unwrap();
     assert!(parsed.error.is_some());
     assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
-    assert!(parsed
-        .error
-        .as_ref()
-        .unwrap()
-        .message
-        .contains("parse error"));
+    assert!(
+        parsed
+            .error
+            .as_ref()
+            .unwrap()
+            .message
+            .contains("parse error")
+    );
 }
 
 #[tokio::test]
@@ -661,22 +666,42 @@ async fn null_params_on_method_requiring_params_returns_invalid_params() {
     let resp = server.handle_request(rpc_req).await;
     assert!(resp.error.is_some());
     assert_eq!(resp.error.as_ref().unwrap().code, -32602);
-    assert!(resp
-        .error
-        .as_ref()
-        .unwrap()
-        .message
-        .contains("invalid params"));
+    assert!(
+        resp.error
+            .as_ref()
+            .unwrap()
+            .message
+            .contains("invalid params")
+    );
 }
 
 #[tokio::test]
-async fn batch_request_returns_parse_error() {
+async fn batch_request_returns_batch_response() {
     let server = LoamSpineJsonRpc::default_server();
-    let body = br#"[{"jsonrpc":"2.0","method":"health.liveness","id":1}]"#;
+    let body = br#"[{"jsonrpc":"2.0","method":"health.liveness","id":1},{"jsonrpc":"2.0","method":"health.liveness","id":2}]"#;
+    let response = process_request(&server, body).await;
+    let parsed: Vec<JsonRpcResponse> = serde_json::from_slice(&response).unwrap();
+    assert_eq!(parsed.len(), 2);
+    assert!(parsed[0].result.is_some());
+    assert!(parsed[1].result.is_some());
+}
+
+#[tokio::test]
+async fn batch_empty_returns_parse_error() {
+    let server = LoamSpineJsonRpc::default_server();
+    let body = b"[]";
     let response = process_request(&server, body).await;
     let parsed: JsonRpcResponse = serde_json::from_slice(&response).unwrap();
     assert!(parsed.error.is_some());
     assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
+}
+
+#[tokio::test]
+async fn batch_notification_produces_no_response() {
+    let server = LoamSpineJsonRpc::default_server();
+    let body = br#"[{"jsonrpc":"2.0","method":"health.liveness"}]"#;
+    let response = process_request(&server, body).await;
+    assert!(response.is_empty());
 }
 
 #[tokio::test]

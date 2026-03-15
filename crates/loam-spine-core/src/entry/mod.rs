@@ -11,8 +11,8 @@ use std::collections::BTreeMap;
 
 use crate::temporal::{Moment, MomentId};
 use crate::types::{
-    hash_bytes, BraidId, CertificateId, ContentHash, Did, EntryHash, PayloadRef, SessionId,
-    Signature, SliceId, SpineId, Timestamp,
+    BraidId, CertificateId, ContentHash, Did, EntryHash, PayloadRef, SessionId, Signature, SliceId,
+    SpineId, Timestamp, hash_bytes,
 };
 
 /// Serde helpers for `ByteBuffer` fields in derived enums/structs.

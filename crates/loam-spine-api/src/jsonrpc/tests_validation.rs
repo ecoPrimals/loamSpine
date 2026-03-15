@@ -98,12 +98,13 @@ async fn malformed_params_string_returns_invalid_params() {
     let resp = server.handle_request(rpc_req).await;
     assert!(resp.error.is_some());
     assert_eq!(resp.error.as_ref().unwrap().code, -32602);
-    assert!(resp
-        .error
-        .as_ref()
-        .unwrap()
-        .message
-        .contains("invalid params"));
+    assert!(
+        resp.error
+            .as_ref()
+            .unwrap()
+            .message
+            .contains("invalid params")
+    );
 }
 
 #[tokio::test]

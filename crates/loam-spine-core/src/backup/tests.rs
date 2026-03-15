@@ -183,10 +183,12 @@ fn backup_verify_version_error() {
 
     let result = backup.verify();
     assert!(!result.valid);
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| matches!(e, BackupError::UnsupportedVersion { .. })));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| matches!(e, BackupError::UnsupportedVersion { .. }))
+    );
 }
 
 #[test]
@@ -198,10 +200,12 @@ fn backup_verify_entry_count_mismatch() {
     let result = backup.verify();
 
     assert!(!result.valid);
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| matches!(e, BackupError::EntryCountMismatch { .. })));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| matches!(e, BackupError::EntryCountMismatch { .. }))
+    );
 }
 
 #[test]
@@ -213,10 +217,12 @@ fn backup_verify_invalid_entry_index() {
     let result = backup.verify();
 
     assert!(!result.valid);
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| matches!(e, BackupError::InvalidEntryIndex { .. })));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| matches!(e, BackupError::InvalidEntryIndex { .. }))
+    );
 }
 
 #[test]
@@ -245,10 +251,12 @@ fn backup_verify_genesis_with_previous() {
     let result = backup.verify();
 
     assert!(!result.valid);
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| matches!(e, BackupError::ChainBroken { at_index: 0 })));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| matches!(e, BackupError::ChainBroken { at_index: 0 }))
+    );
 }
 
 #[test]
@@ -264,10 +272,12 @@ fn multi_spine_backup_with_invalid_spine() {
     let result = multi.verify();
 
     assert!(!result.valid);
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| matches!(e, BackupError::SpineError { spine_index: 1, .. })));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| matches!(e, BackupError::SpineError { spine_index: 1, .. }))
+    );
 }
 
 #[test]
@@ -488,10 +498,12 @@ fn backup_on_empty_spine_entry_count_mismatch() {
     let result = backup.verify();
 
     assert!(!result.valid);
-    assert!(result
-        .errors
-        .iter()
-        .any(|e| matches!(e, BackupError::EntryCountMismatch { .. })));
+    assert!(
+        result
+            .errors
+            .iter()
+            .any(|e| matches!(e, BackupError::EntryCountMismatch { .. }))
+    );
 }
 
 #[test]

@@ -3,6 +3,17 @@
 use super::*;
 use serial_test::serial;
 
+macro_rules! env_set {
+    ($k:expr, $v:expr) => {
+        unsafe { env::set_var($k, $v) }
+    };
+}
+macro_rules! env_rm {
+    ($k:expr) => {
+        unsafe { env::remove_var($k) }
+    };
+}
+
 #[tokio::test]
 async fn test_infant_starts_with_zero_knowledge() {
     let discovery = InfantDiscovery::new().unwrap();
@@ -19,9 +30,9 @@ async fn test_infant_starts_with_zero_knowledge() {
 #[serial]
 async fn test_discover_via_environment() {
     // Clean environment first
-    env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_SIGNING_ENDPOINT");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 
     let discovery = InfantDiscovery::new().unwrap();
 
@@ -33,9 +44,9 @@ async fn test_discover_via_environment() {
     assert!(services.is_empty());
 
     // Now set the environment variable
-    env::set_var(
+    env_set!(
         "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-        "http://localhost:8001",
+        "http://localhost:8001"
     );
 
     // Clear cache to force rediscovery
@@ -51,14 +62,14 @@ async fn test_discover_via_environment() {
     assert_eq!(services[0].discovered_via, "environment");
 
     // Cleanup
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_degraded_mode_when_no_services() {
     // Don't set any environment variables
-    env::remove_var("CAPABILITY_STORAGE_ENDPOINT");
+    env_rm!("CAPABILITY_STORAGE_ENDPOINT");
 
     let discovery = InfantDiscovery::new().unwrap();
     let services = discovery.find_capability("content-storage").await.unwrap();
@@ -71,13 +82,13 @@ async fn test_degraded_mode_when_no_services() {
 #[serial]
 async fn test_cache_functionality() {
     // Clean up any existing env vars first
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("CAPABILITY_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 
-    env::set_var(
+    env_set!(
         "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-        "http://localhost:8001",
+        "http://localhost:8001"
     );
 
     let discovery = InfantDiscovery::new().unwrap();
@@ -107,15 +118,15 @@ async fn test_cache_functionality() {
     assert_eq!(services3.len(), 1);
 
     // Clean up
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_discover_via_signing_service_url() {
-    env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_SIGNING_ENDPOINT");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 
     let discovery = InfantDiscovery::new().unwrap();
     let services = discovery
@@ -124,7 +135,7 @@ async fn test_discover_via_signing_service_url() {
         .unwrap();
     assert!(services.is_empty());
 
-    env::set_var("SIGNING_SERVICE_URL", "http://localhost:8002");
+    env_set!("SIGNING_SERVICE_URL", "http://localhost:8002");
     discovery.clear_cache().await;
 
     let services = discovery
@@ -134,7 +145,7 @@ async fn test_discover_via_signing_service_url() {
     assert_eq!(services.len(), 1);
     assert_eq!(services[0].endpoint, "http://localhost:8002");
 
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("SIGNING_SERVICE_URL");
 }
 
 #[test]
@@ -148,8 +159,8 @@ fn test_discovery_config_default() {
 #[test]
 #[serial]
 fn test_discovery_config_from_env() {
-    env::set_var("SERVICE_REGISTRY_URL", "http://registry.example.com");
-    env::set_var("DISCOVERY_CACHE_TTL", "600");
+    env_set!("SERVICE_REGISTRY_URL", "http://registry.example.com");
+    env_set!("DISCOVERY_CACHE_TTL", "600");
 
     let config = DiscoveryConfig::from_env_or_default();
     assert!(config.methods.iter().any(|m| matches!(
@@ -158,8 +169,8 @@ fn test_discovery_config_from_env() {
     )));
     assert_eq!(config.cache_ttl_secs, 600);
 
-    env::remove_var("SERVICE_REGISTRY_URL");
-    env::remove_var("DISCOVERY_CACHE_TTL");
+    env_rm!("SERVICE_REGISTRY_URL");
+    env_rm!("DISCOVERY_CACHE_TTL");
 }
 
 #[test]
@@ -172,9 +183,9 @@ fn test_capability_to_srv_name_indirect() {
 #[tokio::test]
 #[serial]
 async fn test_service_registry_discovery_returns_empty() {
-    env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
-    env::set_var("SERVICE_REGISTRY_URL", "http://registry.test");
+    env_rm!("CAPABILITY_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
+    env_set!("SERVICE_REGISTRY_URL", "http://registry.test");
 
     let config = DiscoveryConfig::from_env_or_default();
     let discovery = InfantDiscovery::with_config(config).unwrap();
@@ -183,7 +194,7 @@ async fn test_service_registry_discovery_returns_empty() {
     let services = discovery.find_capability("signing").await.unwrap();
     assert!(services.is_empty());
 
-    env::remove_var("SERVICE_REGISTRY_URL");
+    env_rm!("SERVICE_REGISTRY_URL");
 }
 
 #[tokio::test]
@@ -252,17 +263,19 @@ fn test_own_capabilities_are_loamspine_specific() {
     let discovery = InfantDiscovery::new().unwrap();
     let caps = discovery.own_capabilities();
     let identifiers: Vec<&str> = caps.iter().map(LoamSpineCapability::identifier).collect();
-    assert!(identifiers
-        .iter()
-        .any(|id| id.contains("ledger") || id.contains("permanence")));
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.contains("ledger") || id.contains("permanence"))
+    );
 }
 
 #[tokio::test]
 #[serial]
 async fn test_cache_hit_with_stale_services_triggers_rediscovery() {
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
-    env::remove_var("SERVICE_REGISTRY_URL");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
+    env_rm!("SERVICE_REGISTRY_URL");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -272,7 +285,7 @@ async fn test_cache_hit_with_stale_services_triggers_rediscovery() {
     };
     let discovery = InfantDiscovery::with_config(config).unwrap();
 
-    env::set_var("SIGNING_SERVICE_URL", "http://localhost:9999");
+    env_set!("SIGNING_SERVICE_URL", "http://localhost:9999");
 
     let services = discovery
         .find_capability("cryptographic-signing")
@@ -288,14 +301,14 @@ async fn test_cache_hit_with_stale_services_triggers_rediscovery() {
         .unwrap();
     assert_eq!(services2.len(), 1);
 
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("SIGNING_SERVICE_URL");
 }
 
 #[test]
 #[serial]
 fn test_discovery_config_from_env_invalid_ttl_uses_default() {
-    env::remove_var("SERVICE_REGISTRY_URL");
-    env::set_var("DISCOVERY_CACHE_TTL", "not-a-number");
+    env_rm!("SERVICE_REGISTRY_URL");
+    env_set!("DISCOVERY_CACHE_TTL", "not-a-number");
 
     let config = DiscoveryConfig::from_env_or_default();
     assert_eq!(
@@ -303,7 +316,7 @@ fn test_discovery_config_from_env_invalid_ttl_uses_default() {
         "invalid TTL should leave default"
     );
 
-    env::remove_var("DISCOVERY_CACHE_TTL");
+    env_rm!("DISCOVERY_CACHE_TTL");
 }
 
 #[test]
@@ -360,9 +373,9 @@ async fn test_all_discovered_returns_populated_cache() {
     let discovery = InfantDiscovery::with_config(config).unwrap();
 
     // Inject a service into the cache by running find_capability with an env var
-    env::set_var("CAPABILITY_TEST_ENDPOINT", "http://localhost:1234");
+    env_set!("CAPABILITY_TEST_ENDPOINT", "http://localhost:1234");
     let _ = discovery.find_capability("test").await.unwrap();
-    env::remove_var("CAPABILITY_TEST_ENDPOINT");
+    env_rm!("CAPABILITY_TEST_ENDPOINT");
 
     let all = discovery.all_discovered().await;
     assert!(all.contains_key("test"));
@@ -388,11 +401,11 @@ fn test_discovery_method_equality() {
 #[tokio::test]
 #[serial]
 async fn test_discover_via_environment_pattern2_service_url() {
-    env::remove_var("CAPABILITY_STORAGE_ENDPOINT");
-    env::remove_var("CAPABILITY_CONTENT_STORAGE_ENDPOINT");
-    env::remove_var("STORAGE_SERVICE_URL");
+    env_rm!("CAPABILITY_STORAGE_ENDPOINT");
+    env_rm!("CAPABILITY_CONTENT_STORAGE_ENDPOINT");
+    env_rm!("STORAGE_SERVICE_URL");
 
-    env::set_var("STORAGE_SERVICE_URL", "http://localhost:7777");
+    env_set!("STORAGE_SERVICE_URL", "http://localhost:7777");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -407,14 +420,14 @@ async fn test_discover_via_environment_pattern2_service_url() {
     assert_eq!(services[0].endpoint, "http://localhost:7777");
     assert_eq!(services[0].discovered_via, "environment");
 
-    env::remove_var("STORAGE_SERVICE_URL");
+    env_rm!("STORAGE_SERVICE_URL");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_cache_hit_with_fresh_services_skips_rediscovery() {
-    env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -424,7 +437,7 @@ async fn test_cache_hit_with_fresh_services_skips_rediscovery() {
     };
     let discovery = InfantDiscovery::with_config(config).unwrap();
 
-    env::set_var("SIGNING_SERVICE_URL", "http://localhost:1111");
+    env_set!("SIGNING_SERVICE_URL", "http://localhost:1111");
     let services1 = discovery
         .find_capability("cryptographic-signing")
         .await
@@ -432,7 +445,7 @@ async fn test_cache_hit_with_fresh_services_skips_rediscovery() {
     assert_eq!(services1.len(), 1);
 
     // Change env var — but cache is fresh, so we should get old value
-    env::set_var("SIGNING_SERVICE_URL", "http://localhost:2222");
+    env_set!("SIGNING_SERVICE_URL", "http://localhost:2222");
     let services2 = discovery
         .find_capability("cryptographic-signing")
         .await
@@ -443,7 +456,7 @@ async fn test_cache_hit_with_fresh_services_skips_rediscovery() {
         "should use cached value"
     );
 
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("SIGNING_SERVICE_URL");
 }
 
 #[tokio::test]
@@ -510,17 +523,17 @@ async fn test_find_capability_with_empty_methods_returns_empty() {
 #[test]
 #[serial]
 fn test_discovery_config_from_env_zero_ttl() {
-    env::set_var("DISCOVERY_CACHE_TTL", "0");
+    env_set!("DISCOVERY_CACHE_TTL", "0");
     let config = DiscoveryConfig::from_env_or_default();
     assert_eq!(config.cache_ttl_secs, 0);
-    env::remove_var("DISCOVERY_CACHE_TTL");
+    env_rm!("DISCOVERY_CACHE_TTL");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_cache_expiry_triggers_rediscovery_with_zero_ttl() {
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -530,14 +543,14 @@ async fn test_cache_expiry_triggers_rediscovery_with_zero_ttl() {
     };
     let discovery = InfantDiscovery::with_config(config).unwrap();
 
-    env::set_var("SIGNING_SERVICE_URL", "http://localhost:8888");
+    env_set!("SIGNING_SERVICE_URL", "http://localhost:8888");
     let services1 = discovery
         .find_capability("cryptographic-signing")
         .await
         .unwrap();
     assert_eq!(services1.len(), 1);
 
-    env::set_var("SIGNING_SERVICE_URL", "http://localhost:9999");
+    env_set!("SIGNING_SERVICE_URL", "http://localhost:9999");
     let services2 = discovery
         .find_capability("cryptographic-signing")
         .await
@@ -548,7 +561,7 @@ async fn test_cache_expiry_triggers_rediscovery_with_zero_ttl() {
         "zero TTL should bypass cache and rediscover"
     );
 
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("SIGNING_SERVICE_URL");
 }
 
 #[tokio::test]
@@ -587,14 +600,14 @@ fn test_capability_to_srv_name_single_hyphen() {
 #[tokio::test]
 #[serial]
 async fn test_environment_pattern1_takes_precedence_over_pattern2() {
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 
-    env::set_var(
+    env_set!(
         "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-        "http://pattern1:8001",
+        "http://pattern1:8001"
     );
-    env::set_var("SIGNING_SERVICE_URL", "http://pattern2:8002");
+    env_set!("SIGNING_SERVICE_URL", "http://pattern2:8002");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -614,16 +627,16 @@ async fn test_environment_pattern1_takes_precedence_over_pattern2() {
         "CAPABILITY_*_ENDPOINT should take precedence over *_SERVICE_URL"
     );
 
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_fallback_discovery_tries_next_method_when_first_empty() {
-    env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("CAPABILITY_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment, DiscoveryMethod::DnsSrv],
@@ -646,12 +659,12 @@ async fn test_fallback_discovery_tries_next_method_when_first_empty() {
 #[tokio::test]
 #[serial]
 async fn test_fallback_discovery_breaks_on_first_success() {
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 
-    env::set_var(
+    env_set!(
         "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-        "http://env-wins:8001",
+        "http://env-wins:8001"
     );
 
     let config = DiscoveryConfig {
@@ -670,7 +683,7 @@ async fn test_fallback_discovery_breaks_on_first_success() {
     assert_eq!(services[0].endpoint, "http://env-wins:8001");
     assert_eq!(services[0].discovered_via, "environment");
 
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
 }
 
 #[tokio::test]
@@ -686,8 +699,8 @@ async fn test_unknown_capability_returns_empty() {
 #[tokio::test]
 #[serial]
 async fn test_find_capability_empty_string() {
-    env::remove_var("CAPABILITY__ENDPOINT");
-    env::remove_var("_SERVICE_URL");
+    env_rm!("CAPABILITY__ENDPOINT");
+    env_rm!("_SERVICE_URL");
 
     let discovery = InfantDiscovery::new().unwrap();
     let services = discovery.find_capability("").await.unwrap();
@@ -697,7 +710,7 @@ async fn test_find_capability_empty_string() {
 #[tokio::test]
 #[serial]
 async fn test_clear_cache_empties_all_discovered() {
-    env::set_var("CAPABILITY_CLEAR_TEST_ENDPOINT", "http://localhost:5555");
+    env_set!("CAPABILITY_CLEAR_TEST_ENDPOINT", "http://localhost:5555");
     let discovery = InfantDiscovery::new().unwrap();
     let _ = discovery.find_capability("clear-test").await.unwrap();
 
@@ -708,16 +721,16 @@ async fn test_clear_cache_empties_all_discovered() {
     let all_after = discovery.all_discovered().await;
     assert!(all_after.is_empty());
 
-    env::remove_var("CAPABILITY_CLEAR_TEST_ENDPOINT");
+    env_rm!("CAPABILITY_CLEAR_TEST_ENDPOINT");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_content_storage_service_url_strips_content_prefix() {
-    env::remove_var("CAPABILITY_CONTENT_STORAGE_ENDPOINT");
-    env::remove_var("STORAGE_SERVICE_URL");
+    env_rm!("CAPABILITY_CONTENT_STORAGE_ENDPOINT");
+    env_rm!("STORAGE_SERVICE_URL");
 
-    env::set_var("STORAGE_SERVICE_URL", "http://storage:9000");
+    env_set!("STORAGE_SERVICE_URL", "http://storage:9000");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -731,14 +744,14 @@ async fn test_content_storage_service_url_strips_content_prefix() {
     assert_eq!(services.len(), 1);
     assert_eq!(services[0].endpoint, "http://storage:9000");
 
-    env::remove_var("STORAGE_SERVICE_URL");
+    env_rm!("STORAGE_SERVICE_URL");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_cached_empty_services_triggers_rediscovery() {
-    env::remove_var("CAPABILITY_REDISCOVER_ENDPOINT");
-    env::remove_var("REDISCOVER_SERVICE_URL");
+    env_rm!("CAPABILITY_REDISCOVER_ENDPOINT");
+    env_rm!("REDISCOVER_SERVICE_URL");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -751,21 +764,21 @@ async fn test_cached_empty_services_triggers_rediscovery() {
     let services1 = discovery.find_capability("rediscover").await.unwrap();
     assert!(services1.is_empty());
 
-    env::set_var("REDISCOVER_SERVICE_URL", "http://rediscovered:8080");
+    env_set!("REDISCOVER_SERVICE_URL", "http://rediscovered:8080");
     let services2 = discovery.find_capability("rediscover").await.unwrap();
     assert_eq!(services2.len(), 1);
     assert_eq!(services2[0].endpoint, "http://rediscovered:8080");
 
-    env::remove_var("REDISCOVER_SERVICE_URL");
+    env_rm!("REDISCOVER_SERVICE_URL");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_discover_via_environment_capability_key_with_hyphens() {
-    env::remove_var("CAPABILITY_TEST_CAP_ENDPOINT");
-    env::remove_var("TEST_CAP_SERVICE_URL");
+    env_rm!("CAPABILITY_TEST_CAP_ENDPOINT");
+    env_rm!("TEST_CAP_SERVICE_URL");
 
-    env::set_var("CAPABILITY_TEST_CAP_ENDPOINT", "http://hyphen-test:8000");
+    env_set!("CAPABILITY_TEST_CAP_ENDPOINT", "http://hyphen-test:8000");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -779,14 +792,14 @@ async fn test_discover_via_environment_capability_key_with_hyphens() {
     assert_eq!(services.len(), 1);
     assert_eq!(services[0].endpoint, "http://hyphen-test:8000");
 
-    env::remove_var("CAPABILITY_TEST_CAP_ENDPOINT");
+    env_rm!("CAPABILITY_TEST_CAP_ENDPOINT");
 }
 
 #[tokio::test]
 #[serial]
 async fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
-    env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
+    env_rm!("SIGNING_SERVICE_URL");
 
     let config = DiscoveryConfig {
         methods: vec![DiscoveryMethod::Environment],
@@ -796,7 +809,7 @@ async fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
     };
     let discovery = InfantDiscovery::with_config(config).unwrap();
 
-    env::set_var("SIGNING_SERVICE_URL", "http://localhost:1111");
+    env_set!("SIGNING_SERVICE_URL", "http://localhost:1111");
     let services1 = discovery
         .find_capability("cryptographic-signing")
         .await
@@ -843,5 +856,5 @@ async fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
     assert_eq!(services.len(), 1);
     assert_eq!(services[0].endpoint, "http://fresh:8001");
 
-    env::remove_var("SIGNING_SERVICE_URL");
+    env_rm!("SIGNING_SERVICE_URL");
 }

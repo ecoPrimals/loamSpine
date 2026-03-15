@@ -16,11 +16,11 @@
 
 // Examples allow patterns for demonstration purposes
 use loam_spine_core::{
+    Did, LoamSpineResult,
     discovery::CapabilityRegistry,
     service::LoamSpineService,
     traits::{BraidAcceptor, BraidSummary, CommitAcceptor, DehydrationSummary, SpineQuery},
     types::SessionId,
-    Did, LoamSpineResult,
 };
 
 #[tokio::main]

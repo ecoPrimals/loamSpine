@@ -4,7 +4,7 @@
 
 use thiserror::Error;
 
-use crate::types::{format_hash_short, CertificateId, EntryHash, SpineId};
+use crate::types::{CertificateId, EntryHash, SpineId, format_hash_short};
 
 /// Errors specific to LoamSpine.
 #[derive(Debug, Error)]

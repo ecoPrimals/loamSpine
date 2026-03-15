@@ -128,14 +128,13 @@ impl ExpirySweeper {
         loop {
             tokio::select! {
                 _ = ticker.tick() => {
-                    if let Ok(count) = self.sweep_once().await {
-                        if count > 0 {
+                    if let Ok(count) = self.sweep_once().await
+                        && count > 0 {
                             tracing::debug!(
                                 count,
                                 "expiry sweep completed"
                             );
                         }
-                    }
                 }
                 _ = shutdown.changed() => {
                     tracing::debug!("expiry sweeper shutting down");

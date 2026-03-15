@@ -17,7 +17,7 @@
 
 // Examples allow patterns for demonstration purposes
 use loam_spine_core::{
-    backup::SpineBackup, entry::EntryType, types::SessionId, Did, LoamSpineResult, SpineBuilder,
+    Did, LoamSpineResult, SpineBuilder, backup::SpineBackup, entry::EntryType, types::SessionId,
 };
 use std::io::Cursor;
 

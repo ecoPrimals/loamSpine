@@ -5,8 +5,8 @@
 //! Provides helpers for handling SIGTERM, SIGINT, and other shutdown signals.
 
 use crate::error::LoamSpineResult;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Signal handler for graceful shutdown.
 ///
@@ -67,7 +67,7 @@ impl SignalHandler {
     /// Unix-specific signal handling (SIGTERM + SIGINT).
     #[cfg(unix)]
     async fn wait_for_shutdown_unix(&self) -> LoamSpineResult<()> {
-        use tokio::signal::unix::{signal, SignalKind};
+        use tokio::signal::unix::{SignalKind, signal};
 
         let mut sigterm = signal(SignalKind::terminate()).map_err(|e| {
             crate::error::LoamSpineError::Internal(format!("Failed to setup SIGTERM handler: {e}"))

@@ -215,8 +215,9 @@ pub trait BraidAcceptor: Send + Sync {
     fn get_braids_for_subject(
         &self,
         subject_hash: crate::types::ContentHash,
-    ) -> impl std::future::Future<Output = crate::error::LoamSpineResult<Vec<crate::types::EntryHash>>>
-           + Send;
+    ) -> impl std::future::Future<
+        Output = crate::error::LoamSpineResult<Vec<crate::types::EntryHash>>,
+    > + Send;
 }
 
 /// A Braid summary from a semantic attribution primal.

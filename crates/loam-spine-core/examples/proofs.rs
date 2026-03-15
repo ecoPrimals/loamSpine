@@ -17,8 +17,8 @@
 #![allow(clippy::clone_on_copy)]
 
 use loam_spine_core::{
-    entry::{Entry, EntryType, SpineConfig},
     Did, LoamSpineResult, Spine,
+    entry::{Entry, EntryType, SpineConfig},
 };
 
 // Allow patterns for demonstration code clarity

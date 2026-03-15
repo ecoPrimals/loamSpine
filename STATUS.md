@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.8.7  
+**Current Version**: 0.8.8  
 **Last Updated**: March 15, 2026
 
 ---
@@ -45,13 +45,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,114 |
+| Tests | — | 1,123 |
 | Coverage (llvm-cov) | 90%+ | 89.64% line, 91.71% region |
-| `unsafe` blocks | 0 | 0 |
+| `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
 | Max file size | < 1000 lines | 955 max (all files under 1000) |
-| Source files | — | 117 `.rs` files |
+| Source files | — | 112 `.rs` files |
+| Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
 
 ---
@@ -62,12 +63,25 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; musl cross-compile CI |
-| AGPL-3.0-only | PASS | SPDX headers on all 117 source files |
+| AGPL-3.0-only | PASS | SPDX headers on all 112 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | File size limit | PASS | All files under 1000 lines (max: 955). Test files split by domain. |
+
+---
+
+## v0.8.8 Cross-Spring Absorption & Edition 2024 (March 15, 2026)
+
+- **Edition 2024**: Migrated from edition 2021 (Rust 1.92 supports it). 19 `collapsible_if` patterns modernized to let-chains. `env::set_var`/`remove_var` wrapped in `unsafe` blocks in 7 test files. `env_set!`/`env_rm!` macros introduced for test ergonomics. `unsafe_code` lint: `forbid` → `deny` to allow `#[allow(unsafe_code)]` in test modules only.
+- **JSON-RPC batch**: Full JSON-RPC 2.0 batch array support per spec — empty batch error, notification suppression, mixed batch processing.
+- **Proptest**: 7 property-based roundtrip tests for core newtypes (`Did`, `SpineId`, `ContentHash`, `Signature`, `ByteBuffer`).
+- **Named constants**: Circuit breaker and retry thresholds extracted to `{DOMAIN}_{METRIC}_{QUALIFIER}` named constants with documented provenance.
+- **Enriched `capability.list`**: Response includes `version`, `methods` array with `method`/`domain`/`cost`/`deps` per operation.
+- **Platform-agnostic paths**: Hardcoded `/tmp` → `std::env::temp_dir()` in socket resolution fallback paths.
+- **Cleanup**: Stale showcase `IMPLEMENTATION_STATUS.md` removed. Showcase index aligned with actual directory structure. Dockerfile updated for edition 2024. Broken `ROOT_DOCS_INDEX.md` reference removed.
+- **Test count**: 1,114 → 1,123 (+9 tests)
 
 ---
 

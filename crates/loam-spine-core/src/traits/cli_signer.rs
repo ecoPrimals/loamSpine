@@ -148,12 +148,12 @@ impl CliSigner {
 
         // Check system PATH for common signing service names
         for candidate in &["loamspine-signer", "signer"] {
-            if let Ok(output) = Command::new("which").arg(candidate).output() {
-                if output.status.success() {
-                    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                    if !path.is_empty() {
-                        return Some(PathBuf::from(path));
-                    }
+            if let Ok(output) = Command::new("which").arg(candidate).output()
+                && output.status.success()
+            {
+                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !path.is_empty() {
+                    return Some(PathBuf::from(path));
                 }
             }
         }

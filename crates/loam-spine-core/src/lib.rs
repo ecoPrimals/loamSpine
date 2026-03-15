@@ -47,7 +47,8 @@
 #![warn(clippy::pedantic)]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
-#![forbid(unsafe_code)]
+// deny (not forbid) so #[allow(unsafe_code)] can override in test modules (set_var/remove_var in edition 2024)
+#![deny(unsafe_code)]
 // Allow some pedantic lints that are too noisy
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::doc_markdown)] // Allow product names without backticks in docs
@@ -99,12 +100,15 @@ pub use error::{LoamSpineError, LoamSpineResult};
 
 /// Core types.
 pub use types::{
-    hash_bytes,
     BraidId,
     CertificateId,
     ContentHash,
     Did,
     EntryHash,
+    // Size constants
+    GB,
+    KB,
+    MB,
     PayloadRef,
     PeerId,
     SessionId,
@@ -112,10 +116,7 @@ pub use types::{
     SliceId,
     SpineId,
     Timestamp,
-    // Size constants
-    GB,
-    KB,
-    MB,
+    hash_bytes,
 };
 
 /// Entry types.
@@ -143,14 +144,14 @@ pub use certificate::{
     OwnershipRecord,
     Rarity,
     RevocationReason,
-    TransferConditions,
-    UsageSummary,
     // Time constants for loan durations
     SECONDS_PER_DAY,
     SECONDS_PER_HOUR,
     SECONDS_PER_MINUTE,
     SECONDS_PER_WEEK,
     SECONDS_PER_YEAR,
+    TransferConditions,
+    UsageSummary,
 };
 
 /// Proof types.

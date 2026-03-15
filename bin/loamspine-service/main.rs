@@ -26,15 +26,15 @@
 #![warn(missing_docs)]
 
 use std::borrow::Cow;
-use std::io::{stdout, Write as _};
+use std::io::{Write as _, stdout};
 use std::net::{IpAddr, SocketAddr};
 
 use clap::{Parser, Subcommand};
-use loam_spine_api::{run_jsonrpc_server, run_tarpc_server, LoamSpineRpcService};
+use loam_spine_api::{LoamSpineRpcService, run_jsonrpc_server, run_tarpc_server};
+use loam_spine_core::LoamSpineService;
 use loam_spine_core::config::LoamSpineConfig;
 use loam_spine_core::constants::network;
 use loam_spine_core::service::LifecycleManager;
-use loam_spine_core::LoamSpineService;
 use tracing::{error, info};
 
 /// `LoamSpine` — permanent ledger for the `ecoPrimals` ecosystem.

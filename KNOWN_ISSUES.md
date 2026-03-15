@@ -33,4 +33,13 @@
 
 ---
 
+## Edition 2024
+
+| Area | Issue | Notes |
+|------|-------|-------|
+| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[allow(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | Production code remains protected — `deny` still errors on any `unsafe` in non-test code. Test modules explicitly opt in with `#[allow(unsafe_code)]`. |
+| Dockerfile MSRV | Updated to `rust:1.85`. Edition 2024 requires Rust 1.85+. | CI MSRV job also updated. |
+
+---
+
 *See [STATUS.md](STATUS.md) for implementation progress and [WHATS_NEXT.md](WHATS_NEXT.md) for the roadmap.*

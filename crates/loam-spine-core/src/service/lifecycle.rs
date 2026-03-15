@@ -10,11 +10,11 @@
 use crate::config::LoamSpineConfig;
 use crate::error::LoamSpineResult;
 use crate::service::LoamSpineService;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
-use tokio::time::{interval, Duration};
+use tokio::time::{Duration, interval};
 
 /// Service lifecycle state per `SERVICE_LIFECYCLE.md` specification.
 ///
@@ -153,16 +153,16 @@ impl LifecycleManager {
                         self.discovery_client = Some(client);
 
                         // Advertise and start heartbeat
-                        if self.config.discovery.auto_advertise {
-                            if let Some(ref client) = self.discovery_client {
-                                self.advertise_capabilities(client).await?;
-                            }
+                        if self.config.discovery.auto_advertise
+                            && let Some(ref client) = self.discovery_client
+                        {
+                            self.advertise_capabilities(client).await?;
                         }
 
-                        if self.config.discovery.heartbeat_interval_seconds > 0 {
-                            if let Some(client) = self.discovery_client.clone() {
-                                self.start_heartbeat_task(client);
-                            }
+                        if self.config.discovery.heartbeat_interval_seconds > 0
+                            && let Some(client) = self.discovery_client.clone()
+                        {
+                            self.start_heartbeat_task(client);
                         }
 
                         self.transition(ServiceState::Ready);
@@ -437,7 +437,7 @@ impl Drop for LifecycleManager {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used, clippy::unwrap_used)]
+#[allow(clippy::expect_used, clippy::unwrap_used, unsafe_code)]
 mod tests {
     use super::*;
     use serial_test::serial;
@@ -484,7 +484,9 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn lifecycle_transitions_through_states() {
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
 
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();
@@ -814,7 +816,9 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn lifecycle_start_with_no_endpoint_clears_env() {
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
 
         let service = LoamSpineService::new();
         let mut config = LoamSpineConfig::default();

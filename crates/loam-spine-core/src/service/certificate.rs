@@ -800,7 +800,7 @@ impl LoamSpineService {
             _ => {
                 return Err(LoamSpineError::InvalidEntryType(
                     "certificate not in pending transfer".into(),
-                ))
+                ));
             }
         }
 
@@ -844,7 +844,7 @@ impl LoamSpineService {
             _ => {
                 return Err(LoamSpineError::InvalidEntryType(
                     "certificate not in pending transfer".into(),
-                ))
+                ));
             }
         }
 

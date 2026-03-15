@@ -15,8 +15,8 @@
 //! ```
 
 use loam_spine_api::{
-    types::{CreateSpineRequest, GetSpineRequest, HealthCheckRequest},
     LoamSpineRpcService,
+    types::{CreateSpineRequest, GetSpineRequest, HealthCheckRequest},
 };
 use loam_spine_core::Did;
 

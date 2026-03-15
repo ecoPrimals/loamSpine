@@ -278,12 +278,13 @@ async fn test_sublend_certificate() {
         cert.as_ref().map(|c| c.holder.as_ref()),
         Some(Some(&borrower_b))
     );
-    assert!(cert
-        .as_ref()
-        .is_some_and(|c| c.active_loan.as_ref().is_some_and(|l| l
-            .relending_chain
-            .as_ref()
-            .is_some_and(|ch| ch.links.len() == 2))));
+    assert!(
+        cert.as_ref()
+            .is_some_and(|c| c.active_loan.as_ref().is_some_and(|l| l
+                .relending_chain
+                .as_ref()
+                .is_some_and(|ch| ch.links.len() == 2)))
+    );
 }
 
 #[tokio::test]
@@ -759,11 +760,12 @@ async fn test_loan_expires_at_set() {
 
     let cert = service.get_certificate(cert_id).await;
     assert!(cert.is_some());
-    assert!(cert
-        .as_ref()
-        .and_then(|c| c.active_loan.as_ref())
-        .and_then(|l| l.expires_at)
-        .is_some());
+    assert!(
+        cert.as_ref()
+            .and_then(|c| c.active_loan.as_ref())
+            .and_then(|l| l.expires_at)
+            .is_some()
+    );
 }
 
 #[tokio::test]

@@ -20,8 +20,8 @@
 #![allow(clippy::clone_on_copy)]
 
 use loam_spine_core::{
-    entry::{Entry, EntryType, SpineConfig},
     Did, Spine,
+    entry::{Entry, EntryType, SpineConfig},
 };
 use std::time::Instant;
 

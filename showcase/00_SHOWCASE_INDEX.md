@@ -1,6 +1,6 @@
 # 🦴 LoamSpine Showcase Index
 
-**Version**: 0.8.6  
+**Version**: 0.8.8  
 **Last Updated**: March 15, 2026  
 **Status**: ✅ Production Ready (matches Squirrel's excellence!)
 
@@ -335,9 +335,9 @@ LoamSpine uses capability discovery for all external services:
 
 ### In Repository Root
 - [../README.md](../README.md) - LoamSpine overview
-- [../STATUS.md](../STATUS.md) - Project status (A+ 98/100)
-- [../ROOT_DOCS_INDEX.md](../ROOT_DOCS_INDEX.md) - Documentation index
-- [../specs/](../specs/) - Complete specifications (8,400+ lines)
+- [../STATUS.md](../STATUS.md) - Implementation status
+- [../CHANGELOG.md](../CHANGELOG.md) - Version history
+- [../specs/](../specs/) - Complete specifications
 
 ### Ecosystem Showcases
 - `../../phase1/squirrel/showcase/` - AI orchestration (EXCELLENT model)

@@ -10,10 +10,10 @@
 #![allow(clippy::uninlined_format_args)] // Older style for clarity
 
 use loam_spine_core::{
+    SpineBuilder,
     entry::EntryType,
     temporal::{Anchor, AtomicAnchor, Moment, MomentContext, TimePrecision},
     types::{ContentHash, Did, Signature},
-    SpineBuilder,
 };
 
 #[tokio::main]

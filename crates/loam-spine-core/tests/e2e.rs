@@ -13,12 +13,12 @@
 #![allow(clippy::cast_sign_loss)]
 
 use loam_spine_core::{
+    CertificateType, LoanTerms, SECONDS_PER_HOUR,
     service::LoamSpineService,
     traits::{
         BraidAcceptor, BraidSummary, CommitAcceptor, DehydrationSummary, SliceManager, SpineQuery,
     },
     types::{BraidId, Did, SessionId},
-    CertificateType, LoanTerms, SECONDS_PER_HOUR,
 };
 
 /// Helper to create a test certificate type.
@@ -58,10 +58,12 @@ async fn full_spine_lifecycle() {
             .expect("Failed to commit session");
 
         // Verify each commit
-        assert!(service
-            .verify_commit(&commit_ref)
-            .await
-            .expect("Failed to verify commit"));
+        assert!(
+            service
+                .verify_commit(&commit_ref)
+                .await
+                .expect("Failed to verify commit")
+        );
     }
 
     // 3. Check spine state
@@ -211,10 +213,12 @@ async fn braid_commit_and_verify() {
         .expect("Failed to commit braid");
 
     // Verify braid exists
-    assert!(service
-        .verify_braid(braid_id)
-        .await
-        .expect("Failed to verify braid"));
+    assert!(
+        service
+            .verify_braid(braid_id)
+            .await
+            .expect("Failed to verify braid")
+    );
 
     // Get braids for subject
     let braids = service
@@ -278,8 +282,8 @@ async fn concurrent_spine_operations() {
 /// Test capability registry integration.
 #[tokio::test]
 async fn capability_registry_integration() {
-    use loam_spine_core::discovery::CapabilityStatus;
     use loam_spine_core::CapabilityRegistry;
+    use loam_spine_core::discovery::CapabilityStatus;
 
     // Create service with shared registry
     let registry = CapabilityRegistry::new();

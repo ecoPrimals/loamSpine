@@ -139,10 +139,10 @@ async fn wait_for_service_discoverable(
             ));
         }
 
-        if let Ok(services) = client.discover_capability(capability).await {
-            if services.iter().any(|s| s.name == service_name) {
-                return Ok(());
-            }
+        if let Ok(services) = client.discover_capability(capability).await
+            && services.iter().any(|s| s.name == service_name)
+        {
+            return Ok(());
         }
         // Discovery failed, retry
 

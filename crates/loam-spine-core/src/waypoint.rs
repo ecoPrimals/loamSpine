@@ -429,12 +429,12 @@ impl RelendingChain {
             ));
         }
         let next_depth = u32::try_from(self.links.len()).unwrap_or(u32::MAX);
-        if let Some(max) = max_sublend_depth {
-            if next_depth > max {
-                return Err(LoamSpineError::LoanTermsViolation(format!(
-                    "sublend depth {next_depth} exceeds max {max}"
-                )));
-            }
+        if let Some(max) = max_sublend_depth
+            && next_depth > max
+        {
+            return Err(LoamSpineError::LoanTermsViolation(format!(
+                "sublend depth {next_depth} exceeds max {max}"
+            )));
         }
         Ok(())
     }

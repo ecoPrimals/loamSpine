@@ -111,13 +111,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo bench --no-run
 
-  # MSRV check
+  # MSRV check (edition 2024 requires 1.85+)
   msrv:
-    name: MSRV (1.75.0)
+    name: MSRV (1.85.0)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.75.0
+      - uses: dtolnay/rust-toolchain@1.85.0
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --all-features
 

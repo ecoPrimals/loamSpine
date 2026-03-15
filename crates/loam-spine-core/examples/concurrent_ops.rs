@@ -22,8 +22,8 @@
 #![allow(unused_variables)]
 
 use loam_spine_core::{
-    entry::{Entry, EntryType, SpineConfig},
     Did, Spine,
+    entry::{Entry, EntryType, SpineConfig},
 };
 use std::sync::{Arc, Mutex};
 use std::thread;

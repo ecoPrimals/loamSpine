@@ -259,31 +259,39 @@ fn entry_type_domain_temporal_moment() {
 
 #[test]
 fn waypoint_allowed_slice_variants() {
-    assert!(EntryType::SliceAnchor {
-        slice_id: SliceId::now_v7(),
-        origin_spine: SpineId::now_v7(),
-        origin_entry: [0u8; 32],
-    }
-    .allowed_in_waypoint());
+    assert!(
+        EntryType::SliceAnchor {
+            slice_id: SliceId::now_v7(),
+            origin_spine: SpineId::now_v7(),
+            origin_entry: [0u8; 32],
+        }
+        .allowed_in_waypoint()
+    );
 
-    assert!(EntryType::SliceOperation {
-        slice_id: SliceId::now_v7(),
-        operation: "op".into(),
-    }
-    .allowed_in_waypoint());
+    assert!(
+        EntryType::SliceOperation {
+            slice_id: SliceId::now_v7(),
+            operation: "op".into(),
+        }
+        .allowed_in_waypoint()
+    );
 
-    assert!(EntryType::SliceDeparture {
-        slice_id: SliceId::now_v7(),
-        reason: "done".into(),
-    }
-    .allowed_in_waypoint());
+    assert!(
+        EntryType::SliceDeparture {
+            slice_id: SliceId::now_v7(),
+            reason: "done".into(),
+        }
+        .allowed_in_waypoint()
+    );
 
-    assert!(!EntryType::DataAnchor {
-        data_hash: [0u8; 32],
-        mime_type: None,
-        size: 0,
-    }
-    .allowed_in_waypoint());
+    assert!(
+        !EntryType::DataAnchor {
+            data_hash: [0u8; 32],
+            mime_type: None,
+            size: 0,
+        }
+        .allowed_in_waypoint()
+    );
 }
 
 #[test]

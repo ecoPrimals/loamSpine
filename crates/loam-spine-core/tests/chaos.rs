@@ -15,10 +15,10 @@
 #![allow(clippy::manual_string_new)]
 
 use loam_spine_core::{
+    CertificateType, LoamSpineError, LoanTerms, SECONDS_PER_HOUR,
     service::LoamSpineService,
     traits::{CommitAcceptor, DehydrationSummary, SpineQuery},
     types::{Did, SessionId, SpineId},
-    CertificateType, LoamSpineError, LoanTerms, SECONDS_PER_HOUR,
 };
 
 /// Helper to create a test certificate type.

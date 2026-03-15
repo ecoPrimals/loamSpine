@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]
+#![allow(unsafe_code)]
 
 //! Integration tests for CLI signer with real `BearDog` binary.
 //!
 //! These tests use the actual `BearDog` binary from `../bins/` to test
 //! real signing operations. They gracefully skip if the binary is not available.
 
+use loam_spine_core::Entry;
 use loam_spine_core::traits::cli_signer::{CliSigner, CliVerifier};
 use loam_spine_core::traits::signing::{Signer, Verifier};
-use loam_spine_core::Entry;
 use std::path::Path;
 
 /// Path to `BearDog` binary
@@ -104,8 +105,12 @@ async fn test_cli_signer_with_environment_variable() {
     }
 
     // Test environment variable configuration
-    std::env::set_var("LOAMSPINE_SIGNER_PATH", BEARDOG_BIN);
-    std::env::set_var("LOAMSPINE_SIGNER_KEY", "test-key");
+    unsafe {
+        std::env::set_var("LOAMSPINE_SIGNER_PATH", BEARDOG_BIN);
+    }
+    unsafe {
+        std::env::set_var("LOAMSPINE_SIGNER_KEY", "test-key");
+    }
 
     // Environment variables are now set for discovery
     let signer_path = std::env::var("LOAMSPINE_SIGNER_PATH");
@@ -115,8 +120,12 @@ async fn test_cli_signer_with_environment_variable() {
     }
 
     // Clean up
-    std::env::remove_var("LOAMSPINE_SIGNER_PATH");
-    std::env::remove_var("LOAMSPINE_SIGNER_KEY");
+    unsafe {
+        std::env::remove_var("LOAMSPINE_SIGNER_PATH");
+    }
+    unsafe {
+        std::env::remove_var("LOAMSPINE_SIGNER_KEY");
+    }
 }
 
 #[tokio::test]
@@ -197,7 +206,7 @@ async fn test_cli_signer_capability_pattern() {
 
 #[tokio::test]
 async fn test_cli_signer_integration_with_entry() {
-    use loam_spine_core::{entry::SpineConfig, SpineId};
+    use loam_spine_core::{SpineId, entry::SpineConfig};
 
     if !beardog_available() {
         eprintln!("⚠️  Skipping test: BearDog binary not available");

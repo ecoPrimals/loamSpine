@@ -218,16 +218,16 @@ mod tests {
 
         // Get a valid entry hash from the spine (genesis)
         let spine_result = service.get_spine(spine_id).await;
-        if let Ok(Some(spine)) = spine_result {
-            if let Some(genesis) = spine.genesis_entry() {
-                let entry_hash = genesis.compute_hash().expect("compute_hash");
+        if let Ok(Some(spine)) = spine_result
+            && let Some(genesis) = spine.genesis_entry()
+        {
+            let entry_hash = genesis.compute_hash().expect("compute_hash");
 
-                let result = service.generate_inclusion_proof(spine_id, entry_hash).await;
-                assert!(result.is_ok());
+            let result = service.generate_inclusion_proof(spine_id, entry_hash).await;
+            assert!(result.is_ok());
 
-                if let Ok(proof) = result {
-                    assert!(proof.verify().expect("verify"));
-                }
+            if let Ok(proof) = result {
+                assert!(proof.verify().expect("verify"));
             }
         }
     }

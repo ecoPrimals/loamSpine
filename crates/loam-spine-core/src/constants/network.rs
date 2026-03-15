@@ -25,12 +25,12 @@ use crate::constants::{DEFAULT_JSONRPC_PORT, DEFAULT_TARPC_PORT, OS_ASSIGNED_POR
 /// use loam_spine_core::constants::network::jsonrpc_port;
 ///
 /// // Set via environment
-/// std::env::set_var("LOAMSPINE_JSONRPC_PORT", "8888");
+/// unsafe { std::env::set_var("LOAMSPINE_JSONRPC_PORT", "8888"); }
 /// assert_eq!(jsonrpc_port(), 8888);
 ///
 /// // Falls back to default
-/// std::env::remove_var("LOAMSPINE_JSONRPC_PORT");
-/// std::env::remove_var("JSONRPC_PORT");
+/// unsafe { std::env::remove_var("LOAMSPINE_JSONRPC_PORT"); }
+/// unsafe { std::env::remove_var("JSONRPC_PORT"); }
 /// assert_eq!(jsonrpc_port(), 8080);
 /// ```
 pub fn jsonrpc_port() -> u16 {
@@ -73,12 +73,12 @@ pub fn jsonrpc_port() -> u16 {
 /// use loam_spine_core::constants::network::tarpc_port;
 ///
 /// // Set via environment
-/// std::env::set_var("LOAMSPINE_TARPC_PORT", "9999");
+/// unsafe { std::env::set_var("LOAMSPINE_TARPC_PORT", "9999"); }
 /// assert_eq!(tarpc_port(), 9999);
 ///
 /// // Falls back to default
-/// std::env::remove_var("LOAMSPINE_TARPC_PORT");
-/// std::env::remove_var("TARPC_PORT");
+/// unsafe { std::env::remove_var("LOAMSPINE_TARPC_PORT"); }
+/// unsafe { std::env::remove_var("TARPC_PORT"); }
 /// assert_eq!(tarpc_port(), 9001);
 /// ```
 pub fn tarpc_port() -> u16 {
@@ -121,12 +121,12 @@ pub fn tarpc_port() -> u16 {
 /// use loam_spine_core::constants::network::bind_address;
 ///
 /// // Set specific interface
-/// std::env::set_var("LOAMSPINE_BIND_ADDRESS", "127.0.0.1");
+/// unsafe { std::env::set_var("LOAMSPINE_BIND_ADDRESS", "127.0.0.1"); }
 /// assert_eq!(bind_address(), "127.0.0.1");
 ///
 /// // Default to all interfaces
-/// std::env::remove_var("LOAMSPINE_BIND_ADDRESS");
-/// std::env::remove_var("BIND_ADDRESS");
+/// unsafe { std::env::remove_var("LOAMSPINE_BIND_ADDRESS"); }
+/// unsafe { std::env::remove_var("BIND_ADDRESS"); }
 /// assert_eq!(bind_address(), "0.0.0.0");
 /// ```
 pub fn bind_address() -> Cow<'static, str> {
@@ -163,7 +163,7 @@ pub fn bind_address() -> Cow<'static, str> {
 /// ```rust
 /// use loam_spine_core::constants::network::{use_os_assigned_ports, tarpc_port};
 ///
-/// std::env::set_var("USE_OS_ASSIGNED_PORTS", "true");
+/// unsafe { std::env::set_var("USE_OS_ASSIGNED_PORTS", "true"); }
 /// assert!(use_os_assigned_ports());
 ///
 /// // In application code
@@ -191,12 +191,12 @@ pub fn use_os_assigned_ports() -> bool {
 /// use loam_spine_core::constants::network::actual_jsonrpc_port;
 ///
 /// // OS assignment enabled
-/// std::env::set_var("USE_OS_ASSIGNED_PORTS", "true");
+/// unsafe { std::env::set_var("USE_OS_ASSIGNED_PORTS", "true"); }
 /// assert_eq!(actual_jsonrpc_port(), 0);
 ///
 /// // OS assignment disabled, uses configured port
-/// std::env::remove_var("USE_OS_ASSIGNED_PORTS");
-/// std::env::set_var("LOAMSPINE_JSONRPC_PORT", "8888");
+/// unsafe { std::env::remove_var("USE_OS_ASSIGNED_PORTS"); }
+/// unsafe { std::env::set_var("LOAMSPINE_JSONRPC_PORT", "8888"); }
 /// assert_eq!(actual_jsonrpc_port(), 8888);
 /// ```
 pub fn actual_jsonrpc_port() -> u16 {
@@ -216,12 +216,12 @@ pub fn actual_jsonrpc_port() -> u16 {
 /// use loam_spine_core::constants::network::actual_tarpc_port;
 ///
 /// // OS assignment enabled
-/// std::env::set_var("USE_OS_ASSIGNED_PORTS", "true");
+/// unsafe { std::env::set_var("USE_OS_ASSIGNED_PORTS", "true"); }
 /// assert_eq!(actual_tarpc_port(), 0);
 ///
 /// // OS assignment disabled, uses configured port
-/// std::env::remove_var("USE_OS_ASSIGNED_PORTS");
-/// std::env::set_var("LOAMSPINE_TARPC_PORT", "9999");
+/// unsafe { std::env::remove_var("USE_OS_ASSIGNED_PORTS"); }
+/// unsafe { std::env::set_var("LOAMSPINE_TARPC_PORT", "9999"); }
 /// assert_eq!(actual_tarpc_port(), 9999);
 /// ```
 pub fn actual_tarpc_port() -> u16 {
@@ -276,7 +276,7 @@ pub enum IpcProtocol {
 /// Resolution order:
 /// 1. `$XDG_RUNTIME_DIR/biomeos/`
 /// 2. `/run/user/{uid}/biomeos/`
-/// 3. `/tmp/biomeos/`
+/// 3. `{temp_dir}/biomeos/`
 #[must_use]
 pub fn resolve_primal_socket(primal: &str, family_id: &str) -> std::path::PathBuf {
     let base = resolve_socket_base_dir();
@@ -319,34 +319,54 @@ fn resolve_socket_base_dir() -> std::path::PathBuf {
         return std::path::PathBuf::from(format!("{runtime_dir}/biomeos"));
     }
 
-    // Fallback: /tmp/biomeos/
-    std::path::PathBuf::from("/tmp/biomeos")
+    // Fallback: temp_dir/biomeos/
+    std::env::temp_dir().join("biomeos")
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)] // Tests use unwrap for clarity
+#[allow(clippy::unwrap_used, unsafe_code)] // Tests use unwrap for clarity
 mod tests {
     use super::*;
     use serial_test::serial;
 
     /// Clean up all environment variables that might affect tests
     fn cleanup_env_vars() {
-        env::remove_var("LOAMSPINE_JSONRPC_PORT");
-        env::remove_var("JSONRPC_PORT");
-        env::remove_var("LOAMSPINE_TARPC_PORT");
-        env::remove_var("TARPC_PORT");
-        env::remove_var("USE_OS_ASSIGNED_PORTS");
-        env::remove_var("LOAMSPINE_OS_PORTS");
-        env::remove_var("LOAMSPINE_USE_OS_ASSIGNED_PORTS");
-        env::remove_var("LOAMSPINE_BIND_ADDRESS");
-        env::remove_var("BIND_ADDRESS");
+        unsafe {
+            env::remove_var("LOAMSPINE_JSONRPC_PORT");
+        }
+        unsafe {
+            env::remove_var("JSONRPC_PORT");
+        }
+        unsafe {
+            env::remove_var("LOAMSPINE_TARPC_PORT");
+        }
+        unsafe {
+            env::remove_var("TARPC_PORT");
+        }
+        unsafe {
+            env::remove_var("USE_OS_ASSIGNED_PORTS");
+        }
+        unsafe {
+            env::remove_var("LOAMSPINE_OS_PORTS");
+        }
+        unsafe {
+            env::remove_var("LOAMSPINE_USE_OS_ASSIGNED_PORTS");
+        }
+        unsafe {
+            env::remove_var("LOAMSPINE_BIND_ADDRESS");
+        }
+        unsafe {
+            env::remove_var("BIND_ADDRESS");
+        }
     }
 
     #[test]
     #[serial]
     fn test_jsonrpc_port_from_env() {
         cleanup_env_vars();
-        env::set_var("LOAMSPINE_JSONRPC_PORT", "8888");
+        unsafe {
+            env::set_var("LOAMSPINE_JSONRPC_PORT", "8888");
+        }
         assert_eq!(jsonrpc_port(), 8888);
         cleanup_env_vars();
     }
@@ -363,7 +383,9 @@ mod tests {
     #[serial]
     fn test_tarpc_port_from_env() {
         cleanup_env_vars();
-        env::set_var("LOAMSPINE_TARPC_PORT", "9999");
+        unsafe {
+            env::set_var("LOAMSPINE_TARPC_PORT", "9999");
+        }
         assert_eq!(tarpc_port(), 9999);
         cleanup_env_vars();
     }
@@ -372,11 +394,15 @@ mod tests {
     #[serial]
     fn test_os_assigned_ports() {
         cleanup_env_vars();
-        env::set_var("USE_OS_ASSIGNED_PORTS", "1");
+        unsafe {
+            env::set_var("USE_OS_ASSIGNED_PORTS", "1");
+        }
         assert!(use_os_assigned_ports());
         cleanup_env_vars();
 
-        env::set_var("USE_OS_ASSIGNED_PORTS", "0");
+        unsafe {
+            env::set_var("USE_OS_ASSIGNED_PORTS", "0");
+        }
         assert!(!use_os_assigned_ports());
         cleanup_env_vars();
     }
@@ -385,7 +411,9 @@ mod tests {
     #[serial]
     fn test_actual_ports_with_os_assignment() {
         cleanup_env_vars();
-        env::set_var("USE_OS_ASSIGNED_PORTS", "1");
+        unsafe {
+            env::set_var("USE_OS_ASSIGNED_PORTS", "1");
+        }
 
         // Verify the env var is set correctly
         assert!(
@@ -425,8 +453,12 @@ mod tests {
     #[serial]
     fn test_jsonrpc_port_invalid_loamspine_falls_back_to_generic() {
         cleanup_env_vars();
-        env::set_var("LOAMSPINE_JSONRPC_PORT", "invalid");
-        env::set_var("JSONRPC_PORT", "7777");
+        unsafe {
+            env::set_var("LOAMSPINE_JSONRPC_PORT", "invalid");
+        }
+        unsafe {
+            env::set_var("JSONRPC_PORT", "7777");
+        }
 
         assert_eq!(jsonrpc_port(), 7777);
         cleanup_env_vars();
@@ -436,8 +468,12 @@ mod tests {
     #[serial]
     fn test_jsonrpc_port_invalid_both_falls_back_to_default() {
         cleanup_env_vars();
-        env::set_var("LOAMSPINE_JSONRPC_PORT", "not-a-number");
-        env::set_var("JSONRPC_PORT", "also-invalid");
+        unsafe {
+            env::set_var("LOAMSPINE_JSONRPC_PORT", "not-a-number");
+        }
+        unsafe {
+            env::set_var("JSONRPC_PORT", "also-invalid");
+        }
 
         assert_eq!(jsonrpc_port(), DEFAULT_JSONRPC_PORT);
         cleanup_env_vars();
@@ -447,8 +483,12 @@ mod tests {
     #[serial]
     fn test_jsonrpc_port_generic_env_var() {
         cleanup_env_vars();
-        env::remove_var("LOAMSPINE_JSONRPC_PORT");
-        env::set_var("JSONRPC_PORT", "5555");
+        unsafe {
+            env::remove_var("LOAMSPINE_JSONRPC_PORT");
+        }
+        unsafe {
+            env::set_var("JSONRPC_PORT", "5555");
+        }
 
         assert_eq!(jsonrpc_port(), 5555);
         cleanup_env_vars();
@@ -458,8 +498,12 @@ mod tests {
     #[serial]
     fn test_tarpc_port_invalid_loamspine_falls_back_to_generic() {
         cleanup_env_vars();
-        env::set_var("LOAMSPINE_TARPC_PORT", "invalid");
-        env::set_var("TARPC_PORT", "8888");
+        unsafe {
+            env::set_var("LOAMSPINE_TARPC_PORT", "invalid");
+        }
+        unsafe {
+            env::set_var("TARPC_PORT", "8888");
+        }
 
         assert_eq!(tarpc_port(), 8888);
         cleanup_env_vars();
@@ -469,8 +513,12 @@ mod tests {
     #[serial]
     fn test_tarpc_port_generic_env_var() {
         cleanup_env_vars();
-        env::remove_var("LOAMSPINE_TARPC_PORT");
-        env::set_var("TARPC_PORT", "7777");
+        unsafe {
+            env::remove_var("LOAMSPINE_TARPC_PORT");
+        }
+        unsafe {
+            env::set_var("TARPC_PORT", "7777");
+        }
 
         assert_eq!(tarpc_port(), 7777);
         cleanup_env_vars();
@@ -480,8 +528,12 @@ mod tests {
     #[serial]
     fn test_tarpc_port_invalid_both_falls_back_to_default() {
         cleanup_env_vars();
-        env::set_var("LOAMSPINE_TARPC_PORT", "bad");
-        env::set_var("TARPC_PORT", "worse");
+        unsafe {
+            env::set_var("LOAMSPINE_TARPC_PORT", "bad");
+        }
+        unsafe {
+            env::set_var("TARPC_PORT", "worse");
+        }
 
         assert_eq!(tarpc_port(), DEFAULT_TARPC_PORT);
         cleanup_env_vars();
@@ -491,7 +543,9 @@ mod tests {
     #[serial]
     fn test_use_os_assigned_ports_yes() {
         cleanup_env_vars();
-        env::set_var("USE_OS_ASSIGNED_PORTS", "yes");
+        unsafe {
+            env::set_var("USE_OS_ASSIGNED_PORTS", "yes");
+        }
         assert!(use_os_assigned_ports());
         cleanup_env_vars();
     }
@@ -500,7 +554,9 @@ mod tests {
     #[serial]
     fn test_use_os_assigned_ports_true() {
         cleanup_env_vars();
-        env::set_var("USE_OS_ASSIGNED_PORTS", "true");
+        unsafe {
+            env::set_var("USE_OS_ASSIGNED_PORTS", "true");
+        }
         assert!(use_os_assigned_ports());
         cleanup_env_vars();
     }
@@ -509,8 +565,12 @@ mod tests {
     #[serial]
     fn test_use_os_assigned_ports_loamspine_os_ports() {
         cleanup_env_vars();
-        env::remove_var("USE_OS_ASSIGNED_PORTS");
-        env::set_var("LOAMSPINE_OS_PORTS", "true");
+        unsafe {
+            env::remove_var("USE_OS_ASSIGNED_PORTS");
+        }
+        unsafe {
+            env::set_var("LOAMSPINE_OS_PORTS", "true");
+        }
         assert!(use_os_assigned_ports());
         cleanup_env_vars();
     }
@@ -519,7 +579,9 @@ mod tests {
     #[serial]
     fn test_bind_address_loamspine_specific() {
         cleanup_env_vars();
-        env::set_var("LOAMSPINE_BIND_ADDRESS", "127.0.0.1");
+        unsafe {
+            env::set_var("LOAMSPINE_BIND_ADDRESS", "127.0.0.1");
+        }
         assert_eq!(bind_address(), "127.0.0.1");
         cleanup_env_vars();
     }
@@ -528,8 +590,12 @@ mod tests {
     #[serial]
     fn test_bind_address_generic() {
         cleanup_env_vars();
-        env::remove_var("LOAMSPINE_BIND_ADDRESS");
-        env::set_var("BIND_ADDRESS", "192.0.2.1");
+        unsafe {
+            env::remove_var("LOAMSPINE_BIND_ADDRESS");
+        }
+        unsafe {
+            env::set_var("BIND_ADDRESS", "192.0.2.1");
+        }
         assert_eq!(bind_address(), "192.0.2.1");
         cleanup_env_vars();
     }
@@ -546,8 +612,12 @@ mod tests {
     #[serial]
     fn test_actual_ports_without_os_assignment() {
         cleanup_env_vars();
-        env::set_var("LOAMSPINE_JSONRPC_PORT", "3333");
-        env::set_var("LOAMSPINE_TARPC_PORT", "4444");
+        unsafe {
+            env::set_var("LOAMSPINE_JSONRPC_PORT", "3333");
+        }
+        unsafe {
+            env::set_var("LOAMSPINE_TARPC_PORT", "4444");
+        }
 
         assert_eq!(actual_jsonrpc_port(), 3333);
         assert_eq!(actual_tarpc_port(), 4444);
@@ -562,7 +632,9 @@ mod tests {
     #[serial]
     fn test_resolve_primal_socket_path() {
         cleanup_env_vars();
-        env::remove_var("XDG_RUNTIME_DIR");
+        unsafe {
+            env::remove_var("XDG_RUNTIME_DIR");
+        }
         let path = resolve_primal_socket("loamspine", "default");
         assert_eq!(
             path.to_string_lossy(),
@@ -574,11 +646,16 @@ mod tests {
     #[serial]
     fn test_resolve_primal_tarpc_socket_path() {
         cleanup_env_vars();
-        env::remove_var("XDG_RUNTIME_DIR");
+        unsafe {
+            env::remove_var("XDG_RUNTIME_DIR");
+        }
         let path = resolve_primal_tarpc_socket("loamspine", "default");
         assert_eq!(
             path.to_string_lossy(),
-            "/tmp/biomeos/loamspine-default.tarpc.sock"
+            format!(
+                "{}/biomeos/loamspine-default.tarpc.sock",
+                std::env::temp_dir().display()
+            )
         );
     }
 
@@ -586,7 +663,9 @@ mod tests {
     #[serial]
     fn test_resolve_primal_socket_with_xdg() {
         cleanup_env_vars();
-        env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        unsafe {
+            env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        }
         let path = resolve_primal_socket("rhizocrypt", "myfamily");
         assert_eq!(
             path.to_string_lossy(),
@@ -600,7 +679,9 @@ mod tests {
     fn test_negotiate_protocol_prefers_tarpc_when_available() {
         cleanup_env_vars();
         let tmp = tempfile::tempdir().unwrap();
-        env::set_var("XDG_RUNTIME_DIR", tmp.path().to_str().unwrap());
+        unsafe {
+            env::set_var("XDG_RUNTIME_DIR", tmp.path().to_str().unwrap());
+        }
 
         let biomeos_dir = tmp.path().join("biomeos");
         std::fs::create_dir_all(&biomeos_dir).unwrap();
@@ -621,7 +702,9 @@ mod tests {
     fn test_negotiate_protocol_falls_back_to_jsonrpc() {
         cleanup_env_vars();
         let tmp = tempfile::tempdir().unwrap();
-        env::set_var("XDG_RUNTIME_DIR", tmp.path().to_str().unwrap());
+        unsafe {
+            env::set_var("XDG_RUNTIME_DIR", tmp.path().to_str().unwrap());
+        }
 
         let biomeos_dir = tmp.path().join("biomeos");
         std::fs::create_dir_all(&biomeos_dir).unwrap();

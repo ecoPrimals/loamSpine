@@ -14,10 +14,10 @@
 #![allow(clippy::cast_sign_loss)] // Test data uses i32 -> u8 for readability
 
 use loam_spine_core::{
+    LoamSpineError,
     service::LoamSpineService,
     traits::{CommitAcceptor, DehydrationSummary, SpineQuery},
     types::{Did, SessionId},
-    LoamSpineError,
 };
 use std::sync::Arc;
 use std::time::Duration;

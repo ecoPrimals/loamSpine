@@ -435,3 +435,65 @@ mod tests {
         assert_eq!(slice.len(), 5);
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod proptest_roundtrips {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn did_serde_roundtrip(s in "[a-z0-9:._-]{1,64}") {
+            let did = Did::new(s.as_str());
+            let json = serde_json::to_string(&did).unwrap();
+            let back: Did = serde_json::from_str(&json).unwrap();
+            prop_assert_eq!(did.as_str(), back.as_str());
+        }
+
+        #[test]
+        fn did_display_roundtrip(s in "[a-z0-9:._-]{1,64}") {
+            let did = Did::new(s.as_str());
+            let displayed = did.to_string();
+            let back = Did::new(displayed.as_str());
+            prop_assert_eq!(did, back);
+        }
+
+        #[test]
+        fn did_clone_equality(s in "[a-z0-9:._-]{1,64}") {
+            let did = Did::new(s.as_str());
+            let cloned = did.clone();
+            prop_assert_eq!(did, cloned);
+        }
+
+        #[test]
+        fn spine_id_serde_roundtrip(() in Just(())) {
+            let id: SpineId = uuid::Uuid::now_v7();
+            let json = serde_json::to_string(&id).unwrap();
+            let back: SpineId = serde_json::from_str(&json).unwrap();
+            prop_assert_eq!(id, back);
+        }
+
+        #[test]
+        fn content_hash_roundtrip(data in prop::collection::vec(any::<u8>(), 0..256)) {
+            let hash = hash_bytes(&data);
+            let json = serde_json::to_string(&hash).unwrap();
+            let back: ContentHash = serde_json::from_str(&json).unwrap();
+            prop_assert_eq!(hash, back);
+        }
+
+        #[test]
+        fn signature_serde_roundtrip(data in prop::collection::vec(any::<u8>(), 0..128)) {
+            let sig = Signature::new(bytes::Bytes::from(data));
+            let json = serde_json::to_string(&sig).unwrap();
+            let back: Signature = serde_json::from_str(&json).unwrap();
+            prop_assert_eq!(sig.as_bytes(), back.as_bytes());
+        }
+
+        #[test]
+        fn byte_buffer_roundtrip(data in prop::collection::vec(any::<u8>(), 0..512)) {
+            let buf: ByteBuffer = data.clone().into_byte_buffer();
+            prop_assert_eq!(&buf[..], &data[..]);
+        }
+    }
+}

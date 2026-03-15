@@ -15,7 +15,7 @@
 //! ```
 
 // Examples allow patterns for demonstration purposes
-use loam_spine_core::{entry::EntryType, types::SessionId, Did, LoamSpineResult, SpineBuilder};
+use loam_spine_core::{Did, LoamSpineResult, SpineBuilder, entry::EntryType, types::SessionId};
 
 fn main() -> LoamSpineResult<()> {
     println!("🦴 Demo: Entry Types");

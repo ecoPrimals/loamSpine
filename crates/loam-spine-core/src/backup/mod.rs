@@ -109,10 +109,10 @@ impl SpineBackup {
             };
 
             if i > 0 {
-                if let Some(prev) = previous_hash {
-                    if entry.previous != Some(prev) {
-                        errors.push(BackupError::ChainBroken { at_index: i as u64 });
-                    }
+                if let Some(prev) = previous_hash
+                    && entry.previous != Some(prev)
+                {
+                    errors.push(BackupError::ChainBroken { at_index: i as u64 });
                 }
             } else if entry.previous.is_some() {
                 errors.push(BackupError::ChainBroken { at_index: 0 });

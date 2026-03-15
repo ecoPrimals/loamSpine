@@ -206,8 +206,8 @@ impl InfantDiscovery {
         #[cfg(not(test))]
         {
             // Use hickory-resolver for DNS SRV lookup
-            use hickory_resolver::config::{ResolverConfig, ResolverOpts};
             use hickory_resolver::TokioAsyncResolver;
+            use hickory_resolver::config::{ResolverConfig, ResolverOpts};
 
             // Check if we have a runtime available
             let Some(handle) = tokio::runtime::Handle::try_current().ok() else {
@@ -219,7 +219,8 @@ impl InfantDiscovery {
             };
 
             // Use spawn_blocking to avoid nested runtime issues
-            let result = handle.block_on(async {
+
+            handle.block_on(async {
                 tokio::task::spawn_blocking(|| {
                     // Create a new runtime for the DNS lookup
                     let rt = tokio::runtime::Runtime::new().ok()?;
@@ -265,9 +266,7 @@ impl InfantDiscovery {
                 .await
                 .ok()
                 .flatten()
-            });
-
-            result
+            })
         }
     }
 
@@ -365,7 +364,7 @@ impl Default for InfantDiscovery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
 mod tests {
     use super::*;
     use serial_test::serial;
@@ -381,28 +380,36 @@ mod tests {
     fn infant_discovery_default() {
         let infant = InfantDiscovery::default();
         assert!(infant.capabilities().len() >= 3);
-        assert!(infant
-            .capabilities()
-            .contains(&"persistent-ledger".to_string()));
+        assert!(
+            infant
+                .capabilities()
+                .contains(&"persistent-ledger".to_string())
+        );
     }
 
     #[tokio::test]
     #[serial]
     async fn environment_discovery_with_var() {
-        std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
+        unsafe {
+            std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_environment_discovery();
 
         assert_eq!(result, Some("http://test.example.com:8082".to_string()));
 
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
     }
 
     #[tokio::test]
     #[serial]
     async fn environment_discovery_without_var() {
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_environment_discovery();
@@ -447,20 +454,26 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn discovery_service_full_chain() {
-        std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
+        unsafe {
+            std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.discover_discovery_service().await;
 
         assert!(result.is_err());
 
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
     }
 
     #[tokio::test]
     #[serial]
     async fn discover_discovery_service_unreachable_endpoint_returns_error() {
-        std::env::set_var("DISCOVERY_ENDPOINT", "http://127.0.0.1:1");
+        unsafe {
+            std::env::set_var("DISCOVERY_ENDPOINT", "http://127.0.0.1:1");
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.discover_discovery_service().await;
@@ -475,13 +488,17 @@ mod tests {
             "Expected connection error: {err_str}",
         );
 
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
     }
 
     #[tokio::test]
     #[serial]
     async fn discover_discovery_service_development_fallback_connection_fails() {
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.discover_discovery_service().await;
@@ -492,14 +509,18 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn discover_discovery_service_empty_env_skipped() {
-        std::env::set_var("DISCOVERY_ENDPOINT", "");
+        unsafe {
+            std::env::set_var("DISCOVERY_ENDPOINT", "");
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_environment_discovery();
 
         assert!(result.is_none());
 
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
     }
 
     #[tokio::test]
@@ -530,10 +551,12 @@ mod tests {
     #[serial]
     async fn discover_discovery_service_env_takes_priority_over_fallback() {
         // When DISCOVERY_ENDPOINT is set, it should be used (even if unreachable)
-        std::env::set_var(
-            "DISCOVERY_ENDPOINT",
-            "http://env-priority-test.example:9999",
-        );
+        unsafe {
+            std::env::set_var(
+                "DISCOVERY_ENDPOINT",
+                "http://env-priority-test.example:9999",
+            );
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.discover_discovery_service().await;
@@ -548,14 +571,18 @@ mod tests {
             "Expected env endpoint in error: {err_str}",
         );
 
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
     }
 
     #[tokio::test]
     #[serial]
     async fn discover_discovery_service_fallback_chain_when_env_unset() {
         // No env var -> DNS (None in test) -> mDNS (None) -> dev fallback -> connect fails
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.discover_discovery_service().await;
@@ -603,13 +630,17 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn environment_discovery_empty_string_skipped() {
-        std::env::set_var("DISCOVERY_ENDPOINT", "");
+        unsafe {
+            std::env::set_var("DISCOVERY_ENDPOINT", "");
+        }
 
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
         let result = infant.try_environment_discovery();
 
         assert!(result.is_none());
 
-        std::env::remove_var("DISCOVERY_ENDPOINT");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ENDPOINT");
+        }
     }
 }

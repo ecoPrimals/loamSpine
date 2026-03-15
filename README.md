@@ -3,10 +3,11 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
-[![Version](https://img.shields.io/badge/version-0.8.7-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C114%20passing-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.8.8-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C123%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-89.64%25%20line%20%7C%2091.71%25%20region-brightgreen)]()
-[![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
+[![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20production-red)]()
+[![Edition](https://img.shields.io/badge/edition-2024-blue)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
 
 ---
@@ -108,7 +109,7 @@ loamSpine/
 
 **Dual Protocol:**
 - **tarpc** -- High-performance binary RPC for primal-to-primal
-- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI
+- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI (batch support)
 
 ---
 
@@ -162,14 +163,15 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.8.7 |
-| **Tests** | 1,114 passing |
+| **Version** | 0.8.8 |
+| **Edition** | 2024 |
+| **Tests** | 1,123 passing |
 | **Coverage** | 89.64% line, 91.71% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
-| **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
+| **Unsafe Code** | 0 in production (`#![deny(unsafe_code)]`) |
 | **Lint Exceptions** | 0 `#[allow]` in production (all `#[expect(reason)]`) |
 | **Max File Size** | 955 lines (all < 1000) |
-| **Source Files** | 117 `.rs` files across 2 crates + binary |
+| **Source Files** | 112 `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

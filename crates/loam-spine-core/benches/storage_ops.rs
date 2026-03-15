@@ -15,7 +15,7 @@
 #![allow(clippy::no_effect_underscore_binding)]
 #![allow(missing_docs)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use loam_spine_core::{
     entry::{Entry, EntryType, SpineConfig},
     spine::Spine,

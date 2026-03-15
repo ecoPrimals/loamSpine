@@ -221,10 +221,12 @@ async fn best_peer_endpoint_empty_peers() {
     let engine = SyncEngine::new();
     let result = engine.push_entries(SpineId::now_v7(), vec![]).await;
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("no federation peers"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("no federation peers")
+    );
 }
 
 #[tokio::test]
@@ -280,10 +282,12 @@ async fn pull_entries_requires_peers() {
     let spine_id = SpineId::now_v7();
     let result = engine.pull_entries(spine_id, 0, 10).await;
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("no federation peers"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("no federation peers")
+    );
 }
 
 #[tokio::test]
