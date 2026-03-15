@@ -216,7 +216,6 @@ mod tests {
     /// Spawns a minimal HTTP server that responds with the given status and body.
     fn spawn_mini_server(status: u16, body: &'static str) -> (u16, thread::JoinHandle<()>) {
         let reason = match status {
-            200 => "OK",
             201 => "Created",
             404 => "Not Found",
             _ => "OK",

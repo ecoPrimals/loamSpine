@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.8.4  
+**Current Version**: 0.8.5  
 **Last Updated**: March 15, 2026
 
 ---
@@ -45,13 +45,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 870 |
-| Coverage (llvm-cov) | 90%+ | 86.47% line |
+| Tests | — | 968 |
+| Coverage (llvm-cov) | 90%+ | 88.28% line, 90.45% region |
 | `unsafe` blocks | 0 | 0 |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 1122 max (test file; production max 915) |
-| Source files | — | 97 `.rs` files, 36,551 lines |
+| Max file size | < 1000 lines | 928 max (all files under 1000) |
+| Source files | — | 102 `.rs` files, 38,664 lines |
 
 ---
 
@@ -61,12 +61,24 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; musl cross-compile CI |
-| AGPL-3.0-only | PASS | SPDX headers on all 97 source files |
+| AGPL-3.0-only | PASS | SPDX headers on all 102 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PARTIAL | Production files under 1000 lines (max: 915). One test file at 1122 — candidate for split. |
+| File size limit | PASS | All files under 1000 lines (max: 928). Test files split by backend. |
+
+---
+
+## v0.8.5 Comprehensive Audit & Evolution (March 15, 2026)
+
+- **Clippy clean**: Fixed 18 clippy errors (module_inception, match_same_arms, cast_possible_truncation, expect_used, future_not_send, manual_let_else, unused_async, iter_on_single_items)
+- **Storage test refactoring**: `storage/tests.rs` (1122 lines) → 3 backend-specific modules: `tests.rs` (~340), `redb_tests.rs` (~340), `sled_tests.rs` (~340). All under 1000 LOC.
+- **Coverage boost**: 86.47% → 88.28% line, 90.45% region (+98 tests across sqlite, infant_discovery, sync, jsonrpc, redb, discovery_client)
+- **Idiomatic Rust evolution**: `unused_async` removed from mock helpers, `let...else` patterns, `HashSet::from()` constructors, `Sync` bounds on test generics, borrowed `&serde_json::Value` where ownership unnecessary
+- **ConfigurableTransport**: New test-only transport for discovery client error-path coverage
+- **Zero-copy improvements**: Mock helper functions take `&serde_json::Value` by reference instead of owned
+- **Test count**: 870 → 968 (+98 tests)
 
 ---
 

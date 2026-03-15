@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::sync::Arc;
+
 use super::*;
+use crate::transport::mock::{ConfigurableTransport, MockTransport, SuccessTransport};
 
 #[test]
 fn client_creation() {
@@ -475,4 +478,259 @@ fn client_debug_impl() {
     let debug = format!("{client:?}");
     assert!(debug.contains("DiscoveryClient"));
     assert!(debug.contains("test:8082"));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constructor and transport tests
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn connect_with_transport_success() {
+    let transport = Arc::new(SuccessTransport::new());
+    let client =
+        DiscoveryClient::connect_with_transport("http://registry.local:8082", transport).await;
+
+    assert!(client.is_ok());
+    let client = client.unwrap();
+    assert_eq!(client.endpoint(), "http://registry.local:8082");
+}
+
+#[tokio::test]
+async fn connect_with_transport_health_check_fails() {
+    let transport = Arc::new(MockTransport::new("http://registry.local:8082"));
+    let result =
+        DiscoveryClient::connect_with_transport("http://registry.local:8082", transport).await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("unavailable") || err.contains("registry") || err.contains("MockTransport"),
+        "Expected health check error: {err}",
+    );
+}
+
+#[test]
+fn for_testing_success_constructor() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
+    assert_eq!(client.endpoint(), "http://registry.local:8082");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Success paths with SuccessTransport
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn advertise_self_success() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
+
+    let result = client
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
+        .await;
+
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn advertise_self_with_urls_without_port_uses_defaults() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
+
+    let result = client
+        .advertise_self("http://localhost", "http://localhost")
+        .await;
+
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn heartbeat_success() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
+
+    let result = client.heartbeat().await;
+
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn deregister_success() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
+
+    let result = client.deregister().await;
+
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn discover_capability_success() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
+
+    let result = client.discover_capability("signing").await;
+
+    assert!(result.is_ok());
+    let services = result.unwrap();
+    assert!(services.is_empty());
+}
+
+#[tokio::test]
+async fn discover_all_success() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
+
+    let result = client.discover_all().await;
+
+    assert!(result.is_ok());
+    let services = result.unwrap();
+    assert!(services.is_empty());
+}
+
+#[tokio::test]
+async fn advertise_loamspine_deprecated_alias() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
+
+    #[allow(deprecated)]
+    let result = client
+        .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
+        .await;
+
+    assert!(result.is_ok());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Non-success status handling
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn discover_capability_returns_error_on_non_success_status() {
+    let transport = Arc::new(ConfigurableTransport::status_code(404));
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client.discover_capability("signing").await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("404") || err.contains("Discovery"),
+        "Expected status error: {err}"
+    );
+}
+
+#[tokio::test]
+async fn discover_all_returns_error_on_non_success_status() {
+    let transport = Arc::new(ConfigurableTransport::status_code(500));
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client.discover_all().await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("500") || err.contains("Discovery"),
+        "Expected status error: {err}"
+    );
+}
+
+#[tokio::test]
+async fn advertise_self_returns_error_on_non_success_status() {
+    let transport = Arc::new(ConfigurableTransport::status_code(503));
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
+        .await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("503") || err.contains("Advertisement"),
+        "Expected status error: {err}",
+    );
+}
+
+#[tokio::test]
+async fn heartbeat_returns_error_on_non_success_status() {
+    let transport = Arc::new(ConfigurableTransport::status_code(429));
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client.heartbeat().await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("429") || err.contains("Heartbeat"),
+        "Expected status error: {err}"
+    );
+}
+
+#[tokio::test]
+async fn deregister_returns_error_on_non_success_status() {
+    let transport = Arc::new(ConfigurableTransport::status_code(500));
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client.deregister().await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("500") || err.contains("Deregister"),
+        "Expected status error: {err}",
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HTTP response parsing edge cases (invalid JSON)
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn discover_capability_fails_on_invalid_json() {
+    let transport = Arc::new(ConfigurableTransport::invalid_json());
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client.discover_capability("signing").await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("parse") || err.contains("JSON") || err.contains("Failed"),
+        "Expected JSON parse error: {err}",
+    );
+}
+
+#[tokio::test]
+async fn discover_all_fails_on_invalid_json() {
+    let transport = Arc::new(ConfigurableTransport::invalid_json());
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client.discover_all().await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(
+        err.contains("parse") || err.contains("JSON") || err.contains("Failed"),
+        "Expected JSON parse error: {err}",
+    );
+}
+
+#[tokio::test]
+async fn discover_capability_returns_services_when_valid_json() {
+    let transport = Arc::new(ConfigurableTransport::new(
+        200,
+        r#"[{"name":"signing-svc","endpoint":"http://localhost:9000","capabilities":["signing"],"healthy":true}]"#,
+    ));
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client.discover_capability("signing").await;
+
+    assert!(result.is_ok());
+    let services = result.unwrap();
+    assert_eq!(services.len(), 1);
+    assert_eq!(services[0].name, "signing-svc");
+    assert_eq!(services[0].endpoint, "http://localhost:9000");
+    assert!(services[0].capabilities.contains(&"signing".to_string()));
+    assert!(services[0].healthy);
 }

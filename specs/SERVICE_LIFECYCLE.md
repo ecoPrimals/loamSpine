@@ -433,7 +433,7 @@ LOAMSPINE_REQUIRED_SERVICES=""  # Comma-separated
 # loamspine.toml
 [service]
 name = "loamspine"
-version = "0.8.4"
+version = "0.8.5"
 
 [storage]
 backend = "redb"

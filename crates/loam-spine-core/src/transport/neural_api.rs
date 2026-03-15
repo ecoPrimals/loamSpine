@@ -487,9 +487,9 @@ mod tests {
     }
 
     /// Helper: spawn a mock NeuralAPI socket that responds to `http.request`
-    async fn spawn_mock_transport_server(
+    fn spawn_mock_transport_server(
         socket_path: &std::path::Path,
-        response: serde_json::Value,
+        response: &serde_json::Value,
     ) -> tokio::task::JoinHandle<()> {
         let listener = tokio::net::UnixListener::bind(socket_path).unwrap();
         let resp_bytes = serde_json::to_vec(&response).unwrap();
@@ -502,6 +502,7 @@ mod tests {
                 let mut req_buf = vec![0u8; req_len];
                 let _ = stream.read_exact(&mut req_buf).await;
 
+                #[allow(clippy::cast_possible_truncation)]
                 let len = (resp_bytes.len() as u32).to_be_bytes();
                 let _ = stream.write_all(&len).await;
                 let _ = stream.write_all(&resp_bytes).await;
@@ -523,7 +524,7 @@ mod tests {
             },
             "id": 1
         });
-        let handle = spawn_mock_transport_server(&sock, response).await;
+        let handle = spawn_mock_transport_server(&sock, &response);
 
         let transport = NeuralApiTransport::new(Some(sock)).unwrap();
         let result = transport.get("http://registry:8082/health").await;
@@ -546,7 +547,7 @@ mod tests {
             "error": { "code": -32601, "message": "method not found" },
             "id": 1
         });
-        let handle = spawn_mock_transport_server(&sock, response).await;
+        let handle = spawn_mock_transport_server(&sock, &response);
 
         let transport = NeuralApiTransport::new(Some(sock)).unwrap();
         let result = transport.get("http://registry:8082/health").await;
@@ -571,7 +572,7 @@ mod tests {
             },
             "id": 1
         });
-        let handle = spawn_mock_transport_server(&sock, response).await;
+        let handle = spawn_mock_transport_server(&sock, &response);
 
         let transport = NeuralApiTransport::new(Some(sock)).unwrap();
         let result = transport
@@ -605,7 +606,7 @@ mod tests {
             },
             "id": 1
         });
-        let handle = spawn_mock_transport_server(&sock, response).await;
+        let handle = spawn_mock_transport_server(&sock, &response);
 
         let transport = NeuralApiTransport::new(Some(sock)).unwrap();
         let body = serde_json::json!({"name": "test-service"});
@@ -629,7 +630,7 @@ mod tests {
             "jsonrpc": "2.0",
             "id": 1
         });
-        let handle = spawn_mock_transport_server(&sock, response).await;
+        let handle = spawn_mock_transport_server(&sock, &response);
 
         let transport = NeuralApiTransport::new(Some(sock)).unwrap();
         let result = transport.get("http://registry:8082/health").await;

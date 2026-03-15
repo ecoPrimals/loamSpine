@@ -2,12 +2,12 @@
 
 # Development Roadmap
 
-**Current Version**: 0.8.4  
+**Current Version**: 0.8.5  
 **Last Updated**: March 15, 2026
 
 ---
 
-## Completed (v0.8.0 -- v0.8.4)
+## Completed (v0.8.0 -- v0.8.5)
 
 - SQLite storage backend (feature-gated) with full test coverage
 - SQLite smart refactoring: modular `sqlite/` directory (`mod.rs`, `common.rs`, `spine.rs`, `entry.rs`, `certificate.rs`, `tests.rs`)

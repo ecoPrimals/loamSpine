@@ -504,13 +504,10 @@ esac
             return;
         }
 
-        let signer = match CliSigner::new(&script, "any-key") {
-            Ok(s) => s,
-            Err(_) => {
-                let _ = std::fs::remove_file(&script);
-                eprintln!("⚠️  Skipping: could not create signer from script");
-                return;
-            }
+        let Ok(signer) = CliSigner::new(&script, "any-key") else {
+            let _ = std::fs::remove_file(&script);
+            eprintln!("⚠️  Skipping: could not create signer from script");
+            return;
         };
         let result = signer.sign(b"test data").await;
         let _ = std::fs::remove_file(&script);

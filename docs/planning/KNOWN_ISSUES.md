@@ -1,25 +1,25 @@
 # Known Issues - LoamSpine
 
 **Date**: March 15, 2026
-**Version**: 0.8.4
+**Version**: 0.8.5
 **Status**: Production Ready
 
 ---
 
 ## Current State
 
-As of v0.8.4 (March 15), the codebase passes all quality gates:
+As of v0.8.5 (March 15), the codebase passes all quality gates:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Tests | 400+ | 870 | PASS |
-| Line Coverage | 90% | 86.47% | IN PROGRESS |
+| Tests | 400+ | 968 | PASS |
+| Line Coverage | 90% | 88.28% line, 90.45% region | NEAR TARGET |
 | Clippy (pedantic + nursery) | 0 warnings | 0 | PASS |
 | Formatting | clean | clean | PASS |
 | Documentation | compiles (-D warnings) | compiles | PASS |
 | Unsafe Code | 0 | 0 | PASS |
-| Max File Size | <1000 lines | 915 max (production) | PASS |
-| Source Files | — | 97 | — |
+| Max File Size | <1000 lines | 928 max (all under 1000) | PASS |
+| Source Files | — | 102 | — |
 | License | AGPL-3.0-only | AGPL-3.0-only | PASS |
 | SPDX Headers | all files | all files | PASS |
 | cargo deny (bans, licenses, sources) | pass | pass | PASS |
@@ -36,15 +36,14 @@ As of v0.8.4 (March 15), the codebase passes all quality gates:
 
 ### Medium
 
-1. **Coverage gap** (86.47% → 90% target): Concentrated in network I/O paths:
-   - `jsonrpc/mod.rs` (39% — TCP server loop)
+1. **Coverage gap** (88.28% line, 90.45% region → 90% line target): Remaining gap is in network I/O:
+   - `jsonrpc/mod.rs` (47% — TCP server loop, needs integration-level testing)
    - `main.rs` (0% — binary entry point, tested via integration demos)
    - DNS SRV / mDNS network paths (require real network or more sophisticated mocking)
-2. **Test file size**: `storage/tests.rs` at 1122 lines (over 1000 LOC limit); candidate for split into per-backend modules.
-3. **Storage backends**: `Sqlite` implemented (feature-gated); `Postgres`, `Rocksdb` planned.
-4. **Showcase demos**: ~10% complete (2/21 demos fully implemented); remaining are documented/scaffolded.
-5. **Spec gaps**: Waypoint relending chain and expiry sweep; certificate `generate_provenance_proof`, escrow/`TransferConditions`.
-6. **PrimalAdapter**: Retry and circuit-breaker patterns for inter-primal calls not yet implemented.
+2. **Storage backends**: `Sqlite` implemented (feature-gated); `Postgres`, `Rocksdb` planned.
+3. **Showcase demos**: ~10% complete (2/21 demos fully implemented); remaining are documented/scaffolded.
+4. **Spec gaps**: Waypoint relending chain and expiry sweep; certificate `generate_provenance_proof`, escrow/`TransferConditions`.
+5. **PrimalAdapter**: Retry and circuit-breaker patterns for inter-primal calls not yet implemented.
 
 ### Minor
 
@@ -52,6 +51,16 @@ As of v0.8.4 (March 15), the codebase passes all quality gates:
 2. **`proc-macro-error` advisory**: Transitive dependency of optional `mdns` feature (not enabled by default).
 3. **Build infra**: Global `CARGO_TARGET_DIR` on noexec mount requires env override or `.cargo/config.toml`.
 4. **Showcase script paths**: 14+ showcase demo scripts have inconsistent `BINS_DIR` paths pointing to different relative locations.
+
+### Resolved (March 15 — v0.8.5)
+
+- 18 clippy errors fixed (module_inception, match_same_arms, cast_possible_truncation, expect_used, future_not_send, manual_let_else, unused_async, iter_on_single_items)
+- `storage/tests.rs` (1122 lines) refactored into 3 backend-specific modules (all under 1000 LOC)
+- All files now under 1000-line limit (max: 928)
+- Coverage raised from 86.47% to 88.28% line, 90.45% region (+98 tests)
+- `ConfigurableTransport` added for discovery client error-path testing
+- Mock helpers evolved: `async fn` → `fn`, owned params → borrowed refs (idiomatic + zero-copy)
+- Test count: 870 → 968 (+98 tests)
 
 ### Resolved (March 15 — v0.8.4)
 

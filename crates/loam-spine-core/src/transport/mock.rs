@@ -105,9 +105,15 @@ impl Default for SuccessTransport {
 impl DiscoveryTransport for SuccessTransport {
     fn get<'a>(
         &'a self,
-        _url: &'a str,
+        url: &'a str,
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
-        Box::pin(async move { Ok(TransportResponse::from_static(200, b"{}")) })
+        // /discover returns array, /health returns object (body unused)
+        let body = if url.contains("/discover") {
+            b"[]"
+        } else {
+            b"{}"
+        };
+        Box::pin(async move { Ok(TransportResponse::from_static(200, body)) })
     }
 
     fn get_with_query<'a>(
@@ -124,6 +130,76 @@ impl DiscoveryTransport for SuccessTransport {
         _body: &'a serde_json::Value,
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
         Box::pin(async move { Ok(TransportResponse::from_static(200, b"{}")) })
+    }
+}
+
+/// Transport that returns configurable status and body for testing error paths.
+///
+/// Used to test non-success HTTP status handling and invalid JSON parsing
+/// in [`DiscoveryClient`](crate::discovery_client::DiscoveryClient).
+#[cfg(any(test, feature = "testing"))]
+#[derive(Clone, Debug)]
+pub struct ConfigurableTransport {
+    /// (status, body) for GET requests (e.g. health, discover).
+    get: (u16, Vec<u8>),
+    /// (status, body) for GET with query (discover by capability).
+    get_with_query: (u16, Vec<u8>),
+    /// (status, body) for POST requests (register, heartbeat, deregister).
+    post: (u16, Vec<u8>),
+}
+
+#[cfg(any(test, feature = "testing"))]
+impl ConfigurableTransport {
+    /// Create a transport that returns the given status and body for all requests.
+    #[must_use]
+    pub fn new(status: u16, body: impl Into<Vec<u8>>) -> Self {
+        let body = body.into();
+        Self {
+            get: (status, body.clone()),
+            get_with_query: (status, body.clone()),
+            post: (status, body),
+        }
+    }
+
+    /// Create a transport that returns 200 with invalid JSON (triggers parse error).
+    #[must_use]
+    pub fn invalid_json() -> Self {
+        Self::new(200, b"not valid json")
+    }
+
+    /// Create a transport that returns a non-success status.
+    #[must_use]
+    pub fn status_code(status: u16) -> Self {
+        Self::new(status, b"{}")
+    }
+}
+
+#[cfg(any(test, feature = "testing"))]
+impl DiscoveryTransport for ConfigurableTransport {
+    fn get<'a>(
+        &'a self,
+        _url: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
+        let (status, body) = self.get.clone();
+        Box::pin(async move { Ok(TransportResponse::new(status, body)) })
+    }
+
+    fn get_with_query<'a>(
+        &'a self,
+        _url: &'a str,
+        _query: &'a [(&'a str, &'a str)],
+    ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
+        let (status, body) = self.get_with_query.clone();
+        Box::pin(async move { Ok(TransportResponse::new(status, body)) })
+    }
+
+    fn post_json<'a>(
+        &'a self,
+        _url: &'a str,
+        _body: &'a serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
+        let (status, body) = self.post.clone();
+        Box::pin(async move { Ok(TransportResponse::new(status, body)) })
     }
 }
 

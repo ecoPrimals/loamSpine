@@ -2,16 +2,17 @@
 
 use super::*;
 use crate::types::{
-    AnchorSliceRequest, AppendEntryRequest, CommitBraidRequest, CommitSessionRequest,
-    CreateSpineRequest, GenerateInclusionProofRequest, GetCertificateRequest, GetEntryRequest,
-    GetSpineRequest, GetTipRequest, MintCertificateRequest, PermanentStorageCommitRequest,
-    PermanentStorageGetCommitRequest, PermanentStorageVerifyRequest, SealSpineRequest,
-    VerifyInclusionProofRequest,
+    AnchorSliceRequest, AppendEntryRequest, CheckoutSliceRequest, CommitBraidRequest,
+    CommitSessionRequest, CreateSpineRequest, GenerateInclusionProofRequest, GetCertificateRequest,
+    GetEntryRequest, GetSpineRequest, GetTipRequest, LoanCertificateRequest,
+    MintCertificateRequest, PermanentStorageCommitRequest, PermanentStorageGetCommitRequest,
+    PermanentStorageVerifyRequest, ReturnCertificateRequest, SealSpineRequest,
+    TransferCertificateRequest, VerifyInclusionProofRequest,
 };
-use crate::types::{CertificateType, Did, EntryType};
+use crate::types::{CertificateType, Did, EntryType, LoanTerms};
 
 /// Helper: build a JSON-RPC request and dispatch through the handler.
-async fn rpc_call<Req: serde::Serialize, Resp: serde::de::DeserializeOwned>(
+async fn rpc_call<Req: serde::Serialize + Sync, Resp: serde::de::DeserializeOwned>(
     server: &LoamSpineJsonRpc,
     method: &str,
     request: &Req,
@@ -567,4 +568,311 @@ fn json_rpc_types_serde_roundtrip() {
     let parsed: JsonRpcResponse = serde_json::from_str(&json).unwrap();
     assert!(parsed.error.is_none());
     assert_eq!(parsed.result.unwrap(), serde_json::Value::Bool(true));
+}
+
+// ========================================================================
+// Additional coverage: JsonRpcResponse constructors, error paths, dispatch
+// ========================================================================
+
+#[test]
+fn json_rpc_response_success_constructor() {
+    let id = serde_json::Value::Number(99.into());
+    let result = serde_json::json!({"ok": true});
+    let resp = JsonRpcResponse::success(id.clone(), result.clone());
+    assert_eq!(resp.jsonrpc, "2.0");
+    assert!(resp.error.is_none());
+    assert_eq!(resp.result.unwrap(), result);
+    assert_eq!(resp.id, id);
+}
+
+#[test]
+fn json_rpc_response_error_constructor() {
+    let id = serde_json::Value::Null;
+    let resp = JsonRpcResponse::error(id, -32601, "method not found: foo".to_string());
+    assert_eq!(resp.jsonrpc, "2.0");
+    assert!(resp.result.is_none());
+    assert!(resp.error.is_some());
+    let err = resp.error.unwrap();
+    assert_eq!(err.code, -32601);
+    assert_eq!(err.message, "method not found: foo");
+}
+
+#[tokio::test]
+async fn invalid_method_returns_method_not_found() {
+    let server = LoamSpineJsonRpc::default_server();
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "invalid.method.name".to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(rpc_req).await;
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.as_ref().unwrap().code, -32601);
+    assert!(resp
+        .error
+        .as_ref()
+        .unwrap()
+        .message
+        .contains("method not found"));
+}
+
+#[tokio::test]
+async fn invalid_json_returns_parse_error() {
+    let server = LoamSpineJsonRpc::default_server();
+    let body = b"{ invalid json }";
+    let response = process_request(&server, body).await;
+    let parsed: JsonRpcResponse = serde_json::from_slice(&response).unwrap();
+    assert!(parsed.error.is_some());
+    assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
+    assert!(parsed
+        .error
+        .as_ref()
+        .unwrap()
+        .message
+        .contains("parse error"));
+}
+
+#[tokio::test]
+async fn invalid_jsonrpc_version_string_accepted() {
+    let server = LoamSpineJsonRpc::default_server();
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "1.0".to_string(),
+        method: "health.liveness".to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(rpc_req).await;
+    assert!(resp.error.is_none());
+    let liveness: crate::health::LivenessProbe =
+        serde_json::from_value(resp.result.unwrap()).unwrap();
+    assert!(liveness.alive);
+}
+
+#[tokio::test]
+async fn null_params_on_method_requiring_params_returns_invalid_params() {
+    let server = LoamSpineJsonRpc::default_server();
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "spine.create".to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(rpc_req).await;
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.as_ref().unwrap().code, -32602);
+    assert!(resp
+        .error
+        .as_ref()
+        .unwrap()
+        .message
+        .contains("invalid params"));
+}
+
+#[tokio::test]
+async fn batch_request_returns_parse_error() {
+    let server = LoamSpineJsonRpc::default_server();
+    let body = br#"[{"jsonrpc":"2.0","method":"health.liveness","id":1}]"#;
+    let response = process_request(&server, body).await;
+    let parsed: JsonRpcResponse = serde_json::from_slice(&response).unwrap();
+    assert!(parsed.error.is_some());
+    assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
+}
+
+#[tokio::test]
+async fn empty_body_returns_parse_error() {
+    let server = LoamSpineJsonRpc::default_server();
+    let body = b"";
+    let response = process_request(&server, body).await;
+    let parsed: JsonRpcResponse = serde_json::from_slice(&response).unwrap();
+    assert!(parsed.error.is_some());
+    assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
+}
+
+#[tokio::test]
+async fn test_jsonrpc_certificate_transfer() {
+    let server = LoamSpineJsonRpc::default_server();
+    let owner = Did::new("did:key:z6MkTransferFrom");
+    let buyer = Did::new("did:key:z6MkTransferTo");
+
+    let create_request = CreateSpineRequest {
+        owner: owner.clone(),
+        name: "Transfer Test".to_string(),
+        config: None,
+    };
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
+
+    let mint_request = MintCertificateRequest {
+        spine_id: create_response.spine_id,
+        cert_type: CertificateType::DigitalGame {
+            platform: "steam".to_string(),
+            game_id: "transfer_test".to_string(),
+            edition: None,
+        },
+        owner: owner.clone(),
+        metadata: None,
+    };
+    let mint_response: crate::types::MintCertificateResponse =
+        rpc_call(&server, "certificate.mint", &mint_request)
+            .await
+            .unwrap();
+
+    let transfer_request = TransferCertificateRequest {
+        certificate_id: mint_response.certificate_id,
+        from: owner,
+        to: buyer,
+    };
+    let result: Result<crate::types::TransferCertificateResponse, _> =
+        rpc_call(&server, "certificate.transfer", &transfer_request).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_jsonrpc_certificate_loan_and_return() {
+    let server = LoamSpineJsonRpc::default_server();
+    let owner = Did::new("did:key:z6MkLoanOwner");
+    let borrower = Did::new("did:key:z6MkLoanBorrower");
+
+    let create_request = CreateSpineRequest {
+        owner: owner.clone(),
+        name: "Loan Test".to_string(),
+        config: None,
+    };
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
+
+    let mint_request = MintCertificateRequest {
+        spine_id: create_response.spine_id,
+        cert_type: CertificateType::DigitalGame {
+            platform: "epic".to_string(),
+            game_id: "loan_test".to_string(),
+            edition: None,
+        },
+        owner: owner.clone(),
+        metadata: None,
+    };
+    let mint_response: crate::types::MintCertificateResponse =
+        rpc_call(&server, "certificate.mint", &mint_request)
+            .await
+            .unwrap();
+
+    let loan_request = LoanCertificateRequest {
+        certificate_id: mint_response.certificate_id,
+        lender: owner.clone(),
+        borrower: borrower.clone(),
+        terms: LoanTerms::new(),
+    };
+    let loan_result: Result<crate::types::LoanCertificateResponse, _> =
+        rpc_call(&server, "certificate.loan", &loan_request).await;
+    assert!(loan_result.is_ok());
+
+    let return_request = ReturnCertificateRequest {
+        certificate_id: mint_response.certificate_id,
+        returner: borrower,
+    };
+    let return_result: Result<crate::types::ReturnCertificateResponse, _> =
+        rpc_call(&server, "certificate.return", &return_request).await;
+    assert!(return_result.is_ok());
+}
+
+#[tokio::test]
+async fn test_jsonrpc_slice_checkout() {
+    let server = LoamSpineJsonRpc::default_server();
+    let owner = Did::new("did:key:z6MkCheckout");
+
+    let waypoint_request = CreateSpineRequest {
+        owner: owner.clone(),
+        name: "Waypoint Checkout".to_string(),
+        config: None,
+    };
+    let waypoint_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &waypoint_request)
+            .await
+            .unwrap();
+
+    let origin_request = CreateSpineRequest {
+        owner: owner.clone(),
+        name: "Origin Checkout".to_string(),
+        config: None,
+    };
+    let origin_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &origin_request)
+            .await
+            .unwrap();
+
+    let anchor_request = AnchorSliceRequest {
+        waypoint_spine_id: waypoint_response.spine_id,
+        slice_id: uuid::Uuid::now_v7(),
+        origin_spine_id: origin_response.spine_id,
+        committer: owner.clone(),
+    };
+    let _anchor_response: crate::types::AnchorSliceResponse =
+        rpc_call(&server, "slice.anchor", &anchor_request)
+            .await
+            .unwrap();
+
+    let checkout_request = CheckoutSliceRequest {
+        waypoint_spine_id: waypoint_response.spine_id,
+        slice_id: anchor_request.slice_id,
+        requester: owner,
+    };
+    let result: Result<crate::types::CheckoutSliceResponse, _> =
+        rpc_call(&server, "slice.checkout", &checkout_request).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn permanence_legacy_verify_and_get_aliases() {
+    use crate::types::PermanentStorageDehydrationSummary;
+
+    let server = LoamSpineJsonRpc::default_server();
+
+    let commit_request = PermanentStorageCommitRequest {
+        session_id: uuid::Uuid::now_v7().to_string(),
+        merkle_root: "ef".repeat(32),
+        committer_did: Some("did:key:z6MkLegacyAlias".to_string()),
+        summary: PermanentStorageDehydrationSummary {
+            session_type: "test".to_string(),
+            vertex_count: 3,
+            leaf_count: 1,
+            started_at: 0,
+            ended_at: 1,
+            outcome: "success".to_string(),
+        },
+    };
+
+    let response: crate::types::PermanentStorageCommitResponse =
+        rpc_call(&server, "permanent-storage.commitSession", &commit_request)
+            .await
+            .unwrap();
+    assert!(response.accepted);
+
+    let spine_id_str = response.spine_id.clone().unwrap();
+    let entry_hash_str = response.spine_entry_hash.clone().unwrap();
+    let index = response.entry_index.unwrap_or(0);
+
+    let verify_request = PermanentStorageVerifyRequest {
+        spine_id: spine_id_str.clone(),
+        entry_hash: entry_hash_str.clone(),
+        index,
+    };
+    let verified: bool = rpc_call(&server, "permanent-storage.verifyCommit", &verify_request)
+        .await
+        .unwrap();
+    assert!(verified);
+
+    let get_request = PermanentStorageGetCommitRequest {
+        spine_id: spine_id_str,
+        entry_hash: entry_hash_str,
+        index,
+    };
+    let value: serde_json::Value = rpc_call(&server, "permanent-storage.getCommit", &get_request)
+        .await
+        .unwrap();
+    assert!(!value.is_null());
 }

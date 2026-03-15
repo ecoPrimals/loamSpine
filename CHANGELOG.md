@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.5] - 2026-03-15
+
+### Fixed
+- **18 clippy errors**: module_inception in test modules, match_same_arms in HTTP transport, cast_possible_truncation in mock helpers, expect_used in waypoint tests, future_not_send in jsonrpc test helper, manual_let_else in CLI signer tests, unused_async in mock server helpers, iter_on_single_items in waypoint tests
+- Duplicate `#![cfg(test)]` attributes in test module files
+
+### Changed
+- **Storage tests refactored**: `storage/tests.rs` (1122 lines) → 3 backend-specific modules: `tests.rs` (InMemory + enum), `redb_tests.rs`, `sled_tests.rs` — all under 1000 LOC
+- **Mock helpers evolved**: `async fn` → `fn` where unnecessary, owned params → `&serde_json::Value` (zero-copy, idiomatic)
+- `HashSet::from()` constructors replace `[].iter().map().collect()` pattern
+- `Sync` bound added to jsonrpc test generic for `future_not_send` compliance
+
+### Added
+- **ConfigurableTransport**: Test-only transport for discovery client error-path coverage
+- 98 new tests across: sqlite/mod coverage, infant_discovery (cache, config, fallback), sync (best_peer, push/pull, status), jsonrpc dispatch (all methods, error paths), redb (certificate CRUD, constructors, flush, counts), discovery_client (register, heartbeat, error handling)
+- `DiscoveryClient::for_testing_with_transport()` constructor for injecting mock transports
+
+### Metrics
+- Tests: 870 → 968 (+98)
+- Line coverage: 86.47% → 88.28% (llvm-cov)
+- Region coverage: → 90.45% (exceeds 90% target)
+- Source files: 97 → 102
+- Max file size: 1122 → 928 lines (all under 1000)
+- Clippy: 0 warnings (maintained)
+
 ## [0.8.4] - 2026-03-15
 
 ### Added

@@ -518,9 +518,9 @@ mod tests {
 
     /// Helper: spawn a mock NeuralAPI Unix socket server that responds to
     /// length-prefixed JSON-RPC with a canned response.
-    async fn spawn_mock_neural_api(
+    fn spawn_mock_neural_api(
         socket_path: &std::path::Path,
-        response: serde_json::Value,
+        response: &serde_json::Value,
     ) -> tokio::task::JoinHandle<()> {
         let listener = tokio::net::UnixListener::bind(socket_path).unwrap();
         let resp_bytes = serde_json::to_vec(&response).unwrap();
@@ -533,6 +533,7 @@ mod tests {
                 let mut req_buf = vec![0u8; req_len];
                 let _ = stream.read_exact(&mut req_buf).await;
 
+                #[allow(clippy::cast_possible_truncation)]
                 let len = (resp_bytes.len() as u32).to_be_bytes();
                 let _ = stream.write_all(&len).await;
                 let _ = stream.write_all(&resp_bytes).await;
@@ -554,7 +555,7 @@ mod tests {
             "result": { "registered": true },
             "id": 1
         });
-        let handle = spawn_mock_neural_api(&sock, response).await;
+        let handle = spawn_mock_neural_api(&sock, &response);
 
         std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         let result = register_with_neural_api().await;
@@ -579,7 +580,7 @@ mod tests {
             "error": { "code": -32601, "message": "method not found" },
             "id": 1
         });
-        let handle = spawn_mock_neural_api(&sock, response).await;
+        let handle = spawn_mock_neural_api(&sock, &response);
 
         std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         let result = register_with_neural_api().await;
@@ -605,7 +606,7 @@ mod tests {
             "result": { "deregistered": true },
             "id": 2
         });
-        let handle = spawn_mock_neural_api(&sock, response).await;
+        let handle = spawn_mock_neural_api(&sock, &response);
 
         std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         let result = deregister_from_neural_api().await;
@@ -628,7 +629,7 @@ mod tests {
             "error": { "code": -32601, "message": "not supported" },
             "id": 2
         });
-        let handle = spawn_mock_neural_api(&sock, response).await;
+        let handle = spawn_mock_neural_api(&sock, &response);
 
         std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         let result = deregister_from_neural_api().await;
@@ -659,6 +660,7 @@ mod tests {
                 let _ = stream.read_exact(&mut req_buf).await;
 
                 let garbage = b"not json";
+                #[allow(clippy::cast_possible_truncation)]
                 let len = (garbage.len() as u32).to_be_bytes();
                 let _ = stream.write_all(&len).await;
                 let _ = stream.write_all(garbage).await;

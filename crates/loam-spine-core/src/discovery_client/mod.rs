@@ -423,6 +423,21 @@ impl DiscoveryClient {
             endpoint,
         }
     }
+
+    /// Create a client with a custom transport for testing (bypasses health check).
+    ///
+    /// Used to test error paths (non-success status, invalid JSON) without a real backend.
+    #[cfg(test)]
+    #[must_use]
+    pub fn for_testing_with_transport(
+        endpoint: impl Into<String>,
+        transport: Arc<dyn DiscoveryTransport>,
+    ) -> Self {
+        Self {
+            endpoint: endpoint.into(),
+            transport,
+        }
+    }
 }
 
 /// Extract the port from a URL string using the `url` crate (pure Rust).

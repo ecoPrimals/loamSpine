@@ -269,6 +269,7 @@ impl SliceTerms {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
 
@@ -324,7 +325,7 @@ mod tests {
     #[test]
     fn slice_terms_operation_allowed() {
         let terms = SliceTerms {
-            forbidden_operations: ["export"].iter().map(|s| (*s).to_string()).collect(),
+            forbidden_operations: HashSet::from(["export".to_string()]),
             ..SliceTerms::default()
         };
         assert!(terms.is_operation_allowed("use"));
@@ -334,7 +335,7 @@ mod tests {
     #[test]
     fn slice_terms_allowed_list() {
         let terms = SliceTerms {
-            allowed_operations: Some(["read", "view"].iter().map(|s| (*s).to_string()).collect()),
+            allowed_operations: Some(HashSet::from(["read".to_string(), "view".to_string()])),
             ..SliceTerms::default()
         };
         assert!(terms.is_operation_allowed("read"));

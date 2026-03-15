@@ -3,9 +3,9 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
-[![Version](https://img.shields.io/badge/version-0.8.4-blue)]()
-[![Tests](https://img.shields.io/badge/tests-870%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/line%20coverage-86.47%25-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.8.5-blue)]()
+[![Tests](https://img.shields.io/badge/tests-968%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/line%20coverage-88.28%25-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
 
@@ -159,13 +159,13 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.8.4 |
-| **Tests** | 870 passing |
-| **Line Coverage** | 86.47% (llvm-cov) |
+| **Version** | 0.8.5 |
+| **Tests** | 968 passing |
+| **Line Coverage** | 88.28% line, 90.45% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Max File Size** | 915 lines production (all < 1000) |
-| **Source Files** | 97 `.rs` files across 2 crates + binary |
+| **Max File Size** | 928 lines (all < 1000) |
+| **Source Files** | 102 `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

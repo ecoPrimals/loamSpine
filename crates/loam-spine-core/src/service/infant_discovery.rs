@@ -488,4 +488,86 @@ mod tests {
 
         std::env::remove_var("DISCOVERY_ENDPOINT");
     }
+
+    #[tokio::test]
+    async fn development_fallback_returns_endpoint_in_test_mode() {
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.try_development_fallback();
+
+        // In test mode, development fallback is enabled and returns localhost:8082
+        let expected = format!(
+            "http://{}:{}",
+            crate::constants::LOCALHOST,
+            crate::constants::DEFAULT_DISCOVERY_PORT
+        );
+        assert_eq!(result, Some(expected));
+    }
+
+    #[test]
+    fn default_includes_all_expected_capabilities() {
+        let infant = InfantDiscovery::default();
+        let caps = infant.capabilities();
+
+        assert!(caps.contains(&"persistent-ledger".to_string()));
+        assert!(caps.contains(&"waypoint-anchoring".to_string()));
+        assert!(caps.contains(&"certificate-manager".to_string()));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn discover_discovery_service_env_takes_priority_over_fallback() {
+        // When DISCOVERY_ENDPOINT is set, it should be used (even if unreachable)
+        std::env::set_var(
+            "DISCOVERY_ENDPOINT",
+            "http://env-priority-test.example:9999",
+        );
+
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.discover_discovery_service().await;
+
+        // Should fail to connect (unreachable) but we used env, not fallback
+        assert!(result.is_err());
+        let err_str = result.unwrap_err().to_string();
+        assert!(
+            err_str.contains("env-priority-test")
+                || err_str.contains("9999")
+                || err_str.contains("unavailable"),
+            "Expected env endpoint in error: {err_str}",
+        );
+
+        std::env::remove_var("DISCOVERY_ENDPOINT");
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn discover_discovery_service_fallback_chain_when_env_unset() {
+        // No env var -> DNS (None in test) -> mDNS (None) -> dev fallback -> connect fails
+        std::env::remove_var("DISCOVERY_ENDPOINT");
+
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.discover_discovery_service().await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        let err_str = err.to_string();
+        // Connection to localhost:8082 should fail (no server)
+        assert!(
+            err_str.contains("unavailable")
+                || err_str.contains("registry")
+                || err_str.contains("localhost")
+                || err_str.contains("8082")
+                || err_str.contains("connection"),
+            "Expected connection error from fallback: {err_str}",
+        );
+    }
+
+    #[test]
+    fn capabilities_returns_owned_reference() {
+        let infant = InfantDiscovery::new(vec!["cap-a".to_string(), "cap-b".to_string()]);
+        let caps = infant.capabilities();
+
+        assert_eq!(caps.len(), 2);
+        assert_eq!(caps[0], "cap-a");
+        assert_eq!(caps[1], "cap-b");
+    }
 }

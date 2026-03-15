@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.8.3  
-**Status**: ✅ Production Ready  
-**Date**: March 14, 2026  
-**Latest**: 🌟 Pedantic + nursery clean, zero-copy JSON-RPC, mock isolation in v0.8.3!
+**Version**: 0.8.5  
+**Status**: Production Ready  
+**Date**: March 15, 2026  
+**Latest**: Comprehensive audit, 968 tests, 90%+ region coverage in v0.8.5
 
 ---
 
@@ -523,6 +523,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.8.3 - ecoPrimals Ecosystem*  
-*March 14, 2026*
+*LoamSpine v0.8.5 - ecoPrimals Ecosystem*  
+*March 15, 2026*
 
