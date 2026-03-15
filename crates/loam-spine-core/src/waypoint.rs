@@ -18,8 +18,8 @@ use crate::types::{Did, EntryHash, SliceId, SpineId, Timestamp};
 
 /// Waypoint spine configuration.
 ///
-/// Controls anchor acceptance, depth limits, origin filtering, and
-/// propagation on return.
+/// Controls anchor acceptance, depth limits, origin filtering,
+/// propagation on return, and attestation requirements.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WaypointConfig {
     /// Accept anchors from external spines.
@@ -46,6 +46,14 @@ pub struct WaypointConfig {
 
     /// Grace period (seconds) before forced return after expiry.
     pub expiry_grace_secs: u64,
+
+    /// Attestation requirement for operations at this waypoint.
+    ///
+    /// When set to anything other than [`AttestationRequirement::None`],
+    /// operations must be attested by a capability-discovered attestation
+    /// provider (e.g. a primal offering `"attestation"` capability).
+    #[serde(default)]
+    pub operation_attestation: AttestationRequirement,
 }
 
 impl Default for WaypointConfig {
@@ -59,6 +67,7 @@ impl Default for WaypointConfig {
             propagation_policy: PropagationPolicy::default(),
             auto_return_expired: true,
             expiry_grace_secs: 3600,
+            operation_attestation: AttestationRequirement::default(),
         }
     }
 }
@@ -88,6 +97,77 @@ pub enum PropagationPolicy {
         /// Whether the owner must sign the full propagation.
         require_owner_signature: bool,
     },
+}
+
+// ============================================================================
+// Attestation
+// ============================================================================
+
+/// Whether waypoint operations require external attestation.
+///
+/// Attestation is provided by a capability-discovered primal offering the
+/// `"attestation"` capability (e.g. a Beardog-like primal). LoamSpine never
+/// hard-codes the attesting primal's name — it discovers the provider at
+/// runtime through the service registry.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AttestationRequirement {
+    /// No attestation required.
+    #[default]
+    None,
+
+    /// Attestation required for anchor and depart operations only.
+    BoundaryOnly,
+
+    /// Attestation required for every operation at the waypoint.
+    AllOperations,
+
+    /// Attestation required for specific operation types.
+    Selective {
+        /// Operation type names that require attestation.
+        operation_types: Vec<String>,
+    },
+}
+
+impl AttestationRequirement {
+    /// Whether any attestation is required.
+    #[must_use]
+    pub fn is_required(&self) -> bool {
+        !matches!(self, Self::None)
+    }
+
+    /// Whether a specific operation type requires attestation.
+    #[must_use]
+    pub fn requires_for_operation(&self, operation: &str) -> bool {
+        match self {
+            Self::None => false,
+            Self::BoundaryOnly => operation == "anchor" || operation == "depart",
+            Self::AllOperations => true,
+            Self::Selective { operation_types } => operation_types.iter().any(|t| t == operation),
+        }
+    }
+}
+
+/// Attestation result from a capability-discovered attestation provider.
+///
+/// LoamSpine does not implement attestation itself — it consumes attestation
+/// results from external primals discovered at runtime via their
+/// `"attestation"` capability.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AttestationResult {
+    /// Whether the attestation was granted.
+    pub attested: bool,
+
+    /// DID of the attesting entity (discovered at runtime).
+    pub attester: Did,
+
+    /// Attestation timestamp.
+    pub timestamp: Timestamp,
+
+    /// Opaque attestation token for verification.
+    pub token: Vec<u8>,
+
+    /// Reason for denial, if applicable.
+    pub denial_reason: Option<String>,
 }
 
 // ============================================================================
@@ -422,6 +502,83 @@ mod tests {
         assert_eq!(config.max_anchor_depth, Some(2));
         assert!(config.auto_return_expired);
         assert_eq!(config.propagation_policy, PropagationPolicy::SummaryOnly);
+        assert_eq!(config.operation_attestation, AttestationRequirement::None);
+    }
+
+    #[test]
+    fn attestation_requirement_default_is_none() {
+        let req = AttestationRequirement::default();
+        assert!(!req.is_required());
+        assert!(!req.requires_for_operation("anchor"));
+    }
+
+    #[test]
+    fn attestation_requirement_boundary_only() {
+        let req = AttestationRequirement::BoundaryOnly;
+        assert!(req.is_required());
+        assert!(req.requires_for_operation("anchor"));
+        assert!(req.requires_for_operation("depart"));
+        assert!(!req.requires_for_operation("use"));
+    }
+
+    #[test]
+    fn attestation_requirement_all_operations() {
+        let req = AttestationRequirement::AllOperations;
+        assert!(req.is_required());
+        assert!(req.requires_for_operation("anchor"));
+        assert!(req.requires_for_operation("use"));
+        assert!(req.requires_for_operation("anything"));
+    }
+
+    #[test]
+    fn attestation_requirement_selective() {
+        let req = AttestationRequirement::Selective {
+            operation_types: vec!["transfer".into(), "export".into()],
+        };
+        assert!(req.is_required());
+        assert!(req.requires_for_operation("transfer"));
+        assert!(req.requires_for_operation("export"));
+        assert!(!req.requires_for_operation("view"));
+    }
+
+    #[test]
+    fn attestation_requirement_serde_roundtrip() {
+        let req = AttestationRequirement::Selective {
+            operation_types: vec!["anchor".into()],
+        };
+        let json = serde_json::to_string(&req).expect("serialize");
+        let restored: AttestationRequirement = serde_json::from_str(&json).expect("deserialize");
+        assert!(restored.requires_for_operation("anchor"));
+        assert!(!restored.requires_for_operation("view"));
+    }
+
+    #[test]
+    fn attestation_result_serde_roundtrip() {
+        let result = AttestationResult {
+            attested: true,
+            attester: crate::types::Did::new("did:key:z6MkAttest"),
+            timestamp: Timestamp::now(),
+            token: vec![1, 2, 3, 4],
+            denial_reason: None,
+        };
+        let json = serde_json::to_string(&result).expect("serialize");
+        let restored: AttestationResult = serde_json::from_str(&json).expect("deserialize");
+        assert!(restored.attested);
+        assert_eq!(restored.token, vec![1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn waypoint_config_with_attestation_serde() {
+        let config = WaypointConfig {
+            operation_attestation: AttestationRequirement::BoundaryOnly,
+            ..WaypointConfig::default()
+        };
+        let json = serde_json::to_string(&config).expect("serialize");
+        let restored: WaypointConfig = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(
+            restored.operation_attestation,
+            AttestationRequirement::BoundaryOnly
+        );
     }
 
     #[test]

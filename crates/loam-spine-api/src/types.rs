@@ -26,7 +26,10 @@ pub use loam_spine_core::types::{
 mod serde_opt_bytes {
     use super::ByteBuffer;
 
-    #[allow(clippy::ref_option)]
+    #[expect(
+        clippy::ref_option,
+        reason = "serde serialize_with requires &Option<T> signature"
+    )]
     pub fn serialize<S>(val: &Option<ByteBuffer>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

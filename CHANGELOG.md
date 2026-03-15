@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.7] - 2026-03-15
+
+### Added
+- **UsageSummary**: Certificate usage tracking per CERTIFICATE_LAYER.md — `UsageSummary` type with builder API, integrated into `CertificateReturn` entry type and `LoanRecord` provenance. `WaypointSummary` re-used from waypoint module.
+- **Attestation framework**: `AttestationRequirement` enum (None/BoundaryOnly/AllOperations/Selective) added to `WaypointConfig`. `AttestationResult` struct for capability-discovered attestation providers. No hardcoded primal names. Per WAYPOINT_SEMANTICS.md spec.
+- 22 new tests: 6 JSON-RPC TCP integration tests (raw TCP, HTTP POST, method-not-found, parse error, shutdown, spine creation), 5 certificate error-path tests (return-not-loaned, wrong-borrower, nonexistent transfer/loan/verify), attestation type unit tests, UsageSummary unit tests.
+
+### Changed
+- **`#[allow]` → `#[expect(reason)]` migration**: All production `#[allow(...)]` attributes replaced with `#[expect(..., reason = "...")]` for documented lint exceptions. Removed stale `#[allow(async_fn_in_trait)]` from `dyn_traits.rs`.
+- **Sync module refactored**: `sync.rs` (927 lines) → `sync/mod.rs` (405) + `sync/tests.rs` (505). Production code separated from test infrastructure.
+- **JSON-RPC server**: `ServerHandle` now exposes `local_addr()` for OS-assigned port testing. `jsonrpc/mod.rs` coverage: 51% → 92%.
+- `primal-capabilities.toml` updated: version 0.8.7, `attestation` optional dependency, enhanced port documentation.
+
+### Metrics
+- Tests: 1,092 → 1,114 (+22)
+- Line coverage: 89.30% → 89.64% (llvm-cov)
+- Region coverage: 91.26% → 91.71%
+- Source files: 113 → 117
+- Max file size: 955 lines (maintained)
+- Clippy: 0 warnings (maintained)
+- Doc warnings: 0 (maintained)
+- Unsafe: 0 blocks (maintained)
+- `#[allow]` in production: 0 (all migrated to `#[expect]`)
+- Specs COMPLETE: WAYPOINT_SEMANTICS.md and CERTIFICATE_LAYER.md promoted from PARTIAL
+
 ## [0.8.6] - 2026-03-15
 
 ### Added
@@ -528,6 +553,7 @@ spine.append(entry)?;
 
 ---
 
+[0.8.7]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.3...v0.8.4

@@ -162,7 +162,10 @@ impl InfantDiscovery {
     /// Try to discover via environment variable.
     ///
     /// Checks `DISCOVERY_ENDPOINT` environment variable.
-    #[allow(clippy::unused_self)]
+    #[expect(
+        clippy::unused_self,
+        reason = "method on self for consistent discovery chain API"
+    )]
     fn try_environment_discovery(&self) -> Option<String> {
         match std::env::var("DISCOVERY_ENDPOINT") {
             Ok(endpoint) if !endpoint.is_empty() => {
@@ -186,7 +189,10 @@ impl InfantDiscovery {
     /// This is the standard production discovery method.
     ///
     /// Note: Disabled in test mode to avoid runtime conflicts. Use environment variables in tests.
-    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    #[expect(
+        clippy::unused_self,
+        reason = "method on self for consistent discovery chain API"
+    )]
     fn try_dns_srv_discovery(&self) -> Option<String> {
         tracing::debug!("🔍 Attempting DNS SRV discovery (_discovery._tcp.local)...");
 
@@ -274,7 +280,10 @@ impl InfantDiscovery {
     /// complexity with async streams, so we use a simple thread-based polling
     /// approach for now. Future versions may improve this implementation.
     /// For production use, prefer DNS SRV discovery or environment variables.
-    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    #[expect(
+        clippy::unused_self,
+        reason = "method on self for consistent discovery chain API"
+    )]
     fn try_mdns_discovery(&self) -> Option<String> {
         tracing::debug!("🔍 Attempting mDNS discovery (local network)...");
 
@@ -313,7 +322,11 @@ impl InfantDiscovery {
     /// Try development fallback (localhost).
     ///
     /// This should only be used in development and will log a warning.
-    #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
+    #[expect(
+        clippy::unused_self,
+        clippy::unnecessary_wraps,
+        reason = "consistent discovery chain API; Option for cfg-conditional return"
+    )]
     fn try_development_fallback(&self) -> Option<String> {
         tracing::debug!(
             "🔍 Attempting development fallback ({}:{})...",

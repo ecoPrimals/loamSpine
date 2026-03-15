@@ -83,7 +83,10 @@ impl SqliteCertificateStorage {
     }
 }
 
-#[allow(clippy::significant_drop_tightening)]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard must span full SQL transaction"
+)]
 impl CertificateStorage for SqliteCertificateStorage {
     async fn get_certificate(
         &self,

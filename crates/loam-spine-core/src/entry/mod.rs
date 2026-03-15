@@ -330,6 +330,9 @@ pub enum EntryType {
         cert_id: CertificateId,
         /// Original loan entry.
         loan_entry: EntryHash,
+        /// Usage summary from the loan period.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        usage_summary: Option<crate::certificate::UsageSummary>,
     },
 
     // === Slice Operations ===

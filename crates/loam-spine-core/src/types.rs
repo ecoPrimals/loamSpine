@@ -133,19 +133,21 @@ impl Signature {
     }
 
     /// Create an empty signature (for unsigned entries).
-    ///
-    /// Cannot be `const fn` because `ByteBuffer::new()` (Bytes::new) is not const.
     #[must_use]
-    #[allow(clippy::missing_const_for_fn)]
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "Bytes::new() is not const-stable"
+    )]
     pub fn empty() -> Self {
         Self(ByteBuffer::new())
     }
 
     /// Check if the signature is empty.
-    ///
-    /// Cannot be `const fn` because `Bytes::is_empty()` is not const.
     #[must_use]
-    #[allow(clippy::missing_const_for_fn)]
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "Bytes::is_empty() is not const-stable"
+    )]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

@@ -93,7 +93,10 @@ impl SqliteEntryStorage {
     }
 }
 
-#[allow(clippy::significant_drop_tightening)]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard must span full SQL transaction"
+)]
 impl EntryStorage for SqliteEntryStorage {
     async fn get_entry(&self, hash: EntryHash) -> LoamSpineResult<Option<Entry>> {
         let result = {

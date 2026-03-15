@@ -765,3 +765,99 @@ async fn test_loan_expires_at_set() {
         .and_then(|l| l.expires_at)
         .is_some());
 }
+
+#[tokio::test]
+async fn return_not_loaned_certificate_fails() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkOwnerReturn");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Return Test".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let cert_type = CertificateType::DigitalGame {
+        platform: "test".into(),
+        game_id: "return-test".into(),
+        edition: None,
+    };
+
+    let (cert_id, _) = service
+        .mint_certificate(spine_id, cert_type, owner.clone(), None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let result = service.return_certificate(cert_id, owner).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn return_certificate_by_wrong_borrower_fails() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkOwnerWrongReturn");
+    let borrower = Did::new("did:key:z6MkBorrowerWrongReturn");
+    let wrong_returner = Did::new("did:key:z6MkWrongReturner");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Wrong Return Test".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let cert_type = CertificateType::DigitalGame {
+        platform: "test".into(),
+        game_id: "wrong-return".into(),
+        edition: None,
+    };
+
+    let (cert_id, _) = service
+        .mint_certificate(spine_id, cert_type, owner.clone(), None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let terms = crate::certificate::LoanTerms::default();
+    service
+        .loan_certificate(cert_id, owner, borrower, terms)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let result = service.return_certificate(cert_id, wrong_returner).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn transfer_nonexistent_certificate_fails() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkOwnerTransferFail");
+    let recipient = Did::new("did:key:z6MkRecipient");
+
+    let fake_cert_id = crate::types::CertificateId::now_v7();
+    let result = service
+        .transfer_certificate(fake_cert_id, owner, recipient)
+        .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn loan_nonexistent_certificate_fails() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkOwnerLoanFail");
+    let borrower = Did::new("did:key:z6MkBorrowerLoanFail");
+
+    let fake_cert_id = crate::types::CertificateId::now_v7();
+    let terms = crate::certificate::LoanTerms::default();
+    let result = service
+        .loan_certificate(fake_cert_id, owner, borrower, terms)
+        .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn verify_nonexistent_certificate() {
+    let service = LoamSpineService::new();
+
+    let fake_cert_id = crate::types::CertificateId::now_v7();
+    let result = service.verify_certificate(fake_cert_id).await;
+    assert!(result.is_ok());
+    let verification = result.unwrap_or_else(|_| unreachable!());
+    assert!(!verification.is_valid());
+}

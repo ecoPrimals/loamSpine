@@ -23,7 +23,7 @@ fallback_strategy = "best-available"
 name = "loamspine"
 description = "Permanence layer providing selective memory and certificate management"
 primary_role = "permanence"
-version = "0.8.6"
+version = "0.8.7"
 
 capabilities = [
     # Core permanence capabilities
@@ -75,6 +75,9 @@ capabilities = [
 
 # RPC protocols
 protocols = ["tarpc", "jsonrpc"]
+# Development defaults only — production uses OS-assigned ports (0) or env vars.
+# These values are overridden by TARPC_PORT / JSONRPC_PORT env vars, and
+# the actual bound port is registered with the service registry at startup.
 default_tarpc_port = 9001
 default_jsonrpc_port = 8080
 health_endpoint = "/health"  # JSON-RPC endpoint
@@ -95,11 +98,12 @@ unsafe_code = false  # Forbids unsafe code
 [dependencies]
 # Optional capabilities that enhance functionality
 optional = [
-    "signing",                    # Signing service (e.g., BearDog)
-    "verification",               # Signature verification
-    "storage",                    # External storage (e.g., NestGate)
-    "session-management",         # Session management (e.g., RhizoCrypt)
-    "semantic-attribution",       # Semantic braids (e.g., SweetGrass)
+    "signing",                    # Signing service (capability-discovered)
+    "verification",               # Signature verification (capability-discovered)
+    "attestation",                # Operation attestation for waypoint operations (capability-discovered)
+    "storage",                    # External storage (capability-discovered)
+    "session-management",         # Session management (capability-discovered)
+    "semantic-attribution",       # Semantic braids (capability-discovered)
 ]
 
 # Required capabilities (must be available for full functionality)

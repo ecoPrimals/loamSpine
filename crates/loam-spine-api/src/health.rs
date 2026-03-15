@@ -176,7 +176,10 @@ impl HealthChecker {
     /// # Errors
     ///
     /// Returns error if health check fails.
-    #[allow(clippy::unused_async)] // Async for future extensibility
+    #[expect(
+        clippy::unused_async,
+        reason = "will become truly async when health probes query network"
+    )]
     pub async fn check_health(&self) -> Result<HealthStatus, String> {
         // Check storage health
         let storage_healthy = self.check_storage();
@@ -227,7 +230,10 @@ impl HealthChecker {
     /// # Errors
     ///
     /// Returns error if readiness check fails.
-    #[allow(clippy::unused_async)] // Async for future extensibility
+    #[expect(
+        clippy::unused_async,
+        reason = "will become truly async when readiness probes query storage"
+    )]
     pub async fn check_readiness(&self) -> Result<ReadinessProbe, String> {
         // Check critical dependencies
         let storage_healthy = self.check_storage();

@@ -2,12 +2,12 @@
 
 # Development Roadmap
 
-**Current Version**: 0.8.6  
+**Current Version**: 0.8.7  
 **Last Updated**: March 15, 2026
 
 ---
 
-## Completed (v0.8.0 -- v0.8.6)
+## Completed (v0.8.0 -- v0.8.7)
 
 - SQLite storage backend (feature-gated) with full test coverage
 - SQLite smart refactoring: modular `sqlite/` directory
@@ -16,7 +16,6 @@
 - `Cow<'static, str>` for config/bind paths
 - `Did` evolved to `Arc<str>` for O(1) cloning
 - `must_use_candidate` lint enabled crate-wide
-- `#[allow]` attributes audited (remaining are justified, test-only)
 - Certificate storage trait (`CertificateStorage` + in-memory impl)
 - `ServiceState` enum with `watch` channel
 - Waypoint types (`WaypointConfig`, `PropagationPolicy`, `SliceTerms`)
@@ -28,31 +27,36 @@
 - **Clippy pedantic + nursery**: 0 errors across all 3 workspace crates
 - **Zero-copy JSON-RPC dispatch**: `params.clone()` eliminated, by-value ownership
 - **MockTransport cfg-gated**: No mock code in production binary
-- **Smart file splits**: All 113 source files under 1000 lines (max: 955)
+- **Smart file splits**: All 117 source files under 1000 lines (max: 955)
 - **15 const fn promotions**, `let...else` modernization, lock scope tightening
 - **Scyborg license schema**: `CertificateType::scyborg_license()`, metadata builders, constants
 - **Protocol escalation**: `IpcProtocol` negotiation (prefers tarpc Unix socket, fallback JSON-RPC)
 - **SyncProtocol evolved**: JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer`, graceful fallback
 - **Zero-copy storage keys**: `[u8; 24]` stack allocation for redb/sled index keys
 - **CI cross-compilation**: musl targets (`x86_64`, `aarch64`, `armv7`) via `cross-rs/cross`
-- **Certificate module refactoring**: `certificate.rs` → `certificate/` directory (types, lifecycle, metadata, provenance, escrow, tests)
+- **Certificate module refactoring**: `certificate.rs` → `certificate/` directory (types, lifecycle, metadata, provenance, escrow, usage, tests)
 - **Relending chain**: `RelendingChain` with multi-hop sublend/return, depth validation, unwinding
 - **Expiry sweeper**: Background task auto-returning expired loaned certificates
 - **Certificate provenance proof**: `generate_provenance_proof` with Blake3 Merkle tree
 - **Certificate escrow**: `hold_certificate`/`release_certificate`/`cancel_escrow` with `TransferConditions`
 - **Resilience patterns**: Lock-free circuit breaker + exponential backoff retry in `ResilientDiscoveryClient`
 - **Cast safety**: All `#[allow(clippy::cast_possible_truncation)]` replaced with `try_from()` + fallback
-- **Coverage**: 89.30% line, 91.26% region (1,092 tests)
+- **`#[allow]` → `#[expect(reason)]`**: All production lint exceptions migrated to `#[expect]` with documented reasons
+- **UsageSummary**: Certificate usage tracking per CERTIFICATE_LAYER.md (integrated into `CertificateReturn` and `LoanRecord`)
+- **Attestation framework**: `AttestationRequirement`/`AttestationResult` for capability-discovered attestation per WAYPOINT_SEMANTICS.md
+- **Sync module refactoring**: `sync.rs` (927 lines) → `sync/mod.rs` + `sync/tests.rs`
+- **WAYPOINT_SEMANTICS.md**: Promoted from PARTIAL → COMPLETE
+- **CERTIFICATE_LAYER.md**: Promoted from PARTIAL → COMPLETE
+- **Coverage**: 89.64% line, 91.71% region (1,114 tests)
 
 ---
 
 ## v0.9.0 Targets
 
-- **90%+ line coverage** -- Currently 89.30%; remaining gap in TCP server loop (`main.rs`), DNS SRV/mDNS network paths
+- **90%+ line coverage** -- Currently 89.64%; remaining gap is binary entry point `main.rs` (150 lines, 0%). DNS SRV/mDNS network paths have limited testability.
 - **Signing capability middleware** -- Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** -- Expand from ~10% to full coverage
-- **`UsageSummary`** -- Certificate usage tracking per CERTIFICATE_LAYER.md
-- **Beardog attestation** -- Waypoint attestation integration per WAYPOINT_SEMANTICS.md
+- **Runtime attestation integration** -- Wire `AttestationRequirement` checks into waypoint operation flow with capability-discovered attestation providers
 
 ---
 

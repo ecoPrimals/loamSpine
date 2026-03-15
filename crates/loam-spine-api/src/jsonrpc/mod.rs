@@ -228,6 +228,7 @@ fn ser<T: serde::Serialize>(val: T) -> Result<serde_json::Value, JsonRpcError> {
 pub struct ServerHandle {
     shutdown: tokio::sync::watch::Sender<bool>,
     done: tokio::sync::watch::Receiver<bool>,
+    addr: SocketAddr,
 }
 
 impl ServerHandle {
@@ -239,6 +240,12 @@ impl ServerHandle {
     /// Wait until the server has stopped.
     pub async fn stopped(&mut self) {
         let _ = self.done.changed().await;
+    }
+
+    /// Get the actual bound address (useful when binding to port 0).
+    #[must_use]
+    pub const fn local_addr(&self) -> SocketAddr {
+        self.addr
     }
 }
 
@@ -257,11 +264,18 @@ pub async fn run_jsonrpc_server(
         .await
         .map_err(|e| ServerError::Bind(e.to_string()))?;
 
+    let bound_addr = listener
+        .local_addr()
+        .map_err(|e| ServerError::Bind(e.to_string()))?;
+
     let handler = Arc::new(LoamSpineJsonRpc::new(service));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let (done_tx, done_rx) = tokio::sync::watch::channel(false);
 
-    info!("LoamSpine JSON-RPC server listening on http://{}", addr);
+    info!(
+        "LoamSpine JSON-RPC server listening on http://{}",
+        bound_addr
+    );
 
     tokio::spawn(async move {
         let mut rx = shutdown_rx;
@@ -295,6 +309,7 @@ pub async fn run_jsonrpc_server(
     Ok(ServerHandle {
         shutdown: shutdown_tx,
         done: done_rx,
+        addr: bound_addr,
     })
 }
 

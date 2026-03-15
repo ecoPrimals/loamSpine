@@ -524,3 +524,166 @@ async fn concurrent_api_operations() {
         assert!(result.is_ok());
     }
 }
+
+// =============================================================================
+// JSON-RPC TCP server integration tests
+// =============================================================================
+
+use std::net::SocketAddr;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpStream;
+
+async fn start_jsonrpc_server() -> (SocketAddr, loam_spine_api::jsonrpc::ServerHandle) {
+    let service = LoamSpineRpcService::default_service();
+    let addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
+    let handle = loam_spine_api::jsonrpc::run_jsonrpc_server(addr, service)
+        .await
+        .unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    (handle.local_addr(), handle)
+}
+
+#[tokio::test]
+async fn jsonrpc_server_raw_tcp_health_check() {
+    let (addr, handle) = start_jsonrpc_server().await;
+
+    let mut stream = TcpStream::connect(addr).await.unwrap();
+    let request =
+        r#"{"jsonrpc":"2.0","method":"health.check","params":{"include_details":false},"id":1}"#;
+    stream
+        .write_all(format!("{request}\n").as_bytes())
+        .await
+        .unwrap();
+    stream.flush().await.unwrap();
+
+    let mut reader = BufReader::new(stream);
+    let mut response = String::new();
+    reader.read_line(&mut response).await.unwrap();
+
+    let resp: serde_json::Value = serde_json::from_str(response.trim()).unwrap();
+    assert!(resp.get("result").is_some(), "expected result, got: {resp}");
+    assert_eq!(resp["id"], 1);
+
+    handle.stop();
+}
+
+#[tokio::test]
+async fn jsonrpc_server_http_post_health_check() {
+    let (addr, handle) = start_jsonrpc_server().await;
+
+    let mut stream = TcpStream::connect(addr).await.unwrap();
+    let body =
+        r#"{"jsonrpc":"2.0","method":"health.check","params":{"include_details":false},"id":2}"#;
+    let http_request = format!(
+        "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    stream.write_all(http_request.as_bytes()).await.unwrap();
+    stream.flush().await.unwrap();
+
+    let mut reader = BufReader::new(stream);
+    let mut content_length: usize = 0;
+    loop {
+        let mut line = String::new();
+        reader.read_line(&mut line).await.unwrap();
+        if line.trim().is_empty() {
+            break;
+        }
+        if let Some(val) = line.strip_prefix("Content-Length:") {
+            content_length = val.trim().parse().unwrap_or(0);
+        }
+    }
+
+    let mut body_buf = vec![0u8; content_length];
+    tokio::io::AsyncReadExt::read_exact(&mut reader, &mut body_buf)
+        .await
+        .unwrap();
+
+    let resp: serde_json::Value = serde_json::from_slice(&body_buf).unwrap();
+    assert!(resp.get("result").is_some());
+    assert_eq!(resp["id"], 2);
+
+    handle.stop();
+}
+
+#[tokio::test]
+async fn jsonrpc_server_method_not_found() {
+    let (addr, handle) = start_jsonrpc_server().await;
+
+    let mut stream = TcpStream::connect(addr).await.unwrap();
+    let request = r#"{"jsonrpc":"2.0","method":"nonexistent.method","params":{},"id":3}"#;
+    stream
+        .write_all(format!("{request}\n").as_bytes())
+        .await
+        .unwrap();
+    stream.flush().await.unwrap();
+
+    let mut reader = BufReader::new(stream);
+    let mut response = String::new();
+    reader.read_line(&mut response).await.unwrap();
+
+    let resp: serde_json::Value = serde_json::from_str(response.trim()).unwrap();
+    assert!(resp.get("error").is_some());
+    assert_eq!(resp["error"]["code"], -32601);
+
+    handle.stop();
+}
+
+#[tokio::test]
+async fn jsonrpc_server_parse_error() {
+    let (addr, handle) = start_jsonrpc_server().await;
+
+    let mut stream = TcpStream::connect(addr).await.unwrap();
+    stream.write_all(b"not valid json\n").await.unwrap();
+    stream.flush().await.unwrap();
+
+    let mut reader = BufReader::new(stream);
+    let mut response = String::new();
+    reader.read_line(&mut response).await.unwrap();
+
+    let resp: serde_json::Value = serde_json::from_str(response.trim()).unwrap();
+    assert!(resp.get("error").is_some());
+    assert_eq!(resp["error"]["code"], -32700);
+
+    handle.stop();
+}
+
+#[tokio::test]
+async fn jsonrpc_server_shutdown() {
+    let (_, mut handle) = start_jsonrpc_server().await;
+    handle.stop();
+    tokio::time::timeout(std::time::Duration::from_secs(2), handle.stopped())
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn jsonrpc_server_create_spine_over_tcp() {
+    let (addr, handle) = start_jsonrpc_server().await;
+
+    let mut stream = TcpStream::connect(addr).await.unwrap();
+    let owner = test_did();
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "spine.create",
+        "params": {"owner": owner.to_string(), "name": "TCP Test Spine"},
+        "id": 10
+    });
+    let req_str = serde_json::to_string(&request).unwrap();
+    stream
+        .write_all(format!("{req_str}\n").as_bytes())
+        .await
+        .unwrap();
+    stream.flush().await.unwrap();
+
+    let mut reader = BufReader::new(stream);
+    let mut response = String::new();
+    reader.read_line(&mut response).await.unwrap();
+
+    let resp: serde_json::Value = serde_json::from_str(response.trim()).unwrap();
+    assert!(resp.get("result").is_some());
+    assert!(resp["result"]["spine_id"].is_string());
+
+    handle.stop();
+}

@@ -100,11 +100,11 @@ impl TransportResponse {
     }
 
     /// Construct from a static byte slice (compile-time zero-copy).
-    ///
-    /// Cannot be `const fn` because `Bytes::from_static` involves pointer
-    /// manipulation that is not const-compatible.
     #[must_use]
-    #[allow(clippy::missing_const_for_fn)]
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "Bytes::from_static is not const-stable"
+    )]
     pub fn from_static(status: u16, body: &'static [u8]) -> Self {
         Self {
             status,

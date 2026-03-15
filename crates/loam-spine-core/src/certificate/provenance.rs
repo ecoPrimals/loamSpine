@@ -116,4 +116,7 @@ pub struct LoanRecord {
     pub ended_at: Option<Timestamp>,
     /// Return entry hash.
     pub return_entry: Option<EntryHash>,
+    /// Usage summary from the loan period (populated on return).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usage_summary: Option<super::usage::UsageSummary>,
 }

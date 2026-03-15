@@ -3,9 +3,9 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
-[![Version](https://img.shields.io/badge/version-0.8.6-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C092%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-89.30%25%20line%20%7C%2091.26%25%20region-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.8.7-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C114%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-89.64%25%20line%20%7C%2091.71%25%20region-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
 
@@ -65,11 +65,11 @@ cargo deny check licenses bans sources
 loamSpine/
 ├── bin/loamspine-service/     # UniBin: server | capabilities | socket
 ├── crates/
-│   ├── loam-spine-core/       # Core library (50+ source files)
+│   ├── loam-spine-core/       # Core library (55+ source files)
 │   │   └── src/
 │   │       ├── backup/            # Backup/restore
 │   │       ├── capabilities.rs    # Capability definitions
-│   │       ├── certificate/        # Loam Certificates (types, lifecycle, metadata, provenance, escrow)
+│   │       ├── certificate/       # Loam Certificates (types, lifecycle, metadata, provenance, escrow, usage)
 │   │       ├── config.rs          # Configuration
 │   │       ├── discovery/         # Capability registry + DynSigner/DynVerifier
 │   │       ├── discovery_client/  # HTTP discovery client + ResilientDiscoveryClient
@@ -88,10 +88,11 @@ loamSpine/
 │   │       │   └── waypoint.rs    # Anchoring, operations, departure, proofs
 │   │       ├── spine.rs           # Spine structure
 │   │       ├── storage/           # Storage backends (redb default, memory, sled optional, sqlite)
+│   │       ├── sync/              # Sync engine (push/pull, peer discovery)
 │   │       ├── temporal/          # Time tracking (moments, anchors)
 │   │       ├── traits/            # Integration traits
 │   │       ├── transport/         # IPC transports (HTTP, NeuralAPI, mock)
-│   │       ├── waypoint.rs        # Waypoint types (config, terms, relending chain)
+│   │       ├── waypoint.rs        # Waypoint types (config, attestation, relending chain)
 │   │       └── trio_types.rs      # Provenance trio type bridging
 │   └── loam-spine-api/        # RPC layer (14 source files)
 │       └── src/
@@ -161,13 +162,14 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.8.6 |
-| **Tests** | 1,092 passing |
-| **Coverage** | 89.30% line, 91.26% region (llvm-cov) |
+| **Version** | 0.8.7 |
+| **Tests** | 1,114 passing |
+| **Coverage** | 89.64% line, 91.71% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
+| **Lint Exceptions** | 0 `#[allow]` in production (all `#[expect(reason)]`) |
 | **Max File Size** | 955 lines (all < 1000) |
-| **Source Files** | 113 `.rs` files across 2 crates + binary |
+| **Source Files** | 117 `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

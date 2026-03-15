@@ -15,12 +15,13 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe**: `#![forbid(unsafe_code)]` is enforced
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 89.30%, 1,092 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: 89.64%, 1,114 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
 - **SPDX Headers**: `// SPDX-License-Identifier: AGPL-3.0-only` on all `.rs` files
 - **No Hardcoding**: Primal names, ports, and endpoints discovered at runtime
+- **`#[expect]` over `#[allow]`**: Use `#[expect(lint, reason = "...")]` for lint exceptions — documents why and warns when the exception becomes stale
 
 ### Human Dignity
 - **No Surveillance**: No tracking, analytics, or telemetry
@@ -42,7 +43,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 # Build
 cargo build
 
-# Test (1,092 tests)
+# Test (1,114 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -292,14 +293,15 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.8.6 |
-| Tests | 1,092 |
-| Coverage | 89.30% line, 91.26% region (llvm-cov) |
+| Version | 0.8.7 |
+| Tests | 1,114 |
+| Coverage | 89.64% line, 91.71% region (llvm-cov) |
 | Max File Size | 955 lines (all < 1000) |
 | Clippy | pedantic + nursery (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
+| Lint Exceptions | 0 `#[allow]` in production (all `#[expect(reason)]`) |
 | License | AGPL-3.0-only |
-| SPDX Headers | All 113 source files |
+| SPDX Headers | All 117 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | bans, licenses, sources pass |
 | UniBin | `loamspine server` subcommand |

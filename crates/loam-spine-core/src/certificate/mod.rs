@@ -11,6 +11,7 @@ mod lifecycle;
 mod metadata;
 mod provenance;
 mod types;
+mod usage;
 
 #[cfg(test)]
 mod tests;
@@ -26,6 +27,7 @@ pub use provenance::{
     AcquisitionType, CertificateLocation, LoanRecord, MintInfo, MintingAuthority, OwnershipRecord,
 };
 pub use types::{CertificateType, MediaType, Rarity};
+pub use usage::UsageSummary;
 
 use serde::{Deserialize, Serialize};
 

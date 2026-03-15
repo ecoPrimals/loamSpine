@@ -122,7 +122,6 @@ impl DiscoveryClient {
     /// # Errors
     ///
     /// Returns an error if no transport is available or the registry is unreachable.
-    #[allow(clippy::unused_async)] // async is required when transport features are enabled
     pub async fn connect(endpoint: impl Into<String>) -> LoamSpineResult<Self> {
         let endpoint = endpoint.into();
 
@@ -156,7 +155,10 @@ impl DiscoveryClient {
             return Ok(client);
         }
 
-        #[allow(unreachable_code)]
+        #[expect(
+            unreachable_code,
+            reason = "reachable only when no transport features enabled"
+        )]
         Err(LoamSpineError::Network(format!(
             "No discovery transport available for {endpoint}. \
              Enable feature 'tower-atomic' (recommended) or 'discovery-http'."

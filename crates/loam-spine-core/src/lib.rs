@@ -144,6 +144,7 @@ pub use certificate::{
     Rarity,
     RevocationReason,
     TransferConditions,
+    UsageSummary,
     // Time constants for loan durations
     SECONDS_PER_DAY,
     SECONDS_PER_HOUR,
@@ -180,8 +181,11 @@ pub use traits::{CliSigner, CliVerifier};
 /// Service implementation.
 pub use service::{ExpirySweeper, ExpirySweeperConfig, ExpirySweeperHandle, LoamSpineService};
 
-/// Waypoint relending chain types.
-pub use waypoint::{RelendingChain, RelendingLink};
+/// Waypoint types.
+pub use waypoint::{
+    AttestationRequirement, AttestationResult, RelendingChain, RelendingLink, WaypointConfig,
+    WaypointSummary,
+};
 
 /// Capability discovery.
 pub use discovery::{BoxedSigner, BoxedVerifier, CapabilityRegistry, CapabilityStatus};

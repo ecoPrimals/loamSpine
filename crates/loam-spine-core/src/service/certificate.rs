@@ -368,6 +368,7 @@ impl LoamSpineService {
         let entry = spine.create_entry(EntryType::CertificateReturn {
             cert_id,
             loan_entry: returner_loan_entry,
+            usage_summary: None,
         });
 
         let entry_hash = spine.append(entry.clone())?;

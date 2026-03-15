@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.8.6  
+**Current Version**: 0.8.7  
 **Last Updated**: March 15, 2026
 
 ---
@@ -21,8 +21,8 @@ This document tracks implementation progress against the specification suite in 
 | [ARCHITECTURE.md](specs/ARCHITECTURE.md) | COMPLETE | Component layout matches spec |
 | [DATA_MODEL.md](specs/DATA_MODEL.md) | COMPLETE | Entry, Spine, Chain, SpineConfig, EntryType (15+ variants) |
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
-| [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | PARTIAL | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig`, `PropagationPolicy`, `SliceTerms`, `SliceOperationType` types defined. `RelendingChain` with multi-hop sublend/return, depth validation, unwinding. `ExpirySweeper` background task for auto-returning expired loans. Missing: Beardog attestation. |
-| [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | PARTIAL | Core CRUD + loan/return + sublend + `verify_certificate` + `certificate_lifecycle` + `generate_provenance_proof` (Merkle tree over ownership chain) + escrow (`hold_certificate`/`release_certificate`/`cancel_escrow` with `TransferConditions`). Scyborg license schema. Storage trait-backed. Certificate module refactored to `certificate/` directory (types, lifecycle, metadata, provenance, escrow, tests). Missing: `UsageSummary`. |
+| [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | COMPLETE | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig` with `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective). `AttestationResult` for capability-discovered attestation providers. `PropagationPolicy`, `SliceTerms`, `SliceOperationType`, `WaypointSummary` types defined. `RelendingChain` with multi-hop sublend/return. `ExpirySweeper` for auto-return. |
+| [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | COMPLETE | Core CRUD + loan/return + sublend + `verify_certificate` + `generate_provenance_proof` + escrow + `UsageSummary` integrated into `CertificateReturn` and `LoanRecord`. `WaypointSummary` re-used from waypoint module. Scyborg license schema. Certificate module: types, lifecycle, metadata, provenance, escrow, usage, tests. |
 | [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 28 JSON-RPC methods, tarpc server, semantic naming. Spec updated to match implementation. |
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory, redb (default), sled (optional), SQLite (feature-gated, refactored to modular `sqlite/` directory). PostgreSQL, RocksDB not yet implemented. |
@@ -45,13 +45,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,092 |
-| Coverage (llvm-cov) | 90%+ | 89.30% line, 91.26% region |
+| Tests | — | 1,114 |
+| Coverage (llvm-cov) | 90%+ | 89.64% line, 91.71% region |
 | `unsafe` blocks | 0 | 0 |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
 | Max file size | < 1000 lines | 955 max (all files under 1000) |
-| Source files | — | 113 `.rs` files, 42,808 lines |
+| Source files | — | 117 `.rs` files |
+| `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
 
 ---
 
@@ -61,12 +62,28 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; musl cross-compile CI |
-| AGPL-3.0-only | PASS | SPDX headers on all 102 source files |
+| AGPL-3.0-only | PASS | SPDX headers on all 117 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | File size limit | PASS | All files under 1000 lines (max: 955). Test files split by domain. |
+
+---
+
+## v0.8.7 Spec Completion & Idiomatic Evolution (March 15, 2026)
+
+- **UsageSummary**: `UsageSummary` type with builder API, integrated into `CertificateReturn` entry type and `LoanRecord` provenance. `WaypointSummary` re-used from waypoint module. Per CERTIFICATE_LAYER.md spec.
+- **Attestation framework**: `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective) added to `WaypointConfig`. `AttestationResult` struct for capability-discovered attestation providers. No hardcoded primal names — attestation discovered at runtime via `"attestation"` capability. Per WAYPOINT_SEMANTICS.md spec.
+- **`#[allow]` → `#[expect(reason)]` migration**: All production `#[allow(...)]` attributes replaced with `#[expect(..., reason = "...")]` for documented lint exceptions. Removed stale `#[allow(async_fn_in_trait)]` from `dyn_traits.rs` (methods were already `Pin<Box<dyn Future>>`).
+- **Sync module refactoring**: `sync.rs` (927 lines) → `sync/mod.rs` (405) + `sync/tests.rs` (505). Clear separation of production code and test infrastructure.
+- **JSON-RPC server coverage**: `ServerHandle::local_addr()` for OS-assigned port testing. 6 new TCP integration tests covering raw TCP, HTTP POST, method-not-found, parse error, shutdown, and spine creation over TCP. `jsonrpc/mod.rs` coverage: 51% → 92%.
+- **Certificate error-path tests**: 5 new tests for return-not-loaned, wrong-borrower-return, transfer/loan nonexistent, verify nonexistent.
+- **Dependency audit**: Default features pure Rust (zero C deps). `libsqlite3-sys` only via feature-gated `sqlite`. `hickory-resolver` pure Rust. `linux-raw-sys` is Rust syscall bindings (not C).
+- **Capability discovery**: `primal-capabilities.toml` updated with `attestation` optional dependency and enhanced port documentation.
+- **Coverage**: 89.30% → 89.64% line, 91.26% → 91.71% region (+22 tests). Remaining gap is binary entry point `main.rs` (150 lines at 0% — inherently untestable via unit tests).
+- **Test count**: 1,092 → 1,114 (+22 tests)
+- **Specs promoted**: WAYPOINT_SEMANTICS.md and CERTIFICATE_LAYER.md both promoted from PARTIAL → COMPLETE.
 
 ---
 

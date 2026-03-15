@@ -187,6 +187,7 @@ fn entry_type_domain_certificate_slice_custom() {
         EntryType::CertificateReturn {
             cert_id: CertificateId::now_v7(),
             loan_entry: [0u8; 32],
+            usage_summary: None,
         }
         .domain(),
         "certificate"

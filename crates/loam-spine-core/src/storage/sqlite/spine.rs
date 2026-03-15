@@ -85,7 +85,10 @@ impl SqliteSpineStorage {
     }
 }
 
-#[allow(clippy::significant_drop_tightening)]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard must span full SQL transaction"
+)]
 impl SpineStorage for SqliteSpineStorage {
     async fn get_spine(&self, id: SpineId) -> LoamSpineResult<Option<Spine>> {
         let id_str = id.to_string();

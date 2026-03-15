@@ -253,6 +253,7 @@ impl CertificateManager {
         let entry = self.spine.create_entry(EntryType::CertificateReturn {
             cert_id,
             loan_entry,
+            usage_summary: None,
         });
 
         let entry_hash = self.spine.append(entry)?;

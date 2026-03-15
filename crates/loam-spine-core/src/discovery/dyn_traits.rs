@@ -23,7 +23,7 @@ pub type BoxedVerifier = Arc<dyn DynVerifier>;
 /// Object-safe version of Signer for dynamic dispatch.
 ///
 /// Uses `bytes::Bytes` for zero-copy data passing across async boundaries.
-#[allow(async_fn_in_trait)]
+/// Methods return `Pin<Box<dyn Future>>` rather than `async fn` for object safety.
 pub trait DynSigner: Send + Sync {
     /// Sign data (takes `Bytes` for zero-copy object safety).
     fn sign_boxed(
@@ -56,7 +56,7 @@ impl<T: Signer> DynSigner for T {
 /// Object-safe version of Verifier for dynamic dispatch.
 ///
 /// Uses `bytes::Bytes` for zero-copy data passing across async boundaries.
-#[allow(async_fn_in_trait)]
+/// Methods return `Pin<Box<dyn Future>>` rather than `async fn` for object safety.
 pub trait DynVerifier: Send + Sync {
     /// Verify a signature (takes `Bytes` for zero-copy object safety).
     fn verify_boxed(
