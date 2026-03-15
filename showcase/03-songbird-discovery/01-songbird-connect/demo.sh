@@ -125,7 +125,7 @@ main() {
                 "loamspine.proofs"
             ],
             "metadata": {
-                "version": "0.6.1",
+                "version": "0.8.6",
                 "protocol": "tarpc"
             }
         }'

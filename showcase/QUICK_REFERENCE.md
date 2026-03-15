@@ -195,7 +195,7 @@ All Level 4 demos document real integration gaps discovered through actual binar
 
 ### Showcase
 - `RUN_ME_FIRST.sh` — **START HERE**
-- `SHOWCASE_EVOLUTION_PLAN_DEC_26_2025.md` — Planning
+- `SHOWCASE_PRINCIPLES.md` — Design principles
 - `REAL_INTEGRATION_PROGRESS_DEC_26_2025.md` — Progress
 - `SESSION_SUMMARY_DEC_26_2025.md` — Complete summary
 - `QUICK_REFERENCE.md` — **THIS DOCUMENT**

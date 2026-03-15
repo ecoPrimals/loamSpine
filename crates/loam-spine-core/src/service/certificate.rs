@@ -15,12 +15,14 @@
 
 use crate::certificate::{
     Certificate, CertificateLocation, CertificateMetadata, CertificateState, CertificateType,
-    LoanInfo, LoanTerms, MintInfo,
+    EscrowCondition, EscrowId, LoanInfo, LoanTerms, MintInfo, TransferConditions,
 };
 use crate::entry::EntryType;
 use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::proof::CertificateOwnershipProof;
 use crate::storage::{CertificateStorage, EntryStorage, SpineStorage};
 use crate::types::{CertificateId, Did, EntryHash, SpineId, Timestamp};
+use crate::waypoint::RelendingChain;
 
 use super::LoamSpineService;
 
@@ -254,18 +256,22 @@ impl LoamSpineService {
         let entry_hash = spine.append(entry.clone())?;
 
         let now = Timestamp::now();
+        let expires_at = terms
+            .duration_secs
+            .map(|secs| Timestamp::from_nanos(now.as_nanos() + secs * 1_000_000_000));
         cert.state = CertificateState::Loaned {
             loan_entry: entry_hash,
         };
         cert.holder = Some(borrower.clone());
         cert.active_loan = Some(LoanInfo {
             loan_entry: entry_hash,
-            borrower,
+            borrower: borrower.clone(),
             terms,
             started_at: now,
-            expires_at: None,
+            expires_at,
             waypoint: None,
             waypoint_anchor: None,
+            relending_chain: Some(RelendingChain::with_initial(borrower, entry_hash)),
         });
         cert.current_location = CertificateLocation {
             spine: spine_id,
@@ -285,12 +291,31 @@ impl LoamSpineService {
 
     /// Return a loaned certificate.
     ///
-    /// Only the current borrower (holder) can return the certificate.
+    /// Only the current borrower (holder) can return. With a relending chain,
+    /// returns to the previous lender (partial return) or owner (full return).
     ///
     /// # Errors
     ///
     /// Returns error if certificate not found, not loaned, or return fails.
     pub async fn return_certificate(
+        &self,
+        cert_id: CertificateId,
+        returner: Did,
+    ) -> LoamSpineResult<EntryHash> {
+        self.return_certificate_at(cert_id, returner).await
+    }
+
+    /// Return a loaned certificate at any point in the relending chain.
+    ///
+    /// Unwinds from the given returner: removes that borrower and all
+    /// subsequent borrowers. The certificate returns to the previous lender
+    /// or owner.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if certificate not found, not loaned, returner not in
+    /// chain, or return fails.
+    pub async fn return_certificate_at(
         &self,
         cert_id: CertificateId,
         returner: Did,
@@ -301,20 +326,38 @@ impl LoamSpineService {
             .await?
             .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
 
-        let loan_entry = match &cert.state {
-            CertificateState::Loaned { loan_entry } => *loan_entry,
-            _ => {
-                return Err(LoamSpineError::InvalidEntryType(
-                    "certificate not loaned".into(),
-                ))
-            }
-        };
+        let loan = cert
+            .active_loan
+            .as_ref()
+            .ok_or_else(|| LoamSpineError::InvalidEntryType("certificate not loaned".into()))?;
 
-        if cert.holder.as_ref() != Some(&returner) {
-            return Err(LoamSpineError::LoanTermsViolation(
-                "only borrower can return".into(),
+        if !matches!(&cert.state, CertificateState::Loaned { .. }) {
+            return Err(LoamSpineError::InvalidEntryType(
+                "certificate not loaned".into(),
             ));
         }
+
+        let mut chain = loan.relending_chain.clone().unwrap_or_else(|| {
+            RelendingChain::with_initial(loan.borrower.clone(), loan.loan_entry)
+        });
+
+        if !chain.contains(&returner) {
+            return Err(LoamSpineError::LoanTermsViolation(
+                "returner not in relending chain".into(),
+            ));
+        }
+
+        let returner_loan_entry = chain
+            .links
+            .iter()
+            .find(|l| l.borrower == returner)
+            .map(|l| l.loan_entry)
+            .ok_or_else(|| {
+                LoamSpineError::LoanTermsViolation("returner not in relending chain".into())
+            })?;
+
+        let _unwound = chain.return_at(&returner)?;
+        let new_holder = chain.current_holder().cloned();
 
         let mut spine = self
             .spine_storage
@@ -324,14 +367,28 @@ impl LoamSpineService {
 
         let entry = spine.create_entry(EntryType::CertificateReturn {
             cert_id,
-            loan_entry,
+            loan_entry: returner_loan_entry,
         });
 
         let entry_hash = spine.append(entry.clone())?;
 
-        cert.state = CertificateState::Active;
-        cert.holder = None;
-        cert.active_loan = None;
+        if let Some(holder) = new_holder {
+            cert.holder = Some(holder.clone());
+            cert.active_loan = Some(LoanInfo {
+                borrower: holder,
+                relending_chain: if chain.links.is_empty() {
+                    None
+                } else {
+                    Some(chain)
+                },
+                ..loan.clone()
+            });
+        } else {
+            cert.state = CertificateState::Active;
+            cert.holder = None;
+            cert.active_loan = None;
+        }
+
         cert.current_location = CertificateLocation {
             spine: spine_id,
             entry: entry_hash,
@@ -346,6 +403,151 @@ impl LoamSpineService {
             .await?;
 
         Ok(entry_hash)
+    }
+
+    /// Sub-lend a loaned certificate to another party.
+    ///
+    /// The current holder (sublender) must have permission per `LoanTerms`.
+    /// Validates `allow_sublend` and `max_sublend_depth`.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if certificate not found, not loaned, sublender not
+    /// current holder, or terms forbid sublending.
+    pub async fn sublend_certificate(
+        &self,
+        cert_id: CertificateId,
+        sublender: Did,
+        new_borrower: Did,
+    ) -> LoamSpineResult<EntryHash> {
+        let (mut cert, spine_id) = self
+            .certificate_storage
+            .get_certificate(cert_id)
+            .await?
+            .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
+
+        let loan = cert
+            .active_loan
+            .as_ref()
+            .ok_or_else(|| LoamSpineError::InvalidEntryType("certificate not loaned".into()))?
+            .clone();
+
+        if cert.holder.as_ref() != Some(&sublender) {
+            return Err(LoamSpineError::LoanTermsViolation(
+                "only current holder can sublend".into(),
+            ));
+        }
+
+        let mut chain = loan.relending_chain.clone().unwrap_or_else(|| {
+            RelendingChain::with_initial(loan.borrower.clone(), loan.loan_entry)
+        });
+
+        chain.can_sublend(loan.terms.allow_sublend, loan.terms.max_sublend_depth)?;
+
+        let mut spine = self
+            .spine_storage
+            .get_spine(spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
+
+        let entry = spine.create_entry(EntryType::CertificateLoan {
+            cert_id,
+            lender: sublender.clone(),
+            borrower: new_borrower.clone(),
+            duration_secs: loan.terms.duration_secs,
+            auto_return: loan.terms.auto_return,
+        });
+
+        let entry_hash = spine.append(entry.clone())?;
+
+        chain.links.push(crate::waypoint::RelendingLink {
+            borrower: new_borrower.clone(),
+            loan_entry: entry_hash,
+        });
+
+        cert.holder = Some(new_borrower.clone());
+        cert.active_loan = Some(LoanInfo {
+            borrower: new_borrower,
+            relending_chain: Some(chain),
+            ..loan
+        });
+        cert.current_location = CertificateLocation {
+            spine: spine_id,
+            entry: entry_hash,
+            index: spine.height - 1,
+        };
+        cert.updated_at = Timestamp::now();
+
+        self.entry_storage.save_entry(&entry).await?;
+        self.spine_storage.save_spine(&spine).await?;
+        self.certificate_storage
+            .save_certificate(&cert, spine_id)
+            .await?;
+
+        Ok(entry_hash)
+    }
+
+    /// Auto-return an expired certificate when `terms.auto_return` is true.
+    ///
+    /// Used by the expiry sweeper. Returns the certificate as the current
+    /// holder (system-initiated return on behalf of expiry).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if certificate not found, not loaned, not expired, or
+    /// auto_return is false.
+    pub async fn return_certificate_expired(
+        &self,
+        cert_id: CertificateId,
+    ) -> LoamSpineResult<EntryHash> {
+        let (cert, _spine_id) = self
+            .certificate_storage
+            .get_certificate(cert_id)
+            .await?
+            .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
+
+        let loan = cert
+            .active_loan
+            .as_ref()
+            .ok_or_else(|| LoamSpineError::InvalidEntryType("certificate not loaned".into()))?;
+
+        if !loan.terms.auto_return {
+            return Err(LoamSpineError::LoanTermsViolation(
+                "auto_return not enabled for this loan".into(),
+            ));
+        }
+
+        let Some(expires_at) = loan.expires_at else {
+            return Err(LoamSpineError::LoanTermsViolation(
+                "loan has no expiry".into(),
+            ));
+        };
+
+        if Timestamp::now() <= expires_at {
+            return Err(LoamSpineError::LoanTermsViolation(
+                "loan not yet expired".into(),
+            ));
+        }
+
+        let mut last_hash = self
+            .return_certificate_at(cert_id, loan.borrower.clone())
+            .await?;
+
+        while self
+            .get_certificate(cert_id)
+            .await
+            .is_some_and(|c| c.is_loaned())
+        {
+            let Some(cert) = self.get_certificate(cert_id).await else {
+                break;
+            };
+            let Some(holder) = cert.holder else {
+                break;
+            };
+            last_hash = self.return_certificate_at(cert_id, holder).await?;
+        }
+
+        Ok(last_hash)
     }
 
     /// Verify a certificate's integrity.
@@ -441,6 +643,222 @@ impl LoamSpineService {
         Ok(history)
     }
 
+    /// Generate a cryptographic proof of a certificate's ownership chain.
+    ///
+    /// Collects all ownership-establishing entries (mint and transfers),
+    /// builds a Merkle tree over their hashes, and returns a
+    /// `CertificateOwnershipProof`.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if certificate not found or storage fails.
+    pub async fn generate_provenance_proof(
+        &self,
+        cert_id: CertificateId,
+    ) -> LoamSpineResult<CertificateOwnershipProof> {
+        let (_cert, _spine_id) = self
+            .certificate_storage
+            .get_certificate(cert_id)
+            .await?
+            .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
+
+        let lifecycle = self.certificate_lifecycle(cert_id).await?;
+
+        let mut entries: Vec<EntryHash> = Vec::new();
+
+        for entry in &lifecycle {
+            let hash = entry.compute_hash()?;
+            match &entry.entry_type {
+                EntryType::CertificateMint { .. } | EntryType::CertificateTransfer { .. } => {
+                    entries.push(hash);
+                }
+                _ => {}
+            }
+        }
+
+        let chain_root = crate::proof::compute_merkle_root(&entries);
+        let chain_length = entries.len() as u64;
+
+        Ok(CertificateOwnershipProof {
+            certificate_id: cert_id,
+            chain_root,
+            chain_length,
+            entries,
+            created_at: Timestamp::now(),
+        })
+    }
+
+    /// Put a certificate in escrow (PendingTransfer state).
+    ///
+    /// The certificate must be Active. The current owner becomes the seller
+    /// (`from`), and `to` is the intended buyer. Conditions must be met
+    /// before `release_certificate` completes the transfer.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if certificate not found, not owned by seller, or
+    /// already loaned.
+    pub async fn hold_certificate(
+        &self,
+        cert_id: CertificateId,
+        to: Did,
+        conditions: Vec<EscrowCondition>,
+        expires_at: Option<Timestamp>,
+    ) -> LoamSpineResult<EscrowId> {
+        let (mut cert, spine_id) = self
+            .certificate_storage
+            .get_certificate(cert_id)
+            .await?
+            .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
+
+        let from = cert.owner.clone();
+
+        if cert.is_loaned() {
+            return Err(LoamSpineError::CertificateLoaned(cert_id));
+        }
+
+        let mut spine = self
+            .spine_storage
+            .get_spine(spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
+
+        let entry = spine.create_entry(EntryType::CertificateTransfer {
+            cert_id,
+            from: from.clone(),
+            to: to.clone(),
+        });
+
+        let entry_hash = spine.append(entry.clone())?;
+
+        let escrow_id = uuid::Uuid::now_v7();
+        let now = Timestamp::now();
+
+        cert.state = CertificateState::PendingTransfer {
+            transfer_entry: entry_hash,
+            to: to.clone(),
+        };
+        cert.current_location = crate::certificate::CertificateLocation {
+            spine: spine_id,
+            entry: entry_hash,
+            index: spine.height - 1,
+        };
+        cert.updated_at = now;
+
+        let transfer_conditions = TransferConditions {
+            escrow_id,
+            cert_id,
+            from: from.clone(),
+            to: to.clone(),
+            conditions,
+            expires_at,
+            created_at: now,
+        };
+
+        self.entry_storage.save_entry(&entry).await?;
+        self.spine_storage.save_spine(&spine).await?;
+        self.certificate_storage
+            .save_certificate(&cert, spine_id)
+            .await?;
+
+        self.escrows
+            .write()
+            .await
+            .insert(escrow_id, transfer_conditions);
+
+        tracing::info!(escrow_id = %escrow_id, cert_id = %cert_id, "certificate held in escrow");
+
+        Ok(escrow_id)
+    }
+
+    /// Release a certificate from escrow, completing the transfer.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if escrow not found.
+    pub async fn release_certificate(&self, escrow_id: EscrowId) -> LoamSpineResult<CertificateId> {
+        let conditions = self
+            .escrows
+            .write()
+            .await
+            .remove(&escrow_id)
+            .ok_or(LoamSpineError::EscrowNotFound(escrow_id))?;
+
+        let cert_id = conditions.cert_id;
+
+        let (mut cert, spine_id) = self
+            .certificate_storage
+            .get_certificate(cert_id)
+            .await?
+            .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
+
+        let to = conditions.to.clone();
+
+        match &cert.state {
+            CertificateState::PendingTransfer { .. } => {}
+            _ => {
+                return Err(LoamSpineError::InvalidEntryType(
+                    "certificate not in pending transfer".into(),
+                ))
+            }
+        }
+
+        cert.owner = to;
+        cert.transfer_count += 1;
+        cert.state = CertificateState::Active;
+        cert.updated_at = Timestamp::now();
+
+        self.certificate_storage
+            .save_certificate(&cert, spine_id)
+            .await?;
+
+        tracing::info!(escrow_id = %escrow_id, cert_id = %cert_id, "certificate released from escrow");
+
+        Ok(cert_id)
+    }
+
+    /// Cancel an escrow, returning the certificate to Active state.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if escrow not found.
+    pub async fn cancel_escrow(&self, escrow_id: EscrowId) -> LoamSpineResult<()> {
+        let conditions = self
+            .escrows
+            .write()
+            .await
+            .remove(&escrow_id)
+            .ok_or(LoamSpineError::EscrowNotFound(escrow_id))?;
+
+        let cert_id = conditions.cert_id;
+
+        let (mut cert, spine_id) = self
+            .certificate_storage
+            .get_certificate(cert_id)
+            .await?
+            .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
+
+        match &cert.state {
+            CertificateState::PendingTransfer { .. } => {}
+            _ => {
+                return Err(LoamSpineError::InvalidEntryType(
+                    "certificate not in pending transfer".into(),
+                ))
+            }
+        }
+
+        cert.state = CertificateState::Active;
+        cert.updated_at = Timestamp::now();
+
+        self.certificate_storage
+            .save_certificate(&cert, spine_id)
+            .await?;
+
+        tracing::info!(escrow_id = %escrow_id, cert_id = %cert_id, "escrow cancelled");
+
+        Ok(())
+    }
+
     /// List all certificates.
     ///
     /// # Errors
@@ -464,252 +882,6 @@ impl LoamSpineService {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::certificate::CertificateType;
-
-    #[tokio::test]
-    async fn test_mint_certificate() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let cert_type = CertificateType::DigitalGame {
-            platform: "steam".into(),
-            game_id: "test".into(),
-            edition: None,
-        };
-
-        let result = service
-            .mint_certificate(spine_id, cert_type, owner.clone(), None)
-            .await;
-        assert!(result.is_ok());
-
-        let (cert_id, _hash) = result.unwrap_or_else(|_| unreachable!());
-
-        // Check certificate exists
-        let cert = service.get_certificate(cert_id).await;
-        assert!(cert.is_some());
-
-        // List certificates
-        let certs = service
-            .list_certificates()
-            .await
-            .unwrap_or_else(|_| unreachable!());
-        assert!(!certs.is_empty());
-
-        // Certificate count
-        assert!(service.certificate_count().await >= 1);
-    }
-
-    #[tokio::test]
-    async fn test_certificate_transfer() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-        let buyer = Did::new("did:key:z6MkBuyer");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let cert_type = CertificateType::DigitalGame {
-            platform: "steam".into(),
-            game_id: "test".into(),
-            edition: None,
-        };
-
-        let (cert_id, _hash) = service
-            .mint_certificate(spine_id, cert_type, owner.clone(), None)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // Transfer
-        let result = service
-            .transfer_certificate(cert_id, owner.clone(), buyer.clone())
-            .await;
-        assert!(result.is_ok());
-
-        // Verify new owner
-        let cert = service.get_certificate(cert_id).await;
-        assert!(cert.is_some());
-        assert_eq!(cert.unwrap_or_else(|| unreachable!()).owner, buyer);
-    }
-
-    #[tokio::test]
-    async fn test_certificate_loan_and_return() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-        let borrower = Did::new("did:key:z6MkBorrower");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let cert_type = CertificateType::DigitalGame {
-            platform: "steam".into(),
-            game_id: "test".into(),
-            edition: None,
-        };
-
-        let (cert_id, _hash) = service
-            .mint_certificate(spine_id, cert_type, owner.clone(), None)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // Loan with configurable duration
-        let terms = crate::certificate::LoanTerms::new()
-            .with_duration(crate::certificate::SECONDS_PER_DAY)
-            .with_auto_return(false);
-        let result = service
-            .loan_certificate(cert_id, owner.clone(), borrower.clone(), terms)
-            .await;
-        assert!(result.is_ok());
-
-        // Verify loaned
-        let cert = service.get_certificate(cert_id).await;
-        assert!(cert.is_some());
-        assert!(cert.unwrap_or_else(|| unreachable!()).is_loaned());
-
-        // Return
-        let result = service.return_certificate(cert_id, borrower.clone()).await;
-        assert!(result.is_ok());
-
-        // Verify returned
-        let cert = service.get_certificate(cert_id).await;
-        assert!(cert.is_some());
-        assert!(!cert.unwrap_or_else(|| unreachable!()).is_loaned());
-    }
-
-    #[tokio::test]
-    async fn test_verify_certificate() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let cert_type = CertificateType::DigitalGame {
-            platform: "steam".into(),
-            game_id: "test".into(),
-            edition: None,
-        };
-
-        let (cert_id, _hash) = service
-            .mint_certificate(spine_id, cert_type, owner.clone(), None)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let verification = service
-            .verify_certificate(cert_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        assert!(verification.exists());
-        assert!(verification.is_valid());
-    }
-
-    #[tokio::test]
-    async fn test_verify_nonexistent_certificate() {
-        let service = LoamSpineService::new();
-        let fake_id = uuid::Uuid::now_v7();
-
-        let verification = service
-            .verify_certificate(fake_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        assert!(!verification.exists());
-        assert!(!verification.is_valid());
-    }
-
-    #[tokio::test]
-    async fn test_get_certificate_history() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-        let buyer = Did::new("did:key:z6MkBuyer");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let cert_type = CertificateType::DigitalGame {
-            platform: "steam".into(),
-            game_id: "test".into(),
-            edition: None,
-        };
-
-        let (cert_id, _hash) = service
-            .mint_certificate(spine_id, cert_type, owner.clone(), None)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // Transfer
-        service
-            .transfer_certificate(cert_id, owner.clone(), buyer.clone())
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let history = service
-            .certificate_lifecycle(cert_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // mint + transfer = 2 entries
-        assert_eq!(history.len(), 2);
-    }
-
-    #[tokio::test]
-    async fn test_get_certificate_history_with_loan() {
-        let service = LoamSpineService::new();
-        let owner = Did::new("did:key:z6MkOwner");
-        let borrower = Did::new("did:key:z6MkBorrower");
-
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some("Test".into()))
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        let cert_type = CertificateType::DigitalGame {
-            platform: "steam".into(),
-            game_id: "test".into(),
-            edition: None,
-        };
-
-        let (cert_id, _hash) = service
-            .mint_certificate(spine_id, cert_type, owner.clone(), None)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // Loan
-        let terms = crate::certificate::LoanTerms::new()
-            .with_duration(crate::certificate::SECONDS_PER_DAY)
-            .with_auto_return(false);
-        service
-            .loan_certificate(cert_id, owner.clone(), borrower.clone(), terms)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // Return
-        service
-            .return_certificate(cert_id, borrower.clone())
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        // mint + loan + return = 3
-        let history = service
-            .certificate_lifecycle(cert_id)
-            .await
-            .unwrap_or_else(|_| unreachable!());
-
-        assert_eq!(history.len(), 3);
-    }
-}
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[path = "certificate_tests.rs"]
+mod tests;

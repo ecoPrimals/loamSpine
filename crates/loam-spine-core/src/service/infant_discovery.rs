@@ -570,4 +570,33 @@ mod tests {
         assert_eq!(caps[0], "cap-a");
         assert_eq!(caps[1], "cap-b");
     }
+
+    #[test]
+    fn infant_discovery_new_with_empty_capabilities() {
+        let infant = InfantDiscovery::new(vec![]);
+        assert!(infant.capabilities().is_empty());
+    }
+
+    #[test]
+    fn infant_discovery_new_with_many_capabilities() {
+        let caps: Vec<String> = (0..10).map(|i| format!("cap-{i}")).collect();
+        let infant = InfantDiscovery::new(caps);
+        assert_eq!(infant.capabilities().len(), 10);
+        for (i, c) in infant.capabilities().iter().enumerate() {
+            assert_eq!(c, &format!("cap-{i}"));
+        }
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn environment_discovery_empty_string_skipped() {
+        std::env::set_var("DISCOVERY_ENDPOINT", "");
+
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.try_environment_discovery();
+
+        assert!(result.is_none());
+
+        std::env::remove_var("DISCOVERY_ENDPOINT");
+    }
 }

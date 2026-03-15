@@ -213,9 +213,8 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, LoamSpineError> {
         bits += 6;
         if bits >= 8 {
             bits -= 8;
-            #[allow(clippy::cast_possible_truncation)]
-            // SAFETY invariant: bits ∈ [0,6] after subtraction ⇒ (buf >> bits) ∈ [0,255]
-            let byte = (buf >> bits) as u8;
+            // bits ∈ [0,6] after subtraction ⇒ (buf >> bits) ∈ [0,255], fits u8.
+            let byte = u8::try_from(buf >> bits).unwrap_or(0);
             out.push(byte);
             buf &= (1 << bits) - 1;
         }
@@ -502,8 +501,9 @@ mod tests {
                 let mut req_buf = vec![0u8; req_len];
                 let _ = stream.read_exact(&mut req_buf).await;
 
-                #[allow(clippy::cast_possible_truncation)]
-                let len = (resp_bytes.len() as u32).to_be_bytes();
+                let len = u32::try_from(resp_bytes.len())
+                    .unwrap_or(u32::MAX)
+                    .to_be_bytes();
                 let _ = stream.write_all(&len).await;
                 let _ = stream.write_all(&resp_bytes).await;
                 let _ = stream.flush().await;

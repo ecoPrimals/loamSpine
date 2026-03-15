@@ -7,17 +7,17 @@ echo "==============================================="
 echo ""
 
 echo "Building..."
-cargo build --workspace --quiet 2>&1
+cargo build --workspace --all-features --quiet 2>&1
 echo "  Build PASSED"
 echo ""
 
 echo "Testing..."
-cargo test --workspace --quiet 2>&1
+cargo test --workspace --all-features --quiet 2>&1
 echo "  Tests PASSED"
 echo ""
 
 echo "Linting..."
-cargo clippy --workspace --all-targets -- -D warnings --quiet 2>&1
+cargo clippy --workspace --all-features --all-targets -- -D warnings --quiet 2>&1
 echo "  Clippy PASSED (zero warnings)"
 echo ""
 
@@ -27,8 +27,8 @@ echo "  Format PASSED"
 echo ""
 
 echo "Documentation..."
-cargo doc --workspace --no-deps --quiet 2>&1
-echo "  Docs PASSED"
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --quiet 2>&1
+echo "  Docs PASSED (zero warnings)"
 echo ""
 
 echo "Dependency audit..."
@@ -42,7 +42,7 @@ echo ""
 
 echo "Coverage..."
 if command -v cargo-llvm-cov &>/dev/null; then
-    COVERAGE=$(cargo llvm-cov --workspace --summary-only 2>&1 | grep "TOTAL" | awk '{for(i=NF;i>0;i--) if ($i ~ /%/) {print $i; break}}')
+    COVERAGE=$(cargo llvm-cov --workspace --all-features --summary-only 2>&1 | grep "TOTAL" | awk '{for(i=NF;i>0;i--) if ($i ~ /%/) {print $i; break}}')
     echo "  Line coverage: $COVERAGE"
 else
     echo "  (cargo-llvm-cov not installed, skipping)"

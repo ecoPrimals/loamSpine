@@ -23,7 +23,7 @@ fallback_strategy = "best-available"
 name = "loamspine"
 description = "Permanence layer providing selective memory and certificate management"
 primary_role = "permanence"
-version = "0.8.4"
+version = "0.8.6"
 
 capabilities = [
     # Core permanence capabilities
@@ -129,6 +129,9 @@ methods = [
 # - etcd
 # - Custom implementations
 service_registry_enabled = true
+# Default endpoint for local development; override via LOAMSPINE_DISCOVERY_ENDPOINT.
+# Production deployments discover the registry via DNS SRV (_discovery._tcp.local)
+# or environment variables. This value is only used as a last-resort fallback.
 service_registry_endpoint = "http://localhost:8082"
 
 # Legacy Songbird fields removed in v0.8.0 (use service_registry_* instead)

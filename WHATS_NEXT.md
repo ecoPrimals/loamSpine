@@ -2,21 +2,21 @@
 
 # Development Roadmap
 
-**Current Version**: 0.8.5  
+**Current Version**: 0.8.6  
 **Last Updated**: March 15, 2026
 
 ---
 
-## Completed (v0.8.0 -- v0.8.5)
+## Completed (v0.8.0 -- v0.8.6)
 
 - SQLite storage backend (feature-gated) with full test coverage
-- SQLite smart refactoring: modular `sqlite/` directory (`mod.rs`, `common.rs`, `spine.rs`, `entry.rs`, `certificate.rs`, `tests.rs`)
+- SQLite smart refactoring: modular `sqlite/` directory
 - Real mDNS implementation (feature-gated)
 - Deprecated songbird fields removed
 - `Cow<'static, str>` for config/bind paths
 - `Did` evolved to `Arc<str>` for O(1) cloning
 - `must_use_candidate` lint enabled crate-wide
-- `#[allow]` attributes audited (remaining are justified)
+- `#[allow]` attributes audited (remaining are justified, test-only)
 - Certificate storage trait (`CertificateStorage` + in-memory impl)
 - `ServiceState` enum with `watch` channel
 - Waypoint types (`WaypointConfig`, `PropagationPolicy`, `SliceTerms`)
@@ -28,28 +28,31 @@
 - **Clippy pedantic + nursery**: 0 errors across all 3 workspace crates
 - **Zero-copy JSON-RPC dispatch**: `params.clone()` eliminated, by-value ownership
 - **MockTransport cfg-gated**: No mock code in production binary
-- **Smart file splits**: All production files under 1000 lines (max: 915)
+- **Smart file splits**: All 113 source files under 1000 lines (max: 955)
 - **15 const fn promotions**, `let...else` modernization, lock scope tightening
 - **Scyborg license schema**: `CertificateType::scyborg_license()`, metadata builders, constants
 - **Protocol escalation**: `IpcProtocol` negotiation (prefers tarpc Unix socket, fallback JSON-RPC)
 - **SyncProtocol evolved**: JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer`, graceful fallback
 - **Zero-copy storage keys**: `[u8; 24]` stack allocation for redb/sled index keys
 - **CI cross-compilation**: musl targets (`x86_64`, `aarch64`, `armv7`) via `cross-rs/cross`
-- **Coverage boost**: 84.52% → 86.47% line coverage (+61 tests)
+- **Certificate module refactoring**: `certificate.rs` → `certificate/` directory (types, lifecycle, metadata, provenance, escrow, tests)
+- **Relending chain**: `RelendingChain` with multi-hop sublend/return, depth validation, unwinding
+- **Expiry sweeper**: Background task auto-returning expired loaned certificates
+- **Certificate provenance proof**: `generate_provenance_proof` with Blake3 Merkle tree
+- **Certificate escrow**: `hold_certificate`/`release_certificate`/`cancel_escrow` with `TransferConditions`
+- **Resilience patterns**: Lock-free circuit breaker + exponential backoff retry in `ResilientDiscoveryClient`
+- **Cast safety**: All `#[allow(clippy::cast_possible_truncation)]` replaced with `try_from()` + fallback
+- **Coverage**: 89.30% line, 91.26% region (1,092 tests)
 
 ---
 
 ## v0.9.0 Targets
 
-- **90%+ test coverage** -- Raise from 86.47% (remaining gaps in jsonrpc server loop, main.rs, DNS SRV/mDNS network paths)
-- **Split `storage/tests.rs`** -- Currently 1122 lines; split into per-backend test modules (redb, sled, sqlite, memory)
-- **Broader `Cow<'a, str>` / `Arc<str>` adoption** -- EntryType string fields, metadata keys
-- **Waypoint relending chain** -- Depth-limited relend with term inheritance
-- **Waypoint expiry sweep** -- Background task for expired anchor auto-return
-- **Certificate provenance proof** -- `generate_provenance_proof` per CERTIFICATE_LAYER.md
-- **Certificate escrow** -- `TransferConditions`, escrow hold/release
-- **PrimalAdapter** -- Retry + circuit-breaker for inter-primal calls
+- **90%+ line coverage** -- Currently 89.30%; remaining gap in TCP server loop (`main.rs`), DNS SRV/mDNS network paths
 - **Signing capability middleware** -- Signature verification on RPC layer (capability-discovered)
+- **Showcase demos** -- Expand from ~10% to full coverage
+- **`UsageSummary`** -- Certificate usage tracking per CERTIFICATE_LAYER.md
+- **Beardog attestation** -- Waypoint attestation integration per WAYPOINT_SEMANTICS.md
 
 ---
 
@@ -70,7 +73,6 @@
 
 - **Cross-primal integration testing** -- With rhizoCrypt and sweetGrass
 - **Service mesh patterns** -- From [specs/SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md)
-- **Showcase demos** -- Expand from ~10% to full coverage
 
 ---
 

@@ -201,6 +201,10 @@ impl CertificateManager {
                 expires_at,
                 waypoint: None,
                 waypoint_anchor: None,
+                relending_chain: Some(crate::waypoint::RelendingChain::with_initial(
+                    borrower.clone(),
+                    entry_hash,
+                )),
             });
             cert.updated_at = Timestamp::now();
             cert.current_location = CertificateLocation {

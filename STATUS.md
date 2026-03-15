@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.8.5  
+**Current Version**: 0.8.6  
 **Last Updated**: March 15, 2026
 
 ---
@@ -21,10 +21,10 @@ This document tracks implementation progress against the specification suite in 
 | [ARCHITECTURE.md](specs/ARCHITECTURE.md) | COMPLETE | Component layout matches spec |
 | [DATA_MODEL.md](specs/DATA_MODEL.md) | COMPLETE | Entry, Spine, Chain, SpineConfig, EntryType (15+ variants) |
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
-| [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | PARTIAL | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig`, `PropagationPolicy`, `SliceTerms`, `SliceOperationType` types defined. Missing: relending chain, expiry sweep, Beardog attestation. |
-| [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | PARTIAL | Core CRUD + loan/return + `verify_certificate` + `certificate_lifecycle`. Scyborg license schema (type URI, metadata builders, constants). Storage trait-backed. Missing: `generate_provenance_proof`, escrow/`TransferConditions`, `UsageSummary`. |
+| [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | PARTIAL | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig`, `PropagationPolicy`, `SliceTerms`, `SliceOperationType` types defined. `RelendingChain` with multi-hop sublend/return, depth validation, unwinding. `ExpirySweeper` background task for auto-returning expired loans. Missing: Beardog attestation. |
+| [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | PARTIAL | Core CRUD + loan/return + sublend + `verify_certificate` + `certificate_lifecycle` + `generate_provenance_proof` (Merkle tree over ownership chain) + escrow (`hold_certificate`/`release_certificate`/`cancel_escrow` with `TransferConditions`). Scyborg license schema. Storage trait-backed. Certificate module refactored to `certificate/` directory (types, lifecycle, metadata, provenance, escrow, tests). Missing: `UsageSummary`. |
 | [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 28 JSON-RPC methods, tarpc server, semantic naming. Spec updated to match implementation. |
-| [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | PARTIAL | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. Missing: `PrimalAdapter` retry/circuit-breaker. |
+| [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory, redb (default), sled (optional), SQLite (feature-gated, refactored to modular `sqlite/` directory). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
 
@@ -45,13 +45,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 968 |
-| Coverage (llvm-cov) | 90%+ | 88.28% line, 90.45% region |
+| Tests | — | 1,092 |
+| Coverage (llvm-cov) | 90%+ | 89.30% line, 91.26% region |
 | `unsafe` blocks | 0 | 0 |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 928 max (all files under 1000) |
-| Source files | — | 102 `.rs` files, 38,664 lines |
+| Max file size | < 1000 lines | 955 max (all files under 1000) |
+| Source files | — | 113 `.rs` files, 42,808 lines |
 
 ---
 
@@ -66,7 +66,23 @@ This document tracks implementation progress against the specification suite in 
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All files under 1000 lines (max: 928). Test files split by backend. |
+| File size limit | PASS | All files under 1000 lines (max: 955). Test files split by domain. |
+
+---
+
+## v0.8.6 Deep Debt & Feature Completion (March 15, 2026)
+
+- **Relending chain**: `RelendingChain` with `RelendingLink`, multi-hop sublend/return, depth validation (`can_sublend`), unwinding (`return_at`), `current_holder()` tracking
+- **Expiry sweeper**: `ExpirySweeper` background task with configurable interval, auto-returns expired loaned certificates, full relending chain unwinding
+- **Provenance proof**: `CertificateOwnershipProof` with `compute_merkle_root()` using Blake3, Merkle tree over mint+transfer entry hashes, `verify()` method
+- **Certificate escrow**: `TransferConditions`, `EscrowCondition` (Payment/Signature/Time), `hold_certificate`/`release_certificate`/`cancel_escrow` with `PendingTransfer` state
+- **Resilience patterns**: `CircuitBreaker` (Closed/Open/HalfOpen, lock-free `AtomicU8`/`AtomicU32`/`AtomicU64`), `RetryPolicy` (exponential backoff with jitter), `ResilientDiscoveryClient` wrapping discovery operations
+- **Certificate module refactoring**: 915-line `certificate.rs` → `certificate/` module directory (mod.rs, types.rs, lifecycle.rs, metadata.rs, provenance.rs, escrow.rs, tests.rs)
+- **Cast safety**: All `#[allow(clippy::cast_possible_truncation)]` replaced with `try_from()` + fallback
+- **File size compliance**: All 113 `.rs` files under 1000 lines (max: 955). Test files split: `redb_tests_coverage.rs`, `tests_validation.rs`, `certificate_tests.rs`
+- **Coverage**: 88.28% → 89.30% line, 90.45% → 91.26% region (+124 tests)
+- **Test count**: 968 → 1,092 (+124 tests across jsonrpc, redb, sled, lifecycle, certificate, resilience, waypoint, proof, escrow)
+- **Version**: `primal-capabilities.toml` bumped to 0.8.6
 
 ---
 

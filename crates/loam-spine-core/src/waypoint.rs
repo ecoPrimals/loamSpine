@@ -9,7 +9,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-use crate::types::{EntryHash, SliceId, SpineId, Timestamp};
+use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::types::{Did, EntryHash, SliceId, SpineId, Timestamp};
 
 // ============================================================================
 // Configuration
@@ -268,6 +269,146 @@ impl SliceTerms {
     }
 }
 
+// ============================================================================
+// Relending chain
+// ============================================================================
+
+/// A single link in a relending chain.
+///
+/// Each link represents one borrower in the chain from owner to current holder.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RelendingLink {
+    /// Borrower DID at this depth.
+    pub borrower: Did,
+    /// Loan entry hash that created this link.
+    pub loan_entry: EntryHash,
+}
+
+/// Tracks the chain of borrowers when a certificate is sub-lent.
+///
+/// When owner loans to A, and A sub-lends to B, the chain records
+/// [A, B]. Depth 0 = first borrower, depth 1 = second, etc.
+/// Supports validation against `LoanTerms`, depth limits, and unwinding.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct RelendingChain {
+    /// Links in order from first borrower to current holder.
+    pub links: Vec<RelendingLink>,
+}
+
+impl RelendingChain {
+    /// Create an empty chain (no relending yet).
+    #[must_use]
+    pub fn new() -> Self {
+        Self { links: Vec::new() }
+    }
+
+    /// Create a chain with the initial borrower (depth 0).
+    #[must_use]
+    pub fn with_initial(borrower: Did, loan_entry: EntryHash) -> Self {
+        Self {
+            links: vec![RelendingLink {
+                borrower,
+                loan_entry,
+            }],
+        }
+    }
+
+    /// Current depth (0 = first borrower only, 1 = one sublend, etc.).
+    #[must_use]
+    pub fn depth(&self) -> u32 {
+        u32::try_from(self.links.len().saturating_sub(1)).unwrap_or(u32::MAX)
+    }
+
+    /// Current holder (last borrower in chain).
+    #[must_use]
+    pub fn current_holder(&self) -> Option<&Did> {
+        self.links.last().map(|l| &l.borrower)
+    }
+
+    /// Root borrower (first in chain).
+    #[must_use]
+    pub fn root_borrower(&self) -> Option<&Did> {
+        self.links.first().map(|l| &l.borrower)
+    }
+
+    /// Check if sublending is allowed given terms.
+    ///
+    /// Returns `Ok(())` if sublending is permitted, `Err` otherwise.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if sublending is not allowed or depth limit exceeded.
+    pub fn can_sublend(
+        &self,
+        allow_sublend: bool,
+        max_sublend_depth: Option<u32>,
+    ) -> LoamSpineResult<()> {
+        if !allow_sublend {
+            return Err(LoamSpineError::LoanTermsViolation(
+                "sublending not allowed".into(),
+            ));
+        }
+        let next_depth = u32::try_from(self.links.len()).unwrap_or(u32::MAX);
+        if let Some(max) = max_sublend_depth {
+            if next_depth > max {
+                return Err(LoamSpineError::LoanTermsViolation(format!(
+                    "sublend depth {next_depth} exceeds max {max}"
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// Add a sublend link. Validates via `can_sublend` first.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if sublending is not allowed or depth limit exceeded.
+    pub fn sublend(
+        &mut self,
+        borrower: Did,
+        loan_entry: EntryHash,
+        allow_sublend: bool,
+        max_sublend_depth: Option<u32>,
+    ) -> LoamSpineResult<()> {
+        self.can_sublend(allow_sublend, max_sublend_depth)?;
+        self.links.push(RelendingLink {
+            borrower,
+            loan_entry,
+        });
+        Ok(())
+    }
+
+    /// Unwind the chain by returning at the given borrower.
+    ///
+    /// Removes the borrower and all subsequent links. Returns the loan entries
+    /// that were unwound (for recording returns).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if borrower not found in chain.
+    pub fn return_at(&mut self, borrower: &Did) -> LoamSpineResult<Vec<EntryHash>> {
+        let pos = self
+            .links
+            .iter()
+            .position(|l| l.borrower == *borrower)
+            .ok_or_else(|| {
+                LoamSpineError::LoanTermsViolation(format!(
+                    "borrower {borrower} not in relending chain"
+                ))
+            })?;
+        let unwound: Vec<EntryHash> = self.links[pos..].iter().map(|l| l.loan_entry).collect();
+        self.links.truncate(pos);
+        Ok(unwound)
+    }
+
+    /// Check if the given DID is in the chain.
+    #[must_use]
+    pub fn contains(&self, did: &Did) -> bool {
+        self.links.iter().any(|l| l.borrower == *did)
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
@@ -375,5 +516,82 @@ mod tests {
         let json = serde_json::to_string(&terms).expect("serialize");
         let restored: SliceTerms = serde_json::from_str(&json).expect("deserialize");
         assert!(!restored.allow_relend);
+    }
+
+    #[test]
+    fn relending_chain_initial() {
+        let did_a = crate::types::Did::new("did:key:z6MkA");
+        let chain = RelendingChain::with_initial(did_a.clone(), [1u8; 32]);
+        assert_eq!(chain.depth(), 0);
+        assert_eq!(chain.current_holder(), Some(&did_a));
+        assert_eq!(chain.root_borrower(), Some(&did_a));
+        assert!(chain.contains(&did_a));
+    }
+
+    #[test]
+    fn relending_chain_sublend_validation() {
+        let did_a = crate::types::Did::new("did:key:z6MkA");
+        let mut chain = RelendingChain::with_initial(did_a, [1u8; 32]);
+
+        // allow_sublend=false -> cannot sublend
+        assert!(chain.can_sublend(false, Some(2)).is_err());
+
+        // allow_sublend=true, max_depth=1 -> can add one more (depth 0 -> 1)
+        assert!(chain.can_sublend(true, Some(1)).is_ok());
+
+        chain
+            .sublend(
+                crate::types::Did::new("did:key:z6MkB"),
+                [2u8; 32],
+                true,
+                Some(1),
+            )
+            .expect("sublend");
+
+        assert_eq!(chain.depth(), 1);
+
+        // Now at max depth, cannot sublend further
+        assert!(chain.can_sublend(true, Some(1)).is_err());
+    }
+
+    #[test]
+    fn relending_chain_return_at() {
+        let did_a = crate::types::Did::new("did:key:z6MkA");
+        let did_b = crate::types::Did::new("did:key:z6MkB");
+        let did_c = crate::types::Did::new("did:key:z6MkC");
+
+        let mut chain = RelendingChain::with_initial(did_a.clone(), [1u8; 32]);
+        chain
+            .sublend(did_b.clone(), [2u8; 32], true, Some(2))
+            .expect("sublend");
+        chain
+            .sublend(did_c.clone(), [3u8; 32], true, Some(2))
+            .expect("sublend");
+
+        assert_eq!(chain.depth(), 2);
+        assert_eq!(chain.current_holder(), Some(&did_c));
+
+        // Return at B - unwinds B and C
+        let unwound = chain.return_at(&did_b).expect("return_at");
+        assert_eq!(unwound.len(), 2); // B and C entries
+        assert_eq!(chain.depth(), 0);
+        assert_eq!(chain.current_holder(), Some(&did_a));
+    }
+
+    #[test]
+    fn relending_chain_return_at_not_found() {
+        let did_a = crate::types::Did::new("did:key:z6MkA");
+        let mut chain = RelendingChain::with_initial(did_a, [1u8; 32]);
+        let did_x = crate::types::Did::new("did:key:z6MkX");
+        assert!(chain.return_at(&did_x).is_err());
+    }
+
+    #[test]
+    fn relending_chain_serde_roundtrip() {
+        let did_a = crate::types::Did::new("did:key:z6MkA");
+        let chain = RelendingChain::with_initial(did_a, [1u8; 32]);
+        let json = serde_json::to_string(&chain).expect("serialize");
+        let restored: RelendingChain = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(restored.depth(), chain.depth());
     }
 }

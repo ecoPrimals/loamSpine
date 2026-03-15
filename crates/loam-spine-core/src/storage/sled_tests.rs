@@ -178,11 +178,11 @@ async fn sled_combined_storage() {
 #[tokio::test]
 #[serial]
 async fn sled_storage_persistence() {
-    let temp_dir = std::env::temp_dir().join(format!("loamspine-test-{}", uuid::Uuid::now_v7()));
+    let temp_dir = tempfile::tempdir().unwrap();
 
     {
-        let storage =
-            SledStorage::open(&temp_dir).unwrap_or_else(|e| unreachable!("sled open failed: {e}"));
+        let storage = SledStorage::open(temp_dir.path())
+            .unwrap_or_else(|e| unreachable!("sled open failed: {e}"));
         let spine = create_test_spine();
         storage
             .spines
@@ -194,15 +194,11 @@ async fn sled_storage_persistence() {
             .unwrap_or_else(|e| unreachable!("flush failed: {e}"));
     }
 
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-
     {
-        let storage = SledStorage::open(&temp_dir)
+        let storage = SledStorage::open(temp_dir.path())
             .unwrap_or_else(|e| unreachable!("sled reopen failed: {e}"));
         assert_eq!(storage.spines.spine_count(), 1);
     }
-
-    let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
 #[tokio::test]
@@ -335,4 +331,340 @@ async fn sled_spine_delete() {
     assert_eq!(storage.spine_count(), 1);
     let _ = storage.delete_spine(spine.id).await;
     assert_eq!(storage.spine_count(), 0);
+}
+
+// ========================================================================
+// Corrupted data, edge cases, certificate storage (similar to redb)
+// ========================================================================
+
+#[tokio::test]
+#[serial]
+async fn sled_get_spine_corrupted_data_returns_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("spines");
+
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("spines").unwrap();
+    let bad_id = SpineId::now_v7();
+    tree.insert(bad_id.as_bytes(), b"invalid-bincode").unwrap();
+    db.flush().unwrap();
+    drop(tree);
+    drop(db);
+
+    let storage = SledSpineStorage::open(&path).unwrap();
+    let result = storage.get_spine(bad_id).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+#[serial]
+async fn sled_get_entry_corrupted_data_returns_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("entries");
+
+    let db = sled::open(&path).unwrap();
+    let entries = db.open_tree("entries").unwrap();
+    let index = db.open_tree("entry_index").unwrap();
+    let bad_hash = [0u8; 32];
+    entries.insert(&bad_hash[..], b"corrupt").unwrap();
+    index.insert(&[0u8; 24][..], &bad_hash[..]).unwrap();
+    db.flush().unwrap();
+    drop(entries);
+    drop(index);
+    drop(db);
+
+    let storage = SledEntryStorage::open(&path).unwrap();
+    let result = storage.get_entry(bad_hash).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+#[serial]
+async fn sled_get_certificate_corrupted_data_returns_error() {
+    use crate::storage::{CertificateStorage, SledCertificateStorage};
+    use crate::types::CertificateId;
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("certs");
+
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("certificates").unwrap();
+    let bad_id = CertificateId::now_v7();
+    tree.insert(bad_id.as_bytes(), b"garbage").unwrap();
+    db.flush().unwrap();
+    drop(tree);
+    drop(db);
+
+    let storage = SledCertificateStorage::open(&path).unwrap();
+    let result = storage.get_certificate(bad_id).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+#[serial]
+async fn sled_storage_open_with_base_path() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let storage = SledStorage::open(temp_dir.path()).unwrap();
+    assert_eq!(storage.spines.spine_count(), 0);
+    assert_eq!(storage.entries.entry_count(), 0);
+    assert_eq!(storage.certificates.certificate_count(), 0);
+}
+
+#[tokio::test]
+async fn sled_certificate_storage_crud() {
+    use crate::certificate::{Certificate, CertificateType, MintInfo};
+    use crate::storage::{CertificateStorage, SledCertificateStorage};
+    use crate::types::{CertificateId, Timestamp};
+
+    let storage = SledCertificateStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkCertOwner");
+    let spine_id = SpineId::now_v7();
+
+    let cert_id = CertificateId::now_v7();
+    let mint_info = MintInfo {
+        minter: owner.clone(),
+        spine: spine_id,
+        entry: [0u8; 32],
+        timestamp: Timestamp::now(),
+        authority: None,
+    };
+    let cert = Certificate::new(
+        cert_id,
+        CertificateType::DigitalGame {
+            platform: "steam".into(),
+            game_id: "test".into(),
+            edition: None,
+        },
+        &owner,
+        &mint_info,
+    );
+
+    storage.save_certificate(&cert, spine_id).await.unwrap();
+    assert_eq!(storage.certificate_count(), 1);
+
+    let retrieved = storage.get_certificate(cert_id).await.unwrap();
+    assert!(retrieved.is_some());
+    let (retrieved_cert, retrieved_spine) = retrieved.unwrap();
+    assert_eq!(retrieved_cert.id, cert_id);
+    assert_eq!(retrieved_spine, spine_id);
+
+    let ids = storage.list_certificates().await.unwrap();
+    assert_eq!(ids.len(), 1);
+    assert!(ids.contains(&cert_id));
+
+    storage.delete_certificate(cert_id).await.unwrap();
+    assert_eq!(storage.certificate_count(), 0);
+}
+
+#[tokio::test]
+async fn sled_entry_storage_get_entries_limit_zero() {
+    let storage = SledEntryStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+    let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
+    storage.save_entry(&entry).await.unwrap();
+
+    let entries = storage.get_entries_for_spine(spine_id, 0, 0).await.unwrap();
+    assert!(entries.is_empty());
+}
+
+#[tokio::test]
+async fn sled_large_entry_storage() {
+    let storage = SledEntryStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+
+    let mut prev_hash = None;
+    for i in 0..50 {
+        let entry = if i == 0 {
+            Entry::genesis(owner.clone(), spine_id, SpineConfig::default())
+        } else {
+            Entry::new(
+                i,
+                prev_hash,
+                owner.clone(),
+                EntryType::SpineSealed { reason: None },
+            )
+            .with_spine_id(spine_id)
+        };
+        prev_hash = Some(storage.save_entry(&entry).await.unwrap());
+    }
+
+    assert_eq!(storage.entry_count(), 50);
+    let entries = storage
+        .get_entries_for_spine(spine_id, 0, 100)
+        .await
+        .unwrap();
+    assert_eq!(entries.len(), 50);
+}
+
+#[tokio::test]
+async fn sled_combined_flush_all_components() {
+    use crate::certificate::{Certificate, CertificateType, MintInfo};
+    use crate::storage::CertificateStorage;
+    use crate::types::{CertificateId, Timestamp};
+
+    let storage = SledStorage::temporary().unwrap();
+    let spine = create_sled_test_spine();
+    storage.spines.save_spine(&spine).await.unwrap();
+
+    let owner = Did::new("did:key:z6MkOwner");
+    let entry = Entry::genesis(owner.clone(), spine.id, SpineConfig::default());
+    storage.entries.save_entry(&entry).await.unwrap();
+
+    let cert_id = CertificateId::now_v7();
+    let mint_info = MintInfo {
+        minter: owner.clone(),
+        spine: spine.id,
+        entry: [0u8; 32],
+        timestamp: Timestamp::now(),
+        authority: None,
+    };
+    let cert = Certificate::new(
+        cert_id,
+        CertificateType::DigitalGame {
+            platform: "steam".into(),
+            game_id: "test".into(),
+            edition: None,
+        },
+        &owner,
+        &mint_info,
+    );
+    storage
+        .certificates
+        .save_certificate(&cert, spine.id)
+        .await
+        .unwrap();
+
+    assert!(storage.flush().is_ok());
+    assert_eq!(storage.spines.spine_count(), 1);
+    assert_eq!(storage.entries.entry_count(), 1);
+    assert_eq!(storage.certificates.certificate_count(), 1);
+}
+
+// ========================================================================
+// Additional coverage: certificate list/delete/get edge cases
+// ========================================================================
+
+#[tokio::test]
+async fn sled_certificate_list_empty() {
+    use crate::storage::{CertificateStorage, SledCertificateStorage};
+
+    let storage = SledCertificateStorage::temporary().unwrap();
+    let ids = storage.list_certificates().await.unwrap();
+    assert!(ids.is_empty());
+}
+
+#[tokio::test]
+async fn sled_certificate_get_nonexistent() {
+    use crate::storage::{CertificateStorage, SledCertificateStorage};
+    use crate::types::CertificateId;
+
+    let storage = SledCertificateStorage::temporary().unwrap();
+    let result = storage
+        .get_certificate(CertificateId::now_v7())
+        .await
+        .unwrap();
+    assert!(result.is_none());
+}
+
+#[tokio::test]
+async fn sled_certificate_delete_nonexistent() {
+    use crate::storage::{CertificateStorage, SledCertificateStorage};
+    use crate::types::CertificateId;
+
+    let storage = SledCertificateStorage::temporary().unwrap();
+    storage
+        .delete_certificate(CertificateId::now_v7())
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn sled_certificate_count_on_fresh_db() {
+    use crate::storage::SledCertificateStorage;
+
+    let storage = SledCertificateStorage::temporary().unwrap();
+    assert_eq!(storage.certificate_count(), 0);
+}
+
+#[tokio::test]
+async fn sled_entry_storage_get_entries_with_offset() {
+    let storage = SledEntryStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+
+    let mut prev_hash = None;
+    for i in 0..5 {
+        let entry = if i == 0 {
+            Entry::genesis(owner.clone(), spine_id, SpineConfig::default())
+        } else {
+            Entry::new(
+                i,
+                prev_hash,
+                owner.clone(),
+                EntryType::SpineSealed { reason: None },
+            )
+            .with_spine_id(spine_id)
+        };
+        prev_hash = Some(storage.save_entry(&entry).await.unwrap());
+    }
+
+    let entries = storage.get_entries_for_spine(spine_id, 2, 2).await.unwrap();
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0].index, 2);
+    assert_eq!(entries[1].index, 3);
+}
+
+#[tokio::test]
+async fn sled_list_spines_multiple() {
+    let storage = SledSpineStorage::temporary().unwrap();
+
+    for i in 0..5 {
+        let owner = Did::new(format!("did:key:z6MkOwner{i}"));
+        let spine = Spine::new(owner, Some(format!("Spine {i}")), SpineConfig::default()).unwrap();
+        storage.save_spine(&spine).await.unwrap();
+    }
+
+    let ids = storage.list_spines().await.unwrap();
+    assert_eq!(ids.len(), 5);
+}
+
+#[tokio::test]
+async fn sled_entry_storage_flush_after_save() {
+    let storage = SledEntryStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let entry = Entry::genesis(owner, SpineId::now_v7(), SpineConfig::default());
+    storage.save_entry(&entry).await.unwrap();
+    assert!(storage.flush().is_ok());
+}
+
+#[tokio::test]
+async fn sled_get_entries_for_spine_offset_beyond_data() {
+    let storage = SledEntryStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+    let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
+    storage.save_entry(&entry).await.unwrap();
+
+    let entries = storage
+        .get_entries_for_spine(spine_id, 10, 5)
+        .await
+        .unwrap();
+    assert!(entries.is_empty());
+}
+
+#[tokio::test]
+async fn sled_get_entries_for_spine_limit_exceeds_available() {
+    let storage = SledEntryStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+    let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
+    storage.save_entry(&entry).await.unwrap();
+
+    let entries = storage
+        .get_entries_for_spine(spine_id, 0, 1000)
+        .await
+        .unwrap();
+    assert_eq!(entries.len(), 1);
 }

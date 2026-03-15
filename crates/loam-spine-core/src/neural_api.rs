@@ -533,8 +533,9 @@ mod tests {
                 let mut req_buf = vec![0u8; req_len];
                 let _ = stream.read_exact(&mut req_buf).await;
 
-                #[allow(clippy::cast_possible_truncation)]
-                let len = (resp_bytes.len() as u32).to_be_bytes();
+                let len = u32::try_from(resp_bytes.len())
+                    .unwrap_or(u32::MAX)
+                    .to_be_bytes();
                 let _ = stream.write_all(&len).await;
                 let _ = stream.write_all(&resp_bytes).await;
                 let _ = stream.flush().await;
@@ -660,8 +661,9 @@ mod tests {
                 let _ = stream.read_exact(&mut req_buf).await;
 
                 let garbage = b"not json";
-                #[allow(clippy::cast_possible_truncation)]
-                let len = (garbage.len() as u32).to_be_bytes();
+                let len = u32::try_from(garbage.len())
+                    .unwrap_or(u32::MAX)
+                    .to_be_bytes();
                 let _ = stream.write_all(&len).await;
                 let _ = stream.write_all(garbage).await;
                 let _ = stream.flush().await;

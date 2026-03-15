@@ -302,8 +302,7 @@ impl SyncProtocol for SyncEngine {
     ) -> LoamSpineResult<SyncResult> {
         let endpoint = self.best_peer_endpoint().await?;
 
-        #[allow(clippy::cast_possible_truncation)]
-        let entry_count = entries.len() as u64;
+        let entry_count = u64::try_from(entries.len()).unwrap_or(u64::MAX);
 
         // Queue locally for consistency tracking
         self.spine_states

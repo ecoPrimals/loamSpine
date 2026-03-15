@@ -37,8 +37,6 @@ DEMOS=(
     "09-waypoint-anchoring"  # NEW - Slice lending patterns
     "10-recursive-spines"  # NEW - Spine composition
 )
-    # More demos coming...
-)
 
 # Track results
 PASSED=0

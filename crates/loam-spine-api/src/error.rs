@@ -87,6 +87,9 @@ impl From<loam_spine_core::error::LoamSpineError> for ApiError {
                 capability,
                 message,
             } => Self::Internal(format!("capability provider ({capability}): {message}")),
+            LoamSpineError::EscrowNotFound(id) => {
+                Self::InvalidRequest(format!("escrow not found: {id:?}"))
+            }
         }
     }
 }

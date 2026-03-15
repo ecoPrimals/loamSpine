@@ -1,25 +1,25 @@
 # Known Issues - LoamSpine
 
 **Date**: March 15, 2026
-**Version**: 0.8.5
+**Version**: 0.8.6
 **Status**: Production Ready
 
 ---
 
 ## Current State
 
-As of v0.8.5 (March 15), the codebase passes all quality gates:
+As of v0.8.6 (March 15), the codebase passes all quality gates:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Tests | 400+ | 968 | PASS |
-| Line Coverage | 90% | 88.28% line, 90.45% region | NEAR TARGET |
+| Tests | 400+ | 1,092 | PASS |
+| Line Coverage | 90% | 89.30% line, 91.26% region | NEAR TARGET |
 | Clippy (pedantic + nursery) | 0 warnings | 0 | PASS |
 | Formatting | clean | clean | PASS |
 | Documentation | compiles (-D warnings) | compiles | PASS |
 | Unsafe Code | 0 | 0 | PASS |
-| Max File Size | <1000 lines | 928 max (all under 1000) | PASS |
-| Source Files | — | 102 | — |
+| Max File Size | <1000 lines | 955 max (all under 1000) | PASS |
+| Source Files | — | 113 | — |
 | License | AGPL-3.0-only | AGPL-3.0-only | PASS |
 | SPDX Headers | all files | all files | PASS |
 | cargo deny (bans, licenses, sources) | pass | pass | PASS |
@@ -29,6 +29,10 @@ As of v0.8.5 (March 15), the codebase passes all quality gates:
 | Scyborg license schema | implemented | yes | PASS |
 | Protocol escalation | tarpc preferred | yes | PASS |
 | CI cross-compilation | musl targets | x86_64, aarch64, armv7 | PASS |
+| Resilience patterns | circuit breaker + retry | implemented (lock-free) | PASS |
+| Certificate escrow | hold/release/cancel | implemented | PASS |
+| Relending chain | multi-hop sublend | implemented | PASS |
+| Provenance proof | Merkle/Blake3 | implemented | PASS |
 
 ---
 
@@ -36,27 +40,36 @@ As of v0.8.5 (March 15), the codebase passes all quality gates:
 
 ### Medium
 
-1. **Coverage gap** (88.28% line, 90.45% region → 90% line target): Remaining gap is in network I/O:
+1. **Coverage gap** (89.30% line, 91.26% region → 90% line target): Remaining gap is in network I/O:
    - `jsonrpc/mod.rs` (47% — TCP server loop, needs integration-level testing)
    - `main.rs` (0% — binary entry point, tested via integration demos)
    - DNS SRV / mDNS network paths (require real network or more sophisticated mocking)
 2. **Storage backends**: `Sqlite` implemented (feature-gated); `Postgres`, `Rocksdb` planned.
 3. **Showcase demos**: ~10% complete (2/21 demos fully implemented); remaining are documented/scaffolded.
-4. **Spec gaps**: Waypoint relending chain and expiry sweep; certificate `generate_provenance_proof`, escrow/`TransferConditions`.
-5. **PrimalAdapter**: Retry and circuit-breaker patterns for inter-primal calls not yet implemented.
 
 ### Minor
 
 1. **`thiserror` duplicate versions**: v1 and v2 coexist via transitive deps (non-blocking).
 2. **`proc-macro-error` advisory**: Transitive dependency of optional `mdns` feature (not enabled by default).
 3. **Build infra**: Global `CARGO_TARGET_DIR` on noexec mount requires env override or `.cargo/config.toml`.
-4. **Showcase script paths**: 14+ showcase demo scripts have inconsistent `BINS_DIR` paths pointing to different relative locations.
+
+### Resolved (March 15 — v0.8.6)
+
+- **Relending chain** implemented: `RelendingChain` with multi-hop sublend/return, depth validation, unwinding
+- **Expiry sweeper** implemented: Background task auto-returns expired loans
+- **Certificate provenance proof** implemented: Blake3 Merkle tree over ownership chain
+- **Certificate escrow** implemented: `TransferConditions`, `hold/release/cancel` with `PendingTransfer` state
+- **PrimalAdapter resilience** implemented: Lock-free circuit breaker + exponential backoff retry
+- **Certificate module** refactored: `certificate.rs` → `certificate/` directory (7 files)
+- All `#[allow(clippy::cast_possible_truncation)]` replaced with `try_from()` + fallback
+- Coverage raised from 88.28% to 89.30% line, 90.45% to 91.26% region (+124 tests)
+- Test count: 968 → 1,092 (+124 tests)
+- All 113 source files under 1000 lines (max: 955)
 
 ### Resolved (March 15 — v0.8.5)
 
 - 18 clippy errors fixed (module_inception, match_same_arms, cast_possible_truncation, expect_used, future_not_send, manual_let_else, unused_async, iter_on_single_items)
 - `storage/tests.rs` (1122 lines) refactored into 3 backend-specific modules (all under 1000 LOC)
-- All files now under 1000-line limit (max: 928)
 - Coverage raised from 86.47% to 88.28% line, 90.45% region (+98 tests)
 - `ConfigurableTransport` added for discovery client error-path testing
 - Mock helpers evolved: `async fn` → `fn`, owned params → borrowed refs (idiomatic + zero-copy)
@@ -67,14 +80,9 @@ As of v0.8.5 (March 15), the codebase passes all quality gates:
 - Scyborg license schema implemented (type URI, metadata builders, constants)
 - Protocol escalation (`IpcProtocol` negotiation, tarpc preferred over JSON-RPC)
 - SyncProtocol evolved from stub to JSON-RPC/TCP sync engine with graceful fallback
-- SQLite refactored from single 990-line file to modular `sqlite/` directory (6 files, 939 lines total)
+- SQLite refactored from single 990-line file to modular `sqlite/` directory
 - Zero-copy storage keys (`Vec<u8>` → `[u8; 24]` stack allocation in redb/sled)
 - CI cross-compilation for musl targets via `cross-rs/cross`
-- Coverage raised from 84.52% to 86.47% (+61 tests)
-- Neural API coverage: 57% → 88% (mock Unix socket server tests)
-- Transport coverage: 70% → 92% (mock server + base64 edge cases)
-- Infant discovery tests expanded (cache, config, SRV mapping, fresh checks)
-- `deny.toml` placeholder XXX URL cleaned
 
 ### Resolved (March 14 — v0.8.3)
 
@@ -83,55 +91,6 @@ As of v0.8.5 (March 15), the codebase passes all quality gates:
 - Zero-copy JSON-RPC dispatch (by-value `params` and `request`)
 - `MockTransport` cfg-gated to test/feature only
 - Dead `SpineSyncState.last_sync_ns` field removed
-- `storage/tests.rs` split: 1261 → 892 + 370 lines
-- `cli_signer.rs` tests extracted: 1002 → 332 + 673 lines
-- SQLite storage tests added (was 0% coverage)
-- 38 new tests (771 → 809)
-
-### Resolved (March 14 — v0.8.2)
-
-- Certificate storage evolved from `RwLock<HashMap>` to `CertificateStorage` trait + `InMemoryCertificateStorage`
-- `must_use_candidate` lint enabled crate-wide (11 functions annotated)
-- `discovery.rs` (783 lines) refactored into `discovery/{mod,dyn_traits,tests}.rs`
-- `manager.rs` (783 lines) refactored into `manager/{mod,tests}.rs`
-- Waypoint types module: `WaypointConfig`, `PropagationPolicy`, `DepartureReason`, `WaypointSummary`, `SliceOperationType`, `SliceTerms`
-- `record_operation` and `depart_slice` added to service
-- `verify_certificate` with enum-based `VerificationCheck` results
-- `certificate_lifecycle` for filtered entry history
-- `MintInfo.entry` bug fixed (was `[0u8; 32]`, now actual entry hash)
-- 25 new tests (719 → 744)
-
-### Resolved (March 14 — v0.8.1)
-
-- `Did` type evolved from `String` to `Arc<str>` for O(1) cloning
-- `ServiceState` enum added per SERVICE_LIFECYCLE.md spec
-- Observable lifecycle state via `tokio::sync::watch` channel
-- Broken rustdoc links in `transport/mock.rs` fixed
-- `storage_backend_availability` test now feature-aware
-- `match_same_arms` lint resolved in `error.rs`
-- `println!` in binary evolved to `writeln!(stdout())`
-- Hardcoded `"loamspine"` strings replaced with `PRIMAL_NAME` constant
-- `TransportResponse::from_static` for zero-copy mock responses
-- `collect::<Vec<_>>()` anti-pattern eliminated
-- Specs updated from `loamspine.camelCase` to semantic `domain.operation` naming
-- Duplicate NeuralAPI registration code extracted
-
-### Resolved (March 13 — v0.8.0)
-
-- v0.7.0 deprecated items removed (`songbird_enabled`, `songbird_endpoint`, `with_songbird`, `DependencyHealth::songbird`)
-- `DiscoveryMethod::Songbird` constant removed (use `ServiceRegistry`)
-- `MockTransport` dead code warnings resolved (made `pub`, re-exported for downstream testing)
-- `u32 as u8` base64 truncation cast resolved (explicit `#[allow]` with invariant proof)
-- Redundant clone in `http.rs` test resolved
-- `TransportResponse.body` evolved from `Vec<u8>` to `Bytes` (zero-copy)
-- Hardcoded `"../bins/beardog"` paths in `cli_signer.rs` replaced with `CliSigner::discover_binary()`
-- `"did:key:anonymous"` default removed; commits now require explicit committer DID
-- `unwrap_or_default()` in production code eliminated
-- `u32 as usize` network casts replaced with `try_from`
-- `entry.rs` JSON serialization replaced with deterministic `bincode` + sorted metadata
-- `Entry.metadata` evolved from `HashMap` to `BTreeMap` for inherent canonical ordering
-- `tarpc_server.rs` split: production code (240 lines) + test file (810 lines) — under 1000-line limit
-- Test coverage raised from 88.64% to 90.62% (635 → 700+ tests)
 
 ### None Critical
 

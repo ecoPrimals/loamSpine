@@ -353,7 +353,7 @@ async fn handle_connection(
     Ok(())
 }
 
-async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> Vec<u8> {
+pub(crate) async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> Vec<u8> {
     let request: JsonRpcRequest = match serde_json::from_slice(body) {
         Ok(r) => r,
         Err(e) => {
@@ -373,3 +373,6 @@ async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> Vec<u8> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests;
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests_validation;

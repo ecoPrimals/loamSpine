@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.8.5  
+**Version**: 0.8.6  
 **Status**: Production Ready  
 **Date**: March 15, 2026  
-**Latest**: Comprehensive audit, 968 tests, 90%+ region coverage in v0.8.5
+**Latest**: Deep debt & feature completion, 1,092 tests, 91%+ region coverage in v0.8.6
 
 ---
 
@@ -316,7 +316,7 @@ cd showcase
 - **This File** (`00_START_HERE.md`) - Main entry point
 - `00_SHOWCASE_INDEX.md` - Complete navigation
 - `README.md` - Overview and capabilities
-- `SHOWCASE_ANALYSIS_DEC_27_2025.md` - Gap analysis vs mature primals
+- `SHOWCASE_QUICK_REFERENCE_CARD.md` - Quick reference card
 
 ### Level Guides
 - `01-local-primal/README.md` - Level 1 guide
@@ -486,7 +486,7 @@ cat 00_SHOWCASE_INDEX.md
 ### In This Showcase
 - `00_SHOWCASE_INDEX.md` - Navigation
 - `SHOWCASE_PRINCIPLES.md` - No mocks philosophy
-- `SHOWCASE_ANALYSIS_DEC_27_2025.md` - Gap analysis
+- `SHOWCASE_QUICK_REFERENCE_CARD.md` - Quick reference
 - `QUICK_REFERENCE.md` - Quick reference card
 
 ### In Repository Root
@@ -523,6 +523,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.8.5 - ecoPrimals Ecosystem*  
+*LoamSpine v0.8.6 - ecoPrimals Ecosystem*  
 *March 15, 2026*
 

@@ -713,6 +713,77 @@ async fn test_clear_cache_empties_all_discovered() {
 
 #[tokio::test]
 #[serial]
+async fn test_content_storage_service_url_strips_content_prefix() {
+    env::remove_var("CAPABILITY_CONTENT_STORAGE_ENDPOINT");
+    env::remove_var("STORAGE_SERVICE_URL");
+
+    env::set_var("STORAGE_SERVICE_URL", "http://storage:9000");
+
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::Environment],
+        cache_ttl_secs: 300,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    let services = discovery.find_capability("content-storage").await.unwrap();
+    assert_eq!(services.len(), 1);
+    assert_eq!(services[0].endpoint, "http://storage:9000");
+
+    env::remove_var("STORAGE_SERVICE_URL");
+}
+
+#[tokio::test]
+#[serial]
+async fn test_cached_empty_services_triggers_rediscovery() {
+    env::remove_var("CAPABILITY_REDISCOVER_ENDPOINT");
+    env::remove_var("REDISCOVER_SERVICE_URL");
+
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::Environment],
+        cache_ttl_secs: 300,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    let services1 = discovery.find_capability("rediscover").await.unwrap();
+    assert!(services1.is_empty());
+
+    env::set_var("REDISCOVER_SERVICE_URL", "http://rediscovered:8080");
+    let services2 = discovery.find_capability("rediscover").await.unwrap();
+    assert_eq!(services2.len(), 1);
+    assert_eq!(services2[0].endpoint, "http://rediscovered:8080");
+
+    env::remove_var("REDISCOVER_SERVICE_URL");
+}
+
+#[tokio::test]
+#[serial]
+async fn test_discover_via_environment_capability_key_with_hyphens() {
+    env::remove_var("CAPABILITY_TEST_CAP_ENDPOINT");
+    env::remove_var("TEST_CAP_SERVICE_URL");
+
+    env::set_var("CAPABILITY_TEST_CAP_ENDPOINT", "http://hyphen-test:8000");
+
+    let config = DiscoveryConfig {
+        methods: vec![DiscoveryMethod::Environment],
+        cache_ttl_secs: 300,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    let services = discovery.find_capability("test-cap").await.unwrap();
+    assert_eq!(services.len(), 1);
+    assert_eq!(services[0].endpoint, "http://hyphen-test:8000");
+
+    env::remove_var("CAPABILITY_TEST_CAP_ENDPOINT");
+}
+
+#[tokio::test]
+#[serial]
 async fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
     env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
     env::remove_var("SIGNING_SERVICE_URL");

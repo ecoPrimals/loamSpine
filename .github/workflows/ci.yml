@@ -85,8 +85,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-deny
         uses: taiki-e/install-action@cargo-deny
-      # Note: Skipping 'advisories' check until RustSec db CVSSv4 parsing is fixed
-      # Track: https://github.com/EmbarkStudios/cargo-deny/issues/XXX
+      # Note: Skipping 'advisories' check — RustSec db CVSSv4 parsing incompatibility with cargo-deny
       - run: cargo deny check licenses bans sources
 
   # Build verification

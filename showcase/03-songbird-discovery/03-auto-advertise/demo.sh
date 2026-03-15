@@ -91,7 +91,7 @@ REGISTER_PAYLOAD='{
     "proof-generation"
   ],
   "metadata": {
-    "version": "0.6.0",
+    "version": "0.8.6",
     "startup_time": "'$(date -Iseconds)'",
     "auto_registered": true
   }

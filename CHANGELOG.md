@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.6] - 2026-03-15
+
+### Added
+- **Relending chain**: `RelendingChain` with `RelendingLink`, multi-hop sublend/return, depth validation (`can_sublend`), unwinding (`return_at`), `current_holder()` tracking
+- **Expiry sweeper**: `ExpirySweeper` background task with configurable interval, auto-returns expired loaned certificates with full relending chain unwinding
+- **Provenance proof**: `CertificateOwnershipProof` with `compute_merkle_root()` using Blake3, Merkle tree over mint+transfer entry hashes, `verify()` method
+- **Certificate escrow**: `TransferConditions`, `EscrowCondition` (Payment/Signature/Time), `hold_certificate`/`release_certificate`/`cancel_escrow` with `PendingTransfer` state
+- **Resilience patterns**: `CircuitBreaker` (Closed/Open/HalfOpen, lock-free `AtomicU8`/`AtomicU32`/`AtomicU64`), `RetryPolicy` (exponential backoff with jitter), `ResilientDiscoveryClient`
+- 124 new tests across jsonrpc, redb, sled, lifecycle, certificate, resilience, waypoint, proof, escrow
+
+### Changed
+- **Certificate module refactored**: `certificate.rs` (915 lines) → `certificate/` module directory (`mod.rs`, `types.rs`, `lifecycle.rs`, `metadata.rs`, `provenance.rs`, `escrow.rs`, `tests.rs`)
+- **Cast safety**: All `#[allow(clippy::cast_possible_truncation)]` replaced with `try_from()` + fallback across sync.rs, neural_api.rs, transport/neural_api.rs
+- **Test file splits**: `redb_tests_coverage.rs`, `tests_validation.rs`, `certificate_tests.rs` extracted to keep all files under 1000 lines
+- `primal-capabilities.toml` version bumped to 0.8.6
+
+### Metrics
+- Tests: 968 → 1,092 (+124)
+- Line coverage: 88.28% → 89.30% (llvm-cov)
+- Region coverage: 90.45% → 91.26%
+- Source files: 102 → 113
+- Max file size: 928 → 955 lines (all under 1000)
+- Clippy: 0 warnings (maintained)
+- Doc warnings: 0 (maintained)
+- Unsafe: 0 blocks (maintained)
+
 ## [0.8.5] - 2026-03-15
 
 ### Fixed
@@ -502,6 +528,8 @@ spine.append(entry)?;
 
 ---
 
+[0.8.6]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.5...v0.8.6
+[0.8.5]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.1...v0.8.2

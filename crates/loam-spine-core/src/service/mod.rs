@@ -18,13 +18,15 @@
 //! Other primals are discovered at runtime, not compile time.
 
 mod certificate;
+pub mod expiry_sweeper;
 pub mod infant_discovery;
 mod integration;
 mod lifecycle;
 pub mod signals;
 mod waypoint;
 
-// Re-export lifecycle manager, service state, and infant discovery
+// Re-export lifecycle manager, service state, infant discovery, and expiry sweeper
+pub use expiry_sweeper::{ExpirySweeper, ExpirySweeperConfig, ExpirySweeperHandle};
 pub use infant_discovery::InfantDiscovery;
 pub use lifecycle::{LifecycleManager, ServiceState};
 
@@ -32,6 +34,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::certificate::TransferConditions;
 use crate::discovery::CapabilityRegistry;
 use crate::entry::{EntryType, SpineConfig};
 use crate::error::{LoamSpineError, LoamSpineResult};
@@ -82,6 +85,8 @@ pub struct LoamSpineService {
     pub(crate) active_slices: Arc<RwLock<HashMap<SliceId, ActiveSliceInfo>>>,
     /// Certificate storage (trait-backed, currently in-memory).
     pub(crate) certificate_storage: InMemoryCertificateStorage,
+    /// Active escrows: escrow_id -> transfer conditions.
+    pub(crate) escrows: Arc<RwLock<HashMap<uuid::Uuid, TransferConditions>>>,
     /// Capability registry for runtime discovery.
     capabilities: CapabilityRegistry,
 }
@@ -101,6 +106,7 @@ impl LoamSpineService {
             entry_storage: InMemoryEntryStorage::new(),
             active_slices: Arc::new(RwLock::new(HashMap::new())),
             certificate_storage: InMemoryCertificateStorage::new(),
+            escrows: Arc::new(RwLock::new(HashMap::new())),
             capabilities: CapabilityRegistry::new(),
         }
     }
@@ -115,6 +121,7 @@ impl LoamSpineService {
             entry_storage: InMemoryEntryStorage::new(),
             active_slices: Arc::new(RwLock::new(HashMap::new())),
             certificate_storage: InMemoryCertificateStorage::new(),
+            escrows: Arc::new(RwLock::new(HashMap::new())),
             capabilities,
         }
     }

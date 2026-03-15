@@ -519,6 +519,7 @@ impl InfantDiscovery {
         {
             let _ = capability;
             debug!("mDNS discovery not available (feature not enabled)");
+            tokio::task::yield_now().await;
             vec![]
         }
     }
@@ -686,5 +687,5 @@ fn capability_to_srv_name(capability: &str) -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests;

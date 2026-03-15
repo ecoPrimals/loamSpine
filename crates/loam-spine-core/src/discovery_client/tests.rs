@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use super::*;
+use crate::resilience::{CircuitBreakerConfig, RetryPolicyConfig};
 use crate::transport::mock::{ConfigurableTransport, MockTransport, SuccessTransport};
 
 #[test]
@@ -716,6 +717,51 @@ async fn discover_all_fails_on_invalid_json() {
 }
 
 #[tokio::test]
+async fn resilient_discovery_client_success() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082")
+        .with_resilience(
+            CircuitBreakerConfig::default(),
+            RetryPolicyConfig::default(),
+        );
+
+    let result = client.discover_capability("signing").await;
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_empty());
+
+    let result = client
+        .advertise_self("http://localhost:9001", "http://localhost:8080")
+        .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn resilient_discovery_client_circuit_opens_on_failures() {
+    let client = DiscoveryClient::for_testing("http://127.0.0.1:1").with_resilience(
+        CircuitBreakerConfig {
+            failure_threshold: 2,
+            recovery_timeout_secs: 3600,
+            success_threshold: 2,
+        },
+        RetryPolicyConfig {
+            max_retries: 1,
+            base_delay_ms: 1,
+            max_delay_ms: 10,
+        },
+    );
+
+    let _ = client.discover_capability("signing").await;
+    let _ = client.discover_capability("signing").await;
+    let result = client.discover_capability("signing").await;
+
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(
+        err_msg.contains("circuit breaker") || err_msg.contains("unavailable"),
+        "expected circuit breaker or unavailable, got: {err_msg}"
+    );
+}
+
+#[tokio::test]
 async fn discover_capability_returns_services_when_valid_json() {
     let transport = Arc::new(ConfigurableTransport::new(
         200,
@@ -733,4 +779,54 @@ async fn discover_capability_returns_services_when_valid_json() {
     assert_eq!(services[0].endpoint, "http://localhost:9000");
     assert!(services[0].capabilities.contains(&"signing".to_string()));
     assert!(services[0].healthy);
+}
+
+#[tokio::test]
+async fn discover_all_returns_services_when_valid_json() {
+    let transport = Arc::new(ConfigurableTransport::new(
+        200,
+        r#"[{"name":"svc-a","endpoint":"http://localhost:9000","capabilities":["a"],"healthy":true},{"name":"svc-b","endpoint":"http://localhost:9001","capabilities":["b"],"healthy":false}]"#,
+    ));
+    let client =
+        DiscoveryClient::for_testing_with_transport("http://registry.local:8082", transport);
+
+    let result = client.discover_all().await;
+
+    assert!(result.is_ok());
+    let services = result.unwrap();
+    assert_eq!(services.len(), 2);
+    assert_eq!(services[0].name, "svc-a");
+    assert_eq!(services[0].endpoint, "http://localhost:9000");
+    assert!(services[0].healthy);
+    assert_eq!(services[1].name, "svc-b");
+    assert_eq!(services[1].endpoint, "http://localhost:9001");
+    assert!(!services[1].healthy);
+}
+
+#[tokio::test]
+async fn resilient_discovery_client_discover_all() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082")
+        .with_resilience(
+            CircuitBreakerConfig::default(),
+            RetryPolicyConfig::default(),
+        );
+
+    let result = client.discover_all().await;
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn resilient_discovery_client_heartbeat_and_deregister() {
+    let client = DiscoveryClient::for_testing_success("http://registry.local:8082")
+        .with_resilience(
+            CircuitBreakerConfig::default(),
+            RetryPolicyConfig::default(),
+        );
+
+    let result = client.heartbeat().await;
+    assert!(result.is_ok());
+
+    let result = client.deregister().await;
+    assert!(result.is_ok());
 }

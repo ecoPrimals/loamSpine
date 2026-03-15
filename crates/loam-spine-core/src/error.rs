@@ -58,6 +58,10 @@ pub enum LoamSpineError {
     #[error("certificate is loaned: {0}")]
     CertificateLoaned(CertificateId),
 
+    /// Escrow not found.
+    #[error("escrow not found: {0}")]
+    EscrowNotFound(uuid::Uuid),
+
     /// Loan terms violation.
     #[error("loan terms violation: {0}")]
     LoanTermsViolation(String),

@@ -180,6 +180,73 @@ impl CertificateProof {
     }
 }
 
+/// Cryptographic proof of a certificate's ownership chain.
+///
+/// Built from all `OwnershipRecord`s for the certificate, with a Merkle root
+/// over the entry hashes. Used by the CERTIFICATE_LAYER for provenance
+/// verification.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CertificateOwnershipProof {
+    /// Certificate ID.
+    pub certificate_id: crate::types::CertificateId,
+    /// Merkle root of the ownership chain.
+    pub chain_root: crate::types::ContentHash,
+    /// Number of entries in the chain.
+    pub chain_length: u64,
+    /// Entry hashes in order (ownership-establishing entries).
+    pub entries: Vec<crate::types::EntryHash>,
+    /// When the proof was created.
+    pub created_at: crate::types::Timestamp,
+}
+
+impl CertificateOwnershipProof {
+    /// Verify that the proof's chain root matches recomputation from entries.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hash computation fails.
+    pub fn verify(&self) -> crate::error::LoamSpineResult<bool> {
+        let computed = compute_merkle_root(&self.entries);
+        Ok(computed == self.chain_root)
+    }
+}
+
+/// Compute Merkle root of a list of entry hashes using Blake3.
+///
+/// Uses standard binary Merkle tree: hash(left || right) for pairs,
+/// duplicate last element if odd number of leaves.
+pub(crate) fn compute_merkle_root(leaves: &[crate::types::EntryHash]) -> crate::types::ContentHash {
+    use crate::types::hash_bytes;
+
+    if leaves.is_empty() {
+        return hash_bytes(b"");
+    }
+    if leaves.len() == 1 {
+        return leaves[0];
+    }
+
+    let mut layer: Vec<crate::types::EntryHash> = leaves.to_vec();
+    while layer.len() > 1 {
+        let mut next = Vec::with_capacity(layer.len().div_ceil(2));
+        let mut i = 0;
+        while i < layer.len() {
+            let left = layer[i];
+            let right = if i + 1 < layer.len() {
+                layer[i + 1]
+            } else {
+                layer[i]
+            };
+            let mut combined = Vec::with_capacity(64);
+            combined.extend_from_slice(&left);
+            combined.extend_from_slice(&right);
+            next.push(hash_bytes(&combined));
+            i += 2;
+        }
+        layer = next;
+    }
+    layer[0]
+}
+
 /// History summary for certificate proofs.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HistorySummary {
@@ -614,6 +681,60 @@ mod tests {
         // EntryNotFound
         let err4 = VerificationError::EntryNotFound { hash: [3u8; 32] };
         assert!(matches!(err4, VerificationError::EntryNotFound { .. }));
+    }
+
+    #[test]
+    fn certificate_ownership_proof_verify() {
+        let cert_id = uuid::Uuid::now_v7();
+        let entries = vec![[1u8; 32], [2u8; 32], [3u8; 32]];
+        let chain_root = super::compute_merkle_root(&entries);
+
+        let proof = super::CertificateOwnershipProof {
+            certificate_id: cert_id,
+            chain_root,
+            chain_length: 3,
+            entries,
+            created_at: crate::types::Timestamp::now(),
+        };
+
+        assert!(proof.verify().expect("verify"));
+    }
+
+    #[test]
+    fn certificate_ownership_proof_verify_fails_tampered() {
+        let cert_id = uuid::Uuid::now_v7();
+        let entries = vec![[1u8; 32], [2u8; 32]];
+        let _chain_root = super::compute_merkle_root(&entries);
+
+        let mut proof = super::CertificateOwnershipProof {
+            certificate_id: cert_id,
+            chain_root: [99_u8; 32],
+            chain_length: 2,
+            entries,
+            created_at: crate::types::Timestamp::now(),
+        };
+
+        assert!(!proof.verify().expect("verify"));
+
+        proof.chain_root = super::compute_merkle_root(&proof.entries);
+        assert!(proof.verify().expect("verify"));
+    }
+
+    #[test]
+    fn certificate_ownership_proof_empty_chain() {
+        let cert_id = uuid::Uuid::now_v7();
+        let entries: Vec<crate::types::EntryHash> = vec![];
+        let chain_root = super::compute_merkle_root(&entries);
+
+        let proof = super::CertificateOwnershipProof {
+            certificate_id: cert_id,
+            chain_root,
+            chain_length: 0,
+            entries: vec![],
+            created_at: crate::types::Timestamp::now(),
+        };
+
+        assert!(proof.verify().expect("verify"));
     }
 
     #[test]

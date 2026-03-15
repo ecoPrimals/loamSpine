@@ -54,6 +54,9 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::resilience::{
+    CircuitBreaker, CircuitBreakerConfig, ResilientAdapter, RetryPolicy, RetryPolicyConfig,
+};
 use crate::transport::DiscoveryTransport;
 
 /// Service registry discovery client.
@@ -437,6 +440,138 @@ impl DiscoveryClient {
             endpoint: endpoint.into(),
             transport,
         }
+    }
+
+    /// Wrap this client with retry and circuit-breaker resilience.
+    ///
+    /// Returns a [`ResilientDiscoveryClient`] that applies retry with exponential
+    /// backoff and circuit-breaking to all discovery operations.
+    #[must_use]
+    pub fn with_resilience(
+        self,
+        circuit_config: CircuitBreakerConfig,
+        retry_config: RetryPolicyConfig,
+    ) -> ResilientDiscoveryClient {
+        ResilientDiscoveryClient::new(self, circuit_config, retry_config)
+    }
+}
+
+/// Discovery client with retry and circuit-breaker resilience.
+///
+/// Wraps [`DiscoveryClient`] and applies [`ResilientAdapter`] to all operations,
+/// protecting against transient failures and cascading outages.
+#[derive(Clone, Debug)]
+pub struct ResilientDiscoveryClient {
+    inner: DiscoveryClient,
+    adapter: Arc<ResilientAdapter>,
+}
+
+impl ResilientDiscoveryClient {
+    /// Create a resilient wrapper around a discovery client.
+    #[must_use]
+    pub fn new(
+        inner: DiscoveryClient,
+        circuit_config: CircuitBreakerConfig,
+        retry_config: RetryPolicyConfig,
+    ) -> Self {
+        let circuit_breaker = Arc::new(CircuitBreaker::new(circuit_config));
+        let retry_policy = RetryPolicy::new(retry_config);
+        let adapter = Arc::new(ResilientAdapter::new(circuit_breaker, retry_policy));
+        Self { inner, adapter }
+    }
+
+    /// Discover services by capability (with retry and circuit-breaker).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if discovery fails or circuit breaker is open.
+    pub async fn discover_capability(
+        &self,
+        capability: &str,
+    ) -> LoamSpineResult<Vec<DiscoveredService>> {
+        let cap = capability.to_string();
+        let client = self.inner.clone();
+        self.adapter
+            .execute(move || {
+                let c = cap.clone();
+                let cl = client.clone();
+                async move { cl.discover_capability(&c).await }
+            })
+            .await
+    }
+
+    /// Discover all available services (with retry and circuit-breaker).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if discovery fails or circuit breaker is open.
+    pub async fn discover_all(&self) -> LoamSpineResult<Vec<DiscoveredService>> {
+        let client = self.inner.clone();
+        self.adapter
+            .execute(move || {
+                let cl = client.clone();
+                async move { cl.discover_all().await }
+            })
+            .await
+    }
+
+    /// Advertise LoamSpine's capabilities (with retry and circuit-breaker).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if advertisement fails or circuit breaker is open.
+    pub async fn advertise_self(
+        &self,
+        tarpc_endpoint: &str,
+        jsonrpc_endpoint: &str,
+    ) -> LoamSpineResult<()> {
+        let tarpc = tarpc_endpoint.to_string();
+        let jsonrpc = jsonrpc_endpoint.to_string();
+        let client = self.inner.clone();
+        self.adapter
+            .execute(move || {
+                let cl = client.clone();
+                let t = tarpc.clone();
+                let j = jsonrpc.clone();
+                async move { cl.advertise_self(&t, &j).await }
+            })
+            .await
+    }
+
+    /// Heartbeat (with retry and circuit-breaker).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if heartbeat fails or circuit breaker is open.
+    pub async fn heartbeat(&self) -> LoamSpineResult<()> {
+        let client = self.inner.clone();
+        self.adapter
+            .execute(move || {
+                let cl = client.clone();
+                async move { cl.heartbeat().await }
+            })
+            .await
+    }
+
+    /// Deregister (with retry and circuit-breaker).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if deregistration fails or circuit breaker is open.
+    pub async fn deregister(&self) -> LoamSpineResult<()> {
+        let client = self.inner.clone();
+        self.adapter
+            .execute(move || {
+                let cl = client.clone();
+                async move { cl.deregister().await }
+            })
+            .await
+    }
+
+    /// Get the registry endpoint.
+    #[must_use]
+    pub fn endpoint(&self) -> &str {
+        self.inner.endpoint()
     }
 }
 

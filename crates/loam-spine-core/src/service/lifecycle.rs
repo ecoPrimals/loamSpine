@@ -827,4 +827,57 @@ mod tests {
         assert!(result.is_ok());
         assert!(manager.discovery_client.is_none());
     }
+
+    #[tokio::test]
+    async fn lifecycle_subscribe_receives_state_transitions() {
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = false;
+
+        let mut manager = LifecycleManager::new(service, config);
+        let rx = manager.subscribe_state();
+
+        assert_eq!(*rx.borrow(), ServiceState::Stopped);
+
+        manager.start().await.expect("start failed");
+        assert_eq!(*rx.borrow(), ServiceState::Running);
+
+        manager.stop().await.expect("stop failed");
+        assert_eq!(*rx.borrow(), ServiceState::Stopped);
+    }
+
+    #[tokio::test]
+    async fn lifecycle_start_stop_start_cycle() {
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = false;
+
+        let mut manager = LifecycleManager::new(service, config);
+
+        manager.start().await.expect("first start");
+        assert_eq!(manager.state(), ServiceState::Running);
+
+        manager.stop().await.expect("first stop");
+        assert_eq!(manager.state(), ServiceState::Stopped);
+
+        manager.start().await.expect("second start");
+        assert_eq!(manager.state(), ServiceState::Running);
+
+        manager.stop().await.expect("second stop");
+        assert_eq!(manager.state(), ServiceState::Stopped);
+    }
+
+    #[tokio::test]
+    async fn lifecycle_heartbeat_recovery_resets_failures() {
+        let client =
+            crate::discovery_client::DiscoveryClient::for_testing_success("http://test:8082");
+        let retry_config = crate::config::HeartbeatRetryConfig {
+            backoff_seconds: vec![0],
+            max_failures_before_degraded: 5,
+            max_failures_total: 10,
+        };
+
+        let result = LifecycleManager::send_heartbeat_with_retry(&client, &retry_config, 3).await;
+        assert!(result.is_ok());
+    }
 }

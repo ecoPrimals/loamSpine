@@ -48,6 +48,8 @@ mod sqlite;
 mod certificate_tests;
 #[cfg(all(test, feature = "redb-storage"))]
 mod redb_tests;
+#[cfg(all(test, feature = "redb-storage"))]
+mod redb_tests_coverage;
 #[cfg(all(test, feature = "sled-storage"))]
 mod sled_tests;
 #[cfg(test)]

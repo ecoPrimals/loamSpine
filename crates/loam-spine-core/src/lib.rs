@@ -76,6 +76,7 @@ pub mod waypoint;
 // New architecture modules
 pub mod discovery;
 pub mod neural_api;
+pub mod resilience;
 pub mod service;
 pub mod sync;
 pub mod traits;
@@ -132,6 +133,8 @@ pub use certificate::{
     CertificateMetadata,
     CertificateState,
     CertificateType,
+    EscrowCondition,
+    EscrowId,
     LoanInfo,
     LoanRecord,
     LoanTerms,
@@ -140,6 +143,7 @@ pub use certificate::{
     OwnershipRecord,
     Rarity,
     RevocationReason,
+    TransferConditions,
     // Time constants for loan durations
     SECONDS_PER_DAY,
     SECONDS_PER_HOUR,
@@ -150,8 +154,8 @@ pub use certificate::{
 
 /// Proof types.
 pub use proof::{
-    CertificateProof, HistorySummary, InclusionProof, ProvenanceProof, VerificationError,
-    VerificationResult,
+    CertificateOwnershipProof, CertificateProof, HistorySummary, InclusionProof, ProvenanceProof,
+    VerificationError, VerificationResult,
 };
 
 /// Manager types.
@@ -174,10 +178,19 @@ pub use traits::{
 pub use traits::{CliSigner, CliVerifier};
 
 /// Service implementation.
-pub use service::LoamSpineService;
+pub use service::{ExpirySweeper, ExpirySweeperConfig, ExpirySweeperHandle, LoamSpineService};
+
+/// Waypoint relending chain types.
+pub use waypoint::{RelendingChain, RelendingLink};
 
 /// Capability discovery.
 pub use discovery::{BoxedSigner, BoxedVerifier, CapabilityRegistry, CapabilityStatus};
+
+/// Resilience patterns for PrimalAdapter (retry, circuit-breaker).
+pub use resilience::{
+    CircuitBreaker, CircuitBreakerConfig, CircuitState, ResilientAdapter, RetryPolicy,
+    RetryPolicyConfig,
+};
 
 /// Test utilities (only available with `testing` feature or in tests).
 #[cfg(any(test, feature = "testing"))]

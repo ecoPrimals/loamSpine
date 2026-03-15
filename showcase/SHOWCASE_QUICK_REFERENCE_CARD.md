@@ -49,8 +49,8 @@ cd showcase && cat 00_START_HERE.md
 
 ## 📚 Documentation Files (This Session)
 
-1. `SHOWCASE_ANALYSIS_DEC_27_2025.md` — Gap analysis
-2. `SHOWCASE_EVOLUTION_COMPLETE_DEC_27_2025.md` — Completion
+1. `SHOWCASE_PRINCIPLES.md` — Showcase design principles
+2. `QUICK_REFERENCE.md` — Full reference
 3. `SHOWCASE_BUILDOUT_FINAL_REPORT_DEC_27_2025.md` — Final report
 4. `EXECUTION_VERIFICATION_DEC_27_2025.md` — Verification
 5. `SESSION_COMPLETE_SUMMARY_DEC_27_2025.md` — Full summary
@@ -125,7 +125,7 @@ showcase/
 ## 🔗 Quick Links
 
 - **Handoff**: `HANDOFF_DEC_27_2025.md`
-- **Analysis**: `SHOWCASE_ANALYSIS_DEC_27_2025.md`
+- **Reference**: `QUICK_REFERENCE.md`
 - **Verification**: `EXECUTION_VERIFICATION_DEC_27_2025.md`
 - **Summary**: `SESSION_COMPLETE_SUMMARY_DEC_27_2025.md`
 

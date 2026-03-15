@@ -3,9 +3,9 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
-[![Version](https://img.shields.io/badge/version-0.8.5-blue)]()
-[![Tests](https://img.shields.io/badge/tests-968%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/line%20coverage-88.28%25-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.8.6-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C092%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-89.30%25%20line%20%7C%2091.26%25%20region-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO-red)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
 
@@ -69,18 +69,20 @@ loamSpine/
 │   │   └── src/
 │   │       ├── backup/            # Backup/restore
 │   │       ├── capabilities.rs    # Capability definitions
-│   │       ├── certificate.rs     # Loam Certificates
+│   │       ├── certificate/        # Loam Certificates (types, lifecycle, metadata, provenance, escrow)
 │   │       ├── config.rs          # Configuration
 │   │       ├── discovery/         # Capability registry + DynSigner/DynVerifier
-│   │       ├── discovery_client/  # HTTP discovery client
+│   │       ├── discovery_client/  # HTTP discovery client + ResilientDiscoveryClient
 │   │       ├── entry/             # Entry types (15+ variants, bincode canonical)
 │   │       ├── infant_discovery/  # DNS-SRV, mDNS, registry discovery
 │   │       ├── manager/           # Certificate manager
 │   │       ├── neural_api.rs      # NeuralAPI / biomeOS integration
-│   │       ├── proof.rs           # Inclusion proofs
+│   │       ├── proof.rs           # Inclusion + ownership proofs (Merkle/Blake3)
+│   │       ├── resilience.rs      # Circuit breaker + retry policy (lock-free)
 │   │       ├── service/           # Modular service layer
 │   │       │   ├── lifecycle.rs   # Startup/shutdown + ServiceState + NeuralAPI
-│   │       │   ├── certificate.rs # Certificate CRUD + verify + lifecycle
+│   │       │   ├── certificate.rs # Certificate CRUD + verify + escrow + sublend
+│   │       │   ├── expiry_sweeper.rs # Background expired-loan auto-return
 │   │       │   ├── integration.rs # Trait implementations
 │   │       │   ├── signals.rs     # Signal handling
 │   │       │   └── waypoint.rs    # Anchoring, operations, departure, proofs
@@ -89,7 +91,7 @@ loamSpine/
 │   │       ├── temporal/          # Time tracking (moments, anchors)
 │   │       ├── traits/            # Integration traits
 │   │       ├── transport/         # IPC transports (HTTP, NeuralAPI, mock)
-│   │       ├── waypoint.rs        # Waypoint types (config, terms, policy)
+│   │       ├── waypoint.rs        # Waypoint types (config, terms, relending chain)
 │   │       └── trio_types.rs      # Provenance trio type bridging
 │   └── loam-spine-api/        # RPC layer (14 source files)
 │       └── src/
@@ -159,13 +161,13 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.8.5 |
-| **Tests** | 968 passing |
-| **Line Coverage** | 88.28% line, 90.45% region (llvm-cov) |
+| **Version** | 0.8.6 |
+| **Tests** | 1,092 passing |
+| **Coverage** | 89.30% line, 91.26% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Max File Size** | 928 lines (all < 1000) |
-| **Source Files** | 102 `.rs` files across 2 crates + binary |
+| **Max File Size** | 955 lines (all < 1000) |
+| **Source Files** | 113 `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

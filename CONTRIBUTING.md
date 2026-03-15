@@ -15,7 +15,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe**: `#![forbid(unsafe_code)]` is enforced
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 88.28%, 968 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: 89.30%, 1,092 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -42,7 +42,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 # Build
 cargo build
 
-# Test (968 tests)
+# Test (1,092 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -292,18 +292,18 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.8.5 |
-| Tests | 968 |
-| Line Coverage | 88.28% line, 90.45% region (llvm-cov) |
-| Max File Size | 928 lines (all < 1000) |
+| Version | 0.8.6 |
+| Tests | 1,092 |
+| Coverage | 89.30% line, 91.26% region (llvm-cov) |
+| Max File Size | 955 lines (all < 1000) |
 | Clippy | pedantic + nursery (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | License | AGPL-3.0-only |
-| SPDX Headers | All 102 source files |
+| SPDX Headers | All 113 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | bans, licenses, sources pass |
 | UniBin | `loamspine server` subcommand |
-| JSON-RPC Methods | 27 (semantic naming) |
+| JSON-RPC Methods | 28 (semantic naming) |
 | Mock isolation | All mocks cfg-gated out of production |
 | Provenance Trio | Tested (rhizoCrypt + sweetGrass) |
 
