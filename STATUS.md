@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.8.8  
+**Current Version**: 0.8.9  
 **Last Updated**: March 15, 2026
 
 ---
@@ -45,13 +45,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,123 |
+| Tests | — | 1,132 |
 | Coverage (llvm-cov) | 90%+ | 89.64% line, 91.71% region |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
 | Max file size | < 1000 lines | 955 max (all files under 1000) |
-| Source files | — | 112 `.rs` files |
+| Source files | — | 114 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
 

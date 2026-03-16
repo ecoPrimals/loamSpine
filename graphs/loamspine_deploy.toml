@@ -1,0 +1,149 @@
+# LoamSpine Primal Deploy Graph
+# Canonical deploy graph following SPRING_AS_NICHE_DEPLOYMENT_STANDARD.md
+#
+# Deploys LoamSpine as the permanence layer (selective memory, certificates,
+# and inclusion proofs) for the ecoPrimals ecosystem. LoamSpine is a primal —
+# a first-class infrastructure service — not a spring/niche.
+#
+# LoamSpine is self-contained: all dependencies are optional with graceful
+# degradation. redb provides local persistent storage; external signing,
+# storage, and discovery are enhancement-only.
+#
+# Composable: other graphs can reference this as a sub-graph via depends_on.
+# biomeOS orchestrates germination order; Songbird provides IPC mesh.
+#
+# STATUS: V0.8.9 (March 2026)
+# Run: biomeos deploy graphs/loamspine_deploy.toml
+#      biomeos primal deploy loamspine-permanence
+
+[graph]
+id = "loamspine_deploy"
+description = "LoamSpine permanence layer — certificates, proofs, selective memory"
+coordination = "Sequential"
+
+[graph.metadata]
+loamspine_version = "0.8.9"
+domain = "permanence"
+primal_id = "loamspine"
+protocols = ["jsonrpc", "tarpc"]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 1: LOAMSPINE — self-contained permanence primal
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[[nodes]]
+id = "germinate_loamspine"
+output = "loamspine_genesis"
+capabilities = ["permanence", "certificates", "proofs"]
+
+[nodes.primal]
+by_capability = "permanence"
+
+[nodes.operation]
+name = "start"
+
+[nodes.operation.params]
+mode = "server"
+family_id = "${FAMILY_ID}"
+storage_backend = "redb"
+
+[nodes.operation.environment]
+BIOMEOS_SOCKET_DIR = "${XDG_RUNTIME_DIR}/biomeos"
+FAMILY_ID = "${FAMILY_ID}"
+LOAMSPINE_STORAGE_PATH = "${DATA_DIR}/loamspine"
+
+[nodes.constraints]
+timeout_ms = 10000
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2: VALIDATION — health check the deployed primal
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[[nodes]]
+id = "validate_loamspine"
+depends_on = ["germinate_loamspine"]
+output = "loamspine_validated"
+
+[nodes.operation]
+name = "health_check"
+
+[nodes.operation.params]
+check_loamspine = true
+timeout_seconds = 15
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 3: OPTIONAL ENHANCEMENT — external signing (BearDog)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[[nodes]]
+id = "discover_signing"
+depends_on = ["validate_loamspine"]
+output = "signing_capability"
+capabilities = ["crypto"]
+
+[nodes.primal]
+by_capability = "crypto"
+
+[nodes.operation]
+name = "capability_check"
+
+[nodes.operation.params]
+capability = "crypto.sign"
+family_id = "${FAMILY_ID}"
+
+[nodes.constraints]
+timeout_ms = 5000
+fallback = "skip"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 4: OPTIONAL ENHANCEMENT — discovery mesh (Songbird)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[[nodes]]
+id = "discover_mesh"
+depends_on = ["validate_loamspine"]
+output = "mesh_capability"
+capabilities = ["discovery"]
+
+[nodes.primal]
+by_capability = "discovery"
+
+[nodes.operation]
+name = "capability_check"
+
+[nodes.operation.params]
+capability = "discovery.find_primals"
+family_id = "${FAMILY_ID}"
+
+[nodes.constraints]
+timeout_ms = 5000
+fallback = "skip"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 5: REGISTER WITH NEURAL API (if biomeOS orchestrating)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[[nodes]]
+id = "register_neural_api"
+depends_on = ["validate_loamspine"]
+output = "neural_api_registered"
+
+[nodes.operation]
+name = "lifecycle.register"
+
+[nodes.operation.params]
+primal = "loamspine"
+capabilities = [
+    "spine.create", "spine.get", "spine.seal",
+    "entry.append", "entry.get", "entry.get_tip",
+    "certificate.mint", "certificate.transfer", "certificate.loan",
+    "certificate.return", "certificate.get", "certificate.verify",
+    "proof.generate_inclusion", "proof.verify_inclusion",
+    "session.commit", "braid.commit",
+    "health.check", "capability.list",
+]
+family_id = "${FAMILY_ID}"
+
+[nodes.constraints]
+timeout_ms = 10000
+fallback = "skip"

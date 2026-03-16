@@ -3,8 +3,8 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
-[![Version](https://img.shields.io/badge/version-0.8.8-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C123%20passing-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.8.9-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C132%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-89.64%25%20line%20%7C%2091.71%25%20region-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20production-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
@@ -77,6 +77,8 @@ loamSpine/
 │   │       ├── entry/             # Entry types (15+ variants, bincode canonical)
 │   │       ├── infant_discovery/  # DNS-SRV, mDNS, registry discovery
 │   │       ├── manager/           # Certificate manager
+│   │       ├── niche.rs            # Primal self-knowledge (capabilities, deps, costs)
+│   │       ├── primal_names.rs    # Centralized primal identifier constants
 │   │       ├── neural_api.rs      # NeuralAPI / biomeOS integration
 │   │       ├── proof.rs           # Inclusion + ownership proofs (Merkle/Blake3)
 │   │       ├── resilience.rs      # Circuit breaker + retry policy (lock-free)
@@ -163,15 +165,15 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.8.8 |
+| **Version** | 0.8.9 |
 | **Edition** | 2024 |
-| **Tests** | 1,123 passing |
+| **Tests** | 1,132 passing |
 | **Coverage** | 89.64% line, 91.71% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
 | **Unsafe Code** | 0 in production (`#![deny(unsafe_code)]`) |
 | **Lint Exceptions** | 0 `#[allow]` in production (all `#[expect(reason)]`) |
 | **Max File Size** | 955 lines (all < 1000) |
-| **Source Files** | 112 `.rs` files across 2 crates + binary |
+| **Source Files** | 114 `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-only |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

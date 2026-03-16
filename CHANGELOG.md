@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.9] - 2026-03-15
+
+### Added
+- **`primal_names.rs`**: Centralized primal identifier constants — single source of truth for all IPC identifiers (`SELF_ID`, `BIOMEOS`, `SONGBIRD`, `NESTGATE`, `BEARDOG`, `TOADSTOOL`, `RHIZOCRYPT`, `SWEETGRASS`, `SQUIRREL`, `BIOMEOS_SOCKET_DIR`). Ecosystem-wide convention adopted from groundSpring.
+- **`niche.rs` self-knowledge module**: LoamSpine's complete self-description — `PRIMAL_ID`, `PRIMAL_DESCRIPTION`, `PRIMAL_CATEGORY`, `DOMAINS` (8), `METHODS` (23), `SEMANTIC_MAPPINGS` (23), `CONSUMED_CAPABILITIES` (6), `DEPENDENCIES` (4, all optional), `COST_ESTIMATES` (21), `PROTOCOLS`, `STORAGE_BACKENDS`. 6 invariant tests.
+- **Deploy graph TOML**: `graphs/loamspine_deploy.toml` — 5-phase biomeOS deployment (germinate → validate → discover signing → discover mesh → register NeuralAPI). Follows `SPRING_AS_NICHE_DEPLOYMENT_STANDARD.md`.
+- **5-tier socket discovery**: Added `/run/user/{uid}/biomeos/` tier (from `/proc/self/status` UID) between XDG_RUNTIME_DIR and temp_dir fallback. Applied to both `constants/network.rs` and `neural_api.rs`.
+- **`temp-env` dev dependency**: Thread-safe env var mutation for tests. 9 new test invariants across `niche.rs` and `primal_names.rs`.
+
+### Changed
+- **`neural_api.rs` → `primal_names` delegation**: `PRIMAL_NAME` now delegates to `crate::primal_names::SELF_ID`. Registration/deregistration use centralized constants. Socket resolution uses `primal_names::BIOMEOS_SOCKET_DIR`.
+- **`constants/network.rs` tests → `temp-env`**: All 26 env-mutating tests migrated from `unsafe { env::set_var/remove_var }` to `temp_env::with_vars`. Removed `cleanup_env_vars()` + `unsafe_code` allow. Automatic save/restore of env state.
+- **`neural_api.rs` tests → `temp-env`**: 12 sync tests migrated to `temp_env::with_vars`. 2 async tests consolidated to sync with manual `tokio::runtime::Runtime`. Mock-server tests retain minimal `unsafe` (tokio runtime incompatibility with temp-env closures).
+- `primal-capabilities.toml` version bumped to 0.8.9.
+
+### Metrics
+- Tests: 1,123 → 1,132 (+9: 6 niche + 3 primal_names)
+- Coverage: 89.64% line, 91.71% region (maintained)
+- Source files: 112 → 114 (+primal_names.rs, +niche.rs)
+- Max file size: 955 lines (maintained)
+- Clippy: 0 warnings (maintained)
+- Doc warnings: 0 (maintained)
+- Unsafe in production: 0 (maintained)
+- Unsafe in tests: Reduced (temp-env migration eliminates 38 unsafe blocks in network + neural_api tests)
+
 ## [0.8.8] - 2026-03-15
 
 ### Added

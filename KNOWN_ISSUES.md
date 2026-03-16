@@ -37,8 +37,9 @@
 
 | Area | Issue | Notes |
 |------|-------|-------|
-| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[allow(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | Production code remains protected — `deny` still errors on any `unsafe` in non-test code. Test modules explicitly opt in with `#[allow(unsafe_code)]`. |
+| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[allow(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | Production code remains protected — `deny` still errors on any `unsafe` in non-test code. Most tests migrated to `temp-env` crate (v0.8.9); remaining `unsafe` env mutations are in async tests with mock servers (tokio runtime incompatible with temp-env closures). |
 | Dockerfile MSRV | Updated to `rust:1.85`. Edition 2024 requires Rust 1.85+. | CI MSRV job also updated. |
+| `/proc/self/status` UID | 5-tier socket discovery reads UID from `/proc/self/status` — Linux-only. Falls through to `temp_dir()` on non-Linux. | Graceful degradation; only applies when XDG_RUNTIME_DIR is unset. |
 
 ---
 

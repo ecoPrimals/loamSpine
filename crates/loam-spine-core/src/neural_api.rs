@@ -12,7 +12,9 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 
 /// LoamSpine's primal identity for NeuralAPI registration.
-pub const PRIMAL_NAME: &str = "loamspine";
+///
+/// Delegates to [`crate::primal_names::SELF_ID`] — single source of truth.
+pub const PRIMAL_NAME: &str = crate::primal_names::SELF_ID;
 
 /// Semantic capabilities LoamSpine provides to the ecosystem.
 /// These map to biomeOS's `capability_domains.rs` for NeuralAPI routing.
@@ -40,22 +42,33 @@ pub const CAPABILITIES: &[&str] = &[
 
 /// Resolve the socket path for LoamSpine's IPC endpoint.
 ///
-/// Resolution order:
-/// 1. `LOAMSPINE_SOCKET` environment variable
+/// 5-tier resolution order:
+/// 1. `LOAMSPINE_SOCKET` environment variable (explicit override)
 /// 2. `$XDG_RUNTIME_DIR/biomeos/loamspine-{family_id}.sock`
-/// 3. `{temp_dir}/biomeos/loamspine-{family_id}.sock`
+/// 3. `/run/user/{uid}/biomeos/loamspine-{family_id}.sock` (Linux)
+/// 4. `{temp_dir}/biomeos/loamspine-{family_id}.sock`
 #[must_use]
 pub fn resolve_socket_path() -> PathBuf {
     if let Ok(s) = std::env::var("LOAMSPINE_SOCKET") {
         return PathBuf::from(s);
     }
     let family_id = std::env::var("BIOMEOS_FAMILY_ID").unwrap_or_else(|_| "default".to_string());
+    let sock_name = format!("{}-{family_id}.sock", crate::primal_names::SELF_ID);
+
     if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
-        return PathBuf::from(format!("{runtime_dir}/biomeos/loamspine-{family_id}.sock"));
+        return PathBuf::from(runtime_dir)
+            .join(crate::primal_names::BIOMEOS_SOCKET_DIR)
+            .join(&sock_name);
     }
+
+    #[cfg(target_os = "linux")]
+    if let Some(base) = crate::constants::network::linux_run_user_biomeos() {
+        return base.join(&sock_name);
+    }
+
     std::env::temp_dir()
-        .join("biomeos")
-        .join(format!("loamspine-{family_id}.sock"))
+        .join(crate::primal_names::BIOMEOS_SOCKET_DIR)
+        .join(sock_name)
 }
 
 /// Resolve the NeuralAPI socket path for connecting to biomeOS.
@@ -184,7 +197,7 @@ pub async fn deregister_from_neural_api() -> crate::error::LoamSpineResult<()> {
         return Ok(());
     }
 
-    let params = serde_json::json!({ "name": PRIMAL_NAME });
+    let params = serde_json::json!({ "name": crate::primal_names::SELF_ID });
     let request = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "lifecycle.deregister",
@@ -307,20 +320,12 @@ mod tests {
     use super::*;
     use serial_test::serial;
 
-    fn cleanup_neural_env() {
-        unsafe {
-            std::env::remove_var("LOAMSPINE_SOCKET");
-        }
-        unsafe {
-            std::env::remove_var("XDG_RUNTIME_DIR");
-        }
-        unsafe {
-            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        }
-        unsafe {
-            std::env::remove_var("BIOMEOS_FAMILY_ID");
-        }
-    }
+    const CLEAN: [(&str, Option<&str>); 4] = [
+        ("LOAMSPINE_SOCKET", None),
+        ("XDG_RUNTIME_DIR", None),
+        ("BIOMEOS_NEURAL_API_SOCKET", None),
+        ("BIOMEOS_FAMILY_ID", None),
+    ];
 
     #[test]
     fn resolve_socket_path_returns_valid_path() {
@@ -348,6 +353,7 @@ mod tests {
     #[test]
     fn primal_name_is_correct() {
         assert_eq!(PRIMAL_NAME, "loamspine");
+        assert_eq!(PRIMAL_NAME, crate::primal_names::SELF_ID);
     }
 
     #[test]
@@ -360,50 +366,15 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn socket_path_respects_env() {
-        let prev = std::env::var("LOAMSPINE_SOCKET").ok();
-        unsafe {
-            std::env::set_var("LOAMSPINE_SOCKET", "/custom/loamspine.sock");
-        }
-        let path = resolve_socket_path();
-        assert_eq!(path.to_string_lossy(), "/custom/loamspine.sock");
-        match prev {
-            Some(v) => unsafe { std::env::set_var("LOAMSPINE_SOCKET", v) },
-            None => unsafe { std::env::remove_var("LOAMSPINE_SOCKET") },
-        }
-    }
-
-    #[tokio::test]
-    async fn registration_gracefully_handles_missing_socket() {
-        // Use a non-existent socket path so we get Ok(false) without connecting
-        unsafe {
-            std::env::set_var(
-                "BIOMEOS_NEURAL_API_SOCKET",
-                "/tmp/nonexistent-neural-api-loamspine-test.sock",
-            );
-        }
-        let result = register_with_neural_api().await;
-        unsafe {
-            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        }
-        assert!(result.is_ok());
-        let ok = result.unwrap();
-        assert!(!ok);
-    }
-
-    #[tokio::test]
-    async fn deregistration_gracefully_handles_missing_socket() {
-        unsafe {
-            std::env::set_var(
-                "BIOMEOS_NEURAL_API_SOCKET",
-                "/tmp/nonexistent-neural-api-loamspine-test.sock",
-            );
-        }
-        let result = deregister_from_neural_api().await;
-        unsafe {
-            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        }
-        assert!(result.is_ok());
+        temp_env::with_vars(
+            [("LOAMSPINE_SOCKET", Some("/custom/loamspine.sock"))],
+            || {
+                let path = resolve_socket_path();
+                assert_eq!(path.to_string_lossy(), "/custom/loamspine.sock");
+            },
+        );
     }
 
     #[test]
@@ -416,76 +387,88 @@ mod tests {
     #[test]
     #[serial]
     fn resolve_socket_path_uses_xdg_runtime_dir_when_loamspine_socket_unset() {
-        cleanup_neural_env();
-        unsafe {
-            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
-        }
-        let path = resolve_socket_path();
-        assert_eq!(
-            path.to_string_lossy(),
-            "/run/user/1000/biomeos/loamspine-default.sock"
+        temp_env::with_vars(
+            [
+                ("LOAMSPINE_SOCKET", None),
+                ("XDG_RUNTIME_DIR", Some("/run/user/1000")),
+                ("BIOMEOS_FAMILY_ID", None),
+            ],
+            || {
+                let path = resolve_socket_path();
+                assert_eq!(
+                    path.to_string_lossy(),
+                    "/run/user/1000/biomeos/loamspine-default.sock"
+                );
+            },
         );
-        unsafe {
-            std::env::set_var("BIOMEOS_FAMILY_ID", "myfamily");
-        }
-        let path = resolve_socket_path();
-        assert_eq!(
-            path.to_string_lossy(),
-            "/run/user/1000/biomeos/loamspine-myfamily.sock"
+        temp_env::with_vars(
+            [
+                ("LOAMSPINE_SOCKET", None),
+                ("XDG_RUNTIME_DIR", Some("/run/user/1000")),
+                ("BIOMEOS_FAMILY_ID", Some("myfamily")),
+            ],
+            || {
+                let path = resolve_socket_path();
+                assert_eq!(
+                    path.to_string_lossy(),
+                    "/run/user/1000/biomeos/loamspine-myfamily.sock"
+                );
+            },
         );
-        cleanup_neural_env();
     }
 
     #[test]
     #[serial]
     fn resolve_neural_api_socket_with_env() {
-        cleanup_neural_env();
-        unsafe {
-            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", "/custom/neural.sock");
-        }
-        let path = super::resolve_neural_api_socket();
-        assert!(path.is_some());
-        assert_eq!(
-            path.as_ref().unwrap().to_string_lossy(),
-            "/custom/neural.sock"
+        temp_env::with_vars(
+            [
+                ("BIOMEOS_NEURAL_API_SOCKET", Some("/custom/neural.sock")),
+                ("XDG_RUNTIME_DIR", None),
+                ("BIOMEOS_FAMILY_ID", None),
+            ],
+            || {
+                let path = super::resolve_neural_api_socket();
+                assert!(path.is_some());
+                assert_eq!(path.unwrap().to_string_lossy(), "/custom/neural.sock");
+            },
         );
-        cleanup_neural_env();
     }
 
     #[test]
     #[serial]
     fn resolve_neural_api_socket_with_xdg_runtime_dir() {
-        cleanup_neural_env();
-        unsafe {
-            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
-        }
-        let path = super::resolve_neural_api_socket();
-        assert!(path.is_some());
-        assert_eq!(
-            path.as_ref().unwrap().to_string_lossy(),
-            "/run/user/1000/biomeos/neural-api-default.sock"
+        temp_env::with_vars(
+            [
+                ("BIOMEOS_NEURAL_API_SOCKET", None),
+                ("XDG_RUNTIME_DIR", Some("/run/user/1000")),
+                ("BIOMEOS_FAMILY_ID", None),
+            ],
+            || {
+                let path = super::resolve_neural_api_socket();
+                assert!(path.is_some());
+                assert_eq!(
+                    path.unwrap().to_string_lossy(),
+                    "/run/user/1000/biomeos/neural-api-default.sock"
+                );
+            },
         );
-        cleanup_neural_env();
     }
 
     #[test]
     #[serial]
     fn resolve_neural_api_socket_without_env_returns_none() {
-        cleanup_neural_env();
-        let path = super::resolve_neural_api_socket();
-        assert!(path.is_none());
-        cleanup_neural_env();
+        temp_env::with_vars(CLEAN, || {
+            let path = super::resolve_neural_api_socket();
+            assert!(path.is_none());
+        });
     }
 
     #[test]
     fn capability_list_pretty_output_validation() {
         let pretty = capability_list_pretty();
         assert!(!pretty.is_empty());
-        assert!(
-            pretty.contains('\n'),
-            "pretty output should contain newlines"
-        );
-        assert!(pretty.contains("  "), "pretty output should be indented");
+        assert!(pretty.contains('\n'));
+        assert!(pretty.contains("  "));
         let parsed: serde_json::Value =
             serde_json::from_str(&pretty).expect("pretty output must be valid JSON");
         assert!(parsed.get("capabilities").is_some());
@@ -499,94 +482,97 @@ mod tests {
         assert_eq!(caps.len(), CAPABILITIES.len());
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn register_with_neural_api_returns_ok_false_when_xdg_runtime_dir_unset() {
-        cleanup_neural_env();
-        let result = register_with_neural_api().await;
-        assert!(result.is_ok());
-        let ok = result.unwrap();
-        assert!(!ok);
-        cleanup_neural_env();
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn deregister_from_neural_api_returns_ok_when_xdg_runtime_dir_unset() {
-        cleanup_neural_env();
-        let result = deregister_from_neural_api().await;
-        assert!(result.is_ok());
-        cleanup_neural_env();
+    fn register_with_neural_api_returns_ok_false_when_xdg_runtime_dir_unset() {
+        temp_env::with_vars(CLEAN, || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let result = rt.block_on(register_with_neural_api());
+            assert!(result.is_ok());
+            assert!(!result.unwrap());
+        });
     }
 
     #[test]
     #[serial]
-    fn resolve_socket_path_fallback_to_tmp_when_xdg_unset() {
-        cleanup_neural_env();
-        let path = resolve_socket_path();
-        assert_eq!(
-            path.to_string_lossy(),
-            format!(
-                "{}/biomeos/loamspine-default.sock",
-                std::env::temp_dir().display()
-            )
-        );
-        cleanup_neural_env();
+    fn deregister_from_neural_api_returns_ok_when_xdg_runtime_dir_unset() {
+        temp_env::with_vars(CLEAN, || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let result = rt.block_on(deregister_from_neural_api());
+            assert!(result.is_ok());
+        });
     }
 
     #[test]
     #[serial]
-    fn resolve_socket_path_tmp_with_custom_family_id() {
-        cleanup_neural_env();
-        unsafe {
-            std::env::set_var("BIOMEOS_FAMILY_ID", "custom-family");
-        }
-        let path = resolve_socket_path();
-        assert_eq!(
-            path.to_string_lossy(),
-            format!(
-                "{}/biomeos/loamspine-custom-family.sock",
-                std::env::temp_dir().display()
-            )
+    fn resolve_socket_path_fallback_when_xdg_unset() {
+        temp_env::with_vars(CLEAN, || {
+            let path = resolve_socket_path();
+            assert!(
+                path.to_string_lossy()
+                    .ends_with("biomeos/loamspine-default.sock"),
+                "got: {}",
+                path.display()
+            );
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_socket_path_with_custom_family_id() {
+        temp_env::with_vars(
+            [
+                ("LOAMSPINE_SOCKET", None),
+                ("XDG_RUNTIME_DIR", None),
+                ("BIOMEOS_NEURAL_API_SOCKET", None),
+                ("BIOMEOS_FAMILY_ID", Some("custom-family")),
+            ],
+            || {
+                let path = resolve_socket_path();
+                assert!(
+                    path.to_string_lossy()
+                        .ends_with("biomeos/loamspine-custom-family.sock"),
+                    "got: {}",
+                    path.display()
+                );
+            },
         );
-        cleanup_neural_env();
     }
 
     #[test]
     #[serial]
     fn resolve_socket_path_loamspine_socket_overrides_xdg_and_family() {
-        cleanup_neural_env();
-        unsafe {
-            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
-        }
-        unsafe {
-            std::env::set_var("BIOMEOS_FAMILY_ID", "ignored");
-        }
-        unsafe {
-            std::env::set_var("LOAMSPINE_SOCKET", "/override/path.sock");
-        }
-        let path = resolve_socket_path();
-        assert_eq!(path.to_string_lossy(), "/override/path.sock");
-        cleanup_neural_env();
+        temp_env::with_vars(
+            [
+                ("LOAMSPINE_SOCKET", Some("/override/path.sock")),
+                ("XDG_RUNTIME_DIR", Some("/run/user/1000")),
+                ("BIOMEOS_FAMILY_ID", Some("ignored")),
+            ],
+            || {
+                let path = resolve_socket_path();
+                assert_eq!(path.to_string_lossy(), "/override/path.sock");
+            },
+        );
     }
 
     #[test]
     #[serial]
     fn resolve_neural_api_socket_with_family_id() {
-        cleanup_neural_env();
-        unsafe {
-            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/42");
-        }
-        unsafe {
-            std::env::set_var("BIOMEOS_FAMILY_ID", "my-family");
-        }
-        let path = super::resolve_neural_api_socket();
-        assert!(path.is_some());
-        assert_eq!(
-            path.as_ref().unwrap().to_string_lossy(),
-            "/run/user/42/biomeos/neural-api-my-family.sock"
+        temp_env::with_vars(
+            [
+                ("BIOMEOS_NEURAL_API_SOCKET", None),
+                ("XDG_RUNTIME_DIR", Some("/run/user/42")),
+                ("BIOMEOS_FAMILY_ID", Some("my-family")),
+            ],
+            || {
+                let path = super::resolve_neural_api_socket();
+                assert!(path.is_some());
+                assert_eq!(
+                    path.unwrap().to_string_lossy(),
+                    "/run/user/42/biomeos/neural-api-my-family.sock"
+                );
+            },
         );
-        cleanup_neural_env();
     }
 
     #[test]
@@ -597,14 +583,13 @@ mod tests {
         assert!(pretty.contains("capability.list"));
     }
 
-    /// Helper: spawn a mock NeuralAPI Unix socket server that responds to
-    /// length-prefixed JSON-RPC with a canned response.
+    /// Helper: spawn a mock NeuralAPI Unix socket server.
     fn spawn_mock_neural_api(
         socket_path: &std::path::Path,
         response: &serde_json::Value,
     ) -> tokio::task::JoinHandle<()> {
         let listener = tokio::net::UnixListener::bind(socket_path).unwrap();
-        let resp_bytes = serde_json::to_vec(&response).unwrap();
+        let resp_bytes = serde_json::to_vec(response).unwrap();
 
         tokio::spawn(async move {
             if let Ok((mut stream, _)) = listener.accept().await {
@@ -627,11 +612,8 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn register_with_neural_api_succeeds_with_mock_server() {
-        cleanup_neural_env();
-
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api.sock");
-
         let response = serde_json::json!({
             "jsonrpc": "2.0",
             "result": { "registered": true },
@@ -643,22 +625,20 @@ mod tests {
             std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         }
         let result = register_with_neural_api().await;
-        cleanup_neural_env();
+        unsafe {
+            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        }
 
         assert!(result.is_ok());
-        assert!(result.unwrap(), "should return true on successful register");
-
+        assert!(result.unwrap());
         handle.abort();
     }
 
     #[tokio::test]
     #[serial]
     async fn register_with_neural_api_returns_error_on_jsonrpc_error() {
-        cleanup_neural_env();
-
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api-err.sock");
-
         let response = serde_json::json!({
             "jsonrpc": "2.0",
             "error": { "code": -32601, "message": "method not found" },
@@ -670,23 +650,21 @@ mod tests {
             std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         }
         let result = register_with_neural_api().await;
-        cleanup_neural_env();
+        unsafe {
+            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        }
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("method not found"), "error: {err}");
-
         handle.abort();
     }
 
     #[tokio::test]
     #[serial]
     async fn deregister_from_neural_api_succeeds_with_mock_server() {
-        cleanup_neural_env();
-
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api-dereg.sock");
-
         let response = serde_json::json!({
             "jsonrpc": "2.0",
             "result": { "deregistered": true },
@@ -698,7 +676,9 @@ mod tests {
             std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         }
         let result = deregister_from_neural_api().await;
-        cleanup_neural_env();
+        unsafe {
+            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        }
 
         assert!(result.is_ok());
         handle.abort();
@@ -707,11 +687,8 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn deregister_from_neural_api_handles_jsonrpc_error_gracefully() {
-        cleanup_neural_env();
-
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api-dereg-err.sock");
-
         let response = serde_json::json!({
             "jsonrpc": "2.0",
             "error": { "code": -32601, "message": "not supported" },
@@ -723,7 +700,9 @@ mod tests {
             std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         }
         let result = deregister_from_neural_api().await;
-        cleanup_neural_env();
+        unsafe {
+            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        }
 
         assert!(
             result.is_ok(),
@@ -735,8 +714,6 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn deregister_from_neural_api_handles_malformed_response() {
-        cleanup_neural_env();
-
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api-dereg-bad.sock");
 
@@ -763,13 +740,46 @@ mod tests {
             std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
         }
         let result = deregister_from_neural_api().await;
-        cleanup_neural_env();
+        unsafe {
+            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
+        }
 
         assert!(
             result.is_ok(),
             "deregister should succeed even on malformed response"
         );
         handle.abort();
+    }
+
+    #[test]
+    fn registration_gracefully_handles_missing_socket() {
+        temp_env::with_vars(
+            [(
+                "BIOMEOS_NEURAL_API_SOCKET",
+                Some("/tmp/nonexistent-neural-api-loamspine-test.sock"),
+            )],
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                let result = rt.block_on(register_with_neural_api());
+                assert!(result.is_ok());
+                assert!(!result.unwrap());
+            },
+        );
+    }
+
+    #[test]
+    fn deregistration_gracefully_handles_missing_socket() {
+        temp_env::with_vars(
+            [(
+                "BIOMEOS_NEURAL_API_SOCKET",
+                Some("/tmp/nonexistent-neural-api-loamspine-test.sock"),
+            )],
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                let result = rt.block_on(deregister_from_neural_api());
+                assert!(result.is_ok());
+            },
+        );
     }
 
     #[test]
@@ -787,7 +797,7 @@ mod tests {
                 !cap.contains("loamspine"),
                 "capability '{cap}' should not reference primal name"
             );
-            assert!(!cap.is_empty(), "capability should not be empty");
+            assert!(!cap.is_empty());
         }
     }
 }

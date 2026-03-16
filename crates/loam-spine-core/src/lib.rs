@@ -74,6 +74,10 @@ pub mod trio_types;
 pub mod types;
 pub mod waypoint;
 
+// Self-knowledge and naming
+pub mod niche;
+pub mod primal_names;
+
 // New architecture modules
 pub mod discovery;
 pub mod neural_api;

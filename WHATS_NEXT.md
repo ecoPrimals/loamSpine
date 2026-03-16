@@ -2,12 +2,12 @@
 
 # Development Roadmap
 
-**Current Version**: 0.8.8  
+**Current Version**: 0.8.9  
 **Last Updated**: March 15, 2026
 
 ---
 
-## Completed (v0.8.0 -- v0.8.8)
+## Completed (v0.8.0 -- v0.8.9)
 
 - SQLite storage backend (feature-gated) with full test coverage
 - SQLite smart refactoring: modular `sqlite/` directory
@@ -54,7 +54,12 @@
 - **Named resilience constants**: `CIRCUIT_*`, `RETRY_*` with documented provenance
 - **Enriched `capability.list`**: Methods with domain/cost/deps per operation
 - **Platform-agnostic temp paths**: `std::env::temp_dir()` replaces hardcoded `/tmp`
-- **Coverage**: 89.64% line, 91.71% region (1,123 tests)
+- **`primal_names.rs`**: Centralized primal identifier constants (ecosystem convention)
+- **`niche.rs` self-knowledge**: Primal identity, capabilities, dependencies, costs, semantic mappings
+- **5-tier socket discovery**: `/run/user/{uid}/biomeos/` tier via `/proc/self/status`
+- **`temp-env` migration**: Thread-safe env var mutation, 38 `unsafe` blocks eliminated from tests
+- **Deploy graph**: `graphs/loamspine_deploy.toml` for biomeOS deployment
+- **Coverage**: 89.64% line, 91.71% region (1,132 tests)
 
 ---
 
