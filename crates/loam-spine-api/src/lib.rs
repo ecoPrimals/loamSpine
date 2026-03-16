@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! # `LoamSpine` Pure Rust RPC API
 //!
@@ -45,7 +45,10 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 #![warn(clippy::pedantic)]
-#![allow(clippy::module_name_repetitions)]
+#![expect(
+    clippy::module_name_repetitions,
+    reason = "domain types naturally share module prefixes"
+)]
 
 pub mod error;
 pub mod health;

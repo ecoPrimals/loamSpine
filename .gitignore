@@ -1,5 +1,8 @@
 /target/
-Cargo.lock
+.cargo-build/
 *.swp
 *.swo
+*.bak
+*.tmp
+*.log
 .DS_Store

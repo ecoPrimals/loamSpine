@@ -1,8 +1,8 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
 # Known Issues
 
-**Last Updated**: March 15, 2026
+**Last Updated**: March 16, 2026
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Area | Issue | Impact |
 |------|-------|--------|
-| `bin/loamspine-service/main.rs` | 0% coverage (150 lines). Binary entry point with Tokio runtime setup, signal handling, and server orchestration. Inherently difficult to unit test. | Low — thin orchestration layer; all called components have >85% coverage. |
+| `bin/loamspine-service/main.rs` | Integration tests added (CLI parsing, subcommands, server start/shutdown). Remaining untested: error-recovery paths in `run_server`. | Low — main paths covered; error recovery is thin orchestration. |
 | DNS SRV / mDNS discovery | Network-dependent paths have limited testability in CI without real DNS infrastructure. | Low — core discovery logic tested via mocks; network transport tested with `ConfigurableTransport`. |
 
 ---
@@ -28,8 +28,9 @@
 
 | Area | Issue | Notes |
 |------|-------|-------|
-| Attestation runtime wiring | `AttestationRequirement` types defined and integrated into `WaypointConfig`, but actual runtime enforcement (checking attestation before waypoint operations) is not yet wired into the operation flow. | Types and framework ready; enforcement is a v0.9.0 target. |
+| Attestation runtime wiring | **RESOLVED in v0.9.0** — `check_attestation_requirement()` wired into all waypoint operations. Capability-discovered `DynAttestationProvider`. Stub provider for testing; production providers discovered at runtime. | |
 | PostgreSQL / RocksDB backends | Specified in `STORAGE_BACKENDS.md` but not yet implemented. | v1.0.0 target. Memory, redb (default), sled, and SQLite backends are complete. |
+| blake3 SIMD performance | Switched to `pure` Rust mode (no C/asm) for ecoBin compliance. Performance impact is ~2-3x slower hashing vs. SIMD, acceptable for LoamSpine's workload. | Can be feature-gated back to SIMD if performance-critical deployment needs it. |
 
 ---
 
@@ -37,7 +38,7 @@
 
 | Area | Issue | Notes |
 |------|-------|-------|
-| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[allow(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | Production code remains protected — `deny` still errors on any `unsafe` in non-test code. Most tests migrated to `temp-env` crate (v0.8.9); remaining `unsafe` env mutations are in async tests with mock servers (tokio runtime incompatible with temp-env closures). |
+| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[expect(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | Production code remains protected — `deny` still errors on any `unsafe` in non-test code. Most tests migrated to `temp-env` crate (v0.3.6); remaining `unsafe` env mutations use `#[expect(unsafe_code, reason = "...")]` in async tests that require multiple sequential env changes with awaits between them (temp-env cannot wrap per-await mutation). |
 | Dockerfile MSRV | Updated to `rust:1.85`. Edition 2024 requires Rust 1.85+. | CI MSRV job also updated. |
 | `/proc/self/status` UID | 5-tier socket discovery reads UID from `/proc/self/status` — Linux-only. Falls through to `temp_dir()` on non-Linux. | Graceful degradation; only applies when XDG_RUNTIME_DIR is unset. |
 

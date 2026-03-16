@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Service registry client for universal service discovery.
 //!
@@ -122,6 +122,13 @@ impl DiscoveryClient {
     /// # Errors
     ///
     /// Returns an error if no transport is available or the registry is unreachable.
+    #[cfg_attr(
+        not(any(feature = "tower-atomic", feature = "discovery-http")),
+        expect(
+            clippy::unused_async,
+            reason = "async required when transport features are enabled"
+        )
+    )]
     pub async fn connect(endpoint: impl Into<String>) -> LoamSpineResult<Self> {
         let endpoint = endpoint.into();
 
@@ -155,9 +162,9 @@ impl DiscoveryClient {
             return Ok(client);
         }
 
-        #[expect(
-            unreachable_code,
-            reason = "reachable only when no transport features enabled"
+        #[cfg_attr(
+            any(feature = "tower-atomic", feature = "discovery-http"),
+            expect(unreachable_code, reason = "transport features make this dead code")
         )]
         Err(LoamSpineError::Network(format!(
             "No discovery transport available for {endpoint}. \

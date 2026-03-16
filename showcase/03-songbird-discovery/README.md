@@ -89,7 +89,7 @@ kill $SONGBIRD_PID
 ```json
 {
   "name": "loamspine",
-  "version": "0.8.9",
+  "version": "0.9.0",
   "capabilities": [
     {
       "type": "spine_management",

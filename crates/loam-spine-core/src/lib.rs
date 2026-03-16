@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! # `LoamSpine`
 //!
@@ -50,8 +50,14 @@
 // deny (not forbid) so #[allow(unsafe_code)] can override in test modules (set_var/remove_var in edition 2024)
 #![deny(unsafe_code)]
 // Allow some pedantic lints that are too noisy
-#![allow(clippy::module_name_repetitions)]
-#![allow(clippy::doc_markdown)] // Allow product names without backticks in docs
+#![expect(
+    clippy::module_name_repetitions,
+    reason = "domain types naturally share module prefixes"
+)]
+#![expect(
+    clippy::doc_markdown,
+    reason = "ecosystem terms like biomeOS, ecoPrimals are domain vocabulary"
+)]
 
 // Core modules
 pub mod backup;
@@ -187,12 +193,15 @@ pub use service::{ExpirySweeper, ExpirySweeperConfig, ExpirySweeperHandle, LoamS
 
 /// Waypoint types.
 pub use waypoint::{
-    AttestationRequirement, AttestationResult, RelendingChain, RelendingLink, WaypointConfig,
-    WaypointSummary,
+    AttestationContext, AttestationRequirement, AttestationResult, RelendingChain, RelendingLink,
+    WaypointConfig, WaypointSummary,
 };
 
 /// Capability discovery.
-pub use discovery::{BoxedSigner, BoxedVerifier, CapabilityRegistry, CapabilityStatus};
+pub use discovery::{
+    BoxedAttestationProvider, BoxedSigner, BoxedVerifier, CapabilityRegistry, CapabilityStatus,
+    DynAttestationProvider,
+};
 
 /// Resilience patterns for PrimalAdapter (retry, circuit-breaker).
 pub use resilience::{

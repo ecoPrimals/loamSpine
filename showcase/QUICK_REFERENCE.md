@@ -1,6 +1,6 @@
 # 🦴 LoamSpine Showcase — Quick Reference Card
 
-**Updated**: December 26, 2025  
+**Updated**: March 16, 2026  
 **Total Demos**: 21 complete showcase demos  
 **Philosophy**: Real capabilities, real integrations, real value
 
@@ -47,7 +47,7 @@ cd showcase/02-rpc-api/
 01-tarpc-basics/           # 5 min  — Binary RPC (fast!)
 02-jsonrpc-basics/         # 5 min  — JSON RPC (interop)
 03-health-monitoring/      # 5 min  — Health checks
-04-concurrent-clients/     # 10 min — Multi-client scenarios
+04-concurrent-ops/         # 10 min — Multi-client scenarios
 05-error-handling/         # 5 min  — Error patterns
 ```
 
@@ -187,10 +187,9 @@ All Level 4 demos document real integration gaps discovered through actual binar
 ## 📚 Key Documentation
 
 ### Root Level
-- `README.md` — Project overview
+- `README.md` — Project overview and documentation
 - `STATUS.md` — Current status dashboard
 - `START_HERE.md` — Developer quick start
-- `ROOT_DOCS_INDEX.md` — Documentation hub
 - `INTEGRATION_GAPS.md` — All gaps tracked
 
 ### Showcase
@@ -325,7 +324,7 @@ Total: 21 demos, 35 gaps discovered, 8-10 weeks to production!
 
 ---
 
-*Last Updated: December 26, 2025*  
+*Last Updated: March 16, 2026*  
 *Session: Inter-Primal Showcase Execution Complete*  
 *Status: Ready for Evolution Phase*
 

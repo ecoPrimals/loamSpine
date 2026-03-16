@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Certificate lifecycle operations.
 //!
@@ -110,7 +110,10 @@ impl LoamSpineService {
             initial_owner: owner.clone(),
         });
 
-        let entry_hash = spine.append(entry.clone())?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         let mint_info = MintInfo {
             minter: owner.clone(),
@@ -131,7 +134,7 @@ impl LoamSpineService {
             cert.metadata = meta;
         }
 
-        self.entry_storage.save_entry(&entry).await?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
@@ -190,7 +193,10 @@ impl LoamSpineService {
             to: to.clone(),
         });
 
-        let entry_hash = spine.append(entry.clone())?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         cert.owner = to;
         cert.transfer_count += 1;
@@ -201,7 +207,7 @@ impl LoamSpineService {
         };
         cert.updated_at = Timestamp::now();
 
-        self.entry_storage.save_entry(&entry).await?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
@@ -253,7 +259,10 @@ impl LoamSpineService {
             auto_return: terms.auto_return,
         });
 
-        let entry_hash = spine.append(entry.clone())?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         let now = Timestamp::now();
         let expires_at = terms
@@ -280,7 +289,7 @@ impl LoamSpineService {
         };
         cert.updated_at = now;
 
-        self.entry_storage.save_entry(&entry).await?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
@@ -371,7 +380,10 @@ impl LoamSpineService {
             usage_summary: None,
         });
 
-        let entry_hash = spine.append(entry.clone())?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         if let Some(holder) = new_holder {
             cert.holder = Some(holder.clone());
@@ -397,7 +409,7 @@ impl LoamSpineService {
         };
         cert.updated_at = Timestamp::now();
 
-        self.entry_storage.save_entry(&entry).await?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
@@ -459,7 +471,10 @@ impl LoamSpineService {
             auto_return: loan.terms.auto_return,
         });
 
-        let entry_hash = spine.append(entry.clone())?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         chain.links.push(crate::waypoint::RelendingLink {
             borrower: new_borrower.clone(),
@@ -479,7 +494,7 @@ impl LoamSpineService {
         };
         cert.updated_at = Timestamp::now();
 
-        self.entry_storage.save_entry(&entry).await?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
@@ -730,7 +745,10 @@ impl LoamSpineService {
             to: to.clone(),
         });
 
-        let entry_hash = spine.append(entry.clone())?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         let escrow_id = uuid::Uuid::now_v7();
         let now = Timestamp::now();
@@ -756,7 +774,7 @@ impl LoamSpineService {
             created_at: now,
         };
 
-        self.entry_storage.save_entry(&entry).await?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)

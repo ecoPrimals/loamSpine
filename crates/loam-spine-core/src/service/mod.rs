@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Core LoamSpine service implementation.
 //!
@@ -36,7 +36,7 @@ use tokio::sync::RwLock;
 
 use crate::certificate::TransferConditions;
 use crate::discovery::CapabilityRegistry;
-use crate::entry::{EntryType, SpineConfig};
+use crate::entry::{EntryType, SpineConfig, SpineType};
 use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::spine::Spine;
 use crate::storage::{
@@ -44,6 +44,7 @@ use crate::storage::{
     SpineStorage,
 };
 use crate::types::{Did, EntryHash, SliceId, SpineId};
+use crate::waypoint::WaypointConfig;
 
 /// Stored metadata for an active slice, tracked in the in-memory registry.
 #[derive(Clone, Debug)]
@@ -169,6 +170,41 @@ impl LoamSpineService {
         Ok(id)
     }
 
+    /// Create a waypoint spine with the given waypoint configuration.
+    ///
+    /// Use this when attestation or other waypoint policies need to be applied.
+    /// Each call creates a new spine (no deduplication by owner).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if spine creation fails.
+    pub async fn ensure_waypoint_spine(
+        &self,
+        owner: Did,
+        name: Option<String>,
+        waypoint_config: WaypointConfig,
+    ) -> LoamSpineResult<SpineId> {
+        let config = SpineConfig {
+            spine_type: SpineType::Waypoint {
+                max_anchor_depth: waypoint_config.max_anchor_depth,
+            },
+            auto_rollup_threshold: None,
+            replication_enabled: false,
+            waypoint_config: Some(waypoint_config),
+        };
+
+        let spine = Spine::new(owner.clone(), name, config)?;
+        let id = spine.id;
+
+        if let Some(genesis) = spine.genesis_entry() {
+            self.entry_storage.save_entry(genesis).await?;
+        }
+
+        self.spine_storage.save_spine(&spine).await?;
+
+        Ok(id)
+    }
+
     /// Get the number of stored spines.
     pub async fn spine_count(&self) -> usize {
         self.spine_storage.spine_count().await
@@ -224,9 +260,11 @@ impl LoamSpineService {
             .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
 
         let entry = spine.create_entry(entry_type);
-        let entry_hash = spine.append(entry.clone())?;
-
-        self.entry_storage.save_entry(&entry).await?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
         Ok(entry_hash)

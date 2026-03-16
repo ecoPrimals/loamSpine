@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Capability-based primal discovery.
 //!
@@ -39,12 +39,18 @@ mod dyn_traits;
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests;
 
-pub use dyn_traits::{BoxedSigner, BoxedVerifier, DynSigner, DynVerifier};
+pub use dyn_traits::{
+    BoxedAttestationProvider, BoxedSigner, BoxedVerifier, DynAttestationProvider, DynSigner,
+    DynVerifier,
+};
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::capabilities::identifiers::external;
 use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::types::Did;
+use crate::waypoint::{AttestationContext, AttestationResult};
 
 /// Capability availability status.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -73,6 +79,7 @@ pub struct CapabilityRegistry {
 struct RegistryInner {
     signer: Option<BoxedSigner>,
     verifier: Option<BoxedVerifier>,
+    attestation_provider: Option<BoxedAttestationProvider>,
     registry_client: Option<Arc<crate::discovery_client::DiscoveryClient>>,
 }
 
@@ -135,6 +142,23 @@ impl CapabilityRegistry {
                 service.name,
                 service.endpoint
             );
+        }
+
+        // Discover attestation provider (capability-based discovery)
+        if let Ok(services) = client.discover_capability(external::ATTESTATION).await
+            && let Some(service) = services.first()
+        {
+            tracing::info!(
+                "Discovered attestation provider: {} at {}",
+                service.name,
+                service.endpoint
+            );
+            // Stub: register a provider that returns success when called.
+            // Actual RPC to the attestation primal is deferred; control flow is wired.
+            let mut inner = self.inner.write().await;
+            inner.attestation_provider = Some(Arc::new(StubAttestationProvider {
+                attester_did: Did::new(format!("did:attestation:{}", service.name)),
+            }));
         }
 
         Ok(())
@@ -308,6 +332,67 @@ impl CapabilityRegistry {
     }
 
     // ========================================================================
+    // Attestation Provider Capability
+    // ========================================================================
+
+    /// Register an attestation provider (discovered via capability `ATTESTATION`).
+    ///
+    /// Called when an attestation primal is discovered at runtime.
+    pub async fn register_attestation_provider(&self, provider: BoxedAttestationProvider) {
+        let mut inner = self.inner.write().await;
+        inner.attestation_provider = Some(provider);
+    }
+
+    /// Unregister the attestation provider.
+    pub async fn unregister_attestation_provider(&self) {
+        let mut inner = self.inner.write().await;
+        inner.attestation_provider = None;
+    }
+
+    /// Get the attestation provider if available.
+    pub async fn get_attestation_provider(&self) -> Option<BoxedAttestationProvider> {
+        let inner = self.inner.read().await;
+        inner.attestation_provider.clone()
+    }
+
+    /// Check if attestation provider is available.
+    pub async fn attestation_provider_status(&self) -> CapabilityStatus {
+        let inner = self.inner.read().await;
+        if inner.attestation_provider.is_some() {
+            CapabilityStatus::Available
+        } else {
+            CapabilityStatus::Unavailable
+        }
+    }
+
+    /// Request attestation for a waypoint operation.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if no attestation provider is registered or attestation is denied.
+    pub async fn request_attestation(
+        &self,
+        context: AttestationContext,
+    ) -> LoamSpineResult<AttestationResult> {
+        let provider = self.get_attestation_provider().await.ok_or_else(|| {
+            LoamSpineError::CapabilityUnavailable(format!(
+                "Attestation provider not available (discover via capability '{}')",
+                external::ATTESTATION
+            ))
+        })?;
+        let result = provider.request_attestation(context).await?;
+        if !result.attested {
+            return Err(LoamSpineError::CapabilityProvider {
+                capability: external::ATTESTATION.into(),
+                message: result
+                    .denial_reason
+                    .unwrap_or_else(|| "Attestation denied".into()),
+            });
+        }
+        Ok(result)
+    }
+
+    // ========================================================================
     // Bulk Operations
     // ========================================================================
 
@@ -316,6 +401,7 @@ impl CapabilityRegistry {
         vec![
             ("Signer", self.signer_status().await),
             ("Verifier", self.verifier_status().await),
+            ("Attestation", self.attestation_provider_status().await),
         ]
     }
 
@@ -332,6 +418,35 @@ impl std::fmt::Debug for CapabilityRegistry {
         f.debug_struct("CapabilityRegistry")
             .field("signer", &"<capability>")
             .field("verifier", &"<capability>")
+            .field("attestation_provider", &"<capability>")
             .finish()
+    }
+}
+
+/// Stub attestation provider for testing and when discovery finds a service.
+///
+/// Returns a successful attestation result. The actual RPC to the attestation
+/// primal is stubbed in v0.9; control flow is wired.
+struct StubAttestationProvider {
+    attester_did: Did,
+}
+
+impl DynAttestationProvider for StubAttestationProvider {
+    fn request_attestation(
+        &self,
+        _context: AttestationContext,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = LoamSpineResult<AttestationResult>> + Send + '_>,
+    > {
+        let attester_did = self.attester_did.clone();
+        Box::pin(async move {
+            Ok(AttestationResult {
+                attested: true,
+                attester: attester_did,
+                timestamp: crate::types::Timestamp::now(),
+                token: vec![],
+                denial_reason: None,
+            })
+        })
     }
 }

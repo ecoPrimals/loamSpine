@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Integration tests for service registry discovery client.
 //!
@@ -246,8 +246,12 @@ async fn test_registry_advertise_and_discover() {
     );
 
     // Wait for service to be discoverable (eventual consistency, no blind sleep)
-    let wait_result =
-        wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
+    let wait_result = wait_for_service_discoverable(
+        &client,
+        loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        "loamspine",
+    )
+    .await;
     assert!(
         wait_result.is_ok(),
         "Service should become discoverable: {:?}",
@@ -255,7 +259,12 @@ async fn test_registry_advertise_and_discover() {
     );
 
     // Try to discover persistent-ledger capability
-    let Ok(services) = client.discover_capability("persistent-ledger").await else {
+    let Ok(services) = client
+        .discover_capability(
+            loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        )
+        .await
+    else {
         eprintln!("⚠️  Failed to discover services");
         return;
     };
@@ -297,7 +306,12 @@ async fn test_registry_heartbeat() {
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
-    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
+    let _ = wait_for_service_discoverable(
+        &client,
+        loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        "loamspine",
+    )
+    .await;
 
     // Send heartbeat (with timeout protection)
     let result = tokio::time::timeout(Duration::from_secs(5), client.heartbeat()).await;
@@ -334,7 +348,12 @@ async fn test_registry_deregister() {
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
-    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
+    let _ = wait_for_service_discoverable(
+        &client,
+        loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        "loamspine",
+    )
+    .await;
 
     // Deregister
     let result = client.deregister().await;
@@ -345,7 +364,12 @@ async fn test_registry_deregister() {
     );
 
     // Wait for deregistration (eventual consistency, no blind sleep)
-    let wait_result = wait_for_service_removed(&client, "persistent-ledger", "loamspine").await;
+    let wait_result = wait_for_service_removed(
+        &client,
+        loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        "loamspine",
+    )
+    .await;
     assert!(
         wait_result.is_ok(),
         "Service should be removed: {:?}",
@@ -354,7 +378,9 @@ async fn test_registry_deregister() {
 
     // Verify we're no longer discoverable
     let services = client
-        .discover_capability("persistent-ledger")
+        .discover_capability(
+            loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        )
         .await
         .unwrap_or_default();
     let loamspine = services.iter().find(|s| s.name == "loamspine");
@@ -388,7 +414,12 @@ async fn test_registry_discover_all() {
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
-    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
+    let _ = wait_for_service_discoverable(
+        &client,
+        loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        "loamspine",
+    )
+    .await;
 
     // Discover all services (with timeout protection)
     let result = tokio::time::timeout(Duration::from_secs(5), client.discover_all()).await;
@@ -427,13 +458,18 @@ async fn test_registry_multiple_capabilities() {
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
-    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
+    let _ = wait_for_service_discoverable(
+        &client,
+        loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        "loamspine",
+    )
+    .await;
 
     // Test discovering multiple capabilities concurrently (not serial!)
     let capabilities = vec![
-        "persistent-ledger",
-        "certificate-manager",
-        "waypoint-anchoring",
+        loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        loam_spine_core::capabilities::identifiers::loamspine::CERTIFICATE_AUTHORITY,
+        loam_spine_core::capabilities::identifiers::loamspine::WAYPOINT_ANCHORING,
     ];
 
     // Spawn concurrent discovery tasks
@@ -497,7 +533,12 @@ async fn test_registry_concurrent_operations() {
         .await;
 
     // Wait for registration (eventual consistency, no blind sleep)
-    let _ = wait_for_service_discoverable(&client, "persistent-ledger", "loamspine").await;
+    let _ = wait_for_service_discoverable(
+        &client,
+        loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+        "loamspine",
+    )
+    .await;
 
     // Perform 100 concurrent discovery operations (truly concurrent!)
     let mut handles = vec![];
@@ -507,7 +548,9 @@ async fn test_registry_concurrent_operations() {
             // Each operation has timeout protection
             tokio::time::timeout(
                 Duration::from_secs(5),
-                client_clone.discover_capability("persistent-ledger"),
+                client_clone.discover_capability(
+                    loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER,
+                ),
             )
             .await
             .map_err(|_| format!("Timeout on operation {i}"))

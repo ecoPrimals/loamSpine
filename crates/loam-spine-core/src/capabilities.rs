@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Capability definitions for LoamSpine
 //!
@@ -58,6 +58,18 @@ pub mod identifiers {
         pub const TEMPORAL_TRACKING: &str = "temporal-tracking";
         /// Provides waypoint anchoring for data journeys
         pub const WAYPOINT_ANCHORING: &str = "waypoint-anchoring";
+
+        /// Canonical capability set for service advertisement and discovery.
+        ///
+        /// Used by lifecycle manager, health checks, and infant discovery
+        /// to advertise our high-level capabilities to the ecosystem.
+        pub const ADVERTISED: &[&str] = &[
+            PERMANENT_LEDGER,
+            WAYPOINT_ANCHORING,
+            CERTIFICATE_AUTHORITY,
+            PROOF_GENERATION,
+            TEMPORAL_TRACKING,
+        ];
     }
 
     /// External capabilities we discover and consume
@@ -72,6 +84,8 @@ pub mod identifiers {
         pub const SESSION_MANAGEMENT: &str = "session-management";
         /// Compute orchestration and execution
         pub const COMPUTE: &str = "compute-orchestration";
+        /// Operation attestation for waypoint semantics
+        pub const ATTESTATION: &str = "attestation";
     }
 }
 

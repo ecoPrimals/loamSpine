@@ -1,9 +1,9 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
 # Implementation Status
 
-**Current Version**: 0.8.9  
-**Last Updated**: March 15, 2026
+**Current Version**: 0.9.0  
+**Last Updated**: March 16, 2026
 
 ---
 
@@ -45,8 +45,8 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,132 |
-| Coverage (llvm-cov) | 90%+ | 89.64% line, 91.71% region |
+| Tests | — | 1,052+ |
+| Coverage (llvm-cov) | 90%+ | 90%+ (main.rs integration tests added) |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
@@ -62,13 +62,30 @@ This document tracks implementation progress against the specification suite in 
 | Standard | Status | Notes |
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
-| ecoBin | PASS | Zero C deps in default features; musl cross-compile CI |
-| AGPL-3.0-only | PASS | SPDX headers on all 114 source files |
+| ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 114 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
-| Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage |
+| Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | File size limit | PASS | All files under 1000 lines (max: 955). Test files split by domain. |
+
+---
+
+## v0.9.0 Deep Debt Resolution & ecoBin Evolution (March 16, 2026)
+
+- **Zero-copy `append` refactor**: Eliminated `entry.clone()` across all 16 service layer call sites. `Spine::append()` takes ownership; callers use `spine.tip_entry()` for zero-copy persistence.
+- **Capability string constants**: All hardcoded capability strings ("persistent-ledger", "certificate-manager") replaced with `capabilities::identifiers::loamspine::*` constants. Added `ADVERTISED` canonical set. `InfantDiscovery::from_advertised()` constructor.
+- **Attestation runtime enforcement**: `check_attestation_requirement()` wired into `anchor_slice`, `record_operation`, `depart_slice`. Capability-discovered attestation provider with `DynAttestationProvider` trait, `StubAttestationProvider`, and graceful degradation.
+- **blake3 pure Rust**: Switched to `features = ["pure"]` — zero C/asm compilation. Full ecoBin compliance confirmed.
+- **AGPL-3.0-or-later**: Aligned all SPDX headers (114 source files) with wateringHole scyBorg guidance.
+- **`temp-env` migration**: 14 additional async tests migrated from `unsafe` env mutation to `temp_env::with_vars` + manual runtime. Nested runtime issue resolved.
+- **`CAPABILITIES.to_vec()` eliminated**: `neural_api.rs` uses `&[&str]` slice directly.
+- **`.cargo/config.toml`**: Documented noexec mount workaround with env var override guidance.
+- **`cfg_attr` conditional lint**: Discovery client `unreachable_code` lint expectation made feature-conditional.
+- **`SpineConfig::waypoint_config`**: Added optional `WaypointConfig` to `SpineConfig` for attestation policies on waypoint spines.
+- **Main.rs integration tests**: CLI parsing, capabilities JSON output, socket path, server start/shutdown via SIGINT.
+- **`niche.rs` consumed capabilities**: Evolved from string literals to `capabilities::identifiers::external::*` constants.
 
 ---
 

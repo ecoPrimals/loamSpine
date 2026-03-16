@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Tests for entry types.
 
@@ -423,6 +423,7 @@ fn spine_config_serde_roundtrip() {
         },
         auto_rollup_threshold: Some(10_000),
         replication_enabled: true,
+        waypoint_config: None,
     };
     let bytes = serde_json::to_vec(&config).expect("serialize");
     let restored: SpineConfig = serde_json::from_slice(&bytes).expect("deserialize");

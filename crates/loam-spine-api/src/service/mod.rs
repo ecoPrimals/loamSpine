@@ -1,13 +1,19 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! RPC service implementation for `LoamSpine`.
 //!
 //! Implements the `LoamSpineRpc` trait defined in `rpc.rs`.
 
 // Some trait dispatch methods are async for uniform interface but don't await internally.
-#![allow(clippy::unused_async)]
+#![expect(
+    clippy::unused_async,
+    reason = "async trait methods required by interface even when impl is sync"
+)]
 // Allow wildcard imports for re-exported types
-#![allow(clippy::wildcard_imports)]
+#![allow(
+    clippy::wildcard_imports,
+    reason = "tarpc service macro requires wildcard imports; allow not expect: lint absent in test target"
+)]
 
 mod certificate_ops;
 mod entry_ops;

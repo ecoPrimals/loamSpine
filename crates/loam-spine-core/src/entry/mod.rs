@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Entry types for LoamSpine.
 //!
@@ -14,6 +14,7 @@ use crate::types::{
     BraidId, CertificateId, ContentHash, Did, EntryHash, PayloadRef, SessionId, Signature, SliceId,
     SpineId, Timestamp, hash_bytes,
 };
+use crate::waypoint::WaypointConfig;
 
 /// Serde helpers for `ByteBuffer` fields in derived enums/structs.
 pub(crate) mod serde_byte_buffer {
@@ -434,6 +435,13 @@ pub struct SpineConfig {
 
     /// Replication enabled.
     pub replication_enabled: bool,
+
+    /// Waypoint-specific config when this spine is used as a waypoint.
+    ///
+    /// When `Some`, attestation and other waypoint policies apply to
+    /// anchor/record/depart operations. When `None`, defaults are used.
+    #[serde(default)]
+    pub waypoint_config: Option<WaypointConfig>,
 }
 
 /// Spine type.

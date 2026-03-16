@@ -1,11 +1,14 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! tarpc server implementation for `LoamSpine`.
 //!
 //! High-performance binary RPC for primal-to-primal communication.
 //! Uses pure Rust tarpc - no protobuf, no gRPC, no C++ tooling.
 
-#![allow(clippy::wildcard_imports)]
+#![allow(
+    clippy::wildcard_imports,
+    reason = "tarpc service macro requires wildcard imports; allow not expect: lint absent in test target"
+)]
 
 use crate::error::{ApiError, ServerError};
 use crate::rpc::LoamSpineRpc;

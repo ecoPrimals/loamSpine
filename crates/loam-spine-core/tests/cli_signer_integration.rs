@@ -1,7 +1,6 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]
-#![allow(unsafe_code)]
 
 //! Integration tests for CLI signer with real `BearDog` binary.
 //!
@@ -104,28 +103,19 @@ async fn test_cli_signer_with_environment_variable() {
         return;
     }
 
-    // Test environment variable configuration
-    unsafe {
-        std::env::set_var("LOAMSPINE_SIGNER_PATH", BEARDOG_BIN);
-    }
-    unsafe {
-        std::env::set_var("LOAMSPINE_SIGNER_KEY", "test-key");
-    }
-
-    // Environment variables are now set for discovery
-    let signer_path = std::env::var("LOAMSPINE_SIGNER_PATH");
-    assert!(signer_path.is_ok(), "Should read LOAMSPINE_SIGNER_PATH");
-    if let Ok(path) = signer_path {
-        assert_eq!(path, BEARDOG_BIN);
-    }
-
-    // Clean up
-    unsafe {
-        std::env::remove_var("LOAMSPINE_SIGNER_PATH");
-    }
-    unsafe {
-        std::env::remove_var("LOAMSPINE_SIGNER_KEY");
-    }
+    temp_env::with_vars(
+        [
+            ("LOAMSPINE_SIGNER_PATH", Some(BEARDOG_BIN)),
+            ("LOAMSPINE_SIGNER_KEY", Some("test-key")),
+        ],
+        || {
+            let signer_path = std::env::var("LOAMSPINE_SIGNER_PATH");
+            assert!(signer_path.is_ok(), "Should read LOAMSPINE_SIGNER_PATH");
+            if let Ok(path) = signer_path {
+                assert_eq!(path, BEARDOG_BIN);
+            }
+        },
+    );
 }
 
 #[tokio::test]

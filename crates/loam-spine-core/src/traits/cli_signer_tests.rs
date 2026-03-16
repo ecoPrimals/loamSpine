@@ -1,14 +1,12 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 #[allow(clippy::uninlined_format_args)]
-#[allow(unsafe_code)]
 mod tests {
     use super::super::*;
     use crate::discovery::{DynSigner, DynVerifier};
     use crate::types::ByteBuffer;
     use serial_test::serial;
-    use std::env;
     use std::path::PathBuf;
     use std::sync::Arc;
 
@@ -73,33 +71,19 @@ mod tests {
 
     #[test]
     fn discover_binary_returns_none_if_not_found() {
-        // Clear env var to test discovery
-        unsafe {
-            env::remove_var(ENV_SIGNER_PATH);
-        }
-        // Discovery may or may not find binary depending on environment
-        let result = CliSigner::discover_binary();
-        // Just verify it doesn't panic
-        let _ = result;
+        temp_env::with_var(ENV_SIGNER_PATH, None::<&str>, || {
+            let result = CliSigner::discover_binary();
+            let _ = result;
+        });
     }
 
     #[test]
     fn discover_binary_respects_env_var() {
-        // Set env var to a test path
         let test_path = "/tmp/test-signer";
-        unsafe {
-            env::set_var(ENV_SIGNER_PATH, test_path);
-        }
-
-        let result = CliSigner::discover_binary();
-
-        // Clean up
-        unsafe {
-            env::remove_var(ENV_SIGNER_PATH);
-        }
-
-        // Should return None because the path doesn't exist, but it checked the env var
-        assert!(result.is_none());
+        temp_env::with_var(ENV_SIGNER_PATH, Some(test_path), || {
+            let result = CliSigner::discover_binary();
+            assert!(result.is_none());
+        });
     }
 
     #[test]
@@ -300,52 +284,18 @@ mod tests {
 
     #[test]
     fn environment_variable_priority() {
-        // Test that env vars are checked first (highest priority)
-        let original = env::var(ENV_SIGNER_PATH).ok();
-
-        // Set a test path
-        unsafe {
-            env::set_var(ENV_SIGNER_PATH, "/test/priority/path");
-        }
-
-        // Discovery should check this first
-        let result = CliSigner::discover_binary();
-
-        // Restore original
-        if let Some(val) = original {
-            unsafe {
-                env::set_var(ENV_SIGNER_PATH, val);
-            }
-        } else {
-            unsafe {
-                env::remove_var(ENV_SIGNER_PATH);
-            }
-        }
-
-        // Should return None (path doesn't exist) but proved it checked env var
-        assert!(result.is_none());
+        temp_env::with_var(ENV_SIGNER_PATH, Some("/test/priority/path"), || {
+            let result = CliSigner::discover_binary();
+            assert!(result.is_none());
+        });
     }
 
     #[test]
     fn binary_discovery_searches_multiple_locations() {
-        // Clear env to test fallback locations
-        let original = env::var(ENV_SIGNER_PATH).ok();
-        unsafe {
-            env::remove_var(ENV_SIGNER_PATH);
-        }
-
-        // Discovery should search multiple locations without panicking
-        let result = CliSigner::discover_binary();
-
-        // Restore
-        if let Some(val) = original {
-            unsafe {
-                env::set_var(ENV_SIGNER_PATH, val);
-            }
-        }
-
-        // Result depends on environment, but shouldn't panic
-        let _ = result;
+        temp_env::with_var(ENV_SIGNER_PATH, None::<&str>, || {
+            let result = CliSigner::discover_binary();
+            let _ = result;
+        });
     }
 
     #[test]
@@ -667,27 +617,13 @@ esac
         };
 
         let path_str = true_path.to_string_lossy();
-        let original = env::var(ENV_SIGNER_PATH).ok();
-        unsafe {
-            env::set_var(ENV_SIGNER_PATH, path_str.as_ref());
-        }
-
-        let result = CliSigner::discover_binary();
-
-        if let Some(val) = original {
-            unsafe {
-                env::set_var(ENV_SIGNER_PATH, val);
-            }
-        } else {
-            unsafe {
-                env::remove_var(ENV_SIGNER_PATH);
-            }
-        }
-
-        assert!(result.is_some());
-        assert_eq!(
-            result.as_ref().unwrap().to_string_lossy(),
-            true_path.to_string_lossy()
-        );
+        temp_env::with_var(ENV_SIGNER_PATH, Some(path_str.as_ref()), || {
+            let result = CliSigner::discover_binary();
+            assert!(result.is_some());
+            assert_eq!(
+                result.as_ref().unwrap().to_string_lossy(),
+                true_path.to_string_lossy()
+            );
+        });
     }
 }

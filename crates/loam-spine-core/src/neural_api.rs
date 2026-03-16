@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! NeuralAPI registration for biomeOS orchestration.
 //!
@@ -106,7 +106,7 @@ pub async fn register_with_neural_api() -> crate::error::LoamSpineResult<bool> {
 
     let our_socket = resolve_socket_path();
     let pid = std::process::id();
-    let capabilities: Vec<&str> = CAPABILITIES.to_vec();
+    let capabilities: &[&str] = CAPABILITIES;
 
     let params = serde_json::json!({
         "name": PRIMAL_NAME,
@@ -315,7 +315,7 @@ pub fn capability_list_pretty() -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
     use serial_test::serial;
@@ -609,9 +609,9 @@ mod tests {
         })
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn register_with_neural_api_succeeds_with_mock_server() {
+    fn register_with_neural_api_succeeds_with_mock_server() {
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api.sock");
         let response = serde_json::json!({
@@ -619,24 +619,25 @@ mod tests {
             "result": { "registered": true },
             "id": 1
         });
-        let handle = spawn_mock_neural_api(&sock, &response);
-
-        unsafe {
-            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
-        }
-        let result = register_with_neural_api().await;
-        unsafe {
-            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        }
-
-        assert!(result.is_ok());
-        assert!(result.unwrap());
-        handle.abort();
+        let sock_path = sock.to_str().unwrap().to_string();
+        temp_env::with_vars(
+            [("BIOMEOS_NEURAL_API_SOCKET", Some(sock_path.as_str()))],
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let handle = spawn_mock_neural_api(&sock, &response);
+                    let result = register_with_neural_api().await;
+                    handle.abort();
+                    assert!(result.is_ok());
+                    assert!(result.unwrap());
+                });
+            },
+        );
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn register_with_neural_api_returns_error_on_jsonrpc_error() {
+    fn register_with_neural_api_returns_error_on_jsonrpc_error() {
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api-err.sock");
         let response = serde_json::json!({
@@ -644,25 +645,26 @@ mod tests {
             "error": { "code": -32601, "message": "method not found" },
             "id": 1
         });
-        let handle = spawn_mock_neural_api(&sock, &response);
-
-        unsafe {
-            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
-        }
-        let result = register_with_neural_api().await;
-        unsafe {
-            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        }
-
-        assert!(result.is_err());
-        let err = result.unwrap_err().to_string();
-        assert!(err.contains("method not found"), "error: {err}");
-        handle.abort();
+        let sock_path = sock.to_str().unwrap().to_string();
+        temp_env::with_vars(
+            [("BIOMEOS_NEURAL_API_SOCKET", Some(sock_path.as_str()))],
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let handle = spawn_mock_neural_api(&sock, &response);
+                    let result = register_with_neural_api().await;
+                    handle.abort();
+                    assert!(result.is_err());
+                    let err = result.unwrap_err().to_string();
+                    assert!(err.contains("method not found"), "error: {err}");
+                });
+            },
+        );
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn deregister_from_neural_api_succeeds_with_mock_server() {
+    fn deregister_from_neural_api_succeeds_with_mock_server() {
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api-dereg.sock");
         let response = serde_json::json!({
@@ -670,23 +672,24 @@ mod tests {
             "result": { "deregistered": true },
             "id": 2
         });
-        let handle = spawn_mock_neural_api(&sock, &response);
-
-        unsafe {
-            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
-        }
-        let result = deregister_from_neural_api().await;
-        unsafe {
-            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        }
-
-        assert!(result.is_ok());
-        handle.abort();
+        let sock_path = sock.to_str().unwrap().to_string();
+        temp_env::with_vars(
+            [("BIOMEOS_NEURAL_API_SOCKET", Some(sock_path.as_str()))],
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let handle = spawn_mock_neural_api(&sock, &response);
+                    let result = deregister_from_neural_api().await;
+                    handle.abort();
+                    assert!(result.is_ok());
+                });
+            },
+        );
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn deregister_from_neural_api_handles_jsonrpc_error_gracefully() {
+    fn deregister_from_neural_api_handles_jsonrpc_error_gracefully() {
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api-dereg-err.sock");
         let response = serde_json::json!({
@@ -694,61 +697,62 @@ mod tests {
             "error": { "code": -32601, "message": "not supported" },
             "id": 2
         });
-        let handle = spawn_mock_neural_api(&sock, &response);
-
-        unsafe {
-            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
-        }
-        let result = deregister_from_neural_api().await;
-        unsafe {
-            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        }
-
-        assert!(
-            result.is_ok(),
-            "deregister should succeed even on JSON-RPC error"
+        let sock_path = sock.to_str().unwrap().to_string();
+        temp_env::with_vars(
+            [("BIOMEOS_NEURAL_API_SOCKET", Some(sock_path.as_str()))],
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let handle = spawn_mock_neural_api(&sock, &response);
+                    let result = deregister_from_neural_api().await;
+                    handle.abort();
+                    assert!(
+                        result.is_ok(),
+                        "deregister should succeed even on JSON-RPC error"
+                    );
+                });
+            },
         );
-        handle.abort();
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn deregister_from_neural_api_handles_malformed_response() {
+    fn deregister_from_neural_api_handles_malformed_response() {
         let tmp = tempfile::tempdir().unwrap();
         let sock = tmp.path().join("neural-api-dereg-bad.sock");
+        let sock_path = sock.to_str().unwrap().to_string();
+        temp_env::with_vars(
+            [("BIOMEOS_NEURAL_API_SOCKET", Some(sock_path.as_str()))],
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let listener = tokio::net::UnixListener::bind(&sock).unwrap();
+                    let handle = tokio::spawn(async move {
+                        if let Ok((mut stream, _)) = listener.accept().await {
+                            let mut len_buf = [0u8; 4];
+                            let _ = stream.read_exact(&mut len_buf).await;
+                            let req_len = u32::from_be_bytes(len_buf) as usize;
+                            let mut req_buf = vec![0u8; req_len];
+                            let _ = stream.read_exact(&mut req_buf).await;
 
-        let listener = tokio::net::UnixListener::bind(&sock).unwrap();
-        let handle = tokio::spawn(async move {
-            if let Ok((mut stream, _)) = listener.accept().await {
-                let mut len_buf = [0u8; 4];
-                let _ = stream.read_exact(&mut len_buf).await;
-                let req_len = u32::from_be_bytes(len_buf) as usize;
-                let mut req_buf = vec![0u8; req_len];
-                let _ = stream.read_exact(&mut req_buf).await;
-
-                let garbage = b"not json";
-                let len = u32::try_from(garbage.len())
-                    .unwrap_or(u32::MAX)
-                    .to_be_bytes();
-                let _ = stream.write_all(&len).await;
-                let _ = stream.write_all(garbage).await;
-                let _ = stream.flush().await;
-            }
-        });
-
-        unsafe {
-            std::env::set_var("BIOMEOS_NEURAL_API_SOCKET", sock.to_str().unwrap());
-        }
-        let result = deregister_from_neural_api().await;
-        unsafe {
-            std::env::remove_var("BIOMEOS_NEURAL_API_SOCKET");
-        }
-
-        assert!(
-            result.is_ok(),
-            "deregister should succeed even on malformed response"
+                            let garbage = b"not json";
+                            let len = u32::try_from(garbage.len())
+                                .unwrap_or(u32::MAX)
+                                .to_be_bytes();
+                            let _ = stream.write_all(&len).await;
+                            let _ = stream.write_all(garbage).await;
+                            let _ = stream.flush().await;
+                        }
+                    });
+                    let result = deregister_from_neural_api().await;
+                    handle.abort();
+                    assert!(
+                        result.is_ok(),
+                        "deregister should succeed even on malformed response"
+                    );
+                });
+            },
         );
-        handle.abort();
     }
 
     #[test]

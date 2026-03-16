@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Health check endpoints for `LoamSpine`.
 //!
@@ -209,12 +209,10 @@ impl HealthChecker {
                 storage: storage_healthy,
                 discovery: discovery_healthy,
             },
-            capabilities: vec![
-                "persistent-ledger".to_string(),
-                "waypoint-anchoring".to_string(),
-                "certificate-manager".to_string(),
-                "proof-generation".to_string(),
-            ],
+            capabilities: loam_spine_core::capabilities::identifiers::loamspine::ADVERTISED
+                .iter()
+                .map(|&s| s.to_string())
+                .collect(),
         })
     }
 
@@ -351,11 +349,9 @@ mod tests {
         let checker = HealthChecker::new();
         let health = checker.check_health().await.unwrap();
         assert!(!health.capabilities.is_empty());
-        assert!(
-            health
-                .capabilities
-                .contains(&"persistent-ledger".to_string())
-        );
+        assert!(health.capabilities.contains(
+            &loam_spine_core::capabilities::identifiers::loamspine::PERMANENT_LEDGER.to_string()
+        ));
     }
 
     #[tokio::test]

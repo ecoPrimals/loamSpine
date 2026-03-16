@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Spine types for LoamSpine.
 //!
@@ -132,6 +132,10 @@ impl Spine {
 
     /// Append an entry to the spine.
     ///
+    /// Takes ownership of the entry (zero-copy into the spine's entry list).
+    /// After append, use [`tip_entry()`](Self::tip_entry) to get a reference
+    /// to the stored entry for persistence without cloning.
+    ///
     /// # Errors
     ///
     /// Returns an error if the spine is sealed or the entry is invalid.
@@ -140,7 +144,6 @@ impl Spine {
             return Err(LoamSpineError::SpineSealed(self.id));
         }
 
-        // Validate entry
         if entry.index != self.height {
             return Err(LoamSpineError::ChainValidation {
                 index: entry.index,
@@ -155,7 +158,6 @@ impl Spine {
             });
         }
 
-        // Compute hash and update spine
         let hash = entry.hash()?;
         self.entries.push(entry);
         self.tip = hash;

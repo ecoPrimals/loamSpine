@@ -1,6 +1,6 @@
 # LoamSpine Docker Image
 # Pure Rust, multi-stage build for minimal image size
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 # =============================================================================
 # Stage 1: Builder

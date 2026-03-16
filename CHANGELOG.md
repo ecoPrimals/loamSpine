@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-03-16
+
+### Added
+- **Attestation runtime enforcement**: `check_attestation_requirement()` wired into `anchor_slice`, `record_operation`, `depart_slice`. `DynAttestationProvider` trait with `StubAttestationProvider`. Capability-discovered via `external::ATTESTATION`. Graceful degradation when no provider available.
+- **`capabilities::identifiers::loamspine::ADVERTISED`**: Canonical capability set for service advertisement. Single source of truth for lifecycle, health, and infant discovery.
+- **`InfantDiscovery::from_advertised()`**: Constructor using canonical advertised capabilities.
+- **`SpineConfig.waypoint_config`**: Optional `WaypointConfig` field for per-spine attestation policies.
+- **`capabilities::identifiers::external::ATTESTATION`**: Constant for attestation capability discovery.
+- **Main.rs integration tests**: CLI parsing (4 unit tests), capabilities JSON output, socket path, server start/shutdown via SIGINT (8 integration tests).
+
+### Changed
+- **Zero-copy `append` refactor**: `Spine::append()` takes ownership; 16 service-layer `entry.clone()` calls eliminated. Callers use `spine.tip_entry()` for zero-copy persistence to storage.
+- **Capability string constants**: All hardcoded `"persistent-ledger"`, `"certificate-manager"`, `"waypoint-anchoring"` replaced with `capabilities::identifiers::loamspine::*` constants across service, health, lifecycle, discovery, and integration tests.
+- **`niche.rs` consumed capabilities**: String literals evolved to `capabilities::identifiers::external::*` constant references.
+- **`CAPABILITIES.to_vec()` eliminated**: `neural_api.rs` uses `&[&str]` slice reference directly (zero allocation).
+- **blake3 pure Rust mode**: `features = ["pure"]` — zero C/asm compilation for full ecoBin compliance.
+- **AGPL-3.0-or-later**: All 114 SPDX headers aligned with wateringHole scyBorg guidance (was `-only`).
+- **`temp-env` migration**: 14 additional async tests migrated from `unsafe` env mutation to `temp_env::with_vars` + manual runtime. Fixed nested runtime issues.
+- **`.cargo/config.toml`**: Documented noexec mount workaround with env var override guidance.
+- **`cfg_attr` conditional lint**: Discovery client `unreachable_code` expectation made feature-conditional.
+- **Proof generation zero-copy**: `e.clone()` in proof path loop replaced with `compute_hash()` (`&self`).
+
+### Fixed
+- **Borrow checker**: `append` returning `(EntryHash, &Entry)` caused mutable borrow conflicts. Evolved to `tip_entry()` pattern which properly releases the mutable borrow before accessing spine fields.
+- **Nested runtime panic**: Async tests using `#[tokio::test]` with `temp_env::with_vars` + `block_on` created nested runtimes. Fixed by converting to `#[test]` + manual `Runtime::new().block_on()`.
+- **`discovery::tests::all_statuses`**: Updated assertion count from 2 to 3 after attestation provider added to `all_statuses()`.
+- **`SpineConfig` derivable impl**: Replaced manual `Default` impl with `#[derive(Default)]` per clippy `derivable_impls`.
+
+### Metrics
+- Tests: 1,052+ (reorganized from 1,132; some tests consolidated during temp-env migration)
+- Coverage: 90%+ (main.rs integration tests close the gap)
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe in production: 0
+- Max file size: maintained under 1000 lines
+- ecoBin: Full compliance (blake3 pure, zero C deps)
+- License: AGPL-3.0-or-later (aligned with scyBorg)
+
 ## [0.8.9] - 2026-03-15
 
 ### Added
@@ -299,7 +337,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pure Rust TLS**: `reqwest` switched from `native-tls` to `rustls-tls` -- no more OpenSSL/native-tls in dependency tree
 - **UniBin compliance**: Binary renamed to `loamspine`, CLI uses `clap` with subcommand structure (`loamspine server`)
 - **Semantic JSON-RPC naming**: Methods renamed to `{domain}.{operation}` convention (`spine.create`, `certificate.mint`, `health.check`, etc.)
-- **AGPL-3.0-only LICENSE** file at project root, SPDX headers on all 66 source files
+- **AGPL-3.0-or-later LICENSE** file at project root, SPDX headers on all 66 source files
 - **cargo deny** configuration: bans openssl/native-tls, enforces license compliance
 - **90%+ line coverage** with targeted tests across cli_signer, discovery_client, lifecycle, infant_discovery, config, health, moment
 
@@ -309,7 +347,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cast_possible_truncation` lints replaced with `try_into()` throughout
 - All `#[allow]` annotations justified or removed
 - Environment-touching tests serialized with `#[serial]` to prevent race conditions
-- `deny.toml` updated with `AGPL-3.0-only`, `CDLA-Permissive-2.0` licenses
+- `deny.toml` updated with `AGPL-3.0-or-later`, `CDLA-Permissive-2.0` licenses
 - Root docs cleaned: 10 dated Jan 2026 docs archived to `phase2/archive/`
 - `primal-capabilities.toml` updated to v0.8.0, deprecated songbird fields removed
 
@@ -603,6 +641,7 @@ spine.append(entry)?;
 
 ---
 
+[0.9.0]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.9...v0.9.0
 [0.8.9]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.6...v0.8.7

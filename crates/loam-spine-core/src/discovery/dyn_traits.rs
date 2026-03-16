@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Object-safe wrappers for `Signer` and `Verifier` traits.
+//! Object-safe wrappers for `Signer`, `Verifier`, and `AttestationProvider` traits.
 //!
 //! These wrappers use dynamic dispatch (`Pin<Box<dyn Future>>`) to allow
-//! storing heterogeneous signer/verifier implementations behind a single
-//! `Arc<dyn DynSigner>` / `Arc<dyn DynVerifier>`.
+//! storing heterogeneous implementations behind a single `Arc<dyn Dyn*>`.
 //!
 //! Blanket implementations convert any concrete `Signer`/`Verifier` into
 //! the corresponding `Dyn*` trait automatically.
@@ -13,6 +12,7 @@ use std::sync::Arc;
 
 use crate::error::LoamSpineResult;
 use crate::traits::{Signer, Verifier};
+use crate::waypoint::{AttestationContext, AttestationResult};
 
 /// A boxed signer that can be stored and shared.
 pub type BoxedSigner = Arc<dyn DynSigner>;
@@ -114,4 +114,21 @@ impl<T: Verifier> DynVerifier for T {
     > {
         Box::pin(async move { self.verify_entry(&entry).await })
     }
+}
+
+/// A boxed attestation provider that can be stored and shared.
+pub type BoxedAttestationProvider = Arc<dyn DynAttestationProvider>;
+
+/// Object-safe attestation provider for waypoint operation attestation.
+///
+/// Discovered at runtime via capability identifier `ATTESTATION`.
+/// The actual RPC to the attestation primal is stubbed in v0.9; control flow is wired.
+pub trait DynAttestationProvider: Send + Sync {
+    /// Request attestation for a waypoint operation.
+    fn request_attestation(
+        &self,
+        context: AttestationContext,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = LoamSpineResult<AttestationResult>> + Send + '_>,
+    >;
 }

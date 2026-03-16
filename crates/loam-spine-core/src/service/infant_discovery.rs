@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Infant discovery - start with zero knowledge, discover everything.
 //!
@@ -27,11 +27,8 @@
 //! use loam_spine_core::service::infant_discovery::InfantDiscovery;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create infant with self-knowledge only
-//! let infant = InfantDiscovery::new(vec![
-//!     "persistent-ledger".to_string(),
-//!     "waypoint-anchoring".to_string(),
-//! ]);
+//! // Create infant from canonical advertised capabilities
+//! let infant = InfantDiscovery::from_advertised();
 //!
 //! // Discover the discovery service (universal adapter)
 //! match infant.discover_discovery_service().await {
@@ -75,7 +72,7 @@ impl InfantDiscovery {
     /// use loam_spine_core::service::infant_discovery::InfantDiscovery;
     ///
     /// let infant = InfantDiscovery::new(vec![
-    ///     "persistent-ledger".to_string(),
+    ///     "permanent-ledger".to_string(),
     ///     "waypoint-anchoring".to_string(),
     /// ]);
     /// ```
@@ -86,6 +83,20 @@ impl InfantDiscovery {
             self_capabilities.len()
         );
         Self { self_capabilities }
+    }
+
+    /// Create from the canonical advertised capability set.
+    ///
+    /// Uses [`crate::capabilities::identifiers::loamspine::ADVERTISED`] as
+    /// the single source of truth for what capabilities this primal provides.
+    #[must_use]
+    pub fn from_advertised() -> Self {
+        Self::new(
+            crate::capabilities::identifiers::loamspine::ADVERTISED
+                .iter()
+                .map(|&s| s.to_string())
+                .collect(),
+        )
     }
 
     /// Discover the discovery service (universal adapter).
@@ -106,7 +117,7 @@ impl InfantDiscovery {
     /// use loam_spine_core::service::infant_discovery::InfantDiscovery;
     ///
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let infant = InfantDiscovery::new(vec!["persistent-ledger".to_string()]);
+    /// let infant = InfantDiscovery::from_advertised();
     ///
     /// match infant.discover_discovery_service().await {
     ///     Ok(client) => println!("✅ Found discovery service"),
@@ -355,16 +366,12 @@ impl InfantDiscovery {
 
 impl Default for InfantDiscovery {
     fn default() -> Self {
-        Self::new(vec![
-            "persistent-ledger".to_string(),
-            "waypoint-anchoring".to_string(),
-            "certificate-manager".to_string(),
-        ])
+        Self::from_advertised()
     }
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
     use serial_test::serial;
@@ -381,40 +388,46 @@ mod tests {
         let infant = InfantDiscovery::default();
         assert!(infant.capabilities().len() >= 3);
         assert!(
-            infant
-                .capabilities()
-                .contains(&"persistent-ledger".to_string())
+            infant.capabilities().contains(
+                &crate::capabilities::identifiers::loamspine::PERMANENT_LEDGER.to_string()
+            )
         );
     }
 
-    #[tokio::test]
-    #[serial]
-    async fn environment_discovery_with_var() {
-        unsafe {
-            std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
-        }
-
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.try_environment_discovery();
-
-        assert_eq!(result, Some("http://test.example.com:8082".to_string()));
-
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
+    #[test]
+    fn from_advertised_matches_canonical_set() {
+        let infant = InfantDiscovery::from_advertised();
+        let caps = infant.capabilities();
+        for &expected in crate::capabilities::identifiers::loamspine::ADVERTISED {
+            assert!(
+                caps.contains(&expected.to_string()),
+                "missing advertised capability: {expected}"
+            );
         }
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn environment_discovery_without_var() {
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
+    fn environment_discovery_with_var() {
+        temp_env::with_var(
+            "DISCOVERY_ENDPOINT",
+            Some("http://test.example.com:8082"),
+            || {
+                let infant = InfantDiscovery::new(vec!["test".to_string()]);
+                let result = infant.try_environment_discovery();
+                assert_eq!(result, Some("http://test.example.com:8082".to_string()));
+            },
+        );
+    }
 
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.try_environment_discovery();
-
-        assert!(result.is_none());
+    #[test]
+    #[serial]
+    fn environment_discovery_without_var() {
+        temp_env::with_var("DISCOVERY_ENDPOINT", None::<&str>, || {
+            let infant = InfantDiscovery::new(vec!["test".to_string()]);
+            let result = infant.try_environment_discovery();
+            assert!(result.is_none());
+        });
     }
 
     #[tokio::test]
@@ -451,76 +464,65 @@ mod tests {
         assert_eq!(result, Some(expected_endpoint));
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn discovery_service_full_chain() {
-        unsafe {
-            std::env::set_var("DISCOVERY_ENDPOINT", "http://test.example.com:8082");
-        }
-
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.discover_discovery_service().await;
-
-        assert!(result.is_err());
-
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn discover_discovery_service_unreachable_endpoint_returns_error() {
-        unsafe {
-            std::env::set_var("DISCOVERY_ENDPOINT", "http://127.0.0.1:1");
-        }
-
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.discover_discovery_service().await;
-
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        let err_str = err.to_string();
-        assert!(
-            err_str.contains("unavailable")
-                || err_str.contains("registry")
-                || err_str.contains("127"),
-            "Expected connection error: {err_str}",
+    fn discovery_service_full_chain() {
+        temp_env::with_var(
+            "DISCOVERY_ENDPOINT",
+            Some("http://test.example.com:8082"),
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let infant = InfantDiscovery::new(vec!["test".to_string()]);
+                    let result = infant.discover_discovery_service().await;
+                    assert!(result.is_err());
+                });
+            },
         );
-
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn discover_discovery_service_development_fallback_connection_fails() {
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
-
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.discover_discovery_service().await;
-
-        assert!(result.is_err());
+    fn discover_discovery_service_unreachable_endpoint_returns_error() {
+        temp_env::with_var("DISCOVERY_ENDPOINT", Some("http://127.0.0.1:1"), || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let infant = InfantDiscovery::new(vec!["test".to_string()]);
+                let result = infant.discover_discovery_service().await;
+                assert!(result.is_err());
+                let err = result.unwrap_err();
+                let err_str = err.to_string();
+                assert!(
+                    err_str.contains("unavailable")
+                        || err_str.contains("registry")
+                        || err_str.contains("127"),
+                    "Expected connection error: {err_str}",
+                );
+            });
+        });
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn discover_discovery_service_empty_env_skipped() {
-        unsafe {
-            std::env::set_var("DISCOVERY_ENDPOINT", "");
-        }
+    fn discover_discovery_service_development_fallback_connection_fails() {
+        temp_env::with_var("DISCOVERY_ENDPOINT", None::<&str>, || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let infant = InfantDiscovery::new(vec!["test".to_string()]);
+                let result = infant.discover_discovery_service().await;
+                assert!(result.is_err());
+            });
+        });
+    }
 
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.try_environment_discovery();
-
-        assert!(result.is_none());
-
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
+    #[test]
+    #[serial]
+    fn discover_discovery_service_empty_env_skipped() {
+        temp_env::with_var("DISCOVERY_ENDPOINT", Some(""), || {
+            let infant = InfantDiscovery::new(vec!["test".to_string()]);
+            let result = infant.try_environment_discovery();
+            assert!(result.is_none());
+        });
     }
 
     #[tokio::test]
@@ -539,66 +541,64 @@ mod tests {
 
     #[test]
     fn default_includes_all_expected_capabilities() {
+        use crate::capabilities::identifiers::loamspine;
         let infant = InfantDiscovery::default();
         let caps = infant.capabilities();
 
-        assert!(caps.contains(&"persistent-ledger".to_string()));
-        assert!(caps.contains(&"waypoint-anchoring".to_string()));
-        assert!(caps.contains(&"certificate-manager".to_string()));
+        assert!(caps.contains(&loamspine::PERMANENT_LEDGER.to_string()));
+        assert!(caps.contains(&loamspine::WAYPOINT_ANCHORING.to_string()));
+        assert!(caps.contains(&loamspine::CERTIFICATE_AUTHORITY.to_string()));
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn discover_discovery_service_env_takes_priority_over_fallback() {
+    fn discover_discovery_service_env_takes_priority_over_fallback() {
         // When DISCOVERY_ENDPOINT is set, it should be used (even if unreachable)
-        unsafe {
-            std::env::set_var(
-                "DISCOVERY_ENDPOINT",
-                "http://env-priority-test.example:9999",
-            );
-        }
-
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.discover_discovery_service().await;
-
-        // Should fail to connect (unreachable) but we used env, not fallback
-        assert!(result.is_err());
-        let err_str = result.unwrap_err().to_string();
-        assert!(
-            err_str.contains("env-priority-test")
-                || err_str.contains("9999")
-                || err_str.contains("unavailable"),
-            "Expected env endpoint in error: {err_str}",
+        temp_env::with_var(
+            "DISCOVERY_ENDPOINT",
+            Some("http://env-priority-test.example:9999"),
+            || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    let infant = InfantDiscovery::new(vec!["test".to_string()]);
+                    let result = infant.discover_discovery_service().await;
+                    // Should fail to connect (unreachable) but we used env, not fallback
+                    assert!(result.is_err());
+                    let err_str = result.unwrap_err().to_string();
+                    assert!(
+                        err_str.contains("env-priority-test")
+                            || err_str.contains("9999")
+                            || err_str.contains("unavailable"),
+                        "Expected env endpoint in error: {err_str}",
+                    );
+                });
+            },
         );
-
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn discover_discovery_service_fallback_chain_when_env_unset() {
+    fn discover_discovery_service_fallback_chain_when_env_unset() {
         // No env var -> DNS (None in test) -> mDNS (None) -> dev fallback -> connect fails
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
-
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.discover_discovery_service().await;
-
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        let err_str = err.to_string();
-        // Connection to localhost:8082 should fail (no server)
-        assert!(
-            err_str.contains("unavailable")
-                || err_str.contains("registry")
-                || err_str.contains("localhost")
-                || err_str.contains("8082")
-                || err_str.contains("connection"),
-            "Expected connection error from fallback: {err_str}",
-        );
+        temp_env::with_var("DISCOVERY_ENDPOINT", None::<&str>, || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let infant = InfantDiscovery::new(vec!["test".to_string()]);
+                let result = infant.discover_discovery_service().await;
+                assert!(result.is_err());
+                let err = result.unwrap_err();
+                let err_str = err.to_string();
+                // Connection to localhost:8082 should fail (no server)
+                assert!(
+                    err_str.contains("unavailable")
+                        || err_str.contains("registry")
+                        || err_str.contains("localhost")
+                        || err_str.contains("8082")
+                        || err_str.contains("connection"),
+                    "Expected connection error from fallback: {err_str}",
+                );
+            });
+        });
     }
 
     #[test]
@@ -627,20 +627,13 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn environment_discovery_empty_string_skipped() {
-        unsafe {
-            std::env::set_var("DISCOVERY_ENDPOINT", "");
-        }
-
-        let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.try_environment_discovery();
-
-        assert!(result.is_none());
-
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
+    fn environment_discovery_empty_string_skipped() {
+        temp_env::with_var("DISCOVERY_ENDPOINT", Some(""), || {
+            let infant = InfantDiscovery::new(vec!["test".to_string()]);
+            let result = infant.try_environment_discovery();
+            assert!(result.is_none());
+        });
     }
 }

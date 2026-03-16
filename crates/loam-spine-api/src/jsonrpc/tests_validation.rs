@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Extended JSON-RPC tests: notification handling, response structure,
 //! error paths, param validation, and edge cases.

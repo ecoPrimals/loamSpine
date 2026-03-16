@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.8.9  
+**Version**: 0.9.0  
 **Status**: Production Ready  
 **Date**: March 15, 2026  
-**Latest**: Deep debt & feature completion, 1,132 tests, 91.71% region coverage in v0.8.9
+**Latest**: Deep debt & feature completion, 1,132 tests, 91.71% region coverage in v0.9.0
 
 ---
 
@@ -303,9 +303,9 @@ cargo build --release
 # Run tests
 cargo test --workspace
 
-# Verify showcase scripts
+# Verify showcase scripts (manual check: ensure demos run)
 cd showcase
-./scripts/verify-prerequisites.sh
+# ./scripts/verify-prerequisites.sh  # (script not present; run demos to verify)
 ```
 
 ---
@@ -325,10 +325,9 @@ cd showcase
 - `04-inter-primal/README.md` - Level 4 guide
 
 ### Project Documentation
-- `../README.md` - Project overview
+- `../README.md` - Project overview and documentation
 - `../STATUS.md` - Current status
 - `../specs/` - Complete specifications
-- `../ROOT_DOCS_INDEX.md` - Documentation index
 
 ---
 
@@ -490,9 +489,8 @@ cat 00_SHOWCASE_INDEX.md
 - `QUICK_REFERENCE.md` - Quick reference card
 
 ### In Repository Root
-- `../README.md` - LoamSpine overview
+- `../README.md` - Project overview and documentation
 - `../STATUS.md` - Project status
-- `../ROOT_DOCS_INDEX.md` - Documentation index
 - `../specs/` - Complete specifications
 
 ### Ecosystem Showcases
@@ -523,6 +521,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.8.9 - ecoPrimals Ecosystem*  
+*LoamSpine v0.9.0 - ecoPrimals Ecosystem*  
 *March 15, 2026*
 

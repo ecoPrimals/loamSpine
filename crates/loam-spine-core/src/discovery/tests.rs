@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::sync::Arc;
 
@@ -122,7 +122,7 @@ async fn all_statuses() {
 
     let registry = CapabilityRegistry::new();
     let statuses = registry.all_statuses().await;
-    assert_eq!(statuses.len(), 2);
+    assert_eq!(statuses.len(), 3);
 
     let signer = Arc::new(MockSigner::new(Did::new("did:key:test")));
     registry.register_signer(signer).await;

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! `LoamSpine` — the permanence layer for `ecoPrimals`.
 //!
@@ -184,4 +184,66 @@ async fn run_server(
     info!("LoamSpine service stopped");
 
     Ok(())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn cli_parse_capabilities() {
+        let cli = Cli::parse_from(["loamspine", "capabilities"]);
+        assert!(matches!(cli.command, Command::Capabilities));
+    }
+
+    #[test]
+    fn cli_parse_socket() {
+        let cli = Cli::parse_from(["loamspine", "socket"]);
+        assert!(matches!(cli.command, Command::Socket));
+    }
+
+    #[test]
+    fn cli_parse_server_defaults() {
+        let cli = Cli::parse_from(["loamspine", "server"]);
+        if let Command::Server {
+            tarpc_port,
+            jsonrpc_port,
+            bind_address,
+        } = cli.command
+        {
+            assert!(tarpc_port.is_none());
+            assert!(jsonrpc_port.is_none());
+            assert!(bind_address.is_none());
+        } else {
+            panic!("expected Server variant");
+        }
+    }
+
+    #[test]
+    fn cli_parse_server_with_overrides() {
+        let cli = Cli::parse_from([
+            "loamspine",
+            "server",
+            "--tarpc-port",
+            "9002",
+            "--jsonrpc-port",
+            "8081",
+            "--bind-address",
+            "127.0.0.1",
+        ]);
+        if let Command::Server {
+            tarpc_port,
+            jsonrpc_port,
+            bind_address,
+        } = cli.command
+        {
+            assert_eq!(tarpc_port, Some(9002));
+            assert_eq!(jsonrpc_port, Some(8081));
+            assert_eq!(bind_address.as_deref(), Some("127.0.0.1"));
+        } else {
+            panic!("expected Server variant");
+        }
+    }
 }

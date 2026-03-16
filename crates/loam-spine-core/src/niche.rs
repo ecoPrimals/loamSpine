@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Primal self-knowledge for LoamSpine.
 //!
@@ -107,12 +107,12 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
 /// LoamSpine discovers these at runtime via capability-based discovery;
 /// it never hardcodes which primal provides them.
 pub const CONSUMED_CAPABILITIES: &[&str] = &[
-    "cryptographic-signing",
-    "content-storage",
-    "service-discovery",
-    "session-management",
-    "compute-orchestration",
-    "attestation",
+    crate::capabilities::identifiers::external::SIGNING,
+    crate::capabilities::identifiers::external::STORAGE,
+    crate::capabilities::identifiers::external::DISCOVERY,
+    crate::capabilities::identifiers::external::SESSION_MANAGEMENT,
+    crate::capabilities::identifiers::external::COMPUTE,
+    crate::capabilities::identifiers::external::ATTESTATION,
 ];
 
 /// Dependencies for primal deployment.
@@ -122,22 +122,22 @@ pub const CONSUMED_CAPABILITIES: &[&str] = &[
 /// `required = false` means graceful degradation is supported.
 pub const DEPENDENCIES: &[(&str, bool, &str)] = &[
     (
-        "cryptographic-signing",
+        crate::capabilities::identifiers::external::SIGNING,
         false,
         "external signature verification (graceful degradation to CLI signer)",
     ),
     (
-        "content-storage",
+        crate::capabilities::identifiers::external::STORAGE,
         false,
         "external content-addressable storage (local redb is self-sufficient)",
     ),
     (
-        "service-discovery",
+        crate::capabilities::identifiers::external::DISCOVERY,
         false,
         "Songbird/Consul/etcd for primal discovery (env vars as fallback)",
     ),
     (
-        "attestation",
+        crate::capabilities::identifiers::external::ATTESTATION,
         false,
         "operation attestation for waypoint semantics (enforcement deferred)",
     ),

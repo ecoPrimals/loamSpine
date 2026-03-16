@@ -7,9 +7,9 @@ members = [
 ]
 
 [workspace.package]
-version = "0.8.9"
+version = "0.9.0"
 edition = "2024"
-license = "AGPL-3.0-only"
+license = "AGPL-3.0-or-later"
 repository = "https://github.com/ecoPrimals/loamSpine"
 authors = ["ecoPrimals Project"]
 
@@ -31,7 +31,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Content addressing
-blake3 = "1.5"
+blake3 = { version = "1.5", default-features = false, features = ["pure"] }
 
 # UUIDs
 uuid = { version = "1.11", features = ["v7", "serde"] }

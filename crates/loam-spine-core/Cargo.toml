@@ -15,7 +15,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 
 # Content addressing
-blake3 = "1.5"
+blake3.workspace = true
 
 # UUIDs for identifiers
 uuid = { version = "1.11", features = ["v7", "serde"] }

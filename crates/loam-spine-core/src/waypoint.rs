@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Waypoint types and policies.
 //!
@@ -145,6 +145,22 @@ impl AttestationRequirement {
             Self::Selective { operation_types } => operation_types.iter().any(|t| t == operation),
         }
     }
+}
+
+/// Context passed to the attestation provider when requesting attestation.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AttestationContext {
+    /// Operation being attested (e.g. "anchor", "depart", "use").
+    pub operation: String,
+
+    /// Waypoint spine where the operation occurs.
+    pub waypoint_spine_id: SpineId,
+
+    /// Slice being operated on.
+    pub slice_id: SliceId,
+
+    /// Optional caller DID (if known).
+    pub caller: Option<Did>,
 }
 
 /// Attestation result from a capability-discovered attestation provider.

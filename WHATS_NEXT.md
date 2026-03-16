@@ -1,9 +1,9 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 
 # Development Roadmap
 
-**Current Version**: 0.8.9  
-**Last Updated**: March 15, 2026
+**Current Version**: 0.9.0  
+**Last Updated**: March 16, 2026
 
 ---
 
@@ -60,15 +60,31 @@
 - **`temp-env` migration**: Thread-safe env var mutation, 38 `unsafe` blocks eliminated from tests
 - **Deploy graph**: `graphs/loamspine_deploy.toml` for biomeOS deployment
 - **Coverage**: 89.64% line, 91.71% region (1,132 tests)
+- **Zero-copy `append` refactor**: `entry.clone()` eliminated across 16 service call sites via `tip_entry()` pattern
+- **Attestation runtime enforcement**: `check_attestation_requirement()` wired into waypoint operations
+- **Capability string constants**: All hardcoded strings → `capabilities::identifiers::*`; `ADVERTISED` set; `from_advertised()`
+- **blake3 pure Rust mode**: ecoBin compliance — zero C/asm compilation
+- **AGPL-3.0-or-later**: Aligned with wateringHole scyBorg guidance
+- **Main.rs integration tests**: CLI, capabilities, socket, server start/shutdown
 
 ---
 
-## v0.9.0 Targets
+## v0.9.0 Completed (March 16, 2026)
 
-- **90%+ line coverage** -- Currently 89.64%; remaining gap is binary entry point `main.rs` (150 lines, 0%). DNS SRV/mDNS network paths have limited testability.
+- **90%+ line coverage** -- main.rs integration tests added; capability/attestation/discovery tests expanded
+- **Runtime attestation enforcement** -- `check_attestation_requirement()` wired into all waypoint operations with capability-discovered `DynAttestationProvider`
+- **Zero-copy `entry.clone()` elimination** -- 16 call sites refactored to `tip_entry()` pattern
+- **Capability string constants** -- All hardcoded strings replaced with `capabilities::identifiers::*`; `ADVERTISED` canonical set; `InfantDiscovery::from_advertised()`
+- **blake3 pure Rust** -- ecoBin compliance: `features = ["pure"]`, zero C/asm
+- **AGPL-3.0-or-later** -- Aligned with wateringHole scyBorg guidance across all 114 source files
+- **`temp-env` migration** -- 14 additional async tests migrated from `unsafe` to safe patterns
+
+---
+
+## v0.9.1 Targets
+
 - **Signing capability middleware** -- Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** -- Expand from ~10% to full coverage
-- **Runtime attestation integration** -- Wire `AttestationRequirement` checks into waypoint operation flow with capability-discovered attestation providers
 
 ---
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Service lifecycle management.
 //!
@@ -141,11 +141,7 @@ impl LifecycleManager {
                 );
 
                 // Use infant discovery to find the discovery service
-                let infant = crate::service::InfantDiscovery::new(vec![
-                    "persistent-ledger".to_string(),
-                    "waypoint-anchoring".to_string(),
-                    "certificate-manager".to_string(),
-                ]);
+                let infant = crate::service::InfantDiscovery::from_advertised();
 
                 match infant.discover_discovery_service().await {
                     Ok(client) => {
@@ -813,23 +809,24 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn lifecycle_start_with_no_endpoint_clears_env() {
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
+    fn lifecycle_start_with_no_endpoint_clears_env() {
+        temp_env::with_var("DISCOVERY_ENDPOINT", None::<&str>, || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let service = LoamSpineService::new();
+                let mut config = LoamSpineConfig::default();
+                config.discovery.discovery_enabled = true;
+                config.discovery.discovery_endpoint = None;
 
-        let service = LoamSpineService::new();
-        let mut config = LoamSpineConfig::default();
-        config.discovery.discovery_enabled = true;
-        config.discovery.discovery_endpoint = None;
+                let mut manager = LifecycleManager::new(service, config);
+                let result = manager.start().await;
 
-        let mut manager = LifecycleManager::new(service, config);
-        let result = manager.start().await;
-
-        assert!(result.is_ok());
-        assert!(manager.discovery_client.is_none());
+                assert!(result.is_ok());
+                assert!(manager.discovery_client.is_none());
+            });
+        });
     }
 
     #[tokio::test]

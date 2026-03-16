@@ -2,10 +2,10 @@
 
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
-[![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)]()
-[![Version](https://img.shields.io/badge/version-0.8.9-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C132%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-89.64%25%20line%20%7C%2091.71%25%20region-brightgreen)]()
+[![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
+[![Version](https://img.shields.io/badge/version-0.9.0-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C052%2B%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-90%25%2B%20line-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20production-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
@@ -58,7 +58,7 @@ cargo deny check licenses bans sources
 
 ## Architecture
 
-**Pure Rust** -- No gRPC, no protobuf, no C/C++ tooling, no OpenSSL. Zero C dependencies (ecoBin compliant).
+**Pure Rust** -- No gRPC, no protobuf, no C/C++ tooling, no OpenSSL. Zero C dependencies (ecoBin compliant). Blake3 uses pure Rust mode (no C/asm).
 
 **Storage backends:** redb (default, pure Rust), memory, sqlite (feature-gated). sled is optional via `--features sled-storage`.
 
@@ -88,7 +88,7 @@ loamSpine/
 │   │       │   ├── expiry_sweeper.rs # Background expired-loan auto-return
 │   │       │   ├── integration.rs # Trait implementations
 │   │       │   ├── signals.rs     # Signal handling
-│   │       │   └── waypoint.rs    # Anchoring, operations, departure, proofs
+│   │       │   └── waypoint.rs    # Anchoring, operations, departure, attestation, proofs
 │   │       ├── spine.rs           # Spine structure
 │   │       ├── storage/           # Storage backends (redb default, memory, sled optional, sqlite)
 │   │       ├── sync/              # Sync engine (push/pull, peer discovery)
@@ -165,16 +165,16 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.8.9 |
+| **Version** | 0.9.0 |
 | **Edition** | 2024 |
-| **Tests** | 1,132 passing |
-| **Coverage** | 89.64% line, 91.71% region (llvm-cov) |
+| **Tests** | 1,052+ passing |
+| **Coverage** | 90%+ line (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
 | **Unsafe Code** | 0 in production (`#![deny(unsafe_code)]`) |
 | **Lint Exceptions** | 0 `#[allow]` in production (all `#[expect(reason)]`) |
 | **Max File Size** | 955 lines (all < 1000) |
 | **Source Files** | 114 `.rs` files across 2 crates + binary |
-| **License** | AGPL-3.0-only |
+| **License** | AGPL-3.0-or-later |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
 | **cargo deny** | bans, licenses, sources pass |
@@ -209,7 +209,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-AGPL-3.0-only. See [LICENSE](./LICENSE).
+AGPL-3.0-or-later. See [LICENSE](./LICENSE).
 
 ---
 

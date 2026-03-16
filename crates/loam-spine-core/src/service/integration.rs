@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! Trait implementations for primal integration.
 //!
@@ -57,10 +57,12 @@ impl CommitAcceptor for LoamSpineService {
             committer: committer.clone(),
         });
 
-        let entry_hash = spine.append(entry.clone())?;
+        let entry_hash = spine.append(entry)?;
         let index = spine.height - 1;
-
-        self.entry_storage.save_entry(&entry).await?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
         Ok(LoamCommitRef {
@@ -116,9 +118,11 @@ impl SliceManager for LoamSpineService {
             holder: holder.clone(),
         });
 
-        let _checkout_hash = spine.append(checkout_entry.clone())?;
-
-        self.entry_storage.save_entry(&checkout_entry).await?;
+        let _checkout_hash = spine.append(checkout_entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
         let origin = SliceOrigin {
@@ -186,9 +190,11 @@ impl SliceManager for LoamSpineService {
             }
         };
 
-        let entry_hash = spine.append(entry.clone())?;
-
-        self.entry_storage.save_entry(&entry).await?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
         {
@@ -237,8 +243,11 @@ impl SliceManager for LoamSpineService {
             holder,
         });
 
-        let entry_hash = spine.append(entry.clone())?;
-        self.entry_storage.save_entry(&entry).await?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
         Ok(entry_hash)
@@ -274,8 +283,11 @@ impl SliceManager for LoamSpineService {
             summary,
         });
 
-        let entry_hash = spine.append(entry.clone())?;
-        self.entry_storage.save_entry(&entry).await?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
         Ok(entry_hash)
@@ -367,9 +379,11 @@ impl BraidAcceptor for LoamSpineService {
             subject_hash: braid.subject_hash,
         });
 
-        let entry_hash = spine.append(entry.clone())?;
-
-        self.entry_storage.save_entry(&entry).await?;
+        let entry_hash = spine.append(entry)?;
+        let appended = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
         Ok(entry_hash)
