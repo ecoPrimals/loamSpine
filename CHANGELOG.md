@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-03-16
+
+### Changed
+- **Certificate service smart refactoring**: `certificate.rs` (906 lines) → `certificate.rs` (380, core CRUD + verification + proofs) + `certificate_loan.rs` (367, loan lifecycle + sublend + auto-return) + `certificate_escrow.rs` (193, escrow hold/release/cancel). Domain-focused split with clean `impl LoamSpineService` blocks.
+- **Hardcoding evolution**: `../bins` path in `cli_signer.rs` → environment-configurable `LOAMSPINE_BINS_DIR` with fallback. Zero hardcoded paths in production.
+- **Unsafe evolution**: `lifecycle.rs` test `unsafe { env::remove_var }` → safe `temp_env::with_var_unset` + manual runtime. `unsafe_code` allow removed from lifecycle test module.
+- **Coverage metric correction**: Corrected from aspirational 92% to measured 91.72% line / 89.71% region / 85.25% function.
+- **Doc count alignment**: STATUS.md, WHATS_NEXT.md, README.md corrected from stale "114"/"119" to actual 121 source files.
+
+### Audits
+- **Dependency audit**: All default-feature deps pure Rust (ecoBin PASS). C deps only via optional features (sqlite, mdns). No bundled C in production.
+- **Mock audit**: All MockSigner, MockVerifier, MockTransport properly `cfg(test|testing)` gated. Zero mock code in production binary.
+- **Hardcoding audit**: Zero hardcoded primal names, ports, or file paths in production code. Zero TODO/FIXME/HACK. Zero `println!`/`eprintln!` in production.
+
+### Metrics
+- Tests: 1,180+ passing
+- Coverage: 91.72% line / 89.71% region / 85.25% function
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe in production: 0
+- Max file size: 955 lines (all 121 files under 1,000)
+- Source files: 121 `.rs` files (up from 119)
+- ecoBin: Full compliance
+- License: AGPL-3.0-or-later
+
 ## [0.9.1] - 2026-03-16
 
 ### Added

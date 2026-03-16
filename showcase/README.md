@@ -40,10 +40,11 @@ showcase/
 │   └── 04-concurrent-ops/      # Parallel operations
 │
 ├── 04-inter-primal/            # Cross-Primal Integration
-│   ├── 01-session-commit/      # Session commits from ephemeral primals
-│   ├── 02-braid-commit/        # Braid commits from attribution primals
-│   ├── 03-signing-capability/  # Capability-based signing
-│   └── 04-full-ecosystem/      # Complete integration demo
+│   ├── 01-beardog-signing/     # BearDog signing → LoamSpine certs
+│   ├── 02-nestgate-storage/    # NestGate braids → LoamSpine anchoring
+│   ├── 03-squirrel-sessions/   # Squirrel sessions → LoamSpine persistence
+│   ├── 04-toadstool-compute/   # Toadstool uses LoamSpine storage
+│   └── 05-full-ecosystem/      # Complete integration demo
 │
 ├── scripts/                    # External Service Integration
 │   ├── start_primals.sh        # Start external services
@@ -182,7 +183,7 @@ cd showcase
 6. Certificate minted for game achievement
 7. Full provenance available forever
 
-**Demo**: `04-inter-primal/01-session-commit/demo-game-session.sh`
+**Demo**: `04-inter-primal/03-squirrel-sessions/demo.sh`
 
 ---
 

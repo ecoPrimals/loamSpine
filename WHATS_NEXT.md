@@ -2,7 +2,7 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.1  
+**Current Version**: 0.9.2  
 **Last Updated**: March 16, 2026
 
 ---
@@ -27,7 +27,7 @@
 - **Clippy pedantic + nursery**: 0 errors across all 3 workspace crates
 - **Zero-copy JSON-RPC dispatch**: `params.clone()` eliminated, by-value ownership
 - **MockTransport cfg-gated**: No mock code in production binary
-- **Smart file splits**: All 114 source files under 1000 lines (max: 955)
+- **Smart file splits**: All 121 source files under 1000 lines (max: 955)
 - **15 const fn promotions**, `let...else` modernization, lock scope tightening
 - **Scyborg license schema**: `CertificateType::scyborg_license()`, metadata builders, constants
 - **Protocol escalation**: `IpcProtocol` negotiation (prefers tarpc Unix socket, fallback JSON-RPC)
@@ -76,7 +76,7 @@
 - **Zero-copy `entry.clone()` elimination** -- 16 call sites refactored to `tip_entry()` pattern
 - **Capability string constants** -- All hardcoded strings replaced with `capabilities::identifiers::*`; `ADVERTISED` canonical set; `InfantDiscovery::from_advertised()`
 - **blake3 pure Rust** -- ecoBin compliance: `features = ["pure"]`, zero C/asm
-- **AGPL-3.0-or-later** -- Aligned with wateringHole scyBorg guidance across all 114 source files
+- **AGPL-3.0-or-later** -- Aligned with wateringHole scyBorg guidance across all 121 source files
 - **`temp-env` migration** -- 14 additional async tests migrated from `unsafe` to safe patterns
 
 ---
@@ -91,8 +91,21 @@
 
 ---
 
-## v0.9.2 Targets
+## v0.9.2 Completed (March 16, 2026)
 
+- **Certificate service smart refactoring** -- `certificate.rs` (906 lines) → 3 domain modules: `certificate.rs` (380) + `certificate_loan.rs` (367) + `certificate_escrow.rs` (193)
+- **Hardcoding evolution** -- `../bins` → env-configurable `LOAMSPINE_BINS_DIR`. Zero hardcoded paths/primal names in production.
+- **Unsafe evolution** -- lifecycle.rs test `unsafe env::remove_var` → safe `temp_env::with_var_unset` + manual runtime
+- **Dependency audit** -- Pure Rust by default (ecoBin). C deps only via optional features (sqlite, mdns).
+- **Mock audit** -- All mocks `cfg(test|testing)` gated. Zero mock code in production binary.
+- **Coverage**: 91.72% line / 89.71% region / 85.25% function (1,180 tests)
+- **Source files**: 119 → 121. All under 1000 lines (max: 955).
+
+---
+
+## v0.9.3 Targets
+
+- **90%+ line coverage** -- Storage backend error-path tests (redb 73.6%, sled 76.9%, sqlite 77-79%, cli_signer 74.6%)
 - **Signing capability middleware** -- Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** -- Expand from ~10% to full coverage
 - **Collision layer validation** -- neuralSpring experiments (Python baseline)

@@ -3,9 +3,9 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
-[![Version](https://img.shields.io/badge/version-0.9.1-blue)]()
+[![Version](https://img.shields.io/badge/version-0.9.2-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C180%2B%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-91.72%25%20line-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20production-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
@@ -84,7 +84,9 @@ loamSpine/
 │   │       ├── resilience.rs      # Circuit breaker + retry policy (lock-free)
 │   │       ├── service/           # Modular service layer
 │   │       │   ├── lifecycle.rs   # Startup/shutdown + ServiceState + NeuralAPI
-│   │       │   ├── certificate.rs # Certificate CRUD + verify + escrow + sublend
+│   │       │   ├── certificate.rs # Certificate core (mint, transfer, verify, proofs)
+│   │       │   ├── certificate_loan.rs  # Loan lifecycle (loan, return, sublend)
+│   │       │   ├── certificate_escrow.rs # Escrow (hold, release, cancel)
 │   │       │   ├── expiry_sweeper.rs # Background expired-loan auto-return
 │   │       │   ├── integration.rs # Trait implementations
 │   │       │   ├── signals.rs     # Signal handling
@@ -165,15 +167,15 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.9.1 |
+| **Version** | 0.9.2 |
 | **Edition** | 2024 |
 | **Tests** | 1,180+ passing |
-| **Coverage** | 92% line (llvm-cov) |
+| **Coverage** | 91.72% line / 89.71% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
 | **Unsafe Code** | 0 in production (`#![deny(unsafe_code)]`) |
 | **Lint Exceptions** | 0 `#[allow]` in production (all `#[expect(reason)]`) |
-| **Max File Size** | 955 lines (all < 1000) |
-| **Source Files** | 119 `.rs` files across 2 crates + binary |
+| **Max File Size** | 955 lines (all 121 files < 1000) |
+| **Source Files** | 121 `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-or-later |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

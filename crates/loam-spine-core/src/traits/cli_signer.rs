@@ -52,6 +52,8 @@ use crate::types::{Did, Signature};
 pub const ENV_SIGNER_PATH: &str = "LOAMSPINE_SIGNER_PATH";
 /// Environment variable for default signer key.
 pub const ENV_SIGNER_KEY: &str = "LOAMSPINE_SIGNER_KEY";
+/// Environment variable for Phase 2 bins directory override.
+pub const ENV_BINS_DIR: &str = "LOAMSPINE_BINS_DIR";
 
 /// CLI-based signer using external binary.
 ///
@@ -120,12 +122,11 @@ impl CliSigner {
     /// Discover signing service binary in standard locations.
     ///
     /// Searches in order:
-    /// 1. Environment variable `LOAMSPINE_SIGNER_PATH`
-    /// 2. `../bins/` directory (Phase 2 integration path)
+    /// 1. Environment variable `LOAMSPINE_SIGNER_PATH` (explicit binary path)
+    /// 2. `LOAMSPINE_BINS_DIR` or `../bins/` directory (Phase 2 integration)
     /// 3. System PATH (looks for common signing service names)
     #[must_use]
     pub fn discover_binary() -> Option<PathBuf> {
-        // Check environment variable first (highest priority)
         if let Ok(path) = std::env::var(ENV_SIGNER_PATH) {
             let path = PathBuf::from(path);
             if path.exists() {
@@ -133,11 +134,9 @@ impl CliSigner {
             }
         }
 
-        // Check Phase 2 bins directory for any signing service
-        let bins_dir = PathBuf::from("../bins");
+        let bins_dir =
+            std::env::var(ENV_BINS_DIR).map_or_else(|_| PathBuf::from("../bins"), PathBuf::from);
         if bins_dir.is_dir() {
-            // Look for generic signing service binaries (discovered at runtime)
-            // No primal names - only capability-based discovery
             for candidate in &["signer", "signing-service"] {
                 let path = bins_dir.join(candidate);
                 if path.exists() {
@@ -146,7 +145,6 @@ impl CliSigner {
             }
         }
 
-        // Check system PATH for common signing service names
         for candidate in &["loamspine-signer", "signer"] {
             if let Ok(output) = Command::new("which").arg(candidate).output()
                 && output.status.success()

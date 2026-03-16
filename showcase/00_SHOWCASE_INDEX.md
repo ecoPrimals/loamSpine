@@ -1,7 +1,7 @@
 # 🦴 LoamSpine Showcase Index
 
-**Version**: 0.9.0  
-**Last Updated**: March 15, 2026  
+**Version**: 0.9.2  
+**Last Updated**: March 16, 2026  
 **Status**: ✅ Production Ready (matches Squirrel's excellence!)
 
 ---
@@ -292,7 +292,7 @@ All levels complete + code review + contribution
 ## 🔧 Prerequisites
 
 ### Minimum (Level 1)
-- Rust 1.75+
+- Rust 1.85+ (edition 2024)
 - `cargo build --release`
 - That's it!
 

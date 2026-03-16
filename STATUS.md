@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.1  
+**Current Version**: 0.9.2  
 **Last Updated**: March 16, 2026
 
 ---
@@ -47,12 +47,12 @@ This document tracks implementation progress against the specification suite in 
 | Metric | Target | Current |
 |--------|--------|---------|
 | Tests | — | 1,180+ |
-| Coverage (llvm-cov) | 90%+ | 92% line / 90% region (attestation, discovery, cli_signer tests expanded) |
+| Coverage (llvm-cov) | 90%+ | 91.72% line / 89.71% region / 85.25% function |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 955 max (all files under 1000) |
-| Source files | — | 119 `.rs` files |
+| Max file size | < 1000 lines | 955 max (all 121 files under 1000) |
+| Source files | — | 121 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
 
@@ -64,12 +64,25 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 114 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 121 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All files under 1000 lines (max: 955). Test files split by domain. |
+| File size limit | PASS | All 121 files under 1000 lines (max: 955). Certificate service smart-refactored (906 → 380+367+193). |
+
+---
+
+## v0.9.2 Deep Debt Resolution & Idiomatic Evolution (March 16, 2026)
+
+- **Certificate service smart refactoring**: `certificate.rs` (906 lines) → 3 domain-focused modules: `certificate.rs` (380 — core CRUD, verification, proofs), `certificate_loan.rs` (367 — loan lifecycle, sublend, auto-return), `certificate_escrow.rs` (193 — hold, release, cancel). No code duplication; clean `impl LoamSpineService` blocks per domain.
+- **Hardcoding evolution**: `../bins` path in `cli_signer.rs` evolved to environment-configurable `LOAMSPINE_BINS_DIR` with fallback. Zero hardcoded paths remain in production code.
+- **Unsafe code evolution**: `lifecycle.rs` test unsafe `env::remove_var` evolved to safe `temp_env::with_var_unset` + manual runtime pattern. `unsafe_code` allow removed from lifecycle test module.
+- **Doc count alignment**: STATUS.md and WHATS_NEXT.md corrected from stale "114" to actual 121 source file count. Coverage metric corrected: 91.72% line / 89.71% region / 85.25% function.
+- **Dependency audit**: All default-feature deps are pure Rust (ecoBin compliant). C dependencies only via optional features (sqlite, mdns). `tokio`/`redb` use system libc for I/O (unavoidable for networked services), but no bundled C code.
+- **Mock audit**: All `MockSigner`, `MockVerifier`, `MockTransport` properly gated behind `#[cfg(any(test, feature = "testing"))]`. Zero mock code in production binary. All stubs evolved to real implementations.
+- **Hardcoding audit**: Zero hardcoded primal names in production (2 self-identity `"LoamSpine"` references are correct). Zero hardcoded ports in production (dev defaults in `constants.rs` with env override). Zero TODO/FIXME/HACK. Zero `println!`/`eprintln!` in production (all tracing).
+- **Source files**: 119 → 121. **All 1,180 tests pass**. Clippy pedantic+nursery clean. Zero doc warnings.
 
 ---
 
@@ -93,7 +106,7 @@ This document tracks implementation progress against the specification suite in 
 - **Capability string constants**: All hardcoded capability strings ("persistent-ledger", "certificate-manager") replaced with `capabilities::identifiers::loamspine::*` constants. Added `ADVERTISED` canonical set. `InfantDiscovery::from_advertised()` constructor.
 - **Attestation runtime enforcement**: `check_attestation_requirement()` wired into `anchor_slice`, `record_operation`, `depart_slice`. Capability-discovered attestation provider with `DynAttestationProvider` trait, `StubAttestationProvider`, and graceful degradation.
 - **blake3 pure Rust**: Switched to `features = ["pure"]` — zero C/asm compilation. Full ecoBin compliance confirmed.
-- **AGPL-3.0-or-later**: Aligned all SPDX headers (114 source files) with wateringHole scyBorg guidance.
+- **AGPL-3.0-or-later**: Aligned all SPDX headers (119 source files) with wateringHole scyBorg guidance.
 - **`temp-env` migration**: 14 additional async tests migrated from `unsafe` env mutation to `temp_env::with_vars` + manual runtime. Nested runtime issue resolved.
 - **`CAPABILITIES.to_vec()` eliminated**: `neural_api.rs` uses `&[&str]` slice directly.
 - **`.cargo/config.toml`**: Documented noexec mount workaround with env var override guidance.

@@ -18,6 +18,8 @@
 //! Other primals are discovered at runtime, not compile time.
 
 mod certificate;
+mod certificate_escrow;
+mod certificate_loan;
 pub mod expiry_sweeper;
 pub mod infant_discovery;
 mod integration;

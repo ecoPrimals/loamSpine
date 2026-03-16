@@ -433,7 +433,7 @@ impl Drop for LifecycleManager {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used, clippy::unwrap_used, unsafe_code)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use serial_test::serial;
@@ -477,25 +477,25 @@ mod tests {
         assert_eq!(*rx.borrow(), ServiceState::Stopped);
     }
 
-    #[tokio::test]
+    #[test]
     #[serial]
-    async fn lifecycle_transitions_through_states() {
-        unsafe {
-            std::env::remove_var("DISCOVERY_ENDPOINT");
-        }
+    fn lifecycle_transitions_through_states() {
+        temp_env::with_var_unset("DISCOVERY_ENDPOINT", || {
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                let service = LoamSpineService::new();
+                let mut config = LoamSpineConfig::default();
+                config.discovery.discovery_enabled = false;
+                let mut manager = LifecycleManager::new(service, config);
 
-        let service = LoamSpineService::new();
-        let mut config = LoamSpineConfig::default();
-        config.discovery.discovery_enabled = false;
-        let mut manager = LifecycleManager::new(service, config);
+                assert_eq!(manager.state(), ServiceState::Stopped);
 
-        assert_eq!(manager.state(), ServiceState::Stopped);
+                manager.start().await.unwrap();
+                assert_eq!(manager.state(), ServiceState::Running);
 
-        manager.start().await.unwrap();
-        assert_eq!(manager.state(), ServiceState::Running);
-
-        manager.stop().await.unwrap();
-        assert_eq!(manager.state(), ServiceState::Stopped);
+                manager.stop().await.unwrap();
+                assert_eq!(manager.state(), ServiceState::Stopped);
+            });
+        });
     }
 
     #[tokio::test]

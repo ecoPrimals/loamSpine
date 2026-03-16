@@ -27,10 +27,10 @@
 
 | # | Demo | Description | Time |
 |---|------|-------------|------|
-| 01 | session-commit | Squirrel sessions → LoamSpine | 10 min |
-| 02 | braid-commit | NestGate braids → LoamSpine | 10 min |
-| 03 | signing-capability | BearDog signs → LoamSpine certs | 10 min |
-| 04 | storage-capability | Toadstool uses LoamSpine | 10 min |
+| 01 | beardog-signing | BearDog signs → LoamSpine certs | 10 min |
+| 02 | nestgate-storage | NestGate braids → LoamSpine anchoring | 10 min |
+| 03 | squirrel-sessions | Squirrel sessions → LoamSpine | 10 min |
+| 04 | toadstool-compute | Toadstool uses LoamSpine storage | 10 min |
 | 05 | full-ecosystem | All primals together | 15 min |
 
 ---
@@ -67,10 +67,11 @@ cd ../loamSpine/showcase/04-inter-primal
 4. Design new primal integrations
 
 ### For Developers
-1. Start with `01-session-commit` (simple)
-2. Progress to `02-braid-commit` (complex)
-3. Study `03-signing-capability` (security)
-4. Understand `05-full-ecosystem` (production)
+1. Start with `01-beardog-signing` (signing integration)
+2. Progress to `02-nestgate-storage` (braid anchoring)
+3. Study `03-squirrel-sessions` (session persistence)
+4. Explore `04-toadstool-compute` (storage as service)
+5. Understand `05-full-ecosystem` (production)
 
 ### For Operators
 1. Deploy primal ecosystem

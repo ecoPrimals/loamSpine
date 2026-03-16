@@ -57,9 +57,9 @@ main() {
     log_header "🦴 LoamSpine Showcase — QUICK START"
     
     log_info "This master script runs all showcase demos in sequence:"
-    log_info "  • Level 0: Local Primal (7 demos)"
-    log_info "  • Level 2: Songbird Discovery (1 demo)"
-    log_info "  • Level 3: Inter-Primal (1 demo)"
+    log_info "  • Level 1: Local Primal (7 demos)"
+    log_info "  • Level 3: Songbird Discovery (1 demo)"
+    log_info "  • Level 4: Inter-Primal (1 demo)"
     echo ""
     log_info "Total: 9 working demos"
     echo ""
@@ -85,7 +85,7 @@ main() {
     # LEVEL 0: LOCAL PRIMAL DEMOS
     # ========================================================================
     
-    log_header "📦 Level 0: Local Primal Capabilities"
+    log_header "📦 Level 1: Local Primal Capabilities"
     
     local level0_demos=(
         "01-hello-loamspine"
@@ -118,7 +118,7 @@ main() {
     # LEVEL 2: SONGBIRD DISCOVERY
     # ========================================================================
     
-    log_header "🐦 Level 2: Songbird Discovery"
+    log_header "🐦 Level 3: Songbird Discovery"
     
     ((total_demos++))
     log_info "Running demo: songbird-connect..."
@@ -138,7 +138,7 @@ main() {
     # LEVEL 3: INTER-PRIMAL INTEGRATION
     # ========================================================================
     
-    log_header "🔗 Level 3: Inter-Primal Integration"
+    log_header "🔗 Level 4: Inter-Primal Integration"
     
     ((total_demos++))
     log_info "Running demo: full-ecosystem..."

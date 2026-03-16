@@ -34,7 +34,7 @@ LoamSpine should expose three health endpoints:
 ```json
 {
   "status": "healthy",
-  "version": "0.9.0",
+  "version": "0.9.2",
   "uptime_seconds": 3600,
   "dependencies": {
     "storage": "healthy",

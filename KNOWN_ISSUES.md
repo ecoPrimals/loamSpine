@@ -38,7 +38,7 @@
 
 | Area | Issue | Notes |
 |------|-------|-------|
-| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[expect(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | Production code remains protected — `deny` still errors on any `unsafe` in non-test code. Most tests migrated to `temp-env` crate (v0.3.6); remaining `unsafe` env mutations use `#[expect(unsafe_code, reason = "...")]` in async tests that require multiple sequential env changes with awaits between them (temp-env cannot wrap per-await mutation). |
+| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[expect(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | Production code remains protected — `deny` still errors on any `unsafe` in non-test code. Most tests migrated to `temp-env` crate; `lifecycle.rs` evolved to `temp_env::with_var_unset` + manual runtime in v0.9.2. Remaining `unsafe` env mutations in `infant_discovery/tests*.rs` use `#[expect(unsafe_code)]` — these require multiple sequential env changes with awaits between them (temp-env cannot wrap per-await mutation). |
 | Dockerfile MSRV | Updated to `rust:1.85`. Edition 2024 requires Rust 1.85+. | CI MSRV job also updated. |
 | `/proc/self/status` UID | 5-tier socket discovery reads UID from `/proc/self/status` — Linux-only. Falls through to `temp_dir()` on non-Linux. | Graceful degradation; only applies when XDG_RUNTIME_DIR is unset. |
 
