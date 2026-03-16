@@ -150,13 +150,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 EOF
 
 cd "${PROJECT_ROOT}"
-PAPER_HASH="${PAPER_HASH}" SESSION_ID="${SESSION_ID}" rustc --edition 2021 /tmp/full_ecosystem.rs \
+PAPER_HASH="${PAPER_HASH}" SESSION_ID="${SESSION_ID}" rustc --edition 2024 /tmp/full_ecosystem.rs \
   -L target/debug/deps \
   --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
   --extern serde_json=target/debug/deps/libserde_json-*.rlib \
   -o /tmp/full_ecosystem 2>&1 > /dev/null || {
     cargo build --lib > /dev/null 2>&1
-    PAPER_HASH="${PAPER_HASH}" SESSION_ID="${SESSION_ID}" rustc --edition 2021 /tmp/full_ecosystem.rs \
+    PAPER_HASH="${PAPER_HASH}" SESSION_ID="${SESSION_ID}" rustc --edition 2024 /tmp/full_ecosystem.rs \
       -L target/debug/deps \
       --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
       --extern serde_json=target/debug/deps/libserde_json-*.rlib \

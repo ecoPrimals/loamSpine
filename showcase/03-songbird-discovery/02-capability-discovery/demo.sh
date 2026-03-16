@@ -132,7 +132,7 @@ REGISTER_PAYLOAD='{
     "proof-generation"
   ],
   "metadata": {
-    "version": "0.8.6",
+    "version": "0.8.9",
     "primal": "loamspine"
   }
 }'

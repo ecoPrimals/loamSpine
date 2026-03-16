@@ -88,7 +88,7 @@ main() {
     log_header "📦 Level 0: Local Primal Capabilities"
     
     local level0_demos=(
-        "01-basic-spine"
+        "01-hello-loamspine"
         "02-entry-types"
         "03-certificate-lifecycle"
         "04-proofs"

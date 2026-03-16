@@ -164,14 +164,14 @@ echo -e "${YELLOW}Running waypoint demo...${NC}"
 echo ""
 
 cd "${SCRIPT_DIR}/../../../.."
-rustc --edition 2021 /tmp/waypoint_demo.rs \
+rustc --edition 2024 /tmp/waypoint_demo.rs \
   -L target/debug/deps \
   --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
   --extern uuid=target/debug/deps/libuuid-*.rlib \
   -o /tmp/waypoint_demo 2>&1 || {
     echo "Building dependencies first..."
     cargo build --lib
-    rustc --edition 2021 /tmp/waypoint_demo.rs \
+    rustc --edition 2024 /tmp/waypoint_demo.rs \
       -L target/debug/deps \
       --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
       --extern uuid=target/debug/deps/libuuid-*.rlib \

@@ -179,14 +179,14 @@ echo -e "${YELLOW}Running recursive spines demo...${NC}"
 echo ""
 
 cd "${SCRIPT_DIR}/../../../.."
-rustc --edition 2021 /tmp/recursive_demo.rs \
+rustc --edition 2024 /tmp/recursive_demo.rs \
   -L target/debug/deps \
   --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
   --extern serde_json=target/debug/deps/libserde_json-*.rlib \
   -o /tmp/recursive_demo 2>&1 || {
     echo "Building dependencies first..."
     cargo build --lib
-    rustc --edition 2021 /tmp/recursive_demo.rs \
+    rustc --edition 2024 /tmp/recursive_demo.rs \
       -L target/debug/deps \
       --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
       --extern serde_json=target/debug/deps/libserde_json-*.rlib \

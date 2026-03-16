@@ -143,13 +143,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 EOF
 
 cd "${PROJECT_ROOT}"
-CONTENT_HASH="${CONTENT_HASH}" rustc --edition 2021 /tmp/loamspine_entry.rs \
+CONTENT_HASH="${CONTENT_HASH}" rustc --edition 2024 /tmp/loamspine_entry.rs \
   -L target/debug/deps \
   --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
   --extern serde_json=target/debug/deps/libserde_json-*.rlib \
   -o /tmp/loamspine_entry 2>&1 || {
     cargo build --lib > /dev/null 2>&1
-    CONTENT_HASH="${CONTENT_HASH}" rustc --edition 2021 /tmp/loamspine_entry.rs \
+    CONTENT_HASH="${CONTENT_HASH}" rustc --edition 2024 /tmp/loamspine_entry.rs \
       -L target/debug/deps \
       --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
       --extern serde_json=target/debug/deps/libserde_json-*.rlib \

@@ -86,8 +86,7 @@ pub mod service;
 pub mod sync;
 pub mod traits;
 
-// NOTE: The `integration` module was removed in v0.3.0.
-// Use `traits` and `service` modules instead.
+// Integration via `traits` and `service` modules.
 
 use std::time::Instant;
 

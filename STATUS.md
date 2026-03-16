@@ -63,7 +63,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; musl cross-compile CI |
-| AGPL-3.0-only | PASS | SPDX headers on all 112 source files |
+| AGPL-3.0-only | PASS | SPDX headers on all 114 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PARTIAL | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage |
@@ -71,6 +71,15 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All files under 1000 lines (max: 955). Test files split by domain. |
 
 ---
+
+## v0.8.9 Self-Knowledge, temp-env, Deploy Graph (March 15, 2026)
+
+- **`primal_names.rs`**: Centralized primal identifier constants — ecosystem convention from groundSpring/wetSpring.
+- **`niche.rs`**: Full primal self-knowledge module — 23 methods, 8 domains, 6 consumed capabilities, 4 optional deps, 21 cost estimates, semantic mappings.
+- **5-tier socket discovery**: `/run/user/{uid}/biomeos/` tier via `/proc/self/status` (Linux). Applied to `constants/network.rs` and `neural_api.rs`.
+- **`temp-env` migration**: 38 `unsafe` env mutation blocks eliminated from `constants/network.rs` and `neural_api.rs` tests. Thread-safe automatic save/restore.
+- **Deploy graph**: `graphs/loamspine_deploy.toml` for biomeOS orchestration.
+- **Tests**: 1,123 → 1,132 (+9). Source files: 112 → 114.
 
 ## v0.8.8 Cross-Spring Absorption & Edition 2024 (March 15, 2026)
 

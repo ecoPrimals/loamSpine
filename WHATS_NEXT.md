@@ -27,7 +27,7 @@
 - **Clippy pedantic + nursery**: 0 errors across all 3 workspace crates
 - **Zero-copy JSON-RPC dispatch**: `params.clone()` eliminated, by-value ownership
 - **MockTransport cfg-gated**: No mock code in production binary
-- **Smart file splits**: All 117 source files under 1000 lines (max: 955)
+- **Smart file splits**: All 114 source files under 1000 lines (max: 955)
 - **15 const fn promotions**, `let...else` modernization, lock scope tightening
 - **Scyborg license schema**: `CertificateType::scyborg_license()`, metadata builders, constants
 - **Protocol escalation**: `IpcProtocol` negotiation (prefers tarpc Unix socket, fallback JSON-RPC)
@@ -47,7 +47,7 @@
 - **Sync module refactoring**: `sync.rs` (927 lines) → `sync/mod.rs` + `sync/tests.rs`
 - **WAYPOINT_SEMANTICS.md**: Promoted from PARTIAL → COMPLETE
 - **CERTIFICATE_LAYER.md**: Promoted from PARTIAL → COMPLETE
-- **Coverage**: 89.64% line, 91.71% region (1,114 tests)
+- **Coverage**: 89.64% line, 91.71% region (1,132 tests)
 - **Edition 2024**: Migrated from 2021, let-chains, `unsafe` env mutations in tests
 - **JSON-RPC batch support**: Full JSON-RPC 2.0 batch array processing
 - **Proptest**: 7 property-based roundtrip tests for core newtypes

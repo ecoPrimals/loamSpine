@@ -139,13 +139,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 EOF
 
 cd "${PROJECT_ROOT}"
-COMMIT_HASH="${COMMIT_HASH}" rustc --edition 2021 /tmp/spine_entry.rs \
+COMMIT_HASH="${COMMIT_HASH}" rustc --edition 2024 /tmp/spine_entry.rs \
   -L target/debug/deps \
   --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
   --extern serde_json=target/debug/deps/libserde_json-*.rlib \
   -o /tmp/spine_entry 2>&1 > /dev/null || {
     cargo build --lib > /dev/null 2>&1
-    COMMIT_HASH="${COMMIT_HASH}" rustc --edition 2021 /tmp/spine_entry.rs \
+    COMMIT_HASH="${COMMIT_HASH}" rustc --edition 2024 /tmp/spine_entry.rs \
       -L target/debug/deps \
       --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
       --extern serde_json=target/debug/deps/libserde_json-*.rlib \
@@ -208,7 +208,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 EOF
 
-COMMIT_HASH="${COMMIT_HASH}" SIGNATURE="${SIGNATURE}" rustc --edition 2021 /tmp/signed_entry.rs \
+COMMIT_HASH="${COMMIT_HASH}" SIGNATURE="${SIGNATURE}" rustc --edition 2024 /tmp/signed_entry.rs \
   -L target/debug/deps \
   --extern loam_spine_core=target/debug/libloam_spine_core.rlib \
   --extern serde_json=target/debug/deps/libserde_json-*.rlib \

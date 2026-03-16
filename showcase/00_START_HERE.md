@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.8.6  
+**Version**: 0.8.9  
 **Status**: Production Ready  
 **Date**: March 15, 2026  
-**Latest**: Deep debt & feature completion, 1,092 tests, 91%+ region coverage in v0.8.6
+**Latest**: Deep debt & feature completion, 1,132 tests, 91.71% region coverage in v0.8.9
 
 ---
 
@@ -523,6 +523,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.8.6 - ecoPrimals Ecosystem*  
+*LoamSpine v0.8.9 - ecoPrimals Ecosystem*  
 *March 15, 2026*
 

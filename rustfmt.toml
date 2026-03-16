@@ -1,7 +1,7 @@
 # LoamSpine rustfmt configuration
 # Stable Rust formatting for idiomatic, readable code
 
-edition = "2021"
+edition = "2024"
 
 # Indentation
 hard_tabs = false
