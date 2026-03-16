@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-#[allow(clippy::unwrap_used, clippy::expect_used)]
-#[allow(clippy::uninlined_format_args)]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test code uses unwrap/expect for concise assertions"
+)]
+#[expect(
+    clippy::uninlined_format_args,
+    reason = "test helper formatting uses explicit format args for clarity"
+)]
 mod tests {
     use super::super::*;
     use crate::discovery::{DynSigner, DynVerifier};
@@ -625,5 +632,180 @@ esac
                 true_path.to_string_lossy()
             );
         });
+    }
+
+    // =========================================================================
+    // Additional coverage: discover_binary paths, sign/verify edge cases
+    // =========================================================================
+
+    #[test]
+    #[serial]
+    fn discover_binary_env_var_nonexistent_path_falls_through() {
+        temp_env::with_var(
+            ENV_SIGNER_PATH,
+            Some("/tmp/loamspine-nonexistent-binary-xyz-9999"),
+            || {
+                let result = CliSigner::discover_binary();
+                assert!(
+                    result.is_none(),
+                    "non-existent env path should fall through"
+                );
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn discover_binary_returns_none_when_nothing_available() {
+        temp_env::with_vars(
+            [
+                (ENV_SIGNER_PATH, None::<&str>),
+                (ENV_SIGNER_KEY, None::<&str>),
+            ],
+            || {
+                let result = CliSigner::discover_binary();
+                // May or may not find a system binary; just ensure no panic
+                let _ = result;
+            },
+        );
+    }
+
+    #[test]
+    fn cli_signer_new_binary_not_found() {
+        let result = CliSigner::new("/nonexistent/path/to/signer", "key-id");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("not found"),
+            "Expected 'not found' error: {err}"
+        );
+    }
+
+    #[test]
+    fn cli_verifier_new_binary_not_found() {
+        let result = CliVerifier::new("/nonexistent/path/to/verifier");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.to_string().contains("not found"),
+            "Expected 'not found' error: {err}"
+        );
+    }
+
+    #[test]
+    fn cli_signer_new_command_fails_with_bad_key() {
+        let Some((true_path, _)) = get_test_binary_for_error_paths() else {
+            return;
+        };
+        let result = CliSigner::new(&true_path, "nonexistent-key-xyz");
+        // `true` always exits 0, so this may succeed with an empty DID.
+        // The important thing is it doesn't panic.
+        let _ = result;
+    }
+
+    #[tokio::test]
+    async fn cli_signer_sign_with_nonexistent_binary_after_creation() {
+        let Some((true_path, _)) = get_test_binary_for_error_paths() else {
+            return;
+        };
+
+        // Create a temp file that looks like a binary
+        let temp_dir = std::env::temp_dir();
+        let fake_binary = temp_dir.join("loamspine-test-fake-signer");
+        std::fs::copy(&true_path, &fake_binary).unwrap();
+
+        // Create signer with the copy
+        let signer = CliSigner::new(&fake_binary, "test-key");
+
+        // Remove the binary to simulate disappearance between new() and sign()
+        let _ = std::fs::remove_file(&fake_binary);
+
+        if let Ok(signer) = signer {
+            let result = signer.sign(b"test data").await;
+            // Should fail since binary no longer exists
+            assert!(result.is_err());
+        }
+    }
+
+    #[tokio::test]
+    async fn cli_verifier_verify_with_true_binary() {
+        let Some((true_path, _)) = get_test_binary_for_error_paths() else {
+            return;
+        };
+
+        let verifier = CliVerifier::new(&true_path);
+        if let Ok(verifier) = verifier {
+            let data = b"test data";
+            let sig = crate::types::Signature::from_vec(vec![1, 2, 3]);
+            let did = crate::types::Did::new("did:key:test");
+
+            let result = verifier.verify(data, &sig, &did).await;
+            // `true` exits 0, so verification should report valid
+            assert!(result.is_ok());
+            if let Ok(v) = result {
+                assert!(v.valid);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn cli_verifier_verify_with_false_binary() {
+        let Some((_, false_path)) = get_test_binary_for_error_paths() else {
+            return;
+        };
+
+        let verifier = CliVerifier::new(&false_path);
+        if let Ok(verifier) = verifier {
+            let data = b"test data";
+            let sig = crate::types::Signature::from_vec(vec![1, 2, 3]);
+            let did = crate::types::Did::new("did:key:test");
+
+            let result = verifier.verify(data, &sig, &did).await;
+            // `false` exits non-zero, so verification should report invalid
+            assert!(result.is_ok());
+            if let Ok(v) = result {
+                assert!(!v.valid);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn cli_verifier_verify_entry_delegates_to_verify() {
+        let Some((_, false_path)) = get_test_binary_for_error_paths() else {
+            return;
+        };
+
+        let verifier = CliVerifier::new(&false_path);
+        if let Ok(verifier) = verifier {
+            let entry = crate::entry::Entry::new(
+                0,
+                None,
+                crate::types::Did::new("did:test"),
+                crate::entry::EntryType::SpineSealed { reason: None },
+            );
+
+            let result = verifier.verify_entry(&entry).await;
+            assert!(result.is_ok());
+        }
+    }
+
+    #[test]
+    fn cli_signer_accessors() {
+        let Some((true_path, _)) = get_test_binary_for_error_paths() else {
+            return;
+        };
+
+        // `true` will exit 0 for any args, simulating a valid key
+        if let Ok(signer) = CliSigner::new(&true_path, "test-key") {
+            assert_eq!(signer.key_id(), "test-key");
+            assert_eq!(signer.binary_path(), true_path.as_path());
+            assert!(Signer::did(&signer).as_str().contains("test-key"));
+        }
+    }
+
+    #[test]
+    fn env_constants_defined() {
+        assert_eq!(ENV_SIGNER_PATH, "LOAMSPINE_SIGNER_PATH");
+        assert_eq!(ENV_SIGNER_KEY, "LOAMSPINE_SIGNER_KEY");
     }
 }

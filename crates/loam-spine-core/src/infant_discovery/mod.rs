@@ -689,3 +689,7 @@ fn capability_to_srv_name(capability: &str) -> String {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
 mod tests;
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
+mod tests_coverage;

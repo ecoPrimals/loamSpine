@@ -2,7 +2,7 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.0  
+**Current Version**: 0.9.1  
 **Last Updated**: March 16, 2026
 
 ---
@@ -81,10 +81,21 @@
 
 ---
 
-## v0.9.1 Targets
+## v0.9.1 Completed (March 16, 2026)
+
+- **Collision Layer Architecture** -- `specs/COLLISION_LAYER_ARCHITECTURE.md` research proposal for hash-based collision layers bridging linear ↔ DAG
+- **`DiscoveredAttestationProvider`** -- Evolved from stub to real JSON-RPC implementation with degraded-mode fallback
+- **29 new tests** -- Attestation provider (8), infant discovery (10), CLI signer (11)
+- **`infant_discovery/tests.rs` smart split** -- Under 1,000-line limit via `tests_coverage.rs`
+- **tarpc named constants, JSON-RPC Content-Length warning, fuzz license fix**
+
+---
+
+## v0.9.2 Targets
 
 - **Signing capability middleware** -- Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** -- Expand from ~10% to full coverage
+- **Collision layer validation** -- neuralSpring experiments (Python baseline)
 
 ---
 

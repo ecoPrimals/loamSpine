@@ -340,7 +340,13 @@ async fn handle_connection(
                 .strip_prefix("Content-Length:")
                 .or_else(|| header_line.strip_prefix("content-length:"))
             {
-                content_length = val.trim().parse().unwrap_or(0);
+                content_length = match val.trim().parse() {
+                    Ok(len) => len,
+                    Err(e) => {
+                        warn!("Malformed Content-Length header {:?}: {e}", val.trim());
+                        0
+                    }
+                };
             }
         }
 

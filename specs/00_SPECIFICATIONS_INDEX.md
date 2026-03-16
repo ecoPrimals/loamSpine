@@ -1,7 +1,7 @@
 # 🦴 LoamSpine — Specifications Index
 
-**Last Updated**: December 22, 2025  
-**Version**: 1.0.0  
+**Last Updated**: March 16, 2026  
+**Version**: 1.1.0  
 **Status**: Active
 
 ---
@@ -37,6 +37,12 @@ This directory contains the complete specification suite for LoamSpine, the perm
 |----------|---------|--------|
 | [INTEGRATION_SPECIFICATION.md](./INTEGRATION_SPECIFICATION.md) | RhizoCrypt, BearDog, SweetGrass | ✅ Complete |
 | [STORAGE_BACKENDS.md](./STORAGE_BACKENDS.md) | redb (default), sled (optional), SQLite, PostgreSQL, RocksDB | ✅ Complete |
+
+### Research Specifications
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [COLLISION_LAYER_ARCHITECTURE.md](./COLLISION_LAYER_ARCHITECTURE.md) | Hash collision layers bridging linear ↔ DAG | 🔬 Proposal |
 
 ---
 

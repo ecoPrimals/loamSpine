@@ -122,7 +122,7 @@ pub type BoxedAttestationProvider = Arc<dyn DynAttestationProvider>;
 /// Object-safe attestation provider for waypoint operation attestation.
 ///
 /// Discovered at runtime via capability identifier `ATTESTATION`.
-/// The actual RPC to the attestation primal is stubbed in v0.9; control flow is wired.
+/// Sends JSON-RPC `attestation.request` to capability-discovered endpoint.
 pub trait DynAttestationProvider: Send + Sync {
     /// Request attestation for a waypoint operation.
     fn request_attestation(

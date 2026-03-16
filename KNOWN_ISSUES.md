@@ -28,7 +28,7 @@
 
 | Area | Issue | Notes |
 |------|-------|-------|
-| Attestation runtime wiring | **RESOLVED in v0.9.0** — `check_attestation_requirement()` wired into all waypoint operations. Capability-discovered `DynAttestationProvider`. Stub provider for testing; production providers discovered at runtime. | |
+| Attestation runtime wiring | **RESOLVED in v0.9.1** — `check_attestation_requirement()` wired into all waypoint operations. `DiscoveredAttestationProvider` sends JSON-RPC `attestation.request` to capability-discovered endpoints; degrades gracefully when unreachable. | |
 | PostgreSQL / RocksDB backends | Specified in `STORAGE_BACKENDS.md` but not yet implemented. | v1.0.0 target. Memory, redb (default), sled, and SQLite backends are complete. |
 | blake3 SIMD performance | Switched to `pure` Rust mode (no C/asm) for ecoBin compliance. Performance impact is ~2-3x slower hashing vs. SIMD, acceptable for LoamSpine's workload. | Can be feature-gated back to SIMD if performance-critical deployment needs it. |
 

@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-03-16
+
+### Added
+- **Collision Layer Architecture spec**: `specs/COLLISION_LAYER_ARCHITECTURE.md` — research proposal for hash-based collision layers bridging linear spine ↔ DAG structures. Defines resolution hierarchy (Blake3-256 → truncated projections), sub-hash resolution, cross-writing information recovery model, and integration path with rhizoCrypt.
+- **Attestation provider test coverage**: `register_attestation_provider`, `unregister_attestation_provider`, `request_attestation` (success, denial with/without reason, provider error), `all_statuses_includes_attestation` — 8 new tests.
+- **Infant discovery extended coverage**: DNS SRV error/timeout paths, registry discovery failure, config clone/debug, method clone/debug, multi-capability cache independence — 10 new tests.
+- **CLI signer extended coverage**: `discover_binary` env fallthrough, sign-after-binary-removal, verifier with true/false binaries, `verify_entry` delegation, accessor constants — 11 new tests.
+- **`tests_coverage.rs`**: Split `infant_discovery/tests.rs` (1,116 lines) into `tests.rs` (532) + `tests_coverage.rs` (589) to stay under 1,000-line limit.
+
+### Changed
+- **`StubAttestationProvider` → `DiscoveredAttestationProvider`**: Production stub evolved to real JSON-RPC implementation. Sends `attestation.request` to capability-discovered endpoint; falls back to local approval in degraded mode with tracing warning.
+- **tarpc server named constants**: `TARPC_MAX_CONCURRENT_REQUESTS` (100) and `TARPC_MAX_CHANNELS_PER_IP` (10) extracted from magic numbers.
+- **JSON-RPC Content-Length warning**: Silent `unwrap_or(0)` replaced with `match` + `tracing::warn` on malformed headers.
+- **`fuzz/Cargo.toml` license**: Added missing `license = "AGPL-3.0-or-later"`.
+- **Specs index updated**: Added Collision Layer Architecture to research specifications section.
+
+### Metrics
+- Tests: 1,180+ (up from 1,052)
+- Coverage: 92% line / 90% region
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe in production: 0
+- Max file size: 955 lines (all under 1,000)
+- Source files: 119 `.rs` files
+- ecoBin: Full compliance
+- License: AGPL-3.0-or-later
+
 ## [0.9.0] - 2026-03-16
 
 ### Added

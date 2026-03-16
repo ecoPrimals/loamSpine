@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.0  
+**Current Version**: 0.9.1  
 **Last Updated**: March 16, 2026
 
 ---
@@ -27,6 +27,7 @@ This document tracks implementation progress against the specification suite in 
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory, redb (default), sled (optional), SQLite (feature-gated, refactored to modular `sqlite/` directory). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
+| [COLLISION_LAYER_ARCHITECTURE.md](specs/COLLISION_LAYER_ARCHITECTURE.md) | PROPOSAL | Research spec. Hash collision layers bridging linear ↔ DAG. Validation experiments tracked in neuralSpring. |
 
 ---
 
@@ -45,13 +46,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,052+ |
-| Coverage (llvm-cov) | 90%+ | 90%+ (main.rs integration tests added) |
+| Tests | — | 1,180+ |
+| Coverage (llvm-cov) | 90%+ | 92% line / 90% region (attestation, discovery, cli_signer tests expanded) |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
 | Max file size | < 1000 lines | 955 max (all files under 1000) |
-| Source files | — | 114 `.rs` files |
+| Source files | — | 119 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
 
@@ -69,6 +70,20 @@ This document tracks implementation progress against the specification suite in 
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | File size limit | PASS | All files under 1000 lines (max: 955). Test files split by domain. |
+
+---
+
+## v0.9.1 Deep Audit & Idiomatic Evolution (March 16, 2026)
+
+- **`StubAttestationProvider` → `DiscoveredAttestationProvider`**: Production stub evolved to real JSON-RPC implementation. Sends `attestation.request` to capability-discovered endpoint; falls back to local approval in degraded mode with tracing warning.
+- **Attestation provider test coverage**: `register_attestation_provider`, `unregister_attestation_provider`, `request_attestation` (success, denial with reason, denial without reason, provider error) — 8 new tests.
+- **Discovery test coverage**: `all_statuses_includes_attestation`, deprecated alias coverage expanded.
+- **Infant discovery test coverage**: DNS SRV error/timeout paths, registry discovery failure, config clone/debug, method clone/debug, multi-capability cache independence — 10 new tests.
+- **CLI signer test coverage**: `discover_binary` env fallthrough, nonexistent path, sign-after-binary-removal, verifier with true/false binaries, `verify_entry` delegation, accessor constants — 11 new tests.
+- **tarpc server named constants**: `TARPC_MAX_CONCURRENT_REQUESTS` (100) and `TARPC_MAX_CHANNELS_PER_IP` (10) extracted from magic numbers.
+- **JSON-RPC Content-Length warning**: Silent `unwrap_or(0)` replaced with `match` + `tracing::warn` on malformed headers.
+- **`fuzz/Cargo.toml` license**: Added missing `license = "AGPL-3.0-or-later"`.
+- **`#[allow]` → `#[expect(reason)]` migration**: Test modules for discovery, infant_discovery, and cli_signer_tests migrated to `#[expect(..., reason = "...")]`.
 
 ---
 

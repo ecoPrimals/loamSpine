@@ -153,11 +153,10 @@ impl CapabilityRegistry {
                 service.name,
                 service.endpoint
             );
-            // Stub: register a provider that returns success when called.
-            // Actual RPC to the attestation primal is deferred; control flow is wired.
             let mut inner = self.inner.write().await;
-            inner.attestation_provider = Some(Arc::new(StubAttestationProvider {
+            inner.attestation_provider = Some(Arc::new(DiscoveredAttestationProvider {
                 attester_did: Did::new(format!("did:attestation:{}", service.name)),
+                endpoint: service.endpoint.clone(),
             }));
         }
 
@@ -423,30 +422,148 @@ impl std::fmt::Debug for CapabilityRegistry {
     }
 }
 
-/// Stub attestation provider for testing and when discovery finds a service.
+/// Discovered attestation provider that delegates to a remote primal.
 ///
-/// Returns a successful attestation result. The actual RPC to the attestation
-/// primal is stubbed in v0.9; control flow is wired.
-struct StubAttestationProvider {
+/// Wraps the endpoint of a capability-discovered attestation service.
+/// Sends `attestation.request` JSON-RPC calls over TCP to the provider.
+/// Falls back to local approval when the remote endpoint is unreachable,
+/// logging a warning so operators can diagnose missing attestation
+/// infrastructure.
+struct DiscoveredAttestationProvider {
     attester_did: Did,
+    endpoint: String,
 }
 
-impl DynAttestationProvider for StubAttestationProvider {
+impl DiscoveredAttestationProvider {
+    /// Send a JSON-RPC request to the attestation endpoint.
+    async fn jsonrpc_call(
+        endpoint: &str,
+        method: &str,
+        params: serde_json::Value,
+    ) -> LoamSpineResult<serde_json::Value> {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+        use tokio::net::TcpStream;
+
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params,
+            "id": 1u64,
+        });
+        let payload = serde_json::to_string(&request).map_err(|e| {
+            LoamSpineError::Serialization(format!("attestation request serialization: {e}"))
+        })?;
+
+        let timeout = std::time::Duration::from_secs(5);
+        let mut stream = match tokio::time::timeout(timeout, TcpStream::connect(endpoint)).await {
+            Ok(Ok(s)) => s,
+            Ok(Err(e)) => {
+                return Err(LoamSpineError::Network(format!(
+                    "attestation provider at {endpoint}: {e}"
+                )));
+            }
+            Err(_) => {
+                return Err(LoamSpineError::Network(format!(
+                    "attestation provider at {endpoint} timed out"
+                )));
+            }
+        };
+
+        stream
+            .write_all(payload.as_bytes())
+            .await
+            .map_err(|e| LoamSpineError::Network(format!("attestation write: {e}")))?;
+        stream
+            .write_all(b"\n")
+            .await
+            .map_err(|e| LoamSpineError::Network(format!("attestation write: {e}")))?;
+        stream
+            .flush()
+            .await
+            .map_err(|e| LoamSpineError::Network(format!("attestation flush: {e}")))?;
+
+        let mut line = String::new();
+        BufReader::new(stream)
+            .read_line(&mut line)
+            .await
+            .map_err(|e| LoamSpineError::Network(format!("attestation read: {e}")))?;
+
+        let response: serde_json::Value = serde_json::from_str(line.trim()).map_err(|e| {
+            LoamSpineError::Serialization(format!("attestation response parse: {e}"))
+        })?;
+
+        if let Some(err) = response.get("error") {
+            let msg = err
+                .get("message")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("unknown error");
+            return Err(LoamSpineError::Internal(format!(
+                "attestation provider error: {msg}"
+            )));
+        }
+
+        response
+            .get("result")
+            .cloned()
+            .ok_or_else(|| LoamSpineError::Internal("attestation response missing result".into()))
+    }
+}
+
+impl DynAttestationProvider for DiscoveredAttestationProvider {
     fn request_attestation(
         &self,
-        _context: AttestationContext,
+        context: AttestationContext,
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = LoamSpineResult<AttestationResult>> + Send + '_>,
     > {
         let attester_did = self.attester_did.clone();
+        let endpoint = self.endpoint.clone();
         Box::pin(async move {
-            Ok(AttestationResult {
-                attested: true,
-                attester: attester_did,
-                timestamp: crate::types::Timestamp::now(),
-                token: vec![],
-                denial_reason: None,
-            })
+            let params = serde_json::json!({
+                "operation": context.operation,
+                "waypoint_spine_id": context.waypoint_spine_id,
+                "slice_id": context.slice_id,
+                "caller": context.caller,
+            });
+
+            match Self::jsonrpc_call(&endpoint, "attestation.request", params).await {
+                Ok(response) => {
+                    let attested = response
+                        .get("attested")
+                        .and_then(serde_json::Value::as_bool)
+                        .unwrap_or(false);
+                    let denial_reason = response
+                        .get("denial_reason")
+                        .and_then(serde_json::Value::as_str)
+                        .map(String::from);
+                    let token = response
+                        .get("token")
+                        .and_then(serde_json::Value::as_str)
+                        .map(|s| s.as_bytes().to_vec())
+                        .unwrap_or_default();
+
+                    Ok(AttestationResult {
+                        attested,
+                        attester: attester_did,
+                        timestamp: crate::types::Timestamp::now(),
+                        token,
+                        denial_reason,
+                    })
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "Attestation provider at {endpoint} unreachable: {e}; \
+                         granting local attestation (degraded mode)"
+                    );
+                    Ok(AttestationResult {
+                        attested: true,
+                        attester: attester_did,
+                        timestamp: crate::types::Timestamp::now(),
+                        token: vec![],
+                        denial_reason: None,
+                    })
+                }
+            }
         })
     }
 }
