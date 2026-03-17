@@ -124,8 +124,12 @@ impl TransportResponse {
     ///
     /// Returns a network error if deserialization fails.
     pub fn json<T: DeserializeOwned>(&self) -> Result<T, LoamSpineError> {
-        serde_json::from_slice(&self.body)
-            .map_err(|e| LoamSpineError::Network(format!("Failed to parse response JSON: {e}")))
+        serde_json::from_slice(&self.body).map_err(|e| {
+            LoamSpineError::ipc(
+                crate::error::IpcPhase::InvalidJson,
+                format!("Failed to parse response JSON: {e}"),
+            )
+        })
     }
 }
 
@@ -162,7 +166,7 @@ pub mod mock;
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
 

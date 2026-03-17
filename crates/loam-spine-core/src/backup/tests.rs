@@ -566,7 +566,7 @@ fn backup_roundtrip_create_add_entries_export_import_verify() {
             prev_hash,
             owner.clone(),
             EntryType::DataAnchor {
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(clippy::cast_possible_truncation, reason = "test values are in range")]
                 data_hash: [{ i as u8 }; 32],
                 mime_type: Some("application/octet-stream".into()),
                 size: 64,

@@ -506,7 +506,7 @@ impl RelendingChain {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used, reason = "tests use expect for conciseness")]
 mod tests {
     use super::*;
 

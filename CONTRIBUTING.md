@@ -15,7 +15,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![deny(unsafe_code)]` on production code; test modules prefer `temp-env` over raw `unsafe` env mutations, with `#[expect(unsafe_code, reason)]` where needed (migrated from `#[allow(unsafe_code)]`)
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 91.72%, 1,180+ tests)
+- **High Coverage**: Aim for 90%+ function coverage (current: 91.03%, 1,206 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -43,7 +43,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 # Build
 cargo build
 
-# Test (1,180+ tests)
+# Test (1,206 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -293,10 +293,10 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.9.2 |
+| Version | 0.9.3 |
 | Edition | 2024 |
-| Tests | 1,180+ |
-| Coverage | 91.72% line / 89.71% region (llvm-cov) |
+| Tests | 1,206 |
+| Coverage | 91.03% function / 88.91% line (llvm-cov) |
 | Max File Size | 955 lines (all < 1000) |
 | Clippy | pedantic + nursery (0 warnings) |
 | Unsafe Code | 0 in production (`#![deny(unsafe_code)]`) |

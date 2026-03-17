@@ -87,6 +87,9 @@ impl From<loam_spine_core::error::LoamSpineError> for ApiError {
                 capability,
                 message,
             } => Self::Internal(format!("capability provider ({capability}): {message}")),
+            LoamSpineError::Ipc { phase, message } => {
+                Self::Transport(format!("{phase}: {message}"))
+            }
             LoamSpineError::EscrowNotFound(id) => {
                 Self::InvalidRequest(format!("escrow not found: {id:?}"))
             }
@@ -113,7 +116,7 @@ pub enum ServerError {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[expect(clippy::expect_used, reason = "tests use expect for conciseness")]
 mod tests {
     use super::*;
     use loam_spine_core::error::LoamSpineError;
@@ -155,7 +158,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::cognitive_complexity)]
+    #[expect(
+        clippy::cognitive_complexity,
+        reason = "exhaustive variant coverage test"
+    )]
     fn from_loamspine_error() {
         // SpineNotFound
         let core_err = LoamSpineError::SpineNotFound(uuid::Uuid::nil());
@@ -244,6 +250,13 @@ mod tests {
         let core_err = LoamSpineError::InvalidData("bad data".into());
         let api_err: ApiError = core_err.into();
         assert!(matches!(api_err, ApiError::InvalidRequest(_)));
+
+        // Ipc -> Transport
+        let core_err =
+            LoamSpineError::ipc(loam_spine_core::error::IpcPhase::Connect, "socket timeout");
+        let api_err: ApiError = core_err.into();
+        assert!(matches!(api_err, ApiError::Transport(_)));
+        assert!(api_err.to_string().contains("connect"));
     }
 
     #[test]

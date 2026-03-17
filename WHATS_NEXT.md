@@ -2,7 +2,7 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.2  
+**Current Version**: 0.9.3  
 **Last Updated**: March 16, 2026
 
 ---
@@ -27,7 +27,7 @@
 - **Clippy pedantic + nursery**: 0 errors across all 3 workspace crates
 - **Zero-copy JSON-RPC dispatch**: `params.clone()` eliminated, by-value ownership
 - **MockTransport cfg-gated**: No mock code in production binary
-- **Smart file splits**: All 121 source files under 1000 lines (max: 955)
+- **Smart file splits**: All source files under 1000 lines (max: 955)
 - **15 const fn promotions**, `let...else` modernization, lock scope tightening
 - **Scyborg license schema**: `CertificateType::scyborg_license()`, metadata builders, constants
 - **Protocol escalation**: `IpcProtocol` negotiation (prefers tarpc Unix socket, fallback JSON-RPC)
@@ -98,17 +98,34 @@
 - **Unsafe evolution** -- lifecycle.rs test `unsafe env::remove_var` → safe `temp_env::with_var_unset` + manual runtime
 - **Dependency audit** -- Pure Rust by default (ecoBin). C deps only via optional features (sqlite, mdns).
 - **Mock audit** -- All mocks `cfg(test|testing)` gated. Zero mock code in production binary.
-- **Coverage**: 91.72% line / 89.71% region / 85.25% function (1,180 tests)
+- **Coverage**: 91.03% function / 88.91% line / 84.61% region (1,206 tests)
 - **Source files**: 119 → 121. All under 1000 lines (max: 955).
 
 ---
 
-## v0.9.3 Targets
+## v0.9.3 Completed (March 16, 2026)
 
-- **90%+ line coverage** -- Storage backend error-path tests (redb 73.6%, sled 76.9%, sqlite 77-79%, cli_signer 74.6%)
-- **Signing capability middleware** -- Signature verification on RPC layer (capability-discovered)
-- **Showcase demos** -- Expand from ~10% to full coverage
-- **Collision layer validation** -- neuralSpring experiments (Python baseline)
+- **tarpc 0.35 → 0.37** — Aligned with biomeOS, rhizoCrypt, sweetGrass trio partners
+- **`DispatchOutcome<T>`** — Typed dispatch result separating protocol vs application errors (rhizoCrypt/airSpring pattern)
+- **`OrExit<T>` trait** — Zero-panic startup validation for `Result` and `Option` (wetSpring V123 pattern)
+- **`extract_rpc_error()`** — Centralized JSON-RPC error extraction; replaces inline pattern in `neural_api.rs`
+- **`is_method_not_found()`** — Convenience method for JSON-RPC -32601 detection
+- **NDJSON `StreamItem`** — Pipeline streaming type (`Data`/`Progress`/`End`/`Error`) for biomeOS coordination
+- **`deny.toml` evolution** — `wildcards = "warn"`, tarpc 0.37 advisory ignores, banned C sys-crates
+- **Coverage**: 91.03% function / 88.91% line / 84.61% region (1,206 tests)
+- **Source files**: 121 → 122 (added `streaming.rs`). All under 1000 lines (max: 955).
+
+---
+
+## v0.9.4 Targets
+
+- **Wire `DispatchOutcome`** into JSON-RPC dispatch (currently defined but not yet used in handler)
+- **Wire `OrExit`** into `main.rs` startup validation
+- **Wire `StreamItem`** into provenance trio pipeline coordination
+- **90%+ line coverage** — Storage backend error-path tests (redb 73.6%, sled 76.9%, sqlite 77-79%, cli_signer 74.6%)
+- **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
+- **Showcase demos** — Expand from ~10% to full coverage
+- **Collision layer validation** — neuralSpring experiments (Python baseline)
 
 ---
 

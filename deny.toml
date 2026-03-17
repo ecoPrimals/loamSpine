@@ -26,7 +26,7 @@ feature-depth = 1
 # Deny multiple versions of the same crate (reduce bloat)
 multiple-versions = "warn"
 # Allow wildcard versions for workspace path dependencies
-wildcards = "allow"
+wildcards = "warn"
 highlight = "all"
 workspace-default-features = "allow"
 external-default-features = "allow"
@@ -41,6 +41,10 @@ deny = [
     # C++ dependencies we explicitly avoid (primal sovereignty)
     # Note: protobuf/grpc are NOT used - we use tarpc + pure Rust JSON-RPC
     { crate = "ring", reason = "C/asm dependency — use RustCrypto via BearDog" },
+    { crate = "aws-lc-sys", reason = "C dependency — use RustCrypto" },
+    { crate = "zstd-sys", reason = "C dependency — use pure Rust zstd" },
+    { crate = "lz4-sys", reason = "C dependency — use pure Rust lz4" },
+    { crate = "libsqlite3-sys", reason = "C dependency — sqlite feature-gated" },
 ]
 
 # Allow these duplicates (transitive deps we can't control)
@@ -87,16 +91,14 @@ registries = []
 # =============================================================================
 
 [advisories]
-# Security advisory checking via RustSec
-# 
-# NOTE: As of Dec 2025, the RustSec advisory database contains CVSSv4 entries
-# (e.g., RUSTSEC-2024-0445) which cargo-deny doesn't parse yet. This causes
-# database loading to fail. Until fixed upstream, run:
-#   cargo deny check licenses bans sources
-# instead of the full check.
-#
-# Track: upstream cargo-deny advisory resolution
-ignore = []
+# Transitive dependencies from tarpc 0.37; tracked for upstream resolution.
+# Aligns with rhizoCrypt/sweetGrass deny.toml advisory ignore lists.
+ignore = [
+    { id = "RUSTSEC-2024-0384", reason = "instant is a transitive dep from tarpc" },
+    { id = "RUSTSEC-2025-0057", reason = "fxhash is a transitive dep from tarpc" },
+    { id = "RUSTSEC-2025-0141", reason = "bincode v1 is a transitive dep from tarpc" },
+    { id = "RUSTSEC-2026-0007", reason = "opentelemetry_sdk is a transitive dep from tarpc" },
+]
 
 # =============================================================================
 # Sources - Allowed crate sources

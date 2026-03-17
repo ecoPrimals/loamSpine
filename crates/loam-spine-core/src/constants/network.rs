@@ -255,6 +255,61 @@ pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Generic Primal Discovery Helpers (sweetGrass V0.7.17 pattern)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Build the environment variable name for a primal's socket path.
+///
+/// Follows the ecosystem convention from sweetGrass: `{PRIMAL}_SOCKET`
+/// where `{PRIMAL}` is the uppercased primal name with hyphens replaced
+/// by underscores (e.g., `"rhizoCrypt"` → `"RHIZOCRYPT_SOCKET"`).
+///
+/// # Examples
+///
+/// ```rust
+/// use loam_spine_core::constants::network::socket_env_var;
+///
+/// assert_eq!(socket_env_var("rhizoCrypt"), "RHIZOCRYPT_SOCKET");
+/// assert_eq!(socket_env_var("sweetGrass"), "SWEETGRASS_SOCKET");
+/// assert_eq!(socket_env_var("loamSpine"), "LOAMSPINE_SOCKET");
+/// ```
+#[must_use]
+pub fn socket_env_var(primal_name: &str) -> String {
+    format!("{}_SOCKET", primal_name.to_uppercase().replace('-', "_"))
+}
+
+/// Build the environment variable name for a primal's address.
+///
+/// Follows the ecosystem convention: `{PRIMAL}_ADDRESS` for TCP endpoints.
+///
+/// # Examples
+///
+/// ```rust
+/// use loam_spine_core::constants::network::address_env_var;
+///
+/// assert_eq!(address_env_var("rhizoCrypt"), "RHIZOCRYPT_ADDRESS");
+/// assert_eq!(address_env_var("songbird"), "SONGBIRD_ADDRESS");
+/// ```
+#[must_use]
+pub fn address_env_var(primal_name: &str) -> String {
+    format!("{}_ADDRESS", primal_name.to_uppercase().replace('-', "_"))
+}
+
+/// Resolve a primal's socket path using the environment override pattern.
+///
+/// Checks `{PRIMAL}_SOCKET` env var first, then falls back to the
+/// standard biomeos socket directory resolution.
+#[must_use]
+pub fn resolve_primal_socket_with_env(primal: &str, family_id: &str) -> std::path::PathBuf {
+    let env_key = socket_env_var(primal);
+    if let Ok(path) = env::var(&env_key) {
+        debug!("Using {primal} socket from {env_key}: {path}");
+        return std::path::PathBuf::from(path);
+    }
+    resolve_primal_socket(primal, family_id)
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Protocol Escalation (UNIVERSAL_IPC_STANDARD_V3)
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -347,7 +402,7 @@ pub(crate) fn linux_run_user_biomeos() -> Option<std::path::PathBuf> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
     use serial_test::serial;
@@ -616,5 +671,47 @@ mod tests {
         assert_eq!(IpcProtocol::JsonRpc, IpcProtocol::JsonRpc);
         assert_eq!(IpcProtocol::Tarpc, IpcProtocol::Tarpc);
         assert_ne!(IpcProtocol::JsonRpc, IpcProtocol::Tarpc);
+    }
+
+    #[test]
+    fn test_socket_env_var() {
+        assert_eq!(socket_env_var("rhizoCrypt"), "RHIZOCRYPT_SOCKET");
+        assert_eq!(socket_env_var("sweetGrass"), "SWEETGRASS_SOCKET");
+        assert_eq!(socket_env_var("loamSpine"), "LOAMSPINE_SOCKET");
+        assert_eq!(socket_env_var("bear-dog"), "BEAR_DOG_SOCKET");
+    }
+
+    #[test]
+    fn test_address_env_var() {
+        assert_eq!(address_env_var("rhizoCrypt"), "RHIZOCRYPT_ADDRESS");
+        assert_eq!(address_env_var("songbird"), "SONGBIRD_ADDRESS");
+        assert_eq!(address_env_var("loamSpine"), "LOAMSPINE_ADDRESS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_resolve_primal_socket_with_env_override() {
+        let vars = [("TESTPRIMAL_SOCKET", Some("/tmp/override.sock"))];
+        temp_env::with_vars(vars, || {
+            let path = resolve_primal_socket_with_env("testprimal", "dev");
+            assert_eq!(path, std::path::PathBuf::from("/tmp/override.sock"));
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn test_resolve_primal_socket_with_env_fallback() {
+        let tmp = tempfile::tempdir().unwrap();
+        let xdg = tmp.path().to_str().unwrap().to_string();
+        temp_env::with_vars(
+            [
+                ("TESTPRIMAL_SOCKET", None),
+                ("XDG_RUNTIME_DIR", Some(xdg.as_str())),
+            ],
+            || {
+                let path = resolve_primal_socket_with_env("testprimal", "dev");
+                assert!(path.to_string_lossy().contains("testprimal-dev.sock"));
+            },
+        );
     }
 }

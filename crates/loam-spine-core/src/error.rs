@@ -1,10 +1,55 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! LoamSpine error types.
+//!
+//! Structured IPC error phases align with the ecosystem convention
+//! established by rhizoCrypt (`IpcErrorPhase`) and healthSpring (`SendError`),
+//! enabling typed retry logic and observability across primals.
+
+use std::fmt;
 
 use thiserror::Error;
 
 use crate::types::{CertificateId, EntryHash, SpineId, format_hash_short};
+
+/// Phase of an IPC call that failed.
+///
+/// Aligns with rhizoCrypt's `IpcErrorPhase` and healthSpring's `SendError`
+/// for ecosystem-wide structured IPC error handling.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum IpcPhase {
+    /// Socket or TCP connection failed (primal unreachable).
+    Connect,
+    /// Request write to socket/stream failed (broken pipe, timeout).
+    Write,
+    /// Response read from socket/stream failed (timeout, truncated).
+    Read,
+    /// Response is not valid JSON.
+    InvalidJson,
+    /// HTTP response status was not 2xx.
+    HttpStatus(u16),
+    /// Response lacks a `result` field (JSON-RPC protocol violation).
+    NoResult,
+    /// JSON-RPC error object returned by the remote primal.
+    JsonRpcError(i64),
+    /// Request serialization failed before sending.
+    Serialization,
+}
+
+impl fmt::Display for IpcPhase {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Connect => write!(f, "connect"),
+            Self::Write => write!(f, "write"),
+            Self::Read => write!(f, "read"),
+            Self::InvalidJson => write!(f, "invalid_json"),
+            Self::HttpStatus(code) => write!(f, "http_{code}"),
+            Self::NoResult => write!(f, "no_result"),
+            Self::JsonRpcError(code) => write!(f, "jsonrpc_{code}"),
+            Self::Serialization => write!(f, "serialization"),
+        }
+    }
+}
 
 /// Errors specific to LoamSpine.
 #[derive(Debug, Error)]
@@ -94,7 +139,20 @@ pub enum LoamSpineError {
         message: String,
     },
 
-    /// Network error (service registry, HTTP, etc.).
+    /// Structured IPC error with phase information.
+    ///
+    /// Aligns with rhizoCrypt's `Ipc { phase, message }` and healthSpring's
+    /// `SendError` for ecosystem-wide typed IPC error handling. Enables
+    /// phase-aware retry logic and observability.
+    #[error("ipc error ({phase}): {message}")]
+    Ipc {
+        /// Phase of the IPC call that failed.
+        phase: IpcPhase,
+        /// Human-readable error detail.
+        message: String,
+    },
+
+    /// Network error (non-IPC: configuration, transport selection).
     #[error("network error: {0}")]
     Network(String),
 
@@ -115,9 +173,178 @@ impl LoamSpineError {
             message: message.into(),
         }
     }
+
+    /// Create a structured IPC error.
+    #[must_use]
+    pub fn ipc(phase: IpcPhase, message: impl Into<String>) -> Self {
+        Self::Ipc {
+            phase,
+            message: message.into(),
+        }
+    }
+
+    /// Whether this error represents a transient failure worth retrying.
+    ///
+    /// IPC errors at Connect, Write, Read, and HttpStatus(5xx) phases are
+    /// considered recoverable. JsonRpcError and NoResult are not (they
+    /// indicate a logic or protocol mismatch, not a transient failure).
+    #[must_use]
+    pub const fn is_recoverable(&self) -> bool {
+        match self {
+            Self::Ipc { phase, .. } => matches!(
+                phase,
+                IpcPhase::Connect
+                    | IpcPhase::Write
+                    | IpcPhase::Read
+                    | IpcPhase::HttpStatus(500..=599)
+            ),
+            Self::CapabilityUnavailable(_) | Self::Network(_) => true,
+            _ => false,
+        }
+    }
+
+    /// Whether this is a "method not found" IPC error (JSON-RPC -32601).
+    #[must_use]
+    pub const fn is_method_not_found(&self) -> bool {
+        matches!(
+            self,
+            Self::Ipc {
+                phase: IpcPhase::JsonRpcError(-32601),
+                ..
+            }
+        )
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// DispatchOutcome — protocol vs application error separation
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Outcome of a dispatched JSON-RPC call, separating protocol errors
+/// from application results.
+///
+/// Absorbed from rhizoCrypt / airSpring / biomeOS dispatch patterns.
+/// Protocol errors (transport failures, malformed responses) are
+/// fundamentally different from application errors (method returned an
+/// error object). Callers can pattern-match to decide retry strategy.
+#[derive(Debug)]
+pub enum DispatchOutcome<T> {
+    /// The call succeeded and returned a result.
+    Ok(T),
+    /// The remote primal returned a JSON-RPC error object.
+    ApplicationError {
+        /// JSON-RPC error code.
+        code: i64,
+        /// Human-readable error message.
+        message: String,
+    },
+    /// A transport or protocol-level failure occurred.
+    ProtocolError(LoamSpineError),
+}
+
+impl<T> DispatchOutcome<T> {
+    /// Returns `true` if the outcome is a successful result.
+    #[must_use]
+    pub const fn is_ok(&self) -> bool {
+        matches!(self, Self::Ok(_))
+    }
+
+    /// Returns `true` if the outcome is an application-level error.
+    #[must_use]
+    pub const fn is_application_error(&self) -> bool {
+        matches!(self, Self::ApplicationError { .. })
+    }
+
+    /// Convert into a `Result`, folding both error variants into `LoamSpineError`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `LoamSpineError::Ipc` for application errors and the
+    /// original `LoamSpineError` for protocol errors.
+    pub fn into_result(self) -> LoamSpineResult<T> {
+        match self {
+            Self::Ok(val) => Ok(val),
+            Self::ApplicationError { code, message } => {
+                Err(LoamSpineError::ipc(IpcPhase::JsonRpcError(code), message))
+            }
+            Self::ProtocolError(e) => Err(e),
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// extract_rpc_error — centralized JSON-RPC error extraction
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Extracts `(code, message)` from a JSON-RPC 2.0 error object.
+///
+/// Centralizes the pattern used by every IPC adapter to parse the `error`
+/// field from a JSON-RPC 2.0 response. Returns `None` if no error is present.
+///
+/// Aligns with rhizoCrypt's `extract_rpc_error` for ecosystem consistency.
+#[must_use]
+pub fn extract_rpc_error(response: &serde_json::Value) -> Option<(i64, String)> {
+    let error = response.get("error")?;
+    let code = error
+        .get("code")
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or(-1);
+    let message = error
+        .get("message")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("Unknown error")
+        .to_string();
+    Some((code, message))
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// OrExit — zero-panic startup validation
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Extension trait for `Result<T, E>` and `Option<T>` that exits the
+/// process cleanly on error instead of panicking.
+///
+/// Absorbed from wetSpring V123 / rhizoCrypt `OrExit` pattern. Validation
+/// and startup code should never panic — it should print a structured
+/// error message and exit with a non-zero status code.
+///
+/// # Examples
+///
+/// ```no_run
+/// use loam_spine_core::error::OrExit;
+///
+/// let config = std::fs::read_to_string("config.toml")
+///     .or_exit("Failed to read configuration file");
+/// ```
+pub trait OrExit<T> {
+    /// Unwrap the value or print the context message + error and exit with code 1.
+    fn or_exit(self, context: &str) -> T;
+}
+
+impl<T, E: fmt::Display> OrExit<T> for std::result::Result<T, E> {
+    fn or_exit(self, context: &str) -> T {
+        match self {
+            Ok(val) => val,
+            Err(e) => {
+                eprintln!("fatal: {context}: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
+impl<T> OrExit<T> for Option<T> {
+    fn or_exit(self, context: &str) -> T {
+        if let Some(val) = self {
+            return val;
+        }
+        eprintln!("fatal: {context}");
+        std::process::exit(1);
+    }
 }
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
 
@@ -144,5 +371,118 @@ mod tests {
         assert!(err.to_string().contains("capability provider error"));
         assert!(err.to_string().contains("signing"));
         assert!(err.to_string().contains("HSM unavailable"));
+    }
+
+    #[test]
+    fn ipc_error_display_and_helper() {
+        let err = LoamSpineError::ipc(IpcPhase::Connect, "socket not found");
+        assert!(err.to_string().contains("ipc error (connect)"));
+        assert!(err.to_string().contains("socket not found"));
+    }
+
+    #[test]
+    fn ipc_phase_display() {
+        assert_eq!(IpcPhase::Connect.to_string(), "connect");
+        assert_eq!(IpcPhase::Write.to_string(), "write");
+        assert_eq!(IpcPhase::Read.to_string(), "read");
+        assert_eq!(IpcPhase::InvalidJson.to_string(), "invalid_json");
+        assert_eq!(IpcPhase::HttpStatus(404).to_string(), "http_404");
+        assert_eq!(IpcPhase::NoResult.to_string(), "no_result");
+        assert_eq!(IpcPhase::JsonRpcError(-32601).to_string(), "jsonrpc_-32601");
+        assert_eq!(IpcPhase::Serialization.to_string(), "serialization");
+    }
+
+    #[test]
+    fn is_recoverable_ipc_phases() {
+        assert!(LoamSpineError::ipc(IpcPhase::Connect, "timeout").is_recoverable());
+        assert!(LoamSpineError::ipc(IpcPhase::Write, "broken pipe").is_recoverable());
+        assert!(LoamSpineError::ipc(IpcPhase::Read, "eof").is_recoverable());
+        assert!(LoamSpineError::ipc(IpcPhase::HttpStatus(503), "unavail").is_recoverable());
+        assert!(!LoamSpineError::ipc(IpcPhase::HttpStatus(404), "not found").is_recoverable());
+        assert!(!LoamSpineError::ipc(IpcPhase::NoResult, "missing").is_recoverable());
+        assert!(!LoamSpineError::ipc(IpcPhase::JsonRpcError(-32601), "method").is_recoverable());
+        assert!(!LoamSpineError::ipc(IpcPhase::InvalidJson, "parse").is_recoverable());
+    }
+
+    #[test]
+    fn is_recoverable_other_variants() {
+        assert!(LoamSpineError::Network("timeout".into()).is_recoverable());
+        assert!(LoamSpineError::CapabilityUnavailable("signer".into()).is_recoverable());
+        assert!(!LoamSpineError::Storage("corrupt".into()).is_recoverable());
+        assert!(!LoamSpineError::Config("bad".into()).is_recoverable());
+    }
+
+    #[test]
+    fn is_method_not_found() {
+        assert!(
+            LoamSpineError::ipc(IpcPhase::JsonRpcError(-32601), "not found").is_method_not_found()
+        );
+        assert!(
+            !LoamSpineError::ipc(IpcPhase::JsonRpcError(-32600), "other").is_method_not_found()
+        );
+        assert!(!LoamSpineError::ipc(IpcPhase::Connect, "timeout").is_method_not_found());
+        assert!(!LoamSpineError::Network("err".into()).is_method_not_found());
+    }
+
+    #[test]
+    fn dispatch_outcome_ok() {
+        let outcome: DispatchOutcome<i32> = DispatchOutcome::Ok(42);
+        assert!(outcome.is_ok());
+        assert!(!outcome.is_application_error());
+        assert_eq!(outcome.into_result().unwrap(), 42);
+    }
+
+    #[test]
+    fn dispatch_outcome_application_error() {
+        let outcome: DispatchOutcome<i32> = DispatchOutcome::ApplicationError {
+            code: -32601,
+            message: "method not found".into(),
+        };
+        assert!(!outcome.is_ok());
+        assert!(outcome.is_application_error());
+        let err = outcome.into_result().unwrap_err();
+        assert!(err.is_method_not_found());
+    }
+
+    #[test]
+    fn dispatch_outcome_protocol_error() {
+        let outcome: DispatchOutcome<i32> =
+            DispatchOutcome::ProtocolError(LoamSpineError::ipc(IpcPhase::Connect, "refused"));
+        assert!(!outcome.is_ok());
+        assert!(!outcome.is_application_error());
+        let err = outcome.into_result().unwrap_err();
+        assert!(err.is_recoverable());
+    }
+
+    #[test]
+    fn extract_rpc_error_present() {
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "error": { "code": -32601, "message": "method not found" },
+            "id": 1
+        });
+        let (code, msg) = extract_rpc_error(&response).unwrap();
+        assert_eq!(code, -32601);
+        assert_eq!(msg, "method not found");
+    }
+
+    #[test]
+    fn extract_rpc_error_absent() {
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "result": 42,
+            "id": 1
+        });
+        assert!(extract_rpc_error(&response).is_none());
+    }
+
+    #[test]
+    fn extract_rpc_error_missing_fields() {
+        let response = serde_json::json!({
+            "error": {}
+        });
+        let (code, msg) = extract_rpc_error(&response).unwrap();
+        assert_eq!(code, -1);
+        assert_eq!(msg, "Unknown error");
     }
 }

@@ -1463,7 +1463,7 @@ See [API_SPECIFICATION.md](./API_SPECIFICATION.md) for the full API reference.
 - [Certificate Transparency](https://certificate.transparency.dev/) — Append-only log inspiration
 - [Git Object Model](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) — Content-addressed storage
 - [tarpc Documentation](https://docs.rs/tarpc/) — Pure Rust RPC framework
-- [jsonrpsee Documentation](https://docs.rs/jsonrpsee/) — Pure Rust JSON-RPC 2.0
+- [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification) — Hand-rolled pure Rust implementation (no jsonrpsee dependency)
 
 ---
 

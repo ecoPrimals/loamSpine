@@ -74,6 +74,7 @@ pub mod primal;
 pub mod proof;
 pub mod spine;
 pub mod storage;
+pub mod streaming;
 pub mod temporal;
 pub mod transport;
 pub mod trio_types;
@@ -105,7 +106,9 @@ use primal::{
 pub use config::LoamSpineConfig;
 
 /// `LoamSpine` errors.
-pub use error::{LoamSpineError, LoamSpineResult};
+pub use error::{
+    DispatchOutcome, IpcPhase, LoamSpineError, LoamSpineResult, OrExit, extract_rpc_error,
+};
 
 /// Core types.
 pub use types::{

@@ -29,7 +29,7 @@ impl LoamSpineService {
     ///
     /// Loads `WaypointConfig` from the spine's config. If attestation is
     /// required for this operation and no provider is available, returns error.
-    /// If required and provider available, requests attestation (stubbed call).
+    /// If required and provider available, requests attestation from the capability registry.
     ///
     /// # Errors
     ///
@@ -241,7 +241,11 @@ impl LoamSpineService {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "tests use unwrap for conciseness"
+)]
 mod tests {
     use super::*;
     use crate::discovery::DynAttestationProvider;

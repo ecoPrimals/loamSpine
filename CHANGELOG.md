@@ -5,13 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2026-03-16
+
+### Added
+- **`DispatchOutcome<T>`**: Typed dispatch result separating protocol errors from application errors. Absorbed from rhizoCrypt/airSpring/biomeOS dispatch patterns.
+- **`OrExit<T>` trait**: Zero-panic startup validation for `Result` and `Option`. Absorbed from wetSpring V123 / rhizoCrypt pattern. `eprintln!` + `exit(1)` instead of panicking.
+- **`extract_rpc_error()`**: Centralized JSON-RPC error extraction from response objects. Aligns with rhizoCrypt's `extract_rpc_error`.
+- **`is_method_not_found()`**: Convenience method on `LoamSpineError` for detecting JSON-RPC -32601.
+- **NDJSON `StreamItem`**: Pipeline streaming type with `Data`, `Progress`, `End`, `Error` variants. Aligns with rhizoCrypt/sweetGrass NDJSON protocol for pipeline coordination.
+- **Generic primal discovery helpers**: `socket_env_var()`, `address_env_var()`, `resolve_primal_socket_with_env()` for sweetGrass-pattern env-override socket resolution.
+- **`IpcPhase` re-exported** from `loam_spine_core` public API along with `DispatchOutcome`, `OrExit`, `extract_rpc_error`.
+
+### Changed
+- **tarpc 0.35 → 0.37**: Aligned with biomeOS, rhizoCrypt, and sweetGrass trio partners.
+- **`deny.toml` evolution**: `wildcards = "allow"` → `"warn"`, added advisory ignores for tarpc 0.37 transitive deps (RUSTSEC-2024-0384, -2025-0057, -2025-0141, -2026-0007), banned `aws-lc-sys`, `zstd-sys`, `lz4-sys`, `libsqlite3-sys`.
+- **`extract_rpc_error()` used in transport**: `neural_api.rs` JSON-RPC error extraction replaced inline pattern with centralized `extract_rpc_error()`.
+- **Structured IPC errors**: All transport/discovery `Network(format!(...))` → `Ipc { phase, message }` (from v0.9.2, preserved).
+
+### Metrics
+- Tests: 1,206 passing (up from 1,190)
+- Coverage: 88.91% line / 84.61% region / 91.03% function
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe in production: 0
+- Max file size: 955 lines (all 122 files under 1,000)
+- Source files: 122 `.rs` files (up from 121)
+- tarpc: 0.37 (aligned with ecosystem)
+- ecoBin: Full compliance
+- License: AGPL-3.0-or-later
+
 ## [0.9.2] - 2026-03-16
+
+### Added
+- **Structured IPC errors**: `IpcPhase` enum (Connect, Write, Read, InvalidJson, HttpStatus, NoResult, JsonRpcError, Serialization) and `LoamSpineError::Ipc { phase, message }` variant. Aligns with rhizoCrypt's `IpcErrorPhase` and healthSpring's `SendError` for ecosystem-wide typed IPC error handling.
+- **`is_recoverable()` method**: Phase-aware retry classification on `LoamSpineError`. Connect/Write/Read/5xx are recoverable; JsonRpcError/NoResult are not.
+- **Generic primal discovery helpers**: `socket_env_var()`, `address_env_var()`, `resolve_primal_socket_with_env()` — follows sweetGrass V0.7.17 env-override pattern for trio partner socket resolution.
+- **`IpcPhase` re-exported** from `loam_spine_core` public API.
 
 ### Changed
 - **Certificate service smart refactoring**: `certificate.rs` (906 lines) → `certificate.rs` (380, core CRUD + verification + proofs) + `certificate_loan.rs` (367, loan lifecycle + sublend + auto-return) + `certificate_escrow.rs` (193, escrow hold/release/cancel). Domain-focused split with clean `impl LoamSpineService` blocks.
+- **Transport error evolution**: All `LoamSpineError::Network(format!(...))` in `http.rs`, `neural_api.rs`, `discovery_client/mod.rs` migrated to structured `LoamSpineError::Ipc { phase, message }` with correct phase tags.
+- **API error mapping**: `LoamSpineError::Ipc` maps to `ApiError::Transport` (preserving phase info in message).
+- **tarpc 0.34 → 0.35**: Bumped tarpc dependency for latest pure-Rust RPC improvements.
+- **`#[allow]` → `#[expect]` migration**: 16 test module annotations migrated from `#[allow(clippy::...)]` to `#[expect(clippy::..., reason = "...")]` with verified lint trigger.
 - **Hardcoding evolution**: `../bins` path in `cli_signer.rs` → environment-configurable `LOAMSPINE_BINS_DIR` with fallback. Zero hardcoded paths in production.
 - **Unsafe evolution**: `lifecycle.rs` test `unsafe { env::remove_var }` → safe `temp_env::with_var_unset` + manual runtime. `unsafe_code` allow removed from lifecycle test module.
-- **Coverage metric correction**: Corrected from aspirational 92% to measured 91.72% line / 89.71% region / 85.25% function.
+- **Coverage metric correction**: Corrected from aspirational 92% to measured 91.01% function / 88.84% line / 84.46% region.
 - **Doc count alignment**: STATUS.md, WHATS_NEXT.md, README.md corrected from stale "114"/"119" to actual 121 source files.
 
 ### Audits
@@ -20,13 +59,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hardcoding audit**: Zero hardcoded primal names, ports, or file paths in production code. Zero TODO/FIXME/HACK. Zero `println!`/`eprintln!` in production.
 
 ### Metrics
-- Tests: 1,180+ passing
-- Coverage: 91.72% line / 89.71% region / 85.25% function
+- Tests: 1,190 passing (up from 1,180)
+- Coverage: 88.84% line / 84.46% region / 91.01% function
 - Clippy: 0 warnings (pedantic + nursery, all features)
 - Doc warnings: 0
 - Unsafe in production: 0
 - Max file size: 955 lines (all 121 files under 1,000)
-- Source files: 121 `.rs` files (up from 119)
+- Source files: 121 `.rs` files
 - ecoBin: Full compliance
 - License: AGPL-3.0-or-later
 
@@ -693,6 +732,9 @@ spine.append(entry)?;
 
 ---
 
+[0.9.3]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.2...v0.9.3
+[0.9.2]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.1...v0.9.2
+[0.9.1]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.9...v0.9.0
 [0.8.9]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/ecoPrimals/loamSpine/compare/v0.8.7...v0.8.8

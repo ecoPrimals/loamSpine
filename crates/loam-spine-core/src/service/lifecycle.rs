@@ -433,7 +433,11 @@ impl Drop for LifecycleManager {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "tests use unwrap for conciseness"
+)]
 mod tests {
     use super::*;
     use serial_test::serial;

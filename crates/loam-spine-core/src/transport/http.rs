@@ -10,7 +10,7 @@ use std::future::Future;
 use std::io::Read;
 use std::pin::Pin;
 
-use crate::error::LoamSpineError;
+use crate::error::{IpcPhase, LoamSpineError};
 
 use super::{DiscoveryTransport, TransportResponse};
 
@@ -50,19 +50,18 @@ impl DiscoveryTransport for HttpTransport {
         let agent = self.agent.clone();
         Box::pin(async move {
             tokio::task::spawn_blocking(move || {
-                let resp = agent
-                    .get(&url)
-                    .call()
-                    .map_err(|e| LoamSpineError::Network(format!("GET {url} failed: {e}")))?;
+                let resp = agent.get(&url).call().map_err(|e| {
+                    LoamSpineError::ipc(IpcPhase::Connect, format!("GET {url} failed: {e}"))
+                })?;
                 let status = resp.status();
                 let mut body = Vec::new();
-                resp.into_reader()
-                    .read_to_end(&mut body)
-                    .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
+                resp.into_reader().read_to_end(&mut body).map_err(|e| {
+                    LoamSpineError::ipc(IpcPhase::Read, format!("reading response body: {e}"))
+                })?;
                 Ok(TransportResponse::new(status, body))
             })
             .await
-            .map_err(|e| LoamSpineError::Network(format!("spawn_blocking: {e}")))?
+            .map_err(|e| LoamSpineError::ipc(IpcPhase::Connect, format!("spawn_blocking: {e}")))?
         })
     }
 
@@ -83,18 +82,18 @@ impl DiscoveryTransport for HttpTransport {
                 for (k, v) in &query_owned {
                     req = req.query(k, v);
                 }
-                let resp = req
-                    .call()
-                    .map_err(|e| LoamSpineError::Network(format!("GET {url} failed: {e}")))?;
+                let resp = req.call().map_err(|e| {
+                    LoamSpineError::ipc(IpcPhase::Connect, format!("GET {url} failed: {e}"))
+                })?;
                 let status = resp.status();
                 let mut body = Vec::new();
-                resp.into_reader()
-                    .read_to_end(&mut body)
-                    .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
+                resp.into_reader().read_to_end(&mut body).map_err(|e| {
+                    LoamSpineError::ipc(IpcPhase::Read, format!("reading response body: {e}"))
+                })?;
                 Ok(TransportResponse::new(status, body))
             })
             .await
-            .map_err(|e| LoamSpineError::Network(format!("spawn_blocking: {e}")))?
+            .map_err(|e| LoamSpineError::ipc(IpcPhase::Connect, format!("spawn_blocking: {e}")))?
         })
     }
 
@@ -112,22 +111,24 @@ impl DiscoveryTransport for HttpTransport {
                     .post(&url)
                     .set("Content-Type", "application/json")
                     .send_string(&body_str)
-                    .map_err(|e| LoamSpineError::Network(format!("POST {url} failed: {e}")))?;
+                    .map_err(|e| {
+                        LoamSpineError::ipc(IpcPhase::Connect, format!("POST {url} failed: {e}"))
+                    })?;
                 let status = resp.status();
                 let mut body = Vec::new();
-                resp.into_reader()
-                    .read_to_end(&mut body)
-                    .map_err(|e| LoamSpineError::Network(format!("reading response body: {e}")))?;
+                resp.into_reader().read_to_end(&mut body).map_err(|e| {
+                    LoamSpineError::ipc(IpcPhase::Read, format!("reading response body: {e}"))
+                })?;
                 Ok(TransportResponse::new(status, body))
             })
             .await
-            .map_err(|e| LoamSpineError::Network(format!("spawn_blocking: {e}")))?
+            .map_err(|e| LoamSpineError::ipc(IpcPhase::Connect, format!("spawn_blocking: {e}")))?
         })
     }
 }
 
 #[cfg(all(test, feature = "discovery-http"))]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
     use std::io::{Read, Write};

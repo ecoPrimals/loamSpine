@@ -437,7 +437,7 @@ mod tests {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod proptest_roundtrips {
     use super::*;
     use proptest::prelude::*;

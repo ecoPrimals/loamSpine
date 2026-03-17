@@ -15,7 +15,7 @@ loam-spine-core = { path = "../loam-spine-core" }
 provenance-trio-types = { workspace = true }
 
 # Pure Rust RPC - tarpc (no protobuf, no gRPC, no C++ tooling)
-tarpc = { version = "0.34", features = ["full"] }
+tarpc = { version = "0.37", features = ["full"] }
 
 # Workspace dependencies
 tokio = { workspace = true }

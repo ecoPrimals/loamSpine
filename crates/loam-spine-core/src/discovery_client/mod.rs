@@ -53,7 +53,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::error::{IpcPhase, LoamSpineError, LoamSpineResult};
 use crate::resilience::{
     CircuitBreaker, CircuitBreakerConfig, ResilientAdapter, RetryPolicy, RetryPolicyConfig,
 };
@@ -235,13 +235,15 @@ impl DiscoveryClient {
             .transport
             .get_with_query(&url, &[("capability", capability)])
             .await
-            .map_err(|e| LoamSpineError::Network(format!("Discovery request failed: {e}")))?;
+            .map_err(|e| {
+                LoamSpineError::ipc(IpcPhase::Connect, format!("Discovery request failed: {e}"))
+            })?;
 
         if !response.is_success() {
-            return Err(LoamSpineError::Network(format!(
-                "Discovery failed with status: {}",
-                response.status
-            )));
+            return Err(LoamSpineError::ipc(
+                IpcPhase::HttpStatus(response.status),
+                format!("Discovery failed with status: {}", response.status),
+            ));
         }
 
         response.json()
@@ -254,17 +256,15 @@ impl DiscoveryClient {
     /// Returns an error if the discovery request fails.
     pub async fn discover_all(&self) -> LoamSpineResult<Vec<DiscoveredService>> {
         let url = format!("{}/discover", self.endpoint);
-        let response = self
-            .transport
-            .get(&url)
-            .await
-            .map_err(|e| LoamSpineError::Network(format!("Discovery request failed: {e}")))?;
+        let response = self.transport.get(&url).await.map_err(|e| {
+            LoamSpineError::ipc(IpcPhase::Connect, format!("Discovery request failed: {e}"))
+        })?;
 
         if !response.is_success() {
-            return Err(LoamSpineError::Network(format!(
-                "Discovery failed with status: {}",
-                response.status
-            )));
+            return Err(LoamSpineError::ipc(
+                IpcPhase::HttpStatus(response.status),
+                format!("Discovery failed with status: {}", response.status),
+            ));
         }
 
         response.json()
@@ -324,21 +324,22 @@ impl DiscoveryClient {
         };
 
         let body = serde_json::to_value(&advertisement).map_err(|e| {
-            LoamSpineError::Network(format!("Failed to serialize advertisement: {e}"))
+            LoamSpineError::ipc(
+                IpcPhase::Serialization,
+                format!("Failed to serialize advertisement: {e}"),
+            )
         })?;
 
         let url = format!("{}/register", self.endpoint);
-        let response = self
-            .transport
-            .post_json(&url, &body)
-            .await
-            .map_err(|e| LoamSpineError::Network(format!("Advertisement failed: {e}")))?;
+        let response = self.transport.post_json(&url, &body).await.map_err(|e| {
+            LoamSpineError::ipc(IpcPhase::Connect, format!("Advertisement failed: {e}"))
+        })?;
 
         if !response.is_success() {
-            return Err(LoamSpineError::Network(format!(
-                "Advertisement failed with status: {}",
-                response.status
-            )));
+            return Err(LoamSpineError::ipc(
+                IpcPhase::HttpStatus(response.status),
+                format!("Advertisement failed with status: {}", response.status),
+            ));
         }
 
         Ok(())
@@ -366,17 +367,15 @@ impl DiscoveryClient {
     pub async fn heartbeat(&self) -> LoamSpineResult<()> {
         let url = format!("{}/heartbeat", self.endpoint);
         let body = serde_json::json!({ "name": crate::neural_api::PRIMAL_NAME });
-        let response = self
-            .transport
-            .post_json(&url, &body)
-            .await
-            .map_err(|e| LoamSpineError::Network(format!("Heartbeat failed: {e}")))?;
+        let response = self.transport.post_json(&url, &body).await.map_err(|e| {
+            LoamSpineError::ipc(IpcPhase::Connect, format!("Heartbeat failed: {e}"))
+        })?;
 
         if !response.is_success() {
-            return Err(LoamSpineError::Network(format!(
-                "Heartbeat failed with status: {}",
-                response.status
-            )));
+            return Err(LoamSpineError::ipc(
+                IpcPhase::HttpStatus(response.status),
+                format!("Heartbeat failed with status: {}", response.status),
+            ));
         }
 
         Ok(())
@@ -390,17 +389,15 @@ impl DiscoveryClient {
     pub async fn deregister(&self) -> LoamSpineResult<()> {
         let url = format!("{}/deregister", self.endpoint);
         let body = serde_json::json!({ "name": crate::neural_api::PRIMAL_NAME });
-        let response = self
-            .transport
-            .post_json(&url, &body)
-            .await
-            .map_err(|e| LoamSpineError::Network(format!("Deregister failed: {e}")))?;
+        let response = self.transport.post_json(&url, &body).await.map_err(|e| {
+            LoamSpineError::ipc(IpcPhase::Connect, format!("Deregister failed: {e}"))
+        })?;
 
         if !response.is_success() {
-            return Err(LoamSpineError::Network(format!(
-                "Deregister failed with status: {}",
-                response.status
-            )));
+            return Err(LoamSpineError::ipc(
+                IpcPhase::HttpStatus(response.status),
+                format!("Deregister failed with status: {}", response.status),
+            ));
         }
 
         Ok(())
@@ -590,5 +587,5 @@ fn extract_port(url_str: &str) -> Option<u16> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests;

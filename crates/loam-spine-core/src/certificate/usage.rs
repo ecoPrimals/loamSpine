@@ -83,7 +83,7 @@ impl UsageSummary {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
     use crate::types::{ContentHash, SliceId, Timestamp};
