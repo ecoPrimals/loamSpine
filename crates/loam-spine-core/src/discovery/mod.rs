@@ -34,9 +34,10 @@
 //! ```
 
 mod dyn_traits;
+pub mod manifest;
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests;
 
 pub use dyn_traits::{
@@ -441,6 +442,7 @@ impl DiscoveredAttestationProvider {
         method: &str,
         params: serde_json::Value,
     ) -> LoamSpineResult<serde_json::Value> {
+        use crate::error::IpcPhase;
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
         use tokio::net::TcpStream;
 
@@ -450,62 +452,67 @@ impl DiscoveredAttestationProvider {
             "params": params,
             "id": 1u64,
         });
+
         let payload = serde_json::to_string(&request).map_err(|e| {
-            LoamSpineError::Serialization(format!("attestation request serialization: {e}"))
+            LoamSpineError::ipc(
+                IpcPhase::Serialization,
+                format!("attestation request serialization: {e}"),
+            )
         })?;
 
         let timeout = std::time::Duration::from_secs(5);
         let mut stream = match tokio::time::timeout(timeout, TcpStream::connect(endpoint)).await {
             Ok(Ok(s)) => s,
             Ok(Err(e)) => {
-                return Err(LoamSpineError::Network(format!(
-                    "attestation provider at {endpoint}: {e}"
-                )));
+                return Err(LoamSpineError::ipc(
+                    IpcPhase::Connect,
+                    format!("attestation provider at {endpoint}: {e}"),
+                ));
             }
             Err(_) => {
-                return Err(LoamSpineError::Network(format!(
-                    "attestation provider at {endpoint} timed out"
-                )));
+                return Err(LoamSpineError::ipc(
+                    IpcPhase::Connect,
+                    format!("attestation provider at {endpoint} timed out"),
+                ));
             }
         };
 
         stream
             .write_all(payload.as_bytes())
             .await
-            .map_err(|e| LoamSpineError::Network(format!("attestation write: {e}")))?;
+            .map_err(|e| LoamSpineError::ipc(IpcPhase::Write, format!("attestation write: {e}")))?;
         stream
             .write_all(b"\n")
             .await
-            .map_err(|e| LoamSpineError::Network(format!("attestation write: {e}")))?;
+            .map_err(|e| LoamSpineError::ipc(IpcPhase::Write, format!("attestation write: {e}")))?;
         stream
             .flush()
             .await
-            .map_err(|e| LoamSpineError::Network(format!("attestation flush: {e}")))?;
+            .map_err(|e| LoamSpineError::ipc(IpcPhase::Write, format!("attestation flush: {e}")))?;
 
         let mut line = String::new();
         BufReader::new(stream)
             .read_line(&mut line)
             .await
-            .map_err(|e| LoamSpineError::Network(format!("attestation read: {e}")))?;
+            .map_err(|e| LoamSpineError::ipc(IpcPhase::Read, format!("attestation read: {e}")))?;
 
         let response: serde_json::Value = serde_json::from_str(line.trim()).map_err(|e| {
-            LoamSpineError::Serialization(format!("attestation response parse: {e}"))
+            LoamSpineError::ipc(
+                IpcPhase::InvalidJson,
+                format!("attestation response parse: {e}"),
+            )
         })?;
 
-        if let Some(err) = response.get("error") {
-            let msg = err
-                .get("message")
-                .and_then(serde_json::Value::as_str)
-                .unwrap_or("unknown error");
-            return Err(LoamSpineError::Internal(format!(
-                "attestation provider error: {msg}"
-            )));
+        if let Some((code, message)) = crate::error::extract_rpc_error(&response) {
+            return Err(LoamSpineError::ipc(
+                IpcPhase::JsonRpcError(code),
+                format!("attestation provider error: {message}"),
+            ));
         }
 
-        response
-            .get("result")
-            .cloned()
-            .ok_or_else(|| LoamSpineError::Internal("attestation response missing result".into()))
+        response.get("result").cloned().ok_or_else(|| {
+            LoamSpineError::ipc(IpcPhase::NoResult, "attestation response missing result")
+        })
     }
 }
 

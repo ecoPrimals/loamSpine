@@ -2,7 +2,7 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.9.3  
+**Version**: 0.9.4  
 **Status**: Production Ready  
 **Date**: March 15, 2026  
 **Latest**: Deep debt & feature completion, 1,132 tests, 91.71% region coverage in v0.9.0

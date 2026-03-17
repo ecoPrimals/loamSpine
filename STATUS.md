@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.3  
+**Current Version**: 0.9.4  
 **Last Updated**: March 16, 2026
 
 ---
@@ -46,13 +46,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,206 |
-| Coverage (llvm-cov) | 90%+ | 88.91% line / 84.61% region / 91.03% function |
+| Tests | — | 1,221 |
+| Coverage (llvm-cov) | 90%+ | 88.74% line / 84.51% region / 90.89% function |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 955 max (all 122 files under 1000) |
-| Source files | — | 122 `.rs` files |
+| Max file size | < 1000 lines | 955 max (all 123 files under 1000) |
+| Source files | — | 123 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
 
@@ -64,12 +64,12 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 122 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 123 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All 122 files under 1000 lines (max: 955). Certificate service smart-refactored (906 → 380+367+193). |
+| File size limit | PASS | All 123 files under 1000 lines (max: 955). Certificate service smart-refactored (906 → 380+367+193). |
 
 ---
 

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.4] - 2026-03-16
+
+### Added
+- **`is_timeout_likely()`**: IpcPhase helper for timeout detection (sweetGrass alignment).
+- **`is_application_error()`**: IpcPhase helper for JSON-RPC error classification.
+- **`OrExit` wired into main.rs**: Startup validation uses zero-panic `or_exit()` for bind address and lifecycle init.
+- **`operation_dependencies` + `cost_estimates`**: Top-level DAG and cost metadata in `capability.list` for Pathway Learner.
+- **`extract_capabilities()`**: Parse partner primals' `capability.list` responses (4 formats: flat, object, nested, combined).
+- **Manifest discovery**: `$XDG_RUNTIME_DIR/ecoPrimals/*.json` fallback for local primal discovery (rhizoCrypt S16 pattern).
+- **Proptest**: Property-based tests for `IpcPhase`, `extract_rpc_error`, `DispatchOutcome`, JSON-RPC types (4 property tests).
+
+### Changed
+- **`deny.toml wildcards = "deny"`**: Tightened from `"warn"` to match groundSpring/wetSpring/healthSpring standard.
+- **NeuralAPI IPC errors**: `register_with_neural_api()` and `deregister_from_neural_api()` evolved from `Network(format!(...))` to structured `Ipc { phase, message }`.
+- **Attestation provider IPC**: `DiscoveredAttestationProvider::jsonrpc_call()` evolved to structured IPC errors with `extract_rpc_error()`.
+- **Stale "stubbed call" doc**: `waypoint.rs` comment corrected to "requests attestation from the capability registry".
+
+### Metrics
+- Tests: 1,221 passing (up from 1,206)
+- Coverage: 88.74% line / 84.51% region / 90.89% function
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe in production: 0
+- Max file size: 955 lines (all 123 files under 1,000)
+- Source files: 123 `.rs` files (up from 122)
+- deny.toml: wildcards = "deny" (ecosystem standard)
+- License: AGPL-3.0-or-later
+
 ## [0.9.3] - 2026-03-16
 
 ### Added
@@ -732,6 +760,7 @@ spine.append(entry)?;
 
 ---
 
+[0.9.4]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.0...v0.9.1

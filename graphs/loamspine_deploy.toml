@@ -22,7 +22,7 @@ description = "LoamSpine permanence layer — certificates, proofs, selective me
 coordination = "Sequential"
 
 [graph.metadata]
-loamspine_version = "0.9.3"
+loamspine_version = "0.9.4"
 domain = "permanence"
 primal_id = "loamspine"
 protocols = ["jsonrpc", "tarpc"]

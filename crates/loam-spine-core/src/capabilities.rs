@@ -312,6 +312,130 @@ impl ExternalCapability {
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// extract_capabilities — parse partner capability.list responses
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Information about a single capability method from a partner primal.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapabilityMethod {
+    /// Method name (e.g. `"spine.create"`).
+    pub method: String,
+    /// Domain (e.g. `"spine"`, `"certificate"`).
+    pub domain: Option<String>,
+    /// Cost tier (e.g. `"low"`, `"medium"`, `"high"`).
+    pub cost: Option<String>,
+    /// Dependencies (other methods that must be called first).
+    pub deps: Vec<String>,
+}
+
+/// Parsed capability list from a partner primal's `capability.list` response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedCapabilities {
+    /// Primal name.
+    pub primal: Option<String>,
+    /// Primal version.
+    pub version: Option<String>,
+    /// Flat capability strings (e.g. `["permanence", "commit.session"]`).
+    pub capabilities: Vec<String>,
+    /// Structured method descriptors (if `methods` array is present).
+    pub methods: Vec<CapabilityMethod>,
+}
+
+/// Parse a `capability.list` JSON-RPC response from any primal.
+///
+/// Supports 4 formats used across the ecosystem:
+/// 1. Flat array: `{ "capabilities": ["a", "b"] }`
+/// 2. Object array: `{ "methods": [{ "method": "a", "domain": "x" }] }`
+/// 3. Nested domains: `{ "domains": { "spine": ["create", "get"] } }`
+/// 4. Combined: flat `capabilities` + structured `methods`
+///
+/// Aligns with wetSpring V125 / airSpring v0.8.7 `parse_capabilities()`.
+#[must_use]
+pub fn extract_capabilities(response: &serde_json::Value) -> ParsedCapabilities {
+    let primal = response
+        .get("primal")
+        .and_then(serde_json::Value::as_str)
+        .map(String::from);
+    let version = response
+        .get("version")
+        .and_then(serde_json::Value::as_str)
+        .map(String::from);
+
+    let mut capabilities = Vec::new();
+    let mut methods = Vec::new();
+
+    if let Some(caps) = response
+        .get("capabilities")
+        .and_then(serde_json::Value::as_array)
+    {
+        for cap in caps {
+            if let Some(s) = cap.as_str() {
+                capabilities.push(s.to_string());
+            }
+        }
+    }
+
+    if let Some(meths) = response
+        .get("methods")
+        .and_then(serde_json::Value::as_array)
+    {
+        for m in meths {
+            let Some(method_name) = m.get("method").and_then(serde_json::Value::as_str) else {
+                continue;
+            };
+            let domain = m
+                .get("domain")
+                .and_then(serde_json::Value::as_str)
+                .map(String::from);
+            let cost = m
+                .get("cost")
+                .and_then(serde_json::Value::as_str)
+                .map(String::from);
+            let deps = m
+                .get("deps")
+                .and_then(serde_json::Value::as_array)
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
+                .unwrap_or_default();
+            methods.push(CapabilityMethod {
+                method: method_name.to_string(),
+                domain,
+                cost,
+                deps,
+            });
+        }
+    }
+
+    if let Some(domains) = response
+        .get("domains")
+        .and_then(serde_json::Value::as_object)
+    {
+        for (domain_name, methods_val) in domains {
+            if let Some(arr) = methods_val.as_array() {
+                for m in arr {
+                    if let Some(method_str) = m.as_str() {
+                        let full_method = format!("{domain_name}.{method_str}");
+                        if !capabilities.contains(&full_method) {
+                            capabilities.push(full_method);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    ParsedCapabilities {
+        primal,
+        version,
+        capabilities,
+        methods,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -363,5 +487,77 @@ mod tests {
     fn test_service_health_default() {
         let health = ServiceHealth::default();
         assert_eq!(health, ServiceHealth::Unknown);
+    }
+
+    #[test]
+    fn extract_flat_capabilities() {
+        let response = serde_json::json!({
+            "primal": "rhizoCrypt",
+            "version": "0.13.0",
+            "capabilities": ["signing", "verification", "key-management"],
+        });
+        let parsed = extract_capabilities(&response);
+        assert_eq!(parsed.primal.as_deref(), Some("rhizoCrypt"));
+        assert_eq!(parsed.version.as_deref(), Some("0.13.0"));
+        assert_eq!(
+            parsed.capabilities,
+            vec!["signing", "verification", "key-management"]
+        );
+        assert!(parsed.methods.is_empty());
+    }
+
+    #[test]
+    fn extract_methods_with_domain_cost_deps() {
+        let response = serde_json::json!({
+            "primal": "loamSpine",
+            "methods": [
+                { "method": "spine.create", "domain": "spine", "cost": "low", "deps": [] },
+                { "method": "entry.append", "domain": "entry", "cost": "low", "deps": ["spine.create"] },
+            ],
+        });
+        let parsed = extract_capabilities(&response);
+        assert_eq!(parsed.methods.len(), 2);
+        assert_eq!(parsed.methods[1].method, "entry.append");
+        assert_eq!(parsed.methods[1].domain.as_deref(), Some("entry"));
+        assert_eq!(parsed.methods[1].deps, vec!["spine.create"]);
+    }
+
+    #[test]
+    fn extract_nested_domains() {
+        let response = serde_json::json!({
+            "domains": {
+                "spine": ["create", "get", "seal"],
+                "entry": ["append", "get"],
+            },
+        });
+        let parsed = extract_capabilities(&response);
+        assert!(parsed.capabilities.contains(&"spine.create".to_string()));
+        assert!(parsed.capabilities.contains(&"entry.append".to_string()));
+        assert_eq!(parsed.capabilities.len(), 5);
+    }
+
+    #[test]
+    fn extract_combined_format() {
+        let response = serde_json::json!({
+            "primal": "sweetGrass",
+            "version": "0.7.19",
+            "capabilities": ["attribution", "braid.create"],
+            "methods": [
+                { "method": "braid.create", "domain": "braid", "cost": "medium", "deps": [] },
+            ],
+        });
+        let parsed = extract_capabilities(&response);
+        assert_eq!(parsed.capabilities.len(), 2);
+        assert_eq!(parsed.methods.len(), 1);
+        assert_eq!(parsed.primal.as_deref(), Some("sweetGrass"));
+    }
+
+    #[test]
+    fn extract_empty_response() {
+        let response = serde_json::json!({});
+        let parsed = extract_capabilities(&response);
+        assert!(parsed.primal.is_none());
+        assert!(parsed.capabilities.is_empty());
+        assert!(parsed.methods.is_empty());
     }
 }

@@ -2,7 +2,7 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.3  
+**Current Version**: 0.9.4  
 **Last Updated**: March 16, 2026
 
 ---
@@ -117,11 +117,25 @@
 
 ---
 
-## v0.9.4 Targets
+## v0.9.4 Completed (March 16, 2026)
 
-- **Wire `DispatchOutcome`** into JSON-RPC dispatch (currently defined but not yet used in handler)
-- **Wire `OrExit`** into `main.rs` startup validation
+- **`is_timeout_likely()` + `is_application_error()`** — IpcPhase helpers matching sweetGrass pattern
+- **`OrExit` wired into main.rs** — Zero-panic startup validation for bind address and lifecycle init
+- **`operation_dependencies` + `cost_estimates`** — Top-level DAG/cost metadata in capability.list for Pathway Learner
+- **`extract_capabilities()`** — Parse partner capability.list responses (4 formats: flat, object, nested, combined)
+- **Manifest discovery** — `$XDG_RUNTIME_DIR/ecoPrimals/*.json` fallback (rhizoCrypt S16 pattern)
+- **Proptest** — 4 property-based tests for IpcPhase, extract_rpc_error, DispatchOutcome
+- **`deny.toml wildcards = "deny"`** — Tightened to match ecosystem standard
+- **NeuralAPI IPC evolution** — Registration/deregistration/attestation evolved to structured `Ipc { phase, message }`
+- **Coverage**: 90.89% function / 88.74% line / 84.51% region (1,221 tests)
+- **Source files**: 122 → 123 (added `discovery/manifest.rs`). All under 1000 lines (max: 955).
+
+---
+
+## v0.9.5 Targets
+
 - **Wire `StreamItem`** into provenance trio pipeline coordination
+- **Wire `DispatchOutcome`** into JSON-RPC server dispatch
 - **90%+ line coverage** — Storage backend error-path tests (redb 73.6%, sled 76.9%, sqlite 77-79%, cli_signer 74.6%)
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** — Expand from ~10% to full coverage

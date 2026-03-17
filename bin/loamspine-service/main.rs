@@ -34,6 +34,7 @@ use loam_spine_api::{LoamSpineRpcService, run_jsonrpc_server, run_tarpc_server};
 use loam_spine_core::LoamSpineService;
 use loam_spine_core::config::LoamSpineConfig;
 use loam_spine_core::constants::network;
+use loam_spine_core::error::OrExit;
 use loam_spine_core::service::LifecycleManager;
 use tracing::{error, info};
 
@@ -132,11 +133,14 @@ async fn run_server(
     let service = LoamSpineService::new();
     let config = LoamSpineConfig::default();
     let mut lifecycle = LifecycleManager::new(service.clone(), config);
-    lifecycle.start().await?;
+    lifecycle
+        .start()
+        .await
+        .or_exit("Failed to start lifecycle manager");
 
     let rpc_service = LoamSpineRpcService::new(service);
 
-    let ip: IpAddr = resolved_bind.parse()?;
+    let ip: IpAddr = resolved_bind.parse().or_exit("Invalid bind address");
     let tarpc_addr = SocketAddr::new(ip, resolved_tarpc_port);
     let jsonrpc_addr = SocketAddr::new(ip, resolved_jsonrpc_port);
 

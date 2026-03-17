@@ -214,6 +214,35 @@ impl LoamSpineError {
             }
         )
     }
+
+    /// Whether this error likely indicates a timeout (Connect, Read, Write phases).
+    ///
+    /// Aligns with sweetGrass's `is_timeout_likely()` for ecosystem consistency.
+    #[must_use]
+    pub const fn is_timeout_likely(&self) -> bool {
+        matches!(
+            self,
+            Self::Ipc {
+                phase: IpcPhase::Connect | IpcPhase::Read | IpcPhase::Write,
+                ..
+            }
+        )
+    }
+
+    /// Whether this is an application-level JSON-RPC error (as opposed to protocol).
+    ///
+    /// Returns `true` for `IpcPhase::JsonRpcError(_)` — the remote primal
+    /// understood the request but returned an error object.
+    #[must_use]
+    pub const fn is_application_error(&self) -> bool {
+        matches!(
+            self,
+            Self::Ipc {
+                phase: IpcPhase::JsonRpcError(_),
+                ..
+            }
+        )
+    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -484,5 +513,91 @@ mod tests {
         let (code, msg) = extract_rpc_error(&response).unwrap();
         assert_eq!(code, -1);
         assert_eq!(msg, "Unknown error");
+    }
+
+    #[test]
+    fn is_timeout_likely_phases() {
+        assert!(LoamSpineError::ipc(IpcPhase::Connect, "timeout").is_timeout_likely());
+        assert!(LoamSpineError::ipc(IpcPhase::Read, "timeout").is_timeout_likely());
+        assert!(LoamSpineError::ipc(IpcPhase::Write, "timeout").is_timeout_likely());
+        assert!(!LoamSpineError::ipc(IpcPhase::InvalidJson, "parse").is_timeout_likely());
+        assert!(!LoamSpineError::ipc(IpcPhase::JsonRpcError(-32601), "m").is_timeout_likely());
+        assert!(!LoamSpineError::Network("err".into()).is_timeout_likely());
+    }
+
+    #[test]
+    fn is_application_error_phases() {
+        assert!(
+            LoamSpineError::ipc(IpcPhase::JsonRpcError(-32601), "not found").is_application_error()
+        );
+        assert!(
+            LoamSpineError::ipc(IpcPhase::JsonRpcError(-32000), "app err").is_application_error()
+        );
+        assert!(!LoamSpineError::ipc(IpcPhase::Connect, "refused").is_application_error());
+        assert!(!LoamSpineError::ipc(IpcPhase::InvalidJson, "parse").is_application_error());
+        assert!(!LoamSpineError::Network("err".into()).is_application_error());
+    }
+}
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "proptest assertions use unwrap_err for error-path validation"
+)]
+#[expect(
+    clippy::redundant_clone,
+    reason = "proptest macro takes ownership; clone needed for subsequent assertions"
+)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    fn arb_ipc_phase() -> impl Strategy<Value = IpcPhase> {
+        prop_oneof![
+            Just(IpcPhase::Connect),
+            Just(IpcPhase::Write),
+            Just(IpcPhase::Read),
+            Just(IpcPhase::InvalidJson),
+            (0u16..=999u16).prop_map(IpcPhase::HttpStatus),
+            Just(IpcPhase::NoResult),
+            any::<i64>().prop_map(IpcPhase::JsonRpcError),
+            Just(IpcPhase::Serialization),
+        ]
+    }
+
+    proptest! {
+        #[test]
+        fn ipc_phase_display_never_panics(phase in arb_ipc_phase()) {
+            let s = phase.to_string();
+            prop_assert!(!s.is_empty());
+        }
+
+        #[test]
+        fn ipc_error_helpers_consistent(phase in arb_ipc_phase(), msg in ".*") {
+            let err = LoamSpineError::ipc(phase.clone(), msg);
+            if err.is_method_not_found() {
+                prop_assert!(err.is_application_error());
+            }
+            if err.is_timeout_likely() {
+                prop_assert!(err.is_recoverable());
+            }
+        }
+
+        #[test]
+        fn extract_rpc_error_never_panics(json_str in "\\PC{0,200}") {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                let _ = extract_rpc_error(&val);
+            }
+        }
+
+        #[test]
+        fn dispatch_outcome_into_result_consistent(code in any::<i64>(), msg in ".*") {
+            let outcome: DispatchOutcome<i32> = DispatchOutcome::ApplicationError {
+                code,
+                message: msg,
+            };
+            let err = outcome.into_result().unwrap_err();
+            prop_assert!(err.is_application_error());
+        }
     }
 }
