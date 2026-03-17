@@ -66,7 +66,7 @@ cargo deny check licenses bans sources
 loamSpine/
 ├── bin/loamspine-service/     # UniBin: server | capabilities | socket
 ├── crates/
-│   ├── loam-spine-core/       # Core library (55+ source files)
+│   ├── loam-spine-core/       # Core library (99 source files)
 │   │   └── src/
 │   │       ├── backup/            # Backup/restore
 │   │       ├── capabilities.rs    # Capability definitions
@@ -99,7 +99,7 @@ loamSpine/
 │   │       ├── transport/         # IPC transports (HTTP, NeuralAPI, mock)
 │   │       ├── waypoint.rs        # Waypoint types (config, attestation, relending chain)
 │   │       └── trio_types.rs      # Provenance trio type bridging
-│   └── loam-spine-api/        # RPC layer (14 source files)
+│   └── loam-spine-api/        # RPC layer (19 source files)
 │       └── src/
 │           ├── jsonrpc/       # JSON-RPC 2.0 (semantic naming)
 │           ├── tarpc_server.rs # Binary RPC (primal-to-primal)
@@ -107,7 +107,7 @@ loamSpine/
 │           ├── health.rs      # Health checks
 │           └── error.rs       # API errors
 ├── specs/                     # 11 specification documents
-├── showcase/                  # Interactive demos (83 files)
+├── showcase/                  # Interactive demos (71 files)
 └── fuzz/                      # Fuzz testing targets
 ```
 

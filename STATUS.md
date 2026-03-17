@@ -78,11 +78,11 @@ This document tracks implementation progress against the specification suite in 
 - **Certificate service smart refactoring**: `certificate.rs` (906 lines) → 3 domain-focused modules: `certificate.rs` (380 — core CRUD, verification, proofs), `certificate_loan.rs` (367 — loan lifecycle, sublend, auto-return), `certificate_escrow.rs` (193 — hold, release, cancel). No code duplication; clean `impl LoamSpineService` blocks per domain.
 - **Hardcoding evolution**: `../bins` path in `cli_signer.rs` evolved to environment-configurable `LOAMSPINE_BINS_DIR` with fallback. Zero hardcoded paths remain in production code.
 - **Unsafe code evolution**: `lifecycle.rs` test unsafe `env::remove_var` evolved to safe `temp_env::with_var_unset` + manual runtime pattern. `unsafe_code` allow removed from lifecycle test module.
-- **Doc count alignment**: STATUS.md and WHATS_NEXT.md corrected from stale "114" to actual 121 source file count. Coverage metric corrected: 91.72% line / 89.71% region / 85.25% function.
+- **Doc count alignment**: STATUS.md and WHATS_NEXT.md corrected from stale "114" to actual 121 source file count. Coverage metric corrected: 88.84% line / 84.46% region / 91.01% function.
 - **Dependency audit**: All default-feature deps are pure Rust (ecoBin compliant). C dependencies only via optional features (sqlite, mdns). `tokio`/`redb` use system libc for I/O (unavoidable for networked services), but no bundled C code.
 - **Mock audit**: All `MockSigner`, `MockVerifier`, `MockTransport` properly gated behind `#[cfg(any(test, feature = "testing"))]`. Zero mock code in production binary. All stubs evolved to real implementations.
 - **Hardcoding audit**: Zero hardcoded primal names in production (2 self-identity `"LoamSpine"` references are correct). Zero hardcoded ports in production (dev defaults in `constants.rs` with env override). Zero TODO/FIXME/HACK. Zero `println!`/`eprintln!` in production (all tracing).
-- **Source files**: 119 → 121. **All 1,180 tests pass**. Clippy pedantic+nursery clean. Zero doc warnings.
+- **Source files**: 119 → 121. **All 1,190 tests pass**. Clippy pedantic+nursery clean. Zero doc warnings.
 
 ---
 

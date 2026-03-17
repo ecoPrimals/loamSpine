@@ -76,7 +76,7 @@
 - **Zero-copy `entry.clone()` elimination** -- 16 call sites refactored to `tip_entry()` pattern
 - **Capability string constants** -- All hardcoded strings replaced with `capabilities::identifiers::*`; `ADVERTISED` canonical set; `InfantDiscovery::from_advertised()`
 - **blake3 pure Rust** -- ecoBin compliance: `features = ["pure"]`, zero C/asm
-- **AGPL-3.0-or-later** -- Aligned with wateringHole scyBorg guidance across all 121 source files
+- **AGPL-3.0-or-later** -- Aligned with wateringHole scyBorg guidance across all 119 source files
 - **`temp-env` migration** -- 14 additional async tests migrated from `unsafe` to safe patterns
 
 ---

@@ -305,7 +305,7 @@ Look for issues labeled `good-first-issue`:
 | SPDX Headers | All 123 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | bans, licenses, sources pass |
-| UniBin | `loamspine server` subcommand |
+| UniBin | `loamspine server`, `capabilities`, `socket` subcommands |
 | JSON-RPC Methods | 28 (semantic naming) |
 | Mock isolation | All mocks cfg-gated out of production |
 | Provenance Trio | Tested (rhizoCrypt + sweetGrass) |

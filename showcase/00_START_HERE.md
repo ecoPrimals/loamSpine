@@ -4,8 +4,8 @@
 
 **Version**: 0.9.4  
 **Status**: Production Ready  
-**Date**: March 15, 2026  
-**Latest**: Deep debt & feature completion, 1,132 tests, 91.71% region coverage in v0.9.0
+**Date**: March 16, 2026  
+**Latest**: Cross-ecosystem absorption, 1,221 tests, 84.51% region / 90.89% function coverage in v0.9.4
 
 ---
 
@@ -521,6 +521,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.9.0 - ecoPrimals Ecosystem*  
-*March 15, 2026*
+*LoamSpine v0.9.4 - ecoPrimals Ecosystem*  
+*March 16, 2026*
 
