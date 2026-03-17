@@ -355,7 +355,7 @@ impl<T, E: fmt::Display> OrExit<T> for std::result::Result<T, E> {
         match self {
             Ok(val) => val,
             Err(e) => {
-                eprintln!("fatal: {context}: {e}");
+                tracing::error!("fatal: {context}: {e}");
                 std::process::exit(1);
             }
         }
@@ -367,7 +367,7 @@ impl<T> OrExit<T> for Option<T> {
         if let Some(val) = self {
             return val;
         }
-        eprintln!("fatal: {context}");
+        tracing::error!("fatal: {context}");
         std::process::exit(1);
     }
 }

@@ -375,6 +375,5 @@ impl LoamSpineService {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
 #[path = "certificate_tests.rs"]
 mod tests;

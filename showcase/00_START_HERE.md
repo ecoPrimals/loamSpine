@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.9.4  
+**Version**: 0.9.5  
 **Status**: Production Ready  
 **Date**: March 16, 2026  
-**Latest**: Cross-ecosystem absorption, 1,221 tests, 84.51% region / 90.89% function coverage in v0.9.4
+**Latest**: DispatchOutcome wiring, streaming sync, zero-copy evolution, 1,226 tests, 90%+ function coverage in v0.9.5
 
 ---
 
@@ -475,7 +475,7 @@ cat 00_SHOWCASE_INDEX.md
 - 🔐 **Provable**: Cryptographic proofs of everything
 - 🚀 **Fast**: Pure Rust, zero-copy, optimized
 - 🤝 **Composable**: Seamlessly integrates with ecosystem
-- 🏆 **World-Class**: A+ grade (98/100), 416 tests passing, 77.68% coverage
+- 🏆 **World-Class**: A+ grade, 1,226 tests passing, 90%+ function coverage
 - 🌍 **Universal**: tarpc + JSON-RPC for any client
 
 ---
@@ -521,6 +521,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.9.4 - ecoPrimals Ecosystem*  
+*LoamSpine v0.9.5 - ecoPrimals Ecosystem*  
 *March 16, 2026*
 

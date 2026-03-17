@@ -668,3 +668,147 @@ async fn sled_get_entries_for_spine_limit_exceeds_available() {
         .unwrap();
     assert_eq!(entries.len(), 1);
 }
+
+#[tokio::test]
+#[serial]
+async fn sled_list_spines_with_malformed_keys_skips_invalid() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("spines-malformed");
+
+    {
+        let db = sled::open(&path).unwrap();
+        let tree = db.open_tree("spines").unwrap();
+
+        let valid_id = SpineId::now_v7();
+        let valid_spine = create_test_spine();
+        let bytes = bincode::serialize(&valid_spine).unwrap();
+        tree.insert(valid_id.as_bytes(), bytes).unwrap();
+
+        tree.insert(b"short", b"val").unwrap();
+        tree.insert(b"this-key-is-too-long-for-uuid", b"val").unwrap();
+        db.flush().unwrap();
+    }
+
+    let storage = SledSpineStorage::open(&path).unwrap();
+    let ids = storage.list_spines().await.unwrap();
+    assert_eq!(ids.len(), 1, "should skip malformed keys (len != 16)");
+}
+
+#[tokio::test]
+#[serial]
+async fn sled_list_certificates_with_malformed_keys_skips_invalid() {
+    use crate::certificate::{Certificate, CertificateType, MintInfo};
+    use crate::storage::{CertificateStorage, SledCertificateStorage};
+    use crate::types::{CertificateId, Timestamp};
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("certs-malformed");
+
+    let cert_id = CertificateId::now_v7();
+    {
+        let db = sled::open(&path).unwrap();
+        let tree = db.open_tree("certificates").unwrap();
+
+        let owner = Did::new("did:key:z6MkOwner");
+        let spine_id = SpineId::now_v7();
+        let mint_info = MintInfo {
+            minter: owner.clone(),
+            spine: spine_id,
+            entry: [0u8; 32],
+            timestamp: Timestamp::now(),
+            authority: None,
+        };
+        let cert = Certificate::new(
+            cert_id,
+            CertificateType::DigitalGame {
+                platform: "steam".into(),
+                game_id: "test".into(),
+                edition: None,
+            },
+            &owner,
+            &mint_info,
+        );
+        let bytes = bincode::serialize(&(&cert, spine_id)).unwrap();
+        tree.insert(cert_id.as_bytes().as_slice(), bytes).unwrap();
+
+        tree.insert(b"short", b"val").unwrap();
+        tree.insert(b"this-key-is-too-long-for-uuid", b"val").unwrap();
+        db.flush().unwrap();
+    }
+
+    let storage = SledCertificateStorage::open(&path).unwrap();
+    let ids = storage.list_certificates().await.unwrap();
+    assert_eq!(ids.len(), 1, "should skip malformed keys (len != 16)");
+}
+
+#[tokio::test]
+#[serial]
+async fn sled_entry_index_missing_entry_skipped() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("entries-orphan");
+
+    let spine_id = SpineId::now_v7();
+    {
+        let db = sled::open(&path).unwrap();
+        let entries = db.open_tree("entries").unwrap();
+        let index = db.open_tree("entry_index").unwrap();
+
+        let owner = Did::new("did:key:z6MkOwner");
+        let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
+        let hash = entry.compute_hash().unwrap();
+        let bytes = bincode::serialize(&entry).unwrap();
+        entries.insert(&hash[..], bytes).unwrap();
+
+        let mut key = [0u8; 24];
+        key[..16].copy_from_slice(spine_id.as_bytes());
+        key[16..].copy_from_slice(&0u64.to_be_bytes());
+        index.insert(&key[..], &hash[..]).unwrap();
+
+        // Orphan: index points to non-existent hash
+        let orphan_hash = [0xFFu8; 32];
+        let mut orphan_key = [0u8; 24];
+        orphan_key[..16].copy_from_slice(spine_id.as_bytes());
+        orphan_key[16..].copy_from_slice(&99u64.to_be_bytes());
+        index.insert(&orphan_key[..], &orphan_hash[..]).unwrap();
+
+        db.flush().unwrap();
+    }
+
+    let storage = SledEntryStorage::open(&path).unwrap();
+    let entries = storage
+        .get_entries_for_spine(spine_id, 0, 100)
+        .await
+        .unwrap();
+    assert_eq!(entries.len(), 1, "orphan index entry should be skipped");
+}
+
+#[tokio::test]
+#[serial]
+async fn sled_get_entries_for_spine_corrupted_entry_in_index() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("entries-corrupt");
+
+    let spine_id = SpineId::now_v7();
+    {
+        let db = sled::open(&path).unwrap();
+        let entries = db.open_tree("entries").unwrap();
+        let index = db.open_tree("entry_index").unwrap();
+
+        let corrupt_hash = [0xABu8; 32];
+        let mut index_key = [0u8; 24];
+        index_key[..16].copy_from_slice(spine_id.as_bytes());
+        index_key[16..].copy_from_slice(&0u64.to_be_bytes());
+        index.insert(&index_key[..], &corrupt_hash[..]).unwrap();
+        entries.insert(&corrupt_hash[..], b"corrupt").unwrap();
+
+        db.flush().unwrap();
+    }
+
+    let storage = SledEntryStorage::open(&path).unwrap();
+    let result = storage.get_entries_for_spine(spine_id, 0, 10).await;
+    assert!(result.is_err(), "corrupted entry bytes should return error");
+    assert!(
+        result.unwrap_err().to_string().contains("deserialize"),
+        "error should mention deserialization"
+    );
+}

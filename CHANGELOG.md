@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.5] - 2026-03-17
+
+### Added
+- **`dispatch_typed` method**: JSON-RPC server now classifies dispatch results into `DispatchOutcome` — `ProtocolError` (parse, method-not-found, invalid params) vs `ApplicationError` (domain errors). Ecosystem consistency with rhizoCrypt/airSpring dispatch patterns.
+- **`outcome_to_response` helper**: Maps `DispatchOutcome` variants back to JSON-RPC wire format with appropriate error codes.
+- **Streaming sync methods**: `push_entries_streaming` and `pull_entries_streaming` in `SyncProtocol` emit `StreamItem` variants (Data/Progress/End/Error) via `tokio::sync::mpsc::Sender` for pipeline coordination.
+- **4 sled storage error-path tests**: `sled_list_spines_with_malformed_keys_skips_invalid`, `sled_list_certificates_with_malformed_keys_skips_invalid`, `sled_entry_index_missing_entry_skipped`, `sled_get_entries_for_spine_corrupted_entry_in_index`.
+
+### Changed
+- **`OrExit` tracing evolution**: `eprintln!` calls in `OrExit` trait implementations replaced with `tracing::error!` for structured logging consistency. Error context preserved in tracing span.
+- **Zero-copy `pull_from_peer`**: `entries_json.clone()` eliminated — uses `serde_json::Value::remove()` for ownership transfer from parsed JSON response.
+- **Zero-copy `push_entries`**: Clone eliminated via try-then-own pattern — attempts network push with reference, only takes ownership of entries vector for pending queue on failure.
+- **Smart refactor `lifecycle.rs`**: 888 lines → `lifecycle.rs` (442) + `lifecycle_tests.rs` (444). Test extraction uses `#[path = "lifecycle_tests.rs"]` pattern consistent with `certificate.rs`.
+- **`#[expect]` lint refinement**: Removed unfulfilled `clippy::expect_used` and `clippy::panic` expectations from `jsonrpc/mod.rs`, `sync/mod.rs`, and `certificate.rs` test modules. Only genuinely triggered lints retained.
+- **Doc link evolution**: `StreamItem` variant references in sync module doc comments use fully qualified paths (`crate::streaming::StreamItem::Progress`) for Rustdoc resolution.
+
+### Metrics
+- Tests: 1,226 passing (up from 1,221)
+- Coverage: TBD (v0.9.5 additions target storage error paths)
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe in production: 0
+- Max file size: 955 lines (all 125 files under 1,000)
+- Source files: 125 `.rs` files (up from 123)
+- License: AGPL-3.0-or-later
+
 ## [0.9.4] - 2026-03-16
 
 ### Added
@@ -760,6 +786,7 @@ spine.append(entry)?;
 
 ---
 
+[0.9.5]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.1...v0.9.2

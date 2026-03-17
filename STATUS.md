@@ -2,8 +2,8 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.4  
-**Last Updated**: March 16, 2026
+**Current Version**: 0.9.5  
+**Last Updated**: March 17, 2026
 
 ---
 
@@ -46,13 +46,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,221 |
-| Coverage (llvm-cov) | 90%+ | 88.74% line / 84.51% region / 90.89% function |
+| Tests | — | 1,226 |
+| Coverage (llvm-cov) | 90%+ | TBD (v0.9.5 additions target storage error paths) |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 955 max (all 123 files under 1000) |
-| Source files | — | 123 `.rs` files |
+| Max file size | < 1000 lines | 955 max (all 125 files under 1000) |
+| Source files | — | 125 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
 
@@ -64,12 +64,26 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 123 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 125 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All 123 files under 1000 lines (max: 955). Certificate service smart-refactored (906 → 380+367+193). |
+| File size limit | PASS | All 125 files under 1000 lines (max: 955). Certificate service smart-refactored (906 → 380+367+193). |
+
+---
+
+## v0.9.5 Deep Debt Resolution & Idiomatic Evolution (March 17, 2026)
+
+- **`DispatchOutcome` wired into JSON-RPC server**: `dispatch_typed` method classifies errors into `ProtocolError` vs `ApplicationError`; `outcome_to_response` maps back to JSON-RPC wire format. Ecosystem consistency with rhizoCrypt/airSpring.
+- **`StreamItem` wired into sync**: `push_entries_streaming` and `pull_entries_streaming` emit `Data`/`Progress`/`End`/`Error` stream items for pipeline coordination.
+- **`OrExit` tracing evolution**: `eprintln!` in `OrExit` trait replaced with `tracing::error!` for structured logging consistency.
+- **Zero-copy sync evolution**: `entries_json.clone()` in `pull_from_peer` → `serde_json::Value::remove()` ownership transfer. `push_entries` clone elimination via try-then-own pattern.
+- **Smart refactor lifecycle.rs**: `lifecycle.rs` (888 lines) → `lifecycle.rs` (442) + `lifecycle_tests.rs` (444). Uses `#[path]` pattern consistent with `certificate.rs`.
+- **Storage error-path coverage**: 4 new sled tests covering malformed keys in `list_spines`/`list_certificates`, missing entries in index, and corrupted entry bytes.
+- **`#[allow]` → `#[expect]` refinement**: Removed unfulfilled `expect_used`/`panic` expectations in `jsonrpc/mod.rs`, `sync/mod.rs`, and `certificate.rs` test modules.
+- **Doc link fixes**: Fully qualified paths for `StreamItem` variants in sync module doc comments.
+- **Tests**: 1,221 → 1,226 (+5). **Source files**: 123 → 125 (+`lifecycle_tests.rs`, +`sled` test additions). All under 1000 lines (max: 955).
 
 ---
 

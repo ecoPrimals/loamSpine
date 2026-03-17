@@ -10,6 +10,7 @@
 
 use crate::error::ServerError;
 use crate::service::LoamSpineRpcService;
+use loam_spine_core::error::{DispatchOutcome, IpcPhase, LoamSpineError};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -118,13 +119,43 @@ impl LoamSpineJsonRpc {
     }
 
     /// Handle a JSON-RPC request and produce a response.
+    ///
+    /// Routes through [`dispatch_typed`](Self::dispatch_typed) for typed
+    /// protocol vs. application error separation.
     pub async fn handle_request(&self, req: JsonRpcRequest) -> JsonRpcResponse {
         let JsonRpcRequest {
             id, method, params, ..
         } = req;
-        match self.dispatch(method.as_str(), params).await {
-            Ok(val) => JsonRpcResponse::success(id, val),
-            Err(e) => JsonRpcResponse::error(id, e.code, e.message),
+        outcome_to_response(id, self.dispatch_typed(method.as_str(), params).await)
+    }
+
+    /// Dispatch a JSON-RPC method, returning typed [`DispatchOutcome`].
+    ///
+    /// Separates protocol-level errors (method not found, invalid params)
+    /// from application-level errors. Enables typed middleware, retry
+    /// logic, and observability per the ecosystem `DispatchOutcome` pattern
+    /// (rhizoCrypt / airSpring / biomeOS).
+    pub async fn dispatch_typed(
+        &self,
+        method: &str,
+        params: serde_json::Value,
+    ) -> DispatchOutcome<serde_json::Value> {
+        match self.dispatch(method, params).await {
+            Ok(val) => DispatchOutcome::Ok(val),
+            Err(e)
+                if e.code == INVALID_PARAMS
+                    || e.code == METHOD_NOT_FOUND
+                    || e.code == PARSE_ERROR =>
+            {
+                DispatchOutcome::ProtocolError(LoamSpineError::ipc(
+                    IpcPhase::JsonRpcError(i64::from(e.code)),
+                    e.message,
+                ))
+            }
+            Err(e) => DispatchOutcome::ApplicationError {
+                code: i64::from(e.code),
+                message: e.message,
+            },
         }
     }
 
@@ -218,6 +249,36 @@ fn ser<T: serde::Serialize>(val: T) -> Result<serde_json::Value, JsonRpcError> {
         message: format!("serialization error: {e}"),
         data: None,
     })
+}
+
+/// Convert a [`DispatchOutcome`] into a [`JsonRpcResponse`].
+///
+/// Protocol errors (method not found, invalid params) carry their
+/// original JSON-RPC error code via [`IpcPhase::JsonRpcError`].
+/// Application errors use the code embedded in the outcome.
+fn outcome_to_response(
+    id: serde_json::Value,
+    outcome: DispatchOutcome<serde_json::Value>,
+) -> JsonRpcResponse {
+    match outcome {
+        DispatchOutcome::Ok(val) => JsonRpcResponse::success(id, val),
+        DispatchOutcome::ApplicationError { code, message } => {
+            JsonRpcResponse::error(id, i32::try_from(code).unwrap_or(LOAMSPINE_ERROR), message)
+        }
+        DispatchOutcome::ProtocolError(ref err) => {
+            let (code, message) = match err {
+                LoamSpineError::Ipc {
+                    phase: IpcPhase::JsonRpcError(c),
+                    message,
+                } => (
+                    i32::try_from(*c).unwrap_or(LOAMSPINE_ERROR),
+                    message.clone(),
+                ),
+                other => (LOAMSPINE_ERROR, other.to_string()),
+            };
+            JsonRpcResponse::error(id, code, message)
+        }
+    }
 }
 
 // ============================================================================
@@ -427,8 +488,8 @@ pub(crate) async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> 
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests;
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_validation;

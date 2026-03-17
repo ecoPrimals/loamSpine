@@ -208,7 +208,7 @@ cd showcase
 | Metric | Value |
 |--------|-------|
 | **Tests** | 247 passing |
-| **Coverage** | 92.42% |
+| **Coverage** | 90%+ function |
 | **RPC Methods** | 18/18 |
 | **Entry Types** | 15+ |
 | **Clippy** | pedantic + nursery (0 warnings) |

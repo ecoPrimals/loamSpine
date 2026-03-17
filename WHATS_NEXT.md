@@ -2,8 +2,8 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.4  
-**Last Updated**: March 16, 2026
+**Current Version**: 0.9.5  
+**Last Updated**: March 17, 2026
 
 ---
 
@@ -132,11 +132,22 @@
 
 ---
 
-## v0.9.5 Targets
+## v0.9.5 Completed (March 17, 2026)
 
-- **Wire `StreamItem`** into provenance trio pipeline coordination
-- **Wire `DispatchOutcome`** into JSON-RPC server dispatch
-- **90%+ line coverage** — Storage backend error-path tests (redb 73.6%, sled 76.9%, sqlite 77-79%, cli_signer 74.6%)
+- **`DispatchOutcome` wired into JSON-RPC server dispatch** — `dispatch_typed` classifies protocol vs application errors; `outcome_to_response` maps back to JSON-RPC wire format
+- **`StreamItem` wired into sync module** — `push_entries_streaming` and `pull_entries_streaming` emit Data/Progress/End/Error for pipeline coordination
+- **`OrExit` tracing evolution** — `eprintln!` → `tracing::error!` for structured logging consistency
+- **Zero-copy sync evolution** — `clone()` eliminated in `pull_from_peer` (ownership transfer via `remove()`) and `push_entries` (try-then-own pattern)
+- **Smart refactor lifecycle.rs** — 888 → 442 + 444 lines (`lifecycle_tests.rs` via `#[path]`)
+- **Storage error-path coverage** — 4 new sled tests: malformed keys, missing index entries, corrupted entry bytes
+- **`#[expect]` lint refinement** — Removed unfulfilled expectations in jsonrpc, sync, and certificate test modules
+- **Tests**: 1,226 (up from 1,221). Source files: 125 (up from 123). All under 1000 lines.
+
+---
+
+## v0.9.6 Targets
+
+- **90%+ line coverage** — Continue storage backend error-path tests (redb, sqlite, cli_signer)
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** — Expand from ~10% to full coverage
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
