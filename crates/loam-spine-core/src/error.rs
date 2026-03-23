@@ -14,10 +14,11 @@ use crate::types::{CertificateId, EntryHash, SpineId, format_hash_short};
 
 /// Phase of an IPC call that failed.
 ///
-/// Aligns with rhizoCrypt's `IpcErrorPhase` and healthSpring's `SendError`
-/// for ecosystem-wide structured IPC error handling.
+/// Aligns with rhizoCrypt's `IpcErrorPhase`, healthSpring's `SendError`,
+/// and primalSpring's 8-variant `IpcErrorPhase` for ecosystem-wide
+/// structured IPC error handling.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum IpcPhase {
+pub enum IpcErrorPhase {
     /// Socket or TCP connection failed (primal unreachable).
     Connect,
     /// Request write to socket/stream failed (broken pipe, timeout).
@@ -36,7 +37,14 @@ pub enum IpcPhase {
     Serialization,
 }
 
-impl fmt::Display for IpcPhase {
+/// Backward-compatible alias for [`IpcErrorPhase`].
+///
+/// Ecosystem naming converged on `IpcErrorPhase` (rhizoCrypt, primalSpring,
+/// biomeOS). This alias preserves backward compatibility for downstream
+/// code that imported the original name.
+pub type IpcPhase = IpcErrorPhase;
+
+impl fmt::Display for IpcErrorPhase {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Connect => write!(f, "connect"),
@@ -176,7 +184,7 @@ impl LoamSpineError {
 
     /// Create a structured IPC error.
     #[must_use]
-    pub fn ipc(phase: IpcPhase, message: impl Into<String>) -> Self {
+    pub fn ipc(phase: IpcErrorPhase, message: impl Into<String>) -> Self {
         Self::Ipc {
             phase,
             message: message.into(),
@@ -193,10 +201,10 @@ impl LoamSpineError {
         match self {
             Self::Ipc { phase, .. } => matches!(
                 phase,
-                IpcPhase::Connect
-                    | IpcPhase::Write
-                    | IpcPhase::Read
-                    | IpcPhase::HttpStatus(500..=599)
+                IpcErrorPhase::Connect
+                    | IpcErrorPhase::Write
+                    | IpcErrorPhase::Read
+                    | IpcErrorPhase::HttpStatus(500..=599)
             ),
             Self::CapabilityUnavailable(_) | Self::Network(_) => true,
             _ => false,
@@ -209,7 +217,7 @@ impl LoamSpineError {
         matches!(
             self,
             Self::Ipc {
-                phase: IpcPhase::JsonRpcError(-32601),
+                phase: IpcErrorPhase::JsonRpcError(-32601),
                 ..
             }
         )
@@ -223,7 +231,7 @@ impl LoamSpineError {
         matches!(
             self,
             Self::Ipc {
-                phase: IpcPhase::Connect | IpcPhase::Read | IpcPhase::Write,
+                phase: IpcErrorPhase::Connect | IpcErrorPhase::Read | IpcErrorPhase::Write,
                 ..
             }
         )
@@ -238,7 +246,7 @@ impl LoamSpineError {
         matches!(
             self,
             Self::Ipc {
-                phase: IpcPhase::JsonRpcError(_),
+                phase: IpcErrorPhase::JsonRpcError(_),
                 ..
             }
         )
@@ -293,9 +301,10 @@ impl<T> DispatchOutcome<T> {
     pub fn into_result(self) -> LoamSpineResult<T> {
         match self {
             Self::Ok(val) => Ok(val),
-            Self::ApplicationError { code, message } => {
-                Err(LoamSpineError::ipc(IpcPhase::JsonRpcError(code), message))
-            }
+            Self::ApplicationError { code, message } => Err(LoamSpineError::ipc(
+                IpcErrorPhase::JsonRpcError(code),
+                message,
+            )),
             Self::ProtocolError(e) => Err(e),
         }
     }
@@ -324,6 +333,57 @@ pub fn extract_rpc_error(response: &serde_json::Value) -> Option<(i64, String)> 
         .unwrap_or("Unknown error")
         .to_string();
     Some((code, message))
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// extract_rpc_result — centralized JSON-RPC result extraction
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Extracts a typed result from a JSON-RPC 2.0 response.
+///
+/// Returns `Ok(result_value)` if the response contains a `result` field,
+/// or `Err(LoamSpineError::Ipc)` if it contains an `error` field or
+/// is malformed. This is the counterpart to [`extract_rpc_error`].
+///
+/// Aligns with neuralSpring's `extract_rpc_result` and healthSpring's
+/// `classify_response` for ecosystem-consistent outbound RPC handling.
+///
+/// # Errors
+///
+/// - `IpcErrorPhase::JsonRpcError(code)` if the response contains an `error` object
+/// - `IpcErrorPhase::NoResult` if neither `result` nor `error` is present
+pub fn extract_rpc_result(response: &serde_json::Value) -> LoamSpineResult<&serde_json::Value> {
+    if let Some((code, message)) = extract_rpc_error(response) {
+        return Err(LoamSpineError::ipc(
+            IpcErrorPhase::JsonRpcError(code),
+            message,
+        ));
+    }
+    response
+        .get("result")
+        .ok_or_else(|| LoamSpineError::ipc(IpcErrorPhase::NoResult, "response missing 'result'"))
+}
+
+/// Extracts and deserializes a typed result from a JSON-RPC 2.0 response.
+///
+/// Combines [`extract_rpc_result`] with `serde_json::from_value` for the
+/// common pattern of extracting and deserializing in a single step.
+///
+/// # Errors
+///
+/// - `IpcErrorPhase::JsonRpcError(code)` if the response contains an error
+/// - `IpcErrorPhase::NoResult` if neither `result` nor `error` is present
+/// - `IpcErrorPhase::InvalidJson` if deserialization fails
+pub fn extract_rpc_result_typed<T: serde::de::DeserializeOwned>(
+    response: &serde_json::Value,
+) -> LoamSpineResult<T> {
+    let result = extract_rpc_result(response)?;
+    serde_json::from_value(result.clone()).map_err(|e| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::InvalidJson,
+            format!("result deserialization failed: {e}"),
+        )
+    })
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -404,33 +464,44 @@ mod tests {
 
     #[test]
     fn ipc_error_display_and_helper() {
-        let err = LoamSpineError::ipc(IpcPhase::Connect, "socket not found");
+        let err = LoamSpineError::ipc(IpcErrorPhase::Connect, "socket not found");
         assert!(err.to_string().contains("ipc error (connect)"));
         assert!(err.to_string().contains("socket not found"));
     }
 
     #[test]
     fn ipc_phase_display() {
-        assert_eq!(IpcPhase::Connect.to_string(), "connect");
-        assert_eq!(IpcPhase::Write.to_string(), "write");
-        assert_eq!(IpcPhase::Read.to_string(), "read");
-        assert_eq!(IpcPhase::InvalidJson.to_string(), "invalid_json");
-        assert_eq!(IpcPhase::HttpStatus(404).to_string(), "http_404");
-        assert_eq!(IpcPhase::NoResult.to_string(), "no_result");
-        assert_eq!(IpcPhase::JsonRpcError(-32601).to_string(), "jsonrpc_-32601");
-        assert_eq!(IpcPhase::Serialization.to_string(), "serialization");
+        assert_eq!(IpcErrorPhase::Connect.to_string(), "connect");
+        assert_eq!(IpcErrorPhase::Write.to_string(), "write");
+        assert_eq!(IpcErrorPhase::Read.to_string(), "read");
+        assert_eq!(IpcErrorPhase::InvalidJson.to_string(), "invalid_json");
+        assert_eq!(IpcErrorPhase::HttpStatus(404).to_string(), "http_404");
+        assert_eq!(IpcErrorPhase::NoResult.to_string(), "no_result");
+        assert_eq!(
+            IpcErrorPhase::JsonRpcError(-32601).to_string(),
+            "jsonrpc_-32601"
+        );
+        assert_eq!(IpcErrorPhase::Serialization.to_string(), "serialization");
+    }
+
+    #[test]
+    fn ipc_phase_backward_compat_alias() {
+        let phase: IpcPhase = IpcErrorPhase::Connect;
+        assert_eq!(phase.to_string(), "connect");
     }
 
     #[test]
     fn is_recoverable_ipc_phases() {
-        assert!(LoamSpineError::ipc(IpcPhase::Connect, "timeout").is_recoverable());
-        assert!(LoamSpineError::ipc(IpcPhase::Write, "broken pipe").is_recoverable());
-        assert!(LoamSpineError::ipc(IpcPhase::Read, "eof").is_recoverable());
-        assert!(LoamSpineError::ipc(IpcPhase::HttpStatus(503), "unavail").is_recoverable());
-        assert!(!LoamSpineError::ipc(IpcPhase::HttpStatus(404), "not found").is_recoverable());
-        assert!(!LoamSpineError::ipc(IpcPhase::NoResult, "missing").is_recoverable());
-        assert!(!LoamSpineError::ipc(IpcPhase::JsonRpcError(-32601), "method").is_recoverable());
-        assert!(!LoamSpineError::ipc(IpcPhase::InvalidJson, "parse").is_recoverable());
+        assert!(LoamSpineError::ipc(IpcErrorPhase::Connect, "timeout").is_recoverable());
+        assert!(LoamSpineError::ipc(IpcErrorPhase::Write, "broken pipe").is_recoverable());
+        assert!(LoamSpineError::ipc(IpcErrorPhase::Read, "eof").is_recoverable());
+        assert!(LoamSpineError::ipc(IpcErrorPhase::HttpStatus(503), "unavail").is_recoverable());
+        assert!(!LoamSpineError::ipc(IpcErrorPhase::HttpStatus(404), "not found").is_recoverable());
+        assert!(!LoamSpineError::ipc(IpcErrorPhase::NoResult, "missing").is_recoverable());
+        assert!(
+            !LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32601), "method").is_recoverable()
+        );
+        assert!(!LoamSpineError::ipc(IpcErrorPhase::InvalidJson, "parse").is_recoverable());
     }
 
     #[test]
@@ -444,12 +515,14 @@ mod tests {
     #[test]
     fn is_method_not_found() {
         assert!(
-            LoamSpineError::ipc(IpcPhase::JsonRpcError(-32601), "not found").is_method_not_found()
+            LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32601), "not found")
+                .is_method_not_found()
         );
         assert!(
-            !LoamSpineError::ipc(IpcPhase::JsonRpcError(-32600), "other").is_method_not_found()
+            !LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32600), "other")
+                .is_method_not_found()
         );
-        assert!(!LoamSpineError::ipc(IpcPhase::Connect, "timeout").is_method_not_found());
+        assert!(!LoamSpineError::ipc(IpcErrorPhase::Connect, "timeout").is_method_not_found());
         assert!(!LoamSpineError::Network("err".into()).is_method_not_found());
     }
 
@@ -476,7 +549,7 @@ mod tests {
     #[test]
     fn dispatch_outcome_protocol_error() {
         let outcome: DispatchOutcome<i32> =
-            DispatchOutcome::ProtocolError(LoamSpineError::ipc(IpcPhase::Connect, "refused"));
+            DispatchOutcome::ProtocolError(LoamSpineError::ipc(IpcErrorPhase::Connect, "refused"));
         assert!(!outcome.is_ok());
         assert!(!outcome.is_application_error());
         let err = outcome.into_result().unwrap_err();
@@ -517,25 +590,90 @@ mod tests {
 
     #[test]
     fn is_timeout_likely_phases() {
-        assert!(LoamSpineError::ipc(IpcPhase::Connect, "timeout").is_timeout_likely());
-        assert!(LoamSpineError::ipc(IpcPhase::Read, "timeout").is_timeout_likely());
-        assert!(LoamSpineError::ipc(IpcPhase::Write, "timeout").is_timeout_likely());
-        assert!(!LoamSpineError::ipc(IpcPhase::InvalidJson, "parse").is_timeout_likely());
-        assert!(!LoamSpineError::ipc(IpcPhase::JsonRpcError(-32601), "m").is_timeout_likely());
+        assert!(LoamSpineError::ipc(IpcErrorPhase::Connect, "timeout").is_timeout_likely());
+        assert!(LoamSpineError::ipc(IpcErrorPhase::Read, "timeout").is_timeout_likely());
+        assert!(LoamSpineError::ipc(IpcErrorPhase::Write, "timeout").is_timeout_likely());
+        assert!(!LoamSpineError::ipc(IpcErrorPhase::InvalidJson, "parse").is_timeout_likely());
+        assert!(!LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32601), "m").is_timeout_likely());
         assert!(!LoamSpineError::Network("err".into()).is_timeout_likely());
     }
 
     #[test]
     fn is_application_error_phases() {
         assert!(
-            LoamSpineError::ipc(IpcPhase::JsonRpcError(-32601), "not found").is_application_error()
+            LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32601), "not found")
+                .is_application_error()
         );
         assert!(
-            LoamSpineError::ipc(IpcPhase::JsonRpcError(-32000), "app err").is_application_error()
+            LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32000), "app err")
+                .is_application_error()
         );
-        assert!(!LoamSpineError::ipc(IpcPhase::Connect, "refused").is_application_error());
-        assert!(!LoamSpineError::ipc(IpcPhase::InvalidJson, "parse").is_application_error());
+        assert!(!LoamSpineError::ipc(IpcErrorPhase::Connect, "refused").is_application_error());
+        assert!(!LoamSpineError::ipc(IpcErrorPhase::InvalidJson, "parse").is_application_error());
         assert!(!LoamSpineError::Network("err".into()).is_application_error());
+    }
+
+    #[test]
+    fn extract_rpc_result_success() {
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "result": { "spine_id": "abc-123" },
+            "id": 1
+        });
+        let result = extract_rpc_result(&response).unwrap();
+        assert_eq!(result["spine_id"], "abc-123");
+    }
+
+    #[test]
+    fn extract_rpc_result_error_response() {
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "error": { "code": -32601, "message": "method not found" },
+            "id": 1
+        });
+        let err = extract_rpc_result(&response).unwrap_err();
+        assert!(err.is_method_not_found());
+    }
+
+    #[test]
+    fn extract_rpc_result_missing_result() {
+        let response = serde_json::json!({ "jsonrpc": "2.0", "id": 1 });
+        let err = extract_rpc_result(&response).unwrap_err();
+        assert!(matches!(
+            err,
+            LoamSpineError::Ipc {
+                phase: IpcErrorPhase::NoResult,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn extract_rpc_result_typed_success() {
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "result": 42,
+            "id": 1
+        });
+        let val: i32 = extract_rpc_result_typed(&response).unwrap();
+        assert_eq!(val, 42);
+    }
+
+    #[test]
+    fn extract_rpc_result_typed_wrong_type() {
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "result": "not a number",
+            "id": 1
+        });
+        let err = extract_rpc_result_typed::<i32>(&response).unwrap_err();
+        assert!(matches!(
+            err,
+            LoamSpineError::Ipc {
+                phase: IpcErrorPhase::InvalidJson,
+                ..
+            }
+        ));
     }
 }
 
@@ -552,16 +690,16 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    fn arb_ipc_phase() -> impl Strategy<Value = IpcPhase> {
+    fn arb_ipc_phase() -> impl Strategy<Value = IpcErrorPhase> {
         prop_oneof![
-            Just(IpcPhase::Connect),
-            Just(IpcPhase::Write),
-            Just(IpcPhase::Read),
-            Just(IpcPhase::InvalidJson),
-            (0u16..=999u16).prop_map(IpcPhase::HttpStatus),
-            Just(IpcPhase::NoResult),
-            any::<i64>().prop_map(IpcPhase::JsonRpcError),
-            Just(IpcPhase::Serialization),
+            Just(IpcErrorPhase::Connect),
+            Just(IpcErrorPhase::Write),
+            Just(IpcErrorPhase::Read),
+            Just(IpcErrorPhase::InvalidJson),
+            (0u16..=999u16).prop_map(IpcErrorPhase::HttpStatus),
+            Just(IpcErrorPhase::NoResult),
+            any::<i64>().prop_map(IpcErrorPhase::JsonRpcError),
+            Just(IpcErrorPhase::Serialization),
         ]
     }
 

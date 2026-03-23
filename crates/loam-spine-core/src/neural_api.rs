@@ -124,14 +124,14 @@ pub async fn register_with_neural_api() -> crate::error::LoamSpineResult<bool> {
 
     let request_bytes = serde_json::to_vec(&request).map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Serialization,
+            crate::error::IpcErrorPhase::Serialization,
             format!("Failed to serialize NeuralAPI registration: {e}"),
         )
     })?;
 
     let mut stream = UnixStream::connect(&socket_path).await.map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Connect,
+            crate::error::IpcErrorPhase::Connect,
             format!(
                 "NeuralAPI connection failed at {}: {e}",
                 socket_path.display()
@@ -141,25 +141,25 @@ pub async fn register_with_neural_api() -> crate::error::LoamSpineResult<bool> {
 
     let len = u32::try_from(request_bytes.len()).map_err(|_| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Serialization,
+            crate::error::IpcErrorPhase::Serialization,
             "Registration payload too large",
         )
     })?;
     stream.write_all(&len.to_be_bytes()).await.map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Write,
+            crate::error::IpcErrorPhase::Write,
             format!("NeuralAPI write failed: {e}"),
         )
     })?;
     stream.write_all(&request_bytes).await.map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Write,
+            crate::error::IpcErrorPhase::Write,
             format!("NeuralAPI write failed: {e}"),
         )
     })?;
     stream.flush().await.map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Write,
+            crate::error::IpcErrorPhase::Write,
             format!("NeuralAPI flush failed: {e}"),
         )
     })?;
@@ -167,34 +167,34 @@ pub async fn register_with_neural_api() -> crate::error::LoamSpineResult<bool> {
     let mut len_buf = [0u8; 4];
     stream.read_exact(&mut len_buf).await.map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Read,
+            crate::error::IpcErrorPhase::Read,
             format!("NeuralAPI response length read failed: {e}"),
         )
     })?;
     let resp_len = usize::try_from(u32::from_be_bytes(len_buf)).map_err(|_| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Read,
+            crate::error::IpcErrorPhase::Read,
             "NeuralAPI response length exceeds platform capacity",
         )
     })?;
     let mut resp_buf = vec![0u8; resp_len];
     stream.read_exact(&mut resp_buf).await.map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Read,
+            crate::error::IpcErrorPhase::Read,
             format!("NeuralAPI response read failed: {e}"),
         )
     })?;
 
     let response: serde_json::Value = serde_json::from_slice(&resp_buf).map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::InvalidJson,
+            crate::error::IpcErrorPhase::InvalidJson,
             format!("NeuralAPI response parse failed: {e}"),
         )
     })?;
 
     if let Some((code, message)) = crate::error::extract_rpc_error(&response) {
         return Err(crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::JsonRpcError(code),
+            crate::error::IpcErrorPhase::JsonRpcError(code),
             format!("NeuralAPI registration error: {message}"),
         ));
     }
@@ -230,7 +230,7 @@ pub async fn deregister_from_neural_api() -> crate::error::LoamSpineResult<()> {
 
     let request_bytes = serde_json::to_vec(&request).map_err(|e| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Serialization,
+            crate::error::IpcErrorPhase::Serialization,
             format!("Failed to serialize NeuralAPI deregister: {e}"),
         )
     })?;
@@ -245,7 +245,7 @@ pub async fn deregister_from_neural_api() -> crate::error::LoamSpineResult<()> {
 
     let len = u32::try_from(request_bytes.len()).map_err(|_| {
         crate::error::LoamSpineError::ipc(
-            crate::error::IpcPhase::Serialization,
+            crate::error::IpcErrorPhase::Serialization,
             "Deregister payload too large",
         )
     })?;

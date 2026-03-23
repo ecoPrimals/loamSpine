@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.7  
+**Current Version**: 0.9.8  
 **Last Updated**: March 23, 2026
 
 ---
@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,232 |
+| Tests | — | 1,247 |
 | Coverage (llvm-cov) | 90%+ | 92.23% line / 90.46% region / 86.52% function |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
@@ -73,6 +73,21 @@ This document tracks implementation progress against the specification suite in 
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | File size limit | PASS | All 124 files under 1000 lines (max: 865 in `certificate_tests.rs`). |
+
+---
+
+## v0.9.8 IPC alignment, cast lints & ecosystem absorption (March 23, 2026)
+
+- **`normalize_method()` absorbed** from barraCuda v0.3.7.
+- **`IpcPhase` → `IpcErrorPhase`**: Renamed with backward-compatible alias.
+- **`extract_rpc_result` + `extract_rpc_result_typed`**: New utilities for typed RPC result handling.
+- **`SyncEngine`**: Evolved from flat `Network` errors to structured `IpcErrorPhase`.
+- **Cast lints denied at workspace level**: `cast_possible_truncation`, `cast_sign_loss`, `cast_precision_loss`, `cast_possible_wrap` — zero violations.
+- **Proptest**: 9 new property tests for Entry and Spine invariants.
+- **Ecosystem patterns**: Absorbed from 9 springs + 10 primals review.
+- **wateringHole docs**: `PRIMAL_REGISTRY.md` and `LOAMSPINE_LEVERAGE_GUIDE.md` updated.
+- **provenance-trio-types**: Blocker documented as resolved.
+- **Tests**: 1,232 → **1,247** (+15 net). **Coverage**: unchanged from v0.9.7 (92.23% line / 90.46% region / 86.52% function). **Source files**: 124 (unchanged). **Max file**: 865 lines (unchanged).
 
 ---
 

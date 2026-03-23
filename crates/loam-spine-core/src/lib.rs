@@ -107,7 +107,8 @@ pub use config::LoamSpineConfig;
 
 /// `LoamSpine` errors.
 pub use error::{
-    DispatchOutcome, IpcPhase, LoamSpineError, LoamSpineResult, OrExit, extract_rpc_error,
+    DispatchOutcome, IpcErrorPhase, IpcPhase, LoamSpineError, LoamSpineResult, OrExit,
+    extract_rpc_error, extract_rpc_result, extract_rpc_result_typed,
 };
 
 /// Core types.

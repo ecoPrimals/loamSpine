@@ -126,7 +126,7 @@ impl TransportResponse {
     pub fn json<T: DeserializeOwned>(&self) -> Result<T, LoamSpineError> {
         serde_json::from_slice(&self.body).map_err(|e| {
             LoamSpineError::ipc(
-                crate::error::IpcPhase::InvalidJson,
+                crate::error::IpcErrorPhase::InvalidJson,
                 format!("Failed to parse response JSON: {e}"),
             )
         })

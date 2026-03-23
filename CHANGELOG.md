@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.8] - 2026-03-23
+
+### Added
+- **`normalize_method()`**: Absorbed from barraCuda v0.3.7.
+- **`extract_rpc_result` + `extract_rpc_result_typed`**: Utilities for extracting and typing JSON-RPC results.
+- **9 new proptests** for Entry and Spine invariants.
+
+### Changed
+- **`IpcPhase` → `IpcErrorPhase`**: Renamed with backward-compatible alias for existing call sites.
+- **`SyncEngine`**: Evolved from flat `Network` errors to structured `IpcErrorPhase`.
+- **Cast lints at workspace level**: `cast_possible_truncation`, `cast_sign_loss`, `cast_precision_loss`, `cast_possible_wrap` set to deny — zero violations.
+- **Ecosystem patterns**: Absorbed from 9 springs + 10 primals review.
+- **wateringHole**: `PRIMAL_REGISTRY.md` and `LOAMSPINE_LEVERAGE_GUIDE.md` updated.
+- **provenance-trio-types**: Blocker documented as resolved.
+
+### Metrics
+- Tests: 1,247 passing
+- Coverage: 92%+ line / 90%+ region / 86%+ function (unchanged from v0.9.7)
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe: 0 in production and tests
+- Max file: 865 lines (all 124 files under 1,000)
+- Source files: 124 `.rs` files (unchanged)
+- cargo deny: all four checks pass
+
 ## [0.9.7] - 2026-03-23
 
 ### Changed

@@ -252,8 +252,10 @@ mod tests {
         assert!(matches!(api_err, ApiError::InvalidRequest(_)));
 
         // Ipc -> Transport
-        let core_err =
-            LoamSpineError::ipc(loam_spine_core::error::IpcPhase::Connect, "socket timeout");
+        let core_err = LoamSpineError::ipc(
+            loam_spine_core::error::IpcErrorPhase::Connect,
+            "socket timeout",
+        );
         let api_err: ApiError = core_err.into();
         assert!(matches!(api_err, ApiError::Transport(_)));
         assert!(api_err.to_string().contains("connect"));

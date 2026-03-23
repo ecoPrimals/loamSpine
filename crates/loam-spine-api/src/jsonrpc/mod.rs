@@ -10,7 +10,7 @@
 
 use crate::error::ServerError;
 use crate::service::LoamSpineRpcService;
-use loam_spine_core::error::{DispatchOutcome, IpcPhase, LoamSpineError};
+use loam_spine_core::error::{DispatchOutcome, IpcErrorPhase, LoamSpineError};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -95,6 +95,32 @@ impl JsonRpcResponse {
 }
 
 // ============================================================================
+// Method normalization (backward-compatible alias resolution)
+// ============================================================================
+
+/// Normalize a JSON-RPC method name to its canonical `domain.operation` form.
+///
+/// Maps legacy aliases (e.g., `permanent-storage.commitSession`,
+/// `primal.capabilities`, `commit.session`) to the canonical semantic
+/// names defined in the wateringHole Semantic Method Naming Standard v2.1.
+///
+/// Absorbed from barraCuda v0.3.7's `normalize_method()` pattern — a
+/// single normalization step before dispatch, instead of duplicated
+/// match arms.
+#[must_use]
+pub fn normalize_method(method: &str) -> &str {
+    match method {
+        "commit.session" => "session.commit",
+        "permanent-storage.commitSession" => "permanence.commit_session",
+        "permanent-storage.verifyCommit" => "permanence.verify_commit",
+        "permanent-storage.getCommit" => "permanence.get_commit",
+        "permanent-storage.healthCheck" => "permanence.health_check",
+        "capability.list" | "primal.capabilities" => "capabilities.list",
+        other => other,
+    }
+}
+
+// ============================================================================
 // Dispatcher
 // ============================================================================
 
@@ -140,7 +166,8 @@ impl LoamSpineJsonRpc {
         method: &str,
         params: serde_json::Value,
     ) -> DispatchOutcome<serde_json::Value> {
-        match self.dispatch(method, params).await {
+        let canonical = normalize_method(method);
+        match self.dispatch(canonical, params).await {
             Ok(val) => DispatchOutcome::Ok(val),
             Err(e)
                 if e.code == INVALID_PARAMS
@@ -148,7 +175,7 @@ impl LoamSpineJsonRpc {
                     || e.code == PARSE_ERROR =>
             {
                 DispatchOutcome::ProtocolError(LoamSpineError::ipc(
-                    IpcPhase::JsonRpcError(i64::from(e.code)),
+                    IpcErrorPhase::JsonRpcError(i64::from(e.code)),
                     e.message,
                 ))
             }
@@ -194,7 +221,7 @@ impl LoamSpineJsonRpc {
                 ser(probe)
             }
 
-            "session.commit" | "commit.session" => rpc!(params, commit_session),
+            "session.commit" => rpc!(params, commit_session),
             "braid.commit" => rpc!(params, commit_braid),
 
             "slice.anchor" => rpc!(params, anchor_slice),
@@ -203,22 +230,12 @@ impl LoamSpineJsonRpc {
             "proof.generate_inclusion" => rpc!(params, generate_inclusion_proof),
             "proof.verify_inclusion" => rpc!(params, verify_inclusion_proof),
 
-            "permanence.commit_session" | "permanent-storage.commitSession" => {
-                rpc!(params, permanent_storage_commit_session)
-            }
-            "permanence.verify_commit" | "permanent-storage.verifyCommit" => {
-                rpc!(params, permanent_storage_verify_commit)
-            }
-            "permanence.get_commit" | "permanent-storage.getCommit" => {
-                rpc!(params, permanent_storage_get_commit)
-            }
-            "permanence.health_check" | "permanent-storage.healthCheck" => {
-                ser(self.service.permanence_healthy().await)
-            }
+            "permanence.commit_session" => rpc!(params, permanent_storage_commit_session),
+            "permanence.verify_commit" => rpc!(params, permanent_storage_verify_commit),
+            "permanence.get_commit" => rpc!(params, permanent_storage_get_commit),
+            "permanence.health_check" => ser(self.service.permanence_healthy().await),
 
-            "capabilities.list" | "capability.list" | "primal.capabilities" => {
-                Ok(loam_spine_core::neural_api::capability_list())
-            }
+            "capabilities.list" => Ok(loam_spine_core::neural_api::capability_list()),
 
             _ => Err(JsonRpcError {
                 code: METHOD_NOT_FOUND,
@@ -256,7 +273,7 @@ fn ser<T: serde::Serialize>(val: T) -> Result<serde_json::Value, JsonRpcError> {
 /// Convert a [`DispatchOutcome`] into a [`JsonRpcResponse`].
 ///
 /// Protocol errors (method not found, invalid params) carry their
-/// original JSON-RPC error code via [`IpcPhase::JsonRpcError`].
+/// original JSON-RPC error code via [`IpcErrorPhase::JsonRpcError`].
 /// Application errors use the code embedded in the outcome.
 fn outcome_to_response(
     id: serde_json::Value,
@@ -270,7 +287,7 @@ fn outcome_to_response(
         DispatchOutcome::ProtocolError(ref err) => {
             let (code, message) = match err {
                 LoamSpineError::Ipc {
-                    phase: IpcPhase::JsonRpcError(c),
+                    phase: IpcErrorPhase::JsonRpcError(c),
                     message,
                 } => (
                     i32::try_from(*c).unwrap_or(LOAMSPINE_ERROR),

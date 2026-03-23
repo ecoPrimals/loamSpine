@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.9.7"
+version = "0.9.8"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/ecoPrimals/loamSpine"
@@ -57,6 +57,13 @@ expect_used = "deny"
 panic = "deny"
 clone_on_ref_ptr = "warn"          # Catch unnecessary Arc/Rc clones
 unnecessary_wraps = "warn"         # Catch Result<T, E> when E never used
+
+# Cast safety (absorbed from airSpring/neuralSpring/groundSpring ecosystem pattern)
+cast_possible_truncation = "deny"
+cast_sign_loss = "deny"
+cast_precision_loss = "deny"
+cast_possible_wrap = "deny"
+cast_lossless = "warn"
 
 # Allow some pedantic lints that are overly strict
 module_name_repetitions = "allow"  # Acceptable for clarity (e.g., SpineConfig in spine mod)

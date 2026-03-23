@@ -30,7 +30,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 
-use crate::error::{IpcPhase, LoamSpineError};
+use crate::error::{IpcErrorPhase, LoamSpineError};
 
 use super::{DiscoveryTransport, TransportResponse};
 
@@ -56,7 +56,7 @@ impl NeuralApiTransport {
     pub fn new(socket_path: Option<PathBuf>) -> Result<Self, LoamSpineError> {
         let path = socket_path.or_else(Self::socket_from_env).ok_or_else(|| {
             LoamSpineError::ipc(
-                IpcPhase::Connect,
+                IpcErrorPhase::Connect,
                 "NeuralAPI socket not found: set BIOMEOS_NEURAL_API_SOCKET or \
                      XDG_RUNTIME_DIR with a valid family_id",
             )
@@ -101,14 +101,14 @@ impl NeuralApiTransport {
 
         let request_bytes = serde_json::to_vec(&request).map_err(|e| {
             LoamSpineError::ipc(
-                IpcPhase::Serialization,
+                IpcErrorPhase::Serialization,
                 format!("Failed to serialize JSON-RPC request: {e}"),
             )
         })?;
 
         let mut stream = UnixStream::connect(&self.socket_path).await.map_err(|e| {
             LoamSpineError::ipc(
-                IpcPhase::Connect,
+                IpcErrorPhase::Connect,
                 format!(
                     "NeuralAPI socket connection failed at {}: {e}",
                     self.socket_path.display()
@@ -117,22 +117,22 @@ impl NeuralApiTransport {
         })?;
 
         let len = u32::try_from(request_bytes.len())
-            .map_err(|_| LoamSpineError::ipc(IpcPhase::Write, "JSON-RPC request too large"))?;
+            .map_err(|_| LoamSpineError::ipc(IpcErrorPhase::Write, "JSON-RPC request too large"))?;
         stream.write_all(&len.to_be_bytes()).await.map_err(|e| {
             LoamSpineError::ipc(
-                IpcPhase::Write,
+                IpcErrorPhase::Write,
                 format!("Failed to write to NeuralAPI socket: {e}"),
             )
         })?;
         stream.write_all(&request_bytes).await.map_err(|e| {
             LoamSpineError::ipc(
-                IpcPhase::Write,
+                IpcErrorPhase::Write,
                 format!("Failed to write to NeuralAPI socket: {e}"),
             )
         })?;
         stream.flush().await.map_err(|e| {
             LoamSpineError::ipc(
-                IpcPhase::Write,
+                IpcErrorPhase::Write,
                 format!("Failed to flush NeuralAPI socket: {e}"),
             )
         })?;
@@ -140,13 +140,13 @@ impl NeuralApiTransport {
         let mut len_buf = [0u8; 4];
         stream.read_exact(&mut len_buf).await.map_err(|e| {
             LoamSpineError::ipc(
-                IpcPhase::Read,
+                IpcErrorPhase::Read,
                 format!("Failed to read NeuralAPI response length: {e}"),
             )
         })?;
         let resp_len = usize::try_from(u32::from_be_bytes(len_buf)).map_err(|_| {
             LoamSpineError::ipc(
-                IpcPhase::Read,
+                IpcErrorPhase::Read,
                 "NeuralAPI response length exceeds platform capacity",
             )
         })?;
@@ -154,27 +154,30 @@ impl NeuralApiTransport {
         let mut resp_buf = vec![0u8; resp_len];
         stream.read_exact(&mut resp_buf).await.map_err(|e| {
             LoamSpineError::ipc(
-                IpcPhase::Read,
+                IpcErrorPhase::Read,
                 format!("Failed to read NeuralAPI response: {e}"),
             )
         })?;
 
         let response: serde_json::Value = serde_json::from_slice(&resp_buf).map_err(|e| {
             LoamSpineError::ipc(
-                IpcPhase::InvalidJson,
+                IpcErrorPhase::InvalidJson,
                 format!("Failed to parse NeuralAPI JSON-RPC response: {e}"),
             )
         })?;
 
         if let Some((code, message)) = crate::error::extract_rpc_error(&response) {
             return Err(LoamSpineError::ipc(
-                IpcPhase::JsonRpcError(code),
+                IpcErrorPhase::JsonRpcError(code),
                 format!("NeuralAPI error: {message}"),
             ));
         }
 
         response.get("result").cloned().ok_or_else(|| {
-            LoamSpineError::ipc(IpcPhase::NoResult, "NeuralAPI response missing 'result'")
+            LoamSpineError::ipc(
+                IpcErrorPhase::NoResult,
+                "NeuralAPI response missing 'result'",
+            )
         })
     }
 
@@ -184,7 +187,10 @@ impl NeuralApiTransport {
             .get("status")
             .and_then(serde_json::Value::as_u64)
             .ok_or_else(|| {
-                LoamSpineError::ipc(IpcPhase::InvalidJson, "Missing 'status' in HTTP response")
+                LoamSpineError::ipc(
+                    IpcErrorPhase::InvalidJson,
+                    "Missing 'status' in HTTP response",
+                )
             })?;
 
         let body = if let Some(b64) = result.get("body").and_then(serde_json::Value::as_str) {
@@ -217,7 +223,7 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, LoamSpineError> {
             b'+' => Ok(62),
             b'/' => Ok(63),
             _ => Err(LoamSpineError::ipc(
-                IpcPhase::InvalidJson,
+                IpcErrorPhase::InvalidJson,
                 format!("Invalid base64 character: {c}"),
             )),
         }
@@ -310,7 +316,7 @@ impl DiscoveryTransport for NeuralApiTransport {
                         "url": url,
                         "headers": { "Content-Type": "application/json" },
                         "body": serde_json::to_string(body).map_err(|e| {
-                            LoamSpineError::ipc(IpcPhase::Serialization, format!("POST body serialization failed: {e}"))
+                            LoamSpineError::ipc(IpcErrorPhase::Serialization, format!("POST body serialization failed: {e}"))
                         })?,
                     }),
                 )

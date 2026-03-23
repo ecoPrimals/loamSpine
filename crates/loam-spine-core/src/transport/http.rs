@@ -10,7 +10,7 @@ use std::future::Future;
 use std::io::Read;
 use std::pin::Pin;
 
-use crate::error::{IpcPhase, LoamSpineError};
+use crate::error::{IpcErrorPhase, LoamSpineError};
 
 use super::{DiscoveryTransport, TransportResponse};
 
@@ -51,17 +51,19 @@ impl DiscoveryTransport for HttpTransport {
         Box::pin(async move {
             tokio::task::spawn_blocking(move || {
                 let resp = agent.get(&url).call().map_err(|e| {
-                    LoamSpineError::ipc(IpcPhase::Connect, format!("GET {url} failed: {e}"))
+                    LoamSpineError::ipc(IpcErrorPhase::Connect, format!("GET {url} failed: {e}"))
                 })?;
                 let status = resp.status();
                 let mut body = Vec::new();
                 resp.into_reader().read_to_end(&mut body).map_err(|e| {
-                    LoamSpineError::ipc(IpcPhase::Read, format!("reading response body: {e}"))
+                    LoamSpineError::ipc(IpcErrorPhase::Read, format!("reading response body: {e}"))
                 })?;
                 Ok(TransportResponse::new(status, body))
             })
             .await
-            .map_err(|e| LoamSpineError::ipc(IpcPhase::Connect, format!("spawn_blocking: {e}")))?
+            .map_err(|e| {
+                LoamSpineError::ipc(IpcErrorPhase::Connect, format!("spawn_blocking: {e}"))
+            })?
         })
     }
 
@@ -83,17 +85,19 @@ impl DiscoveryTransport for HttpTransport {
                     req = req.query(k, v);
                 }
                 let resp = req.call().map_err(|e| {
-                    LoamSpineError::ipc(IpcPhase::Connect, format!("GET {url} failed: {e}"))
+                    LoamSpineError::ipc(IpcErrorPhase::Connect, format!("GET {url} failed: {e}"))
                 })?;
                 let status = resp.status();
                 let mut body = Vec::new();
                 resp.into_reader().read_to_end(&mut body).map_err(|e| {
-                    LoamSpineError::ipc(IpcPhase::Read, format!("reading response body: {e}"))
+                    LoamSpineError::ipc(IpcErrorPhase::Read, format!("reading response body: {e}"))
                 })?;
                 Ok(TransportResponse::new(status, body))
             })
             .await
-            .map_err(|e| LoamSpineError::ipc(IpcPhase::Connect, format!("spawn_blocking: {e}")))?
+            .map_err(|e| {
+                LoamSpineError::ipc(IpcErrorPhase::Connect, format!("spawn_blocking: {e}"))
+            })?
         })
     }
 
@@ -112,17 +116,22 @@ impl DiscoveryTransport for HttpTransport {
                     .set("Content-Type", "application/json")
                     .send_string(&body_str)
                     .map_err(|e| {
-                        LoamSpineError::ipc(IpcPhase::Connect, format!("POST {url} failed: {e}"))
+                        LoamSpineError::ipc(
+                            IpcErrorPhase::Connect,
+                            format!("POST {url} failed: {e}"),
+                        )
                     })?;
                 let status = resp.status();
                 let mut body = Vec::new();
                 resp.into_reader().read_to_end(&mut body).map_err(|e| {
-                    LoamSpineError::ipc(IpcPhase::Read, format!("reading response body: {e}"))
+                    LoamSpineError::ipc(IpcErrorPhase::Read, format!("reading response body: {e}"))
                 })?;
                 Ok(TransportResponse::new(status, body))
             })
             .await
-            .map_err(|e| LoamSpineError::ipc(IpcPhase::Connect, format!("spawn_blocking: {e}")))?
+            .map_err(|e| {
+                LoamSpineError::ipc(IpcErrorPhase::Connect, format!("spawn_blocking: {e}"))
+            })?
         })
     }
 }
