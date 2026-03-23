@@ -184,7 +184,7 @@ On service failure:
 ```json
 {
   "status": "running|degraded|ready|starting|stopping",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "uptime_seconds": 3600,
   "services": {
     "storage": {
@@ -433,7 +433,7 @@ LOAMSPINE_REQUIRED_SERVICES=""  # Comma-separated
 # loamspine.toml
 [service]
 name = "loamspine"
-version = "0.9.5"
+version = "0.9.6"
 
 [storage]
 backend = "redb"

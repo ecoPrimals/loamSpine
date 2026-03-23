@@ -193,7 +193,10 @@ async fn test_registry_connection() {
     }
 
     // Start registry and wait for readiness (async, no blocking)
-    #[allow(clippy::used_underscore_binding)]
+    #[expect(
+        clippy::used_underscore_binding,
+        reason = "underscore prefix used for type-level assertions"
+    )]
     let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
@@ -207,7 +210,7 @@ async fn test_registry_connection() {
     .await;
 
     assert!(result.is_ok(), "Connection should not timeout");
-    #[allow(clippy::unwrap_used)]
+    #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
     let connect_result = result.unwrap();
     assert!(
         connect_result.is_ok(),
@@ -223,7 +226,10 @@ async fn test_registry_advertise_and_discover() {
     }
 
     // Start registry and wait for readiness (async, no blocking)
-    #[allow(clippy::used_underscore_binding)]
+    #[expect(
+        clippy::used_underscore_binding,
+        reason = "underscore prefix used for type-level assertions"
+    )]
     let _process = start_registry_and_wait().await;
     if _process.is_none() {
         return;
@@ -283,7 +289,11 @@ async fn test_registry_advertise_and_discover() {
 }
 
 #[tokio::test]
-#[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
+#[expect(
+    clippy::used_underscore_binding,
+    clippy::unwrap_used,
+    reason = "tests use underscore bindings and unwrap for conciseness"
+)]
 async fn test_registry_heartbeat() {
     if !registry_available() {
         eprintln!("⚠️  Skipping test: service registry binary not available");
@@ -325,7 +335,10 @@ async fn test_registry_heartbeat() {
 }
 
 #[tokio::test]
-#[allow(clippy::used_underscore_binding)]
+#[expect(
+    clippy::used_underscore_binding,
+    reason = "underscore prefix used for type-level assertions"
+)]
 async fn test_registry_deregister() {
     if !registry_available() {
         eprintln!("⚠️  Skipping test: service registry binary not available");
@@ -391,7 +404,11 @@ async fn test_registry_deregister() {
 }
 
 #[tokio::test]
-#[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
+#[expect(
+    clippy::used_underscore_binding,
+    clippy::unwrap_used,
+    reason = "tests use underscore bindings and unwrap for conciseness"
+)]
 async fn test_registry_discover_all() {
     if !registry_available() {
         eprintln!("⚠️  Skipping test: service registry binary not available");
@@ -435,7 +452,10 @@ async fn test_registry_discover_all() {
 }
 
 #[tokio::test]
-#[allow(clippy::used_underscore_binding, clippy::unwrap_used)]
+#[expect(
+    clippy::used_underscore_binding,
+    reason = "underscore prefix used for type-level assertions"
+)]
 async fn test_registry_multiple_capabilities() {
     if !registry_available() {
         eprintln!("⚠️  Skipping test: service registry binary not available");
@@ -490,7 +510,7 @@ async fn test_registry_multiple_capabilities() {
     for (capability, handle) in handles {
         let result = handle.await;
         assert!(result.is_ok(), "Task for {capability} should not fail");
-        #[allow(clippy::unwrap_used)]
+        #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
         let timeout_result = result.unwrap();
         assert!(
             timeout_result.is_ok(),
@@ -510,7 +530,10 @@ async fn test_registry_endpoint_validation() {
 }
 
 #[tokio::test]
-#[allow(clippy::used_underscore_binding)]
+#[expect(
+    clippy::used_underscore_binding,
+    reason = "underscore prefix used for type-level assertions"
+)]
 async fn test_registry_concurrent_operations() {
     if !registry_available() {
         eprintln!("⚠️  Skipping test: service registry binary not available");

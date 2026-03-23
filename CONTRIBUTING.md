@@ -293,7 +293,7 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.9.5 |
+| Version | 0.9.6 |
 | Edition | 2024 |
 | Tests | 1,226 |
 | Coverage | 90%+ function / 88%+ line (llvm-cov) |
@@ -302,7 +302,7 @@ Look for issues labeled `good-first-issue`:
 | Unsafe Code | 0 in production (`#![deny(unsafe_code)]`) |
 | Lint Exceptions | 0 `#[allow]` in production (all `#[expect(reason)]`) |
 | License | AGPL-3.0-or-later |
-| SPDX Headers | All 125 source files |
+| SPDX Headers | All 126 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |

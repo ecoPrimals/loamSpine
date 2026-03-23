@@ -687,9 +687,15 @@ fn capability_to_srv_name(capability: &str) -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "infant discovery integration tests use unwrap for conciseness"
+)]
 mod tests;
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, unsafe_code)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "infant discovery integration tests use unwrap for conciseness"
+)]
 mod tests_coverage;

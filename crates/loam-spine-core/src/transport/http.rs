@@ -151,7 +151,10 @@ mod tests {
     #[test]
     fn http_transport_clone() {
         let original = HttpTransport::new().unwrap();
-        #[allow(clippy::redundant_clone)]
+        #[expect(
+            clippy::redundant_clone,
+            reason = "clone verifies owned-value semantics"
+        )]
         let _cloned = original.clone();
     }
 

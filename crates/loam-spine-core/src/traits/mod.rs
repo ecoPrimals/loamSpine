@@ -339,7 +339,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::redundant_clone)]
     fn braid_summary_debug_and_clone() {
         let braid_id = BraidId::now_v7();
         let summary = BraidSummary::new(braid_id, "test", [0u8; 32], [0u8; 32]);
@@ -410,7 +409,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::redundant_clone)]
     fn integration_types_debug_clone() {
         let record = AttributionRecord {
             content_hash: [0u8; 32],

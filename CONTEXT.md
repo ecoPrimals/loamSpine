@@ -1,0 +1,67 @@
+# Context — LoamSpine
+
+## What This Is
+
+LoamSpine is a pure Rust binary that provides an immutable, permanent ledger
+for the ecoPrimals sovereign computing ecosystem. It is part of a collection
+of self-contained binaries that coordinate via JSON-RPC 2.0 over Unix sockets,
+with zero compile-time coupling between components.
+
+Named after loam — the slow, anaerobic soil layer where organic matter
+compresses into permanent geological record — LoamSpine serves as the
+canonical source of truth for events, discoveries, and artifacts that matter.
+
+## Role in the Ecosystem
+
+LoamSpine is the permanence layer of the **provenance trio**: rhizoCrypt
+handles ephemeral DAG storage, LoamSpine commits selected data into permanent
+history, and sweetGrass records attribution. Other primals (biomeOS, BearDog,
+toadStool, Songbird) interact with LoamSpine through JSON-RPC when they need
+to commit, verify, or query permanent records.
+
+## Technical Facts
+
+- **Language:** 100% Rust, zero C dependencies (pure-Rust ecoBin)
+- **Architecture:** Single binary (UniBin), multiple operational modes
+- **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
+- **License:** AGPL-3.0-or-later (Scyborg Provenance Trio)
+- **Tests:** 1,226+
+- **Coverage:** 90%+ function / 88%+ line
+- **MSRV:** Rust 2024 edition (nightly)
+- **Crate count:** 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+
+## Key Capabilities (JSON-RPC methods)
+
+- `spine.create`, `spine.get`, `spine.seal` — Spine lifecycle
+- `entry.append`, `entry.get`, `entry.get_tip` — Entry management
+- `certificate.mint`, `certificate.transfer`, `certificate.loan`, `certificate.return` — Loam Certificates
+- `session.commit`, `braid.commit` — Provenance trio coordination
+- `slice.anchor`, `slice.checkout` — Selective memory slices
+- `proof.generate_inclusion`, `proof.verify_inclusion` — Merkle inclusion proofs
+- `permanence.commit_session`, `permanence.verify_commit`, `permanence.get_commit` — Permanent storage
+- `health.check`, `health.liveness`, `health.readiness` — Health probes
+- `capabilities.list` — Capability-based discovery
+
+## What This Does NOT Do
+
+- Does not handle ephemeral/DAG storage (that's rhizoCrypt)
+- Does not manage attribution braids (that's sweetGrass)
+- Does not provide cryptographic primitives (that's BearDog)
+- Does not discover hardware (that's toadStool)
+- Does not manage networking or TLS (that's Songbird)
+- Does not orchestrate processes (that's biomeOS)
+
+## Related Repositories
+
+- [wateringHole](https://github.com/ecoPrimals/wateringHole) — ecosystem standards and registry
+- [rhizoCrypt](https://github.com/ecoPrimals/rhizoCrypt) — ephemeral DAG (provenance trio)
+- [sweetGrass](https://github.com/ecoPrimals/sweetGrass) — attribution (provenance trio)
+- [biomeOS](https://github.com/ecoPrimals/biomeOS) — process orchestration and NeuralAPI
+
+## Design Philosophy
+
+These binaries are built using AI-assisted constrained evolution. Rust's
+compiler constraints (ownership, lifetimes, type system) reshape the fitness
+landscape and drive specialization. Primals are self-contained — they know
+what they can do, never what others can do. Complexity emerges from runtime
+coordination, not compile-time coupling.

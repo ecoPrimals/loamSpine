@@ -94,8 +94,9 @@ impl LoamSpineRpcService {
     ///
     /// Returns whether the process is alive.
     pub async fn liveness(&self) -> crate::health::LivenessProbe {
-        // If we can execute this code, we're alive
-        crate::health::LivenessProbe { alive: true }
+        crate::health::LivenessProbe {
+            status: "alive".into(),
+        }
     }
 
     /// Check whether the permanence layer (spine + entry storage) is healthy.
@@ -127,7 +128,10 @@ impl LoamSpineRpcService {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise error paths"
+)]
 mod tests {
     use super::*;
     use crate::types::{

@@ -146,7 +146,6 @@ impl SliceResolution {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -210,7 +209,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::redundant_clone)]
+    #[expect(
+        clippy::redundant_clone,
+        reason = "clone verifies owned-value semantics"
+    )]
     fn slice_types_clone() {
         let origin = SliceOrigin {
             spine_id: SpineId::now_v7(),

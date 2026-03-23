@@ -216,7 +216,9 @@ impl LoamSpineJsonRpc {
                 ser(self.service.permanence_healthy().await)
             }
 
-            "capability.list" => Ok(loam_spine_core::neural_api::capability_list()),
+            "capabilities.list" | "capability.list" | "primal.capabilities" => {
+                Ok(loam_spine_core::neural_api::capability_list())
+            }
 
             _ => Err(JsonRpcError {
                 code: METHOD_NOT_FOUND,

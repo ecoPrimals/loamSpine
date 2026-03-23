@@ -2,7 +2,7 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.5  
+**Current Version**: 0.9.6  
 **Last Updated**: March 17, 2026
 
 ---
@@ -141,13 +141,26 @@
 - **Smart refactor lifecycle.rs** — 888 → 442 + 444 lines (`lifecycle_tests.rs` via `#[path]`)
 - **Storage error-path coverage** — 4 new sled tests: malformed keys, missing index entries, corrupted entry bytes
 - **`#[expect]` lint refinement** — Removed unfulfilled expectations in jsonrpc, sync, and certificate test modules
+- **Provenance trio types inlined** — `provenance-trio-types` crate removed; wire structs owned locally in `trio_types.rs`
 - **Tests**: 1,226 (up from 1,221). Source files: 125 (up from 123). All under 1000 lines.
 
 ---
 
-## v0.9.6 Targets
+## v0.9.6 Completed (March 17, 2026)
 
-- **90%+ line coverage** — Continue storage backend error-path tests (redb, sqlite, cli_signer)
+- **`capabilities.list` canonical name** — JSON-RPC dispatcher now responds to `capabilities.list` (standard), `capability.list` (legacy), and `primal.capabilities` (alias)
+- **`health.liveness` response standardized** — Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 (was `{"alive": true}`)
+- **CONTEXT.md created** — AI-discoverable context block per PUBLIC_SURFACE_STANDARD (65 lines)
+- **"Part of ecoPrimals" footer** — Added to README.md per PUBLIC_SURFACE_STANDARD
+- **`#[allow]` → `#[expect(reason)]` migration** — 30+ test files migrated; dead attributes removed where lints didn't fire
+- **Smart refactor neural_api.rs** — 871 → 384 + 489 lines (`neural_api_tests.rs` via `#[path]`)
+- **Tests**: 1,226. Source files: 126. All under 1000 lines (max: 489 in test files).
+
+---
+
+## v0.9.7 Targets
+
+- **90%+ line coverage** — Continue storage backend error-path tests (redb, cli_signer)
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** — Expand from ~10% to full coverage
 - **Collision layer validation** — neuralSpring experiments (Python baseline)

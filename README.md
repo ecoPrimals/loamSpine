@@ -3,7 +3,7 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
-[![Version](https://img.shields.io/badge/version-0.9.5-blue)]()
+[![Version](https://img.shields.io/badge/version-0.9.6-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C226%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90%2B%25%20function-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20production-red)]()
@@ -167,15 +167,15 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.9.5 |
+| **Version** | 0.9.6 |
 | **Edition** | 2024 |
 | **Tests** | 1,226 passing |
 | **Coverage** | 90%+ function / 88%+ line (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
 | **Unsafe Code** | 0 in production (`#![deny(unsafe_code)]`) |
 | **Lint Exceptions** | 0 `#[allow]` in production (all `#[expect(reason)]`) |
-| **Max File Size** | 955 lines (all 125 files < 1000) |
-| **Source Files** | 125 `.rs` files across 2 crates + binary |
+| **Max File Size** | 489 lines (all 126 files < 1000) |
+| **Source Files** | 126 `.rs` files across 2 crates + binary |
 | **License** | AGPL-3.0-or-later |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
@@ -212,6 +212,17 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 ## License
 
 AGPL-3.0-or-later. See [LICENSE](./LICENSE).
+
+---
+
+## Part of ecoPrimals
+
+This repo is part of the [ecoPrimals](https://github.com/ecoPrimals) sovereign
+computing ecosystem — a collection of pure Rust binaries that coordinate via
+JSON-RPC, capability-based routing, and zero compile-time coupling.
+
+See [wateringHole](https://github.com/ecoPrimals/wateringHole) for ecosystem
+documentation, standards, and the primal registry.
 
 ---
 

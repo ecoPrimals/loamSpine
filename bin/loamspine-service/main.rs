@@ -191,7 +191,10 @@ async fn run_server(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(
+    clippy::panic,
+    reason = "tests use panic for unexpected CLI parse branches"
+)]
 mod tests {
     use super::*;
     use clap::Parser;

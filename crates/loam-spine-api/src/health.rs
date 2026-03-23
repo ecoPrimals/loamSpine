@@ -61,12 +61,13 @@ pub struct DependencyHealth {
 
 /// Liveness probe response.
 ///
-/// Standard liveness endpoint compatible with container orchestrators
-/// and service meshes. Returns whether the process is alive.
+/// Standard liveness endpoint compatible with container orchestrators,
+/// service meshes, and the Semantic Method Naming Standard v2.1
+/// (`health.liveness` returns `{"status": "alive"}`).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LivenessProbe {
-    /// Is the process alive?
-    pub alive: bool,
+    /// Process status — always `"alive"` when reachable.
+    pub status: String,
 }
 
 /// Readiness probe response.
@@ -218,9 +219,10 @@ impl HealthChecker {
 
     /// Check liveness (is process alive?).
     #[must_use]
-    pub const fn check_liveness(&self) -> LivenessProbe {
-        // If we can execute this code, we're alive
-        LivenessProbe { alive: true }
+    pub fn check_liveness(&self) -> LivenessProbe {
+        LivenessProbe {
+            status: "alive".into(),
+        }
     }
 
     /// Check readiness (ready for traffic?).
@@ -311,7 +313,7 @@ impl Default for HealthChecker {
 pub fn example_health_checks() {}
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
 
@@ -326,7 +328,7 @@ mod tests {
     async fn liveness_probe_always_alive() {
         let checker = HealthChecker::new();
         let liveness = checker.check_liveness();
-        assert!(liveness.alive);
+        assert_eq!(liveness.status, "alive");
     }
 
     #[tokio::test]
@@ -447,6 +449,6 @@ mod tests {
     fn health_checker_default_same_as_new() {
         let checker = HealthChecker::default();
         let liveness = checker.check_liveness();
-        assert!(liveness.alive);
+        assert_eq!(liveness.status, "alive");
     }
 }

@@ -26,7 +26,10 @@ use loam_spine_core::{
 use std::time::Instant;
 
 // Allow long function for comprehensive demonstration example
-#[allow(clippy::too_many_lines)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "example demonstrates full workflow in one function"
+)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🦴 LoamSpine Storage Backends Demo\n");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");

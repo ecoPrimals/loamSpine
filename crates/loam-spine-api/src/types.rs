@@ -531,7 +531,10 @@ impl From<&loam_spine_core::trio_types::WireDehydrationSummary> for PermanentSto
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise error paths"
+)]
 mod tests {
     use super::*;
 

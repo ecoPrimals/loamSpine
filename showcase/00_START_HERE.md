@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.9.5  
+**Version**: 0.9.6  
 **Status**: Production Ready  
 **Date**: March 16, 2026  
-**Latest**: DispatchOutcome wiring, streaming sync, zero-copy evolution, 1,226 tests, 90%+ function coverage in v0.9.5
+**Latest**: DispatchOutcome wiring, streaming sync, zero-copy evolution, 1,226 tests, 90%+ function coverage in v0.9.6
 
 ---
 
@@ -521,6 +521,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.9.5 - ecoPrimals Ecosystem*  
+*LoamSpine v0.9.6 - ecoPrimals Ecosystem*  
 *March 16, 2026*
 

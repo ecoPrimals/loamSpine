@@ -227,7 +227,6 @@ mod tests {
         let debug_str = format!("{result:?}");
         assert!(debug_str.contains("SignatureVerification"));
 
-        #[allow(clippy::redundant_clone)]
         let cloned = result.clone();
         assert_eq!(result.valid, cloned.valid);
     }
@@ -349,7 +348,6 @@ mod tests {
         let debug_str = format!("{signer:?}");
         assert!(debug_str.contains("MockSigner"));
 
-        #[allow(clippy::redundant_clone)]
         let cloned = signer.clone();
         assert_eq!(signer.did(), cloned.did());
     }
@@ -362,7 +360,6 @@ mod tests {
         let debug_str = format!("{verifier:?}");
         assert!(debug_str.contains("MockVerifier"));
 
-        #[allow(clippy::redundant_clone)]
         let cloned = verifier.clone();
         assert_eq!(verifier.always_valid, cloned.always_valid);
     }

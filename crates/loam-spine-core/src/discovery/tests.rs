@@ -243,7 +243,6 @@ fn capability_status_debug_clone() {
     let debug_str = format!("{status:?}");
     assert!(debug_str.contains("Degraded"));
 
-    #[allow(clippy::redundant_clone)]
     let cloned = status.clone();
     assert_eq!(status, cloned);
 }
@@ -257,7 +256,6 @@ async fn registry_clone() {
     let signer = Arc::new(MockSigner::new(Did::new("did:key:test")));
     registry.register_signer(signer).await;
 
-    #[allow(clippy::redundant_clone)]
     let cloned = registry.clone();
 
     assert!(registry.get_signer().await.is_some());

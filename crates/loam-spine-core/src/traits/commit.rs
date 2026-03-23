@@ -311,7 +311,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::redundant_clone)]
     fn result_entry_debug_and_clone() {
         let entry = ResultEntry::new("test", [0u8; 32]);
 

@@ -22,9 +22,12 @@ use loam_spine_core::{
 };
 
 // Allow patterns for demonstration code clarity
-#[allow(clippy::cast_possible_truncation)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::uninlined_format_args)]
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::unwrap_used,
+    clippy::uninlined_format_args,
+    reason = "example code prioritizes clarity"
+)]
 fn main() -> LoamSpineResult<()> {
     println!("🦴 LoamSpine Cryptographic Proofs Demo\n");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");

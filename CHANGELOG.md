@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.6] - 2026-03-17
+
+### Added
+- **`CONTEXT.md`**: AI-discoverable context block per PUBLIC_SURFACE_STANDARD (65 lines). Describes LoamSpine's role, capabilities, and boundaries for cold-reader AI/human consumption.
+- **"Part of ecoPrimals" footer**: Added to README.md per PUBLIC_SURFACE_STANDARD Layer 2.
+- **`capabilities.list` canonical method**: JSON-RPC dispatcher now responds to `capabilities.list` (Semantic Method Naming Standard v2.1), `capability.list` (legacy), and `primal.capabilities` (alias).
+
+### Changed
+- **`health.liveness` response standardized**: Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 (was `{"alive": true}` with boolean field).
+- **`#[allow]` → `#[expect(reason)]` bulk migration**: 30+ test files migrated from silent `#[allow(clippy::...)]` to enforced `#[expect(clippy::..., reason = "...")]`. Dead attributes removed where lints didn't fire (signals, spine, slice, discovery_client). `redundant_clone` attributes removed where clippy no longer triggers.
+- **Smart refactor `neural_api.rs`**: 871 lines → `neural_api.rs` (384) + `neural_api_tests.rs` (489). Same `#[path]` pattern as lifecycle.rs and certificate.rs.
+
+### Metrics
+- Tests: 1,226 passing
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe in production: 0
+- Max file size: 489 lines (all 126 files under 1,000)
+- Source files: 126 `.rs` files (up from 125)
+- License: AGPL-3.0-or-later
+
 ## [0.9.5] - 2026-03-17
 
 ### Added
@@ -786,6 +807,7 @@ spine.append(entry)?;
 
 ---
 
+[0.9.6]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.2...v0.9.3

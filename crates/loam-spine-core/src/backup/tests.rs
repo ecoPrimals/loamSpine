@@ -286,7 +286,6 @@ fn backup_verification_debug_clone() {
     let debug_str = format!("{result:?}");
     assert!(debug_str.contains("BackupVerification"));
 
-    #[allow(clippy::redundant_clone)]
     let cloned = result.clone();
     assert_eq!(result.valid, cloned.valid);
 }
@@ -294,7 +293,10 @@ fn backup_verification_debug_clone() {
 #[test]
 fn backup_error_clone() {
     let err = BackupError::ChainBroken { at_index: 5 };
-    #[allow(clippy::redundant_clone)]
+    #[expect(
+        clippy::redundant_clone,
+        reason = "clone verifies owned-value semantics"
+    )]
     let cloned = err.clone();
     assert!(matches!(cloned, BackupError::ChainBroken { at_index: 5 }));
 }
@@ -307,7 +309,6 @@ fn spine_backup_debug_clone() {
     let debug_str = format!("{backup:?}");
     assert!(debug_str.contains("SpineBackup"));
 
-    #[allow(clippy::redundant_clone)]
     let cloned = backup.clone();
     assert_eq!(backup.version, cloned.version);
 }
@@ -321,7 +322,6 @@ fn multi_spine_backup_debug_clone() {
     let debug_str = format!("{multi:?}");
     assert!(debug_str.contains("MultiSpineBackup"));
 
-    #[allow(clippy::redundant_clone)]
     let cloned = multi.clone();
     assert_eq!(multi.version, cloned.version);
 }

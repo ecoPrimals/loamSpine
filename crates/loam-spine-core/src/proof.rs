@@ -376,7 +376,10 @@ pub enum VerificationError {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise error paths"
+)]
 mod tests {
     use super::*;
     use crate::entry::SpineConfig;

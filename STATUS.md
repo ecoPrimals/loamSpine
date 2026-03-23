@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.5  
+**Current Version**: 0.9.6  
 **Last Updated**: March 17, 2026
 
 ---
@@ -47,12 +47,12 @@ This document tracks implementation progress against the specification suite in 
 | Metric | Target | Current |
 |--------|--------|---------|
 | Tests | — | 1,226 |
-| Coverage (llvm-cov) | 90%+ | TBD (v0.9.5 additions target storage error paths) |
+| Coverage (llvm-cov) | 90%+ | TBD (v0.9.6 additions target storage error paths) |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 955 max (all 125 files under 1000) |
-| Source files | — | 125 `.rs` files |
+| Max file size | < 1000 lines | 489 max (all 126 files under 1000) |
+| Source files | — | 126 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
 
@@ -64,12 +64,26 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 125 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 126 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
-| Semantic naming | PASS | `{domain}.{operation}` per wateringHole standard |
+| Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
+| `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
+| PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All 125 files under 1000 lines (max: 955). Certificate service smart-refactored (906 → 380+367+193). |
+| File size limit | PASS | All 126 files under 1000 lines (max: 489 in test-only files). |
+
+---
+
+## v0.9.6 Standards Compliance & Lint Evolution (March 17, 2026)
+
+- **`capabilities.list` canonical method**: JSON-RPC dispatcher responds to `capabilities.list` (v2.1 standard), `capability.list` (legacy), and `primal.capabilities` (alias).
+- **`health.liveness` standardized**: Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 (was `{"alive": true}`).
+- **CONTEXT.md**: AI-discoverable context block per PUBLIC_SURFACE_STANDARD (65 lines). Role, capabilities, boundaries.
+- **"Part of ecoPrimals" footer**: Added to README.md per PUBLIC_SURFACE_STANDARD Layer 2.
+- **`#[allow]` → `#[expect(reason)]` bulk migration**: 30+ test files migrated. Dead attributes removed where lints don't fire. `redundant_clone` attributes removed where clippy no longer triggers.
+- **Smart refactor neural_api.rs**: 871 → 384 + 489 lines (`neural_api_tests.rs` via `#[path]`).
+- **Tests**: 1,226. **Source files**: 125 → 126. All under 1000 lines.
 
 ---
 

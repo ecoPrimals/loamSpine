@@ -91,7 +91,6 @@ fn client_endpoint_getter() {
 fn client_is_cloneable() {
     let client = DiscoveryClient::for_testing("http://registry.local:8082");
 
-    #[allow(clippy::no_effect_underscore_binding)]
     let _cloned = &client;
     assert_eq!(client.endpoint(), "http://registry.local:8082");
 }

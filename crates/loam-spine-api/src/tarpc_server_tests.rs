@@ -17,7 +17,6 @@ fn test_server_with_service() {
 }
 
 #[test]
-#[allow(clippy::redundant_clone)]
 fn test_server_clone() {
     let server = LoamSpineTarpcServer::default_server();
     let cloned = server.clone();

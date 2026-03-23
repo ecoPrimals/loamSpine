@@ -279,7 +279,7 @@ async fn test_jsonrpc_liveness_and_readiness() {
     let liveness: crate::health::LivenessProbe = rpc_call_no_params(&server, "health.liveness")
         .await
         .unwrap();
-    assert!(liveness.alive);
+    assert_eq!(liveness.status, "alive");
 
     let readiness: crate::health::ReadinessProbe = rpc_call_no_params(&server, "health.readiness")
         .await
@@ -651,7 +651,7 @@ async fn invalid_jsonrpc_version_string_accepted() {
     assert!(resp.error.is_none());
     let liveness: crate::health::LivenessProbe =
         serde_json::from_value(resp.result.unwrap()).unwrap();
-    assert!(liveness.alive);
+    assert_eq!(liveness.status, "alive");
 }
 
 #[tokio::test]

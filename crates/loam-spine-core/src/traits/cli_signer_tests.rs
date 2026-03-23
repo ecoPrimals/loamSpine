@@ -212,7 +212,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::redundant_clone)]
     fn signer_implements_clone() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
@@ -227,7 +226,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::redundant_clone)]
     fn verifier_implements_clone() {
         // Skip if no binary available
         let Some(binary) = get_test_binary() else {
