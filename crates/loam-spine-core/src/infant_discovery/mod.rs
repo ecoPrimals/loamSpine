@@ -51,6 +51,7 @@ use std::env;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
+#[cfg(feature = "dns-srv")]
 use hickory_resolver::{
     TokioAsyncResolver,
     config::{ResolverConfig, ResolverOpts},
@@ -59,7 +60,9 @@ use hickory_resolver::{
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
+#[cfg(any(feature = "dns-srv", feature = "mdns", test))]
 use crate::capabilities::identifiers::external;
+#[cfg(any(feature = "dns-srv", feature = "mdns"))]
 use crate::constants::HTTPS_DEFAULT_PORT;
 
 use crate::capabilities::{DiscoveredService, LoamSpineCapability, ServiceHealth};
@@ -95,7 +98,8 @@ impl Default for DiscoveryConfig {
     fn default() -> Self {
         let mut methods = vec![DiscoveryMethod::Environment];
 
-        // DNS-SRV is production-grade; always available as fallback
+        // DNS-SRV is production-grade; available when dns-srv feature is enabled
+        #[cfg(feature = "dns-srv")]
         methods.push(DiscoveryMethod::DnsSrv);
 
         // mDNS for zero-config LAN discovery when feature-enabled
@@ -245,7 +249,13 @@ impl InfantDiscovery {
             let services = match method {
                 DiscoveryMethod::Environment => self.discover_via_environment(capability),
                 DiscoveryMethod::MDns => self.discover_via_mdns(capability).await,
+                #[cfg(feature = "dns-srv")]
                 DiscoveryMethod::DnsSrv => self.discover_via_dns_srv(capability).await,
+                #[cfg(not(feature = "dns-srv"))]
+                DiscoveryMethod::DnsSrv => {
+                    debug!("DNS SRV discovery not available (feature not enabled)");
+                    vec![]
+                }
                 DiscoveryMethod::ServiceRegistry(url) => {
                     self.discover_via_registry(url, capability).await
                 }
@@ -348,6 +358,8 @@ impl InfantDiscovery {
     /// For example: `_signing._tcp.local` for cryptographic-signing capability.
     ///
     /// This enables production deployments with standard DNS infrastructure.
+    /// Requires the `dns-srv` feature.
+    #[cfg(feature = "dns-srv")]
     async fn discover_via_dns_srv(&self, capability: &str) -> Vec<DiscoveredService> {
         debug!("Attempting DNS SRV discovery for '{}'", capability);
 
@@ -674,6 +686,7 @@ fn parse_mdns_response(
 /// - "cryptographic-signing" -> "_signing._tcp.local"
 /// - "content-storage" -> "_storage._tcp.local"
 /// - "service-discovery" -> "_discovery._tcp.local"
+#[cfg(any(feature = "dns-srv", feature = "mdns", test))]
 fn capability_to_srv_name(capability: &str) -> String {
     let service_part = match capability {
         external::SIGNING => "signing",

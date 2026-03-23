@@ -1,8 +1,8 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
 
 # Development Roadmap
 
-**Current Version**: 0.9.10  
+**Current Version**: 0.9.11  
 **Last Updated**: March 23, 2026
 
 ---
@@ -198,6 +198,19 @@
 
 ---
 
+## v0.9.11 Completed (March 23, 2026)
+
+- **`ChainError` sentinel → `Option`** — `HashMismatch` fields evolved from `[0u8; 32]` to idiomatic `Option<EntryHash>`
+- **`ResilientAdapter::execute_classified`** — Selective retry with `is_transient` closure; permanent errors fail fast
+- **MCP tool completeness** — Parity test + 7 missing method mappings in `mcp_tools_list`/`mcp_tool_to_rpc`
+- **NeuralAPI naming fix** — `capability.list` consistency; `deregister` uses `extract_rpc_error`
+- **`hickory-resolver` feature-gated** — New `dns-srv` feature (default-on); clean build without DNS SRV
+- **NDJSON streaming** — `NDJSON_PROTOCOL_VERSION` + `read_ndjson_stream` async helper
+- **CC-BY-SA-4.0 headers** — All 15 specs/ + 6 root markdown documentation files
+- **Tests**: 1,283 (+27). Source files: 127. All under 1000 lines (max: 878).
+
+---
+
 ## v0.10.0 Targets
 
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
@@ -205,7 +218,7 @@
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
 - **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate alternatives
 - **`OnceLock` caching** — Static capability/method lookups for `capability_list()` and `mcp_tools_list()`
-- **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS
+- **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)
 
 ---
 

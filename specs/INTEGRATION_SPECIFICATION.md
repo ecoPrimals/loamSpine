@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # LoamSpine — Integration Specification
 
 **Version**: 1.1.0  

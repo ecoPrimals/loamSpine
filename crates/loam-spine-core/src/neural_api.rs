@@ -285,13 +285,8 @@ pub async fn deregister_from_neural_api() -> crate::error::LoamSpineResult<()> {
         }
     };
 
-    if response.get("error").is_some() {
-        let msg = response
-            .get("error")
-            .and_then(|e| e.get("message"))
-            .and_then(|m| m.as_str())
-            .unwrap_or("unknown");
-        tracing::debug!("NeuralAPI deregister returned error: {msg}");
+    if let Some((_code, message)) = crate::error::extract_rpc_error(&response) {
+        tracing::debug!("NeuralAPI deregister returned error: {message}");
     }
 
     Ok(())
@@ -388,6 +383,7 @@ pub fn capability_list_pretty() -> String {
 /// tool schemas so agents can construct valid calls without hardcoded
 /// knowledge of any specific primal.
 #[must_use]
+#[expect(clippy::too_many_lines, reason = "declarative MCP tool schema definitions")]
 pub fn mcp_tools_list() -> serde_json::Value {
     serde_json::json!({
         "tools": [
@@ -406,6 +402,14 @@ pub fn mcp_tools_list() -> serde_json::Value {
                 },
                 "required": ["spine_id"]
             })),
+            mcp_tool("spine_seal", "Seal a spine (make permanently read-only)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Spine ID to seal" },
+                    "sealer": { "type": "string", "description": "DID of the sealer" }
+                },
+                "required": ["spine_id", "sealer"]
+            })),
             mcp_tool("entry_append", "Append an entry to a spine", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -422,6 +426,13 @@ pub fn mcp_tools_list() -> serde_json::Value {
                     "index": { "type": "integer", "description": "Entry index" }
                 },
                 "required": ["spine_id", "index"]
+            })),
+            mcp_tool("entry_get_tip", "Get the latest (tip) entry of a spine", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Spine ID" }
+                },
+                "required": ["spine_id"]
             })),
             mcp_tool("certificate_mint", "Mint a new certificate (memory-bound object)", &serde_json::json!({
                 "type": "object",
@@ -458,6 +469,64 @@ pub fn mcp_tools_list() -> serde_json::Value {
                 },
                 "required": ["certificate_id", "borrower"]
             })),
+            mcp_tool("certificate_return", "Return a loaned certificate", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID" },
+                    "returner": { "type": "string", "description": "Borrower DID returning the certificate" }
+                },
+                "required": ["certificate_id", "returner"]
+            })),
+            mcp_tool("certificate_verify", "Verify a certificate's chain of custody", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID to verify" }
+                },
+                "required": ["certificate_id"]
+            })),
+            mcp_tool("certificate_lifecycle", "Get full lifecycle history of a certificate", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID" }
+                },
+                "required": ["certificate_id"]
+            })),
+            mcp_tool("slice_anchor", "Anchor a slice on a waypoint spine", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "waypoint_spine_id": { "type": "integer", "description": "Waypoint spine ID" },
+                    "slice_id": { "type": "string", "description": "Slice ID" },
+                    "origin_spine_id": { "type": "integer", "description": "Origin spine ID" },
+                    "committer": { "type": "string", "description": "Committer DID" }
+                },
+                "required": ["waypoint_spine_id", "slice_id", "origin_spine_id", "committer"]
+            })),
+            mcp_tool("slice_checkout", "Checkout a slice from a waypoint spine", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "waypoint_spine_id": { "type": "integer", "description": "Waypoint spine ID" },
+                    "slice_id": { "type": "string", "description": "Slice ID" },
+                    "requester": { "type": "string", "description": "Requester DID" }
+                },
+                "required": ["waypoint_spine_id", "slice_id", "requester"]
+            })),
+            mcp_tool("slice_record_operation", "Record an operation on a checked-out slice", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "waypoint_spine_id": { "type": "integer", "description": "Waypoint spine ID" },
+                    "slice_id": { "type": "string", "description": "Slice ID" },
+                    "operation": { "type": "string", "description": "Operation payload (JSON)" }
+                },
+                "required": ["waypoint_spine_id", "slice_id", "operation"]
+            })),
+            mcp_tool("slice_depart", "Depart (close) a slice and finalize waypoint entry", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "waypoint_spine_id": { "type": "integer", "description": "Waypoint spine ID" },
+                    "slice_id": { "type": "string", "description": "Slice ID" }
+                },
+                "required": ["waypoint_spine_id", "slice_id"]
+            })),
             mcp_tool("proof_generate_inclusion", "Generate an inclusion proof for an entry", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -465,6 +534,37 @@ pub fn mcp_tools_list() -> serde_json::Value {
                     "index": { "type": "integer", "description": "Entry index to prove" }
                 },
                 "required": ["spine_id", "index"]
+            })),
+            mcp_tool("proof_verify_inclusion", "Verify an inclusion proof", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Spine ID" },
+                    "entry_hash": { "type": "string", "description": "Entry hash (hex)" },
+                    "proof": { "type": "object", "description": "Inclusion proof object" }
+                },
+                "required": ["spine_id", "entry_hash", "proof"]
+            })),
+            mcp_tool("session_commit", "Commit an ephemeral session to permanent storage", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Target spine ID" },
+                    "session_id": { "type": "string", "description": "Session UUID" },
+                    "session_hash": { "type": "string", "description": "Session DAG root hash (hex)" },
+                    "vertex_count": { "type": "integer", "description": "Number of vertices" },
+                    "committer": { "type": "string", "description": "Committer DID" }
+                },
+                "required": ["spine_id", "session_id", "session_hash", "committer"]
+            })),
+            mcp_tool("braid_commit", "Commit a semantic attribution braid", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Target spine ID" },
+                    "braid_id": { "type": "string", "description": "Braid UUID" },
+                    "braid_hash": { "type": "string", "description": "Braid hash (hex)" },
+                    "subjects": { "type": "array", "items": { "type": "string" }, "description": "Subject DIDs" },
+                    "committer": { "type": "string", "description": "Committer DID" }
+                },
+                "required": ["spine_id", "braid_id", "braid_hash", "committer"]
             })),
             mcp_tool("health_check", "Check LoamSpine health status", &serde_json::json!({
                 "type": "object",
@@ -500,17 +600,27 @@ pub fn mcp_tool_to_rpc(
     let method = match tool_name {
         "spine_create" => "spine.create",
         "spine_get" => "spine.get",
+        "spine_seal" => "spine.seal",
         "entry_append" => "entry.append",
         "entry_get" => "entry.get",
+        "entry_get_tip" => "entry.get_tip",
         "certificate_mint" => "certificate.mint",
         "certificate_get" => "certificate.get",
         "certificate_transfer" => "certificate.transfer",
         "certificate_loan" => "certificate.loan",
         "certificate_return" => "certificate.return",
+        "certificate_verify" => "certificate.verify",
+        "certificate_lifecycle" => "certificate.lifecycle",
+        "slice_anchor" => "slice.anchor",
+        "slice_checkout" => "slice.checkout",
+        "slice_record_operation" => "slice.record_operation",
+        "slice_depart" => "slice.depart",
         "proof_generate_inclusion" => "proof.generate_inclusion",
         "proof_verify_inclusion" => "proof.verify_inclusion",
+        "session_commit" => "session.commit",
+        "braid_commit" => "braid.commit",
         "health_check" => "health.check",
-        "capability_list" => "capabilities.list",
+        "capability_list" => "capability.list",
         _ => return None,
     };
     Some((method, arguments))

@@ -323,19 +323,43 @@ impl ResilientAdapter {
 
     /// Execute an async operation with retry and circuit-breaker protection.
     ///
-    /// Returns immediately with `CircuitBreakerOpen` if the circuit is open.
-    /// Retries on transient failures (errors mapped via `is_transient`) with
-    /// exponential backoff. Records success/failure to the circuit breaker.
+    /// All errors are treated as transient and retried. Use
+    /// [`execute_classified`](Self::execute_classified) when you need to
+    /// distinguish transient from permanent errors.
     ///
     /// # Errors
     ///
     /// Returns `LoamSpineError::CapabilityUnavailable` when circuit is open.
     /// Propagates the last error after all retries exhausted.
-    pub async fn execute<F, Fut, T, E>(&self, mut operation: F) -> LoamSpineResult<T>
+    pub async fn execute<F, Fut, T, E>(&self, operation: F) -> LoamSpineResult<T>
     where
         F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<T, E>>,
         E: std::fmt::Display + Send,
+    {
+        self.execute_classified(operation, |_| true).await
+    }
+
+    /// Execute an async operation with retry, circuit-breaker, and error
+    /// classification.
+    ///
+    /// Only errors for which `is_transient` returns `true` are retried;
+    /// permanent errors fail fast without consuming remaining retries.
+    ///
+    /// # Errors
+    ///
+    /// Returns `LoamSpineError::CapabilityUnavailable` when circuit is open.
+    /// Propagates the last error after all retries exhausted or on permanent failure.
+    pub async fn execute_classified<F, Fut, T, E, C>(
+        &self,
+        mut operation: F,
+        is_transient: C,
+    ) -> LoamSpineResult<T>
+    where
+        F: FnMut() -> Fut,
+        Fut: std::future::Future<Output = Result<T, E>>,
+        E: std::fmt::Display + Send,
+        C: Fn(&E) -> bool,
     {
         if !self.circuit_breaker.can_execute() {
             return Err(LoamSpineError::CapabilityUnavailable(
@@ -354,10 +378,18 @@ impl ResilientAdapter {
                 }
                 Err(e) => {
                     let err_msg = e.to_string();
+                    let transient = is_transient(&e);
                     self.circuit_breaker.record_failure();
 
                     let spine_err = LoamSpineError::Network(err_msg.clone());
                     last_err = Some(spine_err);
+
+                    if !transient {
+                        tracing::debug!(
+                            "permanent failure (no retry): {err_msg}"
+                        );
+                        break;
+                    }
 
                     if attempt < max_retries {
                         let delay = self.retry_policy.exponential_backoff(attempt);
@@ -676,5 +708,79 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 123);
         assert_eq!(attempts.load(Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn execute_classified_permanent_error_fails_fast() {
+        let cb = std::sync::Arc::new(CircuitBreaker::new(CircuitBreakerConfig {
+            failure_threshold: 10,
+            recovery_timeout_secs: 60,
+            success_threshold: 2,
+        }));
+        let policy = RetryPolicy::new(RetryPolicyConfig {
+            max_retries: 5,
+            base_delay_ms: 1,
+            max_delay_ms: 5,
+        });
+        let adapter = ResilientAdapter::new(cb, policy);
+
+        let attempts = std::sync::Arc::new(AtomicU32::new(0));
+        let attempts_clone = std::sync::Arc::clone(&attempts);
+        let result = adapter
+            .execute_classified(
+                || {
+                    let a = std::sync::Arc::clone(&attempts_clone);
+                    async move {
+                        a.fetch_add(1, Ordering::SeqCst);
+                        Err::<i32, _>("permanent: auth denied")
+                    }
+                },
+                |e: &&str| !e.starts_with("permanent"),
+            )
+            .await;
+
+        assert!(result.is_err());
+        assert_eq!(
+            attempts.load(Ordering::SeqCst), 1,
+            "permanent errors should only be attempted once"
+        );
+    }
+
+    #[tokio::test]
+    async fn execute_classified_transient_errors_still_retry() {
+        let cb = std::sync::Arc::new(CircuitBreaker::new(CircuitBreakerConfig {
+            failure_threshold: 10,
+            recovery_timeout_secs: 60,
+            success_threshold: 2,
+        }));
+        let policy = RetryPolicy::new(RetryPolicyConfig {
+            max_retries: 3,
+            base_delay_ms: 1,
+            max_delay_ms: 5,
+        });
+        let adapter = ResilientAdapter::new(cb, policy);
+
+        let attempts = std::sync::Arc::new(AtomicU32::new(0));
+        let attempts_clone = std::sync::Arc::clone(&attempts);
+        let result = adapter
+            .execute_classified(
+                || {
+                    let a = std::sync::Arc::clone(&attempts_clone);
+                    async move {
+                        let n = a.fetch_add(1, Ordering::SeqCst);
+                        if n < 2 {
+                            Err::<i32, _>("transient: timeout")
+                        } else {
+                            Ok(42)
+                        }
+                    }
+                },
+                |e: &&str| e.starts_with("transient"),
+            )
+            .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 42);
+        assert_eq!(attempts.load(Ordering::SeqCst), 3);
     }
 }

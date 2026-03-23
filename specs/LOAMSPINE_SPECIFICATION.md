@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # LoamSpine — Permanent Ledger Specification
 
 **Version:** 1.1.0  

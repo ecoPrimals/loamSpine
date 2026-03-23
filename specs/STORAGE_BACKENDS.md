@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # LoamSpine — Storage Backends Specification
 
 **Version**: 1.0.0  

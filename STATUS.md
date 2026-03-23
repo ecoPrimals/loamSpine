@@ -1,8 +1,8 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
 
 # Implementation Status
 
-**Current Version**: 0.9.10  
+**Current Version**: 0.9.11  
 **Last Updated**: March 23, 2026
 
 ---
@@ -46,13 +46,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,256 |
+| Tests | — | 1,283 |
 | Coverage (llvm-cov) | 90%+ | 92.23% line / 90.46% region / 86.52% function |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 865 max (all 124 files under 1000) |
-| Source files | — | 124 `.rs` files |
+| Max file size | < 1000 lines | 878 max (all 127 files under 1000) |
+| Source files | — | 127 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 2 (`clippy::wildcard_imports` in tarpc server/service — required by macro, documented) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -76,6 +76,18 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All 124 files under 1000 lines (max: 865 in `certificate_tests.rs`). |
 
 ---
+
+## v0.9.11 Feature gating, MCP completeness & streaming evolution (March 23, 2026)
+
+- **`ChainError` sentinel hash → `Option<EntryHash>`**: `HashMismatch { expected, actual }` fields evolved from `[0u8; 32]` sentinel to idiomatic `Option<EntryHash>`.
+- **`ResilientAdapter::execute_classified`**: New method accepting `is_transient` closure for selective retries — permanent errors fail fast, transient errors trigger backoff.
+- **MCP tool completeness**: New test enforcing parity between `capability_list()` and MCP tool mappings; 7 missing methods added to `mcp_tools_list` and `mcp_tool_to_rpc` (`spine.seal`, `entry.get_tip`, `certificate.verify`, `slice.anchor`, `session.commit`, etc.).
+- **NeuralAPI naming fix**: `capability_list` → `capability.list` consistency in `mcp_tool_to_rpc`; `deregister_from_neural_api` now uses `extract_rpc_error` for structured error handling.
+- **`hickory-resolver` feature-gated**: New `dns-srv` feature (default-on); builds clean with `--no-default-features --features redb-storage`. Reduces binary size and compile time for deployments without DNS SRV.
+- **NDJSON streaming evolution**: `NDJSON_PROTOCOL_VERSION` constant + `read_ndjson_stream` async helper for `StreamItem` parsing from any `AsyncBufRead`.
+- **CC-BY-SA-4.0 headers**: All 15 `specs/` + 6 root markdown files now have correct scyBorg documentation license SPDX headers.
+- **`mcp_tools_list` lint**: `#[expect(clippy::too_many_lines)]` for declarative MCP schema (justified — pure data).
+- **Tests**: 1,256 → **1,283** (+27). **Source files**: 127 (unchanged). All under 1000 lines (max: 878 in `sync/tests.rs`).
 
 ## v0.9.10 Deep debt resolution & lint pedantry (March 23, 2026)
 

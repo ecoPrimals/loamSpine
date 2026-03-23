@@ -461,51 +461,60 @@ fn test_discover_via_environment_pattern2_service_url() {
     );
 }
 
-#[tokio::test]
+#[test]
 #[serial]
-#[expect(
-    unsafe_code,
-    reason = "async test requires multiple sequential env changes (set A, await, set B, await); temp-env cannot wrap per-await mutation"
-)]
-async fn test_cache_hit_with_fresh_services_skips_rediscovery() {
-    unsafe {
-        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-        env::remove_var("SIGNING_SERVICE_URL");
-    }
+fn test_cache_hit_with_fresh_services_skips_rediscovery() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
-    let config = DiscoveryConfig {
-        methods: vec![DiscoveryMethod::Environment],
-        cache_ttl_secs: 3600,
-        retry_attempts: 1,
-        discovery_timeout: Duration::from_secs(1),
-    };
-    let discovery = InfantDiscovery::with_config(config).unwrap();
-
-    unsafe {
-        env::set_var("SIGNING_SERVICE_URL", "http://localhost:1111");
-    }
-    let services1 = discovery
-        .find_capability("cryptographic-signing")
-        .await
-        .unwrap();
-    assert_eq!(services1.len(), 1);
-
-    unsafe {
-        env::set_var("SIGNING_SERVICE_URL", "http://localhost:2222");
-    }
-    let services2 = discovery
-        .find_capability("cryptographic-signing")
-        .await
-        .unwrap();
-    assert_eq!(services2.len(), 1);
-    assert_eq!(
-        services2[0].endpoint, "http://localhost:1111",
-        "should use cached value"
+    // Phase 1: populate cache with endpoint "localhost:1111"
+    let discovery = temp_env::with_vars(
+        [
+            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
+            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
+            ("SIGNING_SERVICE_URL", Some("http://localhost:1111")),
+        ],
+        || {
+            rt.block_on(async {
+                let config = DiscoveryConfig {
+                    methods: vec![DiscoveryMethod::Environment],
+                    cache_ttl_secs: 3600,
+                    retry_attempts: 1,
+                    discovery_timeout: Duration::from_secs(1),
+                };
+                let discovery = InfantDiscovery::with_config(config).unwrap();
+                let services1 = discovery
+                    .find_capability("cryptographic-signing")
+                    .await
+                    .unwrap();
+                assert_eq!(services1.len(), 1);
+                assert_eq!(services1[0].endpoint, "http://localhost:1111");
+                discovery
+            })
+        },
     );
 
-    unsafe {
-        env::remove_var("SIGNING_SERVICE_URL");
-    }
+    // Phase 2: env now points at "localhost:2222", but cache should return the
+    // original "localhost:1111" without rediscovering.
+    temp_env::with_vars(
+        [
+            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
+            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
+            ("SIGNING_SERVICE_URL", Some("http://localhost:2222")),
+        ],
+        || {
+            rt.block_on(async {
+                let services2 = discovery
+                    .find_capability("cryptographic-signing")
+                    .await
+                    .unwrap();
+                assert_eq!(services2.len(), 1);
+                assert_eq!(
+                    services2[0].endpoint, "http://localhost:1111",
+                    "should use cached value, not re-read env"
+                );
+            });
+        },
+    );
 }
 
 #[tokio::test]

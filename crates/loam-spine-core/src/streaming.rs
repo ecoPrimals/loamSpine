@@ -10,6 +10,13 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Protocol version for NDJSON stream framing.
+///
+/// Included in capability advertisements so peers can negotiate
+/// compatible framing. Bump on backward-incompatible changes to
+/// the `StreamItem` schema.
+pub const NDJSON_PROTOCOL_VERSION: &str = "1.0";
+
 /// A single item in an NDJSON stream.
 ///
 /// Each variant is tagged by `"type"` in the JSON representation,
@@ -117,6 +124,49 @@ impl StreamItem {
     }
 }
 
+/// Read `StreamItem`s from an async buffered reader (NDJSON framing).
+///
+/// Reads lines until EOF or a fatal/end item is encountered. Blank lines
+/// are skipped. Parse errors emit a recoverable `StreamItem::Error`.
+///
+/// # Errors
+///
+/// Returns an I/O error only if the underlying reader fails.
+pub async fn read_ndjson_stream<R: tokio::io::AsyncBufRead + Unpin>(
+    reader: &mut R,
+) -> std::io::Result<Vec<StreamItem>> {
+    use tokio::io::AsyncBufReadExt;
+
+    let mut items = Vec::new();
+    let mut line = String::new();
+
+    loop {
+        line.clear();
+        let n = reader.read_line(&mut line).await?;
+        if n == 0 {
+            break;
+        }
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        match StreamItem::parse_ndjson_line(trimmed) {
+            Ok(item) => {
+                let terminal = item.is_end() || item.is_fatal();
+                items.push(item);
+                if terminal {
+                    break;
+                }
+            }
+            Err(e) => {
+                items.push(StreamItem::error(format!("NDJSON parse error: {e}")));
+            }
+        }
+    }
+
+    Ok(items)
+}
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
@@ -177,6 +227,50 @@ mod tests {
     #[test]
     fn parse_invalid_ndjson() {
         assert!(StreamItem::parse_ndjson_line("not json").is_err());
+    }
+
+    #[test]
+    fn protocol_version_is_semver() {
+        assert!(NDJSON_PROTOCOL_VERSION.contains('.'));
+    }
+
+    #[tokio::test]
+    async fn read_ndjson_stream_parses_items() {
+        let input = format!(
+            "{}{}{}\n",
+            StreamItem::data(serde_json::json!({"id": 1})).to_ndjson_line().unwrap(),
+            StreamItem::progress(1, Some(2)).to_ndjson_line().unwrap(),
+            StreamItem::end().to_ndjson_line().unwrap().trim_end(),
+        );
+        let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
+        let mut reader = tokio::io::BufReader::new(&mut cursor);
+        let items = super::read_ndjson_stream(&mut reader).await.unwrap();
+        assert_eq!(items.len(), 3);
+        assert!(items[2].is_end());
+    }
+
+    #[tokio::test]
+    async fn read_ndjson_stream_stops_on_fatal() {
+        let input = format!(
+            "{}{}",
+            StreamItem::fatal("boom").to_ndjson_line().unwrap(),
+            StreamItem::data(serde_json::json!({"after_fatal": true})).to_ndjson_line().unwrap(),
+        );
+        let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
+        let mut reader = tokio::io::BufReader::new(&mut cursor);
+        let items = super::read_ndjson_stream(&mut reader).await.unwrap();
+        assert_eq!(items.len(), 1);
+        assert!(items[0].is_fatal());
+    }
+
+    #[tokio::test]
+    async fn read_ndjson_stream_handles_parse_errors() {
+        let input = "not valid json\n";
+        let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
+        let mut reader = tokio::io::BufReader::new(&mut cursor);
+        let items = super::read_ndjson_stream(&mut reader).await.unwrap();
+        assert_eq!(items.len(), 1);
+        assert!(matches!(items[0], StreamItem::Error { recoverable: true, .. }));
     }
 
     #[test]

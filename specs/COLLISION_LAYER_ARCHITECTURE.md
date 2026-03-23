@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # LoamSpine — Collision Layer Architecture
 
 **Version**: 0.1.0  

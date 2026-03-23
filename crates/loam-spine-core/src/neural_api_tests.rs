@@ -487,3 +487,57 @@ fn capabilities_follow_semantic_naming() {
         assert!(!cap.is_empty());
     }
 }
+
+#[test]
+fn mcp_tools_cover_all_methods_in_capability_list() {
+    let list = capability_list();
+    let methods = list["methods"]
+        .as_array()
+        .expect("methods array")
+        .iter()
+        .filter_map(|m| m["method"].as_str())
+        .collect::<Vec<_>>();
+
+    let tools = mcp_tools_list();
+    let tool_names: Vec<&str> = tools["tools"]
+        .as_array()
+        .expect("tools array")
+        .iter()
+        .filter_map(|t| t["name"].as_str())
+        .collect();
+
+    for method in &methods {
+        let tool_name = method.replace('.', "_");
+        let has_mcp = tool_names.contains(&tool_name.as_str())
+            || mcp_tool_to_rpc(&tool_name, serde_json::json!({})).is_some();
+        assert!(
+            has_mcp,
+            "method '{method}' (tool '{tool_name}') missing from MCP tools or mcp_tool_to_rpc"
+        );
+    }
+}
+
+#[test]
+fn mcp_tool_to_rpc_returns_canonical_method_names() {
+    let cases = [
+        ("spine_create", "spine.create"),
+        ("entry_append", "entry.append"),
+        ("certificate_mint", "certificate.mint"),
+        ("health_check", "health.check"),
+        ("capability_list", "capability.list"),
+    ];
+    for (tool, expected_method) in cases {
+        let result = mcp_tool_to_rpc(tool, serde_json::json!({}));
+        assert!(result.is_some(), "tool '{tool}' not found in mcp_tool_to_rpc");
+        let (method, _) = result.unwrap();
+        assert_eq!(
+            method, expected_method,
+            "tool '{tool}' maps to '{method}' but canonical is '{expected_method}'"
+        );
+    }
+}
+
+#[test]
+fn mcp_tool_to_rpc_returns_none_for_unknown_tool() {
+    assert!(mcp_tool_to_rpc("nonexistent_tool", serde_json::json!({})).is_none());
+}

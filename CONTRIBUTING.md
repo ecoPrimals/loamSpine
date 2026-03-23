@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Contributing to LoamSpine
 
 Thank you for your interest in contributing to LoamSpine! This document provides guidelines and best practices for contributing to the project.

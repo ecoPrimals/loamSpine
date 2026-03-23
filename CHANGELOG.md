@@ -1,9 +1,31 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.9.11] - 2026-03-23
+
+### Added
+- **`ResilientAdapter::execute_classified`**: Accepts `is_transient` closure for selective retries — permanent errors fail fast, transient errors trigger exponential backoff.
+- **MCP tool completeness test**: Enforces parity between `capability_list()` methods and MCP tool schemas/`mcp_tool_to_rpc` mappings. 7 missing methods added (`spine.seal`, `entry.get_tip`, `certificate.verify`, `slice.anchor`, `session.commit`, etc.).
+- **`NDJSON_PROTOCOL_VERSION`**: Protocol version constant for NDJSON streaming.
+- **`read_ndjson_stream`**: Async helper parsing `StreamItem`s from any `AsyncBufRead` — handles blank lines, parse errors, and terminal items.
+- **27 new tests**: ResilientSyncEngine (6), SQLite corrupt data (8), sync wire edge cases (3), NDJSON streaming (3), MCP completeness (3), resilience classification (2), ChainError option (2).
+- **CC-BY-SA-4.0 headers**: All 15 `specs/` + 6 root markdown files now have scyBorg documentation license SPDX headers.
+
+### Changed
+- **`ChainError::HashMismatch`**: `expected`/`actual` fields evolved from `[0u8; 32]` sentinel to `Option<EntryHash>`.
+- **`hickory-resolver` feature-gated**: New `dns-srv` feature (default-on). Builds clean with `--no-default-features --features redb-storage`.
+- **`mcp_tool_to_rpc` naming**: `capability_list` now correctly maps to `capability.list` (was `capabilities.list`).
+- **`deregister_from_neural_api`**: Uses `extract_rpc_error` for structured JSON-RPC error handling.
+- **`mcp_tools_list`**: `#[expect(clippy::too_many_lines)]` for declarative schema (justified).
+
+### Fixed
+- **SPDX license mismatch**: STATUS.md, WHATS_NEXT.md, KNOWN_ISSUES.md corrected from AGPL-3.0 to CC-BY-SA-4.0 (documentation, not code).
 
 ## [0.9.10] - 2026-03-23
 

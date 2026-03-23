@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # LoamSpine — Data Model Specification
 
 **Version**: 1.0.0  

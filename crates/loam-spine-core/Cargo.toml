@@ -43,8 +43,8 @@ url = "2.5"
 # For HTTPS, route through BearDog/Songbird TLS stack.
 ureq = { version = "2.12", default-features = false, optional = true }
 
-# DNS resolution for service discovery
-hickory-resolver = "0.24"
+# DNS resolution for service discovery (optional: reduces binary size when unused)
+hickory-resolver = { version = "0.24", optional = true }
 
 
 # mDNS for local network service discovery (optional, experimental)
@@ -55,7 +55,7 @@ futures-util = { version = "0.3", optional = true }
 async-std = { version = "1.6", optional = true }
 
 [features]
-default = ["redb-storage"]
+default = ["redb-storage", "dns-srv"]
 redb-storage = ["dep:redb"]
 sled-storage = ["dep:sled"]
 # Enable testing utilities (MockSigner, MockVerifier) for use in downstream crates
@@ -66,6 +66,8 @@ discovery-http = ["dep:ureq"]
 # Enable Tower Atomic transport (Songbird/NeuralAPI via Unix socket JSON-RPC).
 # This is the ecoBin-compliant production transport — zero C dependencies.
 tower-atomic = []
+# Enable DNS SRV discovery (RFC 2782) for production service discovery
+dns-srv = ["dep:hickory-resolver"]
 # Enable mDNS local network service discovery (experimental)
 mdns = ["dep:mdns", "dep:futures-util", "dep:async-std"]
 # SQLite storage backend (bundles C SQLite — not ecoBin compliant)

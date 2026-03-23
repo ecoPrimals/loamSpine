@@ -214,9 +214,8 @@ impl InfantDiscovery {
             None
         }
 
-        #[cfg(not(test))]
+        #[cfg(all(not(test), feature = "dns-srv"))]
         {
-            // Use hickory-resolver for DNS SRV lookup
             use hickory_resolver::TokioAsyncResolver;
             use hickory_resolver::config::{ResolverConfig, ResolverOpts};
 
@@ -278,6 +277,12 @@ impl InfantDiscovery {
                 .ok()
                 .flatten()
             })
+        }
+
+        #[cfg(all(not(test), not(feature = "dns-srv")))]
+        {
+            tracing::debug!("DNS SRV discovery not available (dns-srv feature not enabled)");
+            None
         }
     }
 

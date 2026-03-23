@@ -399,3 +399,167 @@ async fn sqlite_storage_combined_operations() {
     assert_eq!(cert_ids.len(), 1);
     assert!(cert_ids.contains(&cert.id));
 }
+
+// ============================================================================
+// Corrupt data and error path tests (coverage push)
+// ============================================================================
+
+#[tokio::test]
+async fn sqlite_get_entry_corrupt_data_returns_error() {
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("corrupt_entry.db");
+    let storage = SqliteEntryStorage::open(&db_path).unwrap();
+
+    let owner = Did::new("did:key:z6MkCorrupt");
+    let spine_id = SpineId::now_v7();
+    let entry = create_test_entry(&owner, spine_id);
+    let hash = storage.save_entry(&entry).await.unwrap();
+
+    {
+        let conn = storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.execute(
+            "UPDATE entries SET data = ? WHERE hash = ?",
+            rusqlite::params![b"not valid json", hash.as_slice()],
+        )
+        .unwrap();
+    }
+
+    let result = storage.get_entry(hash).await;
+    assert!(result.is_err(), "corrupt entry data should error");
+}
+
+#[tokio::test]
+async fn sqlite_get_spine_corrupt_data_returns_error() {
+    let (temp_dir, storage) = spine_storage_from_tempdir();
+    let spine = create_test_spine();
+    storage.save_spine(&spine).await.unwrap();
+
+    {
+        let conn = storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.execute(
+            "UPDATE spines SET data = ? WHERE id = ?",
+            rusqlite::params![b"garbage", spine.id.to_string()],
+        )
+        .unwrap();
+    }
+
+    let result = storage.get_spine(spine.id).await;
+    assert!(result.is_err(), "corrupt spine data should error");
+}
+
+#[tokio::test]
+async fn sqlite_list_spines_skips_invalid_ids() {
+    let (temp_dir, storage) = spine_storage_from_tempdir();
+    let spine = create_test_spine();
+    storage.save_spine(&spine).await.unwrap();
+
+    {
+        let conn = storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.execute(
+            "INSERT INTO spines (id, data) VALUES (?, ?)",
+            rusqlite::params!["not-a-valid-uuid", b"{}"],
+        )
+        .unwrap();
+    }
+
+    let ids = storage.list_spines().await.unwrap();
+    assert_eq!(ids.len(), 1, "invalid UUID should be skipped");
+    assert!(ids.contains(&spine.id));
+}
+
+#[tokio::test]
+async fn sqlite_get_certificate_corrupt_data_returns_error() {
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("corrupt_cert.db");
+    let cert_storage = SqliteCertificateStorage::open(&db_path).unwrap();
+
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+    let cert = create_test_certificate(&owner, spine_id);
+    cert_storage.save_certificate(&cert, spine_id).await.unwrap();
+
+    {
+        let conn = cert_storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.execute(
+            "UPDATE certificates SET data = ? WHERE id = ?",
+            rusqlite::params![b"broken", cert.id.to_string()],
+        )
+        .unwrap();
+    }
+
+    let result = cert_storage.get_certificate(cert.id).await;
+    assert!(result.is_err(), "corrupt certificate data should error");
+}
+
+#[tokio::test]
+async fn sqlite_list_certificates_skips_invalid_ids() {
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("bad_cert_id.db");
+    let cert_storage = SqliteCertificateStorage::open(&db_path).unwrap();
+
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+    let cert = create_test_certificate(&owner, spine_id);
+    cert_storage.save_certificate(&cert, spine_id).await.unwrap();
+
+    {
+        let conn = cert_storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.execute(
+            "INSERT INTO certificates (id, spine_id, data) VALUES (?, ?, ?)",
+            rusqlite::params!["not-uuid", spine_id.to_string(), b"{}"],
+        )
+        .unwrap();
+    }
+
+    let ids = cert_storage.list_certificates().await.unwrap();
+    assert_eq!(ids.len(), 1, "invalid certificate UUID should be skipped");
+    assert!(ids.contains(&cert.id));
+}
+
+#[tokio::test]
+async fn sqlite_get_entries_for_spine_corrupt_entry_returns_error() {
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("corrupt_entries.db");
+    let storage = SqliteEntryStorage::open(&db_path).unwrap();
+
+    let owner = Did::new("did:key:z6MkCorrupt");
+    let spine_id = SpineId::now_v7();
+    let entry = create_test_entry(&owner, spine_id);
+    let hash = storage.save_entry(&entry).await.unwrap();
+
+    {
+        let conn = storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        conn.execute(
+            "UPDATE entries SET data = ? WHERE hash = ?",
+            rusqlite::params![b"corrupted json", hash.as_slice()],
+        )
+        .unwrap();
+    }
+
+    let result = storage.get_entries_for_spine(spine_id, 0, 100).await;
+    assert!(result.is_err(), "corrupt entry in spine should error");
+}
+
+#[test]
+fn sqlite_spine_count_returns_zero_on_empty_db() {
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("empty.db");
+    let storage = SqliteSpineStorage::open(&db_path).unwrap();
+    assert_eq!(storage.spine_count(), 0);
+}
+
+#[test]
+fn sqlite_entry_count_returns_zero_on_empty_db() {
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("empty.db");
+    let storage = SqliteEntryStorage::open(&db_path).unwrap();
+    assert_eq!(storage.entry_count(), 0);
+}
+
+#[test]
+fn sqlite_certificate_count_returns_zero_on_empty_db() {
+    let temp_dir = TempDir::new().unwrap();
+    let db_path = temp_dir.path().join("empty.db");
+    let storage = SqliteCertificateStorage::open(&db_path).unwrap();
+    assert_eq!(storage.certificate_count(), 0);
+}

@@ -214,8 +214,8 @@ impl Spine {
             if entry.previous != prev_hash {
                 errors.push(ChainError::HashMismatch {
                     index: entry.index,
-                    expected: prev_hash.unwrap_or([0u8; 32]),
-                    actual: entry.previous.unwrap_or([0u8; 32]),
+                    expected: prev_hash,
+                    actual: entry.previous,
                 });
             }
 
@@ -401,10 +401,10 @@ pub enum ChainError {
     HashMismatch {
         /// Entry index.
         index: u64,
-        /// Expected hash.
-        expected: EntryHash,
-        /// Actual hash.
-        actual: EntryHash,
+        /// Expected hash (None for genesis entry).
+        expected: Option<EntryHash>,
+        /// Actual hash (None if entry has no `previous` pointer).
+        actual: Option<EntryHash>,
     },
 
     /// Gap in index sequence.
@@ -754,8 +754,8 @@ mod tests {
     fn chain_error_hash_mismatch_and_invalid_signature() {
         let err = ChainError::HashMismatch {
             index: 1,
-            expected: [0u8; 32],
-            actual: [1u8; 32],
+            expected: Some([0u8; 32]),
+            actual: Some([1u8; 32]),
         };
         let s = format!("{err:?}");
         assert!(s.contains("HashMismatch"));
