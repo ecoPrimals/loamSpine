@@ -16,6 +16,191 @@ mod usage;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "proptests use expect for concise assertions"
+)]
+mod proptests {
+    use proptest::prelude::*;
+
+    use super::*;
+    use crate::types::{CertificateId, Did, SpineId, Timestamp};
+
+    fn arb_did() -> impl Strategy<Value = Did> {
+        "[a-z]{4,12}".prop_map(|s| Did::new(format!("did:key:z6Mk{s}")))
+    }
+
+    fn arb_entry_hash() -> impl Strategy<Value = [u8; 32]> {
+        proptest::collection::vec(any::<u8>(), 32).prop_map(|v| {
+            let mut arr = [0u8; 32];
+            arr.copy_from_slice(&v);
+            arr
+        })
+    }
+
+    fn arb_mint_info() -> impl Strategy<Value = MintInfo> {
+        (arb_did(), arb_entry_hash())
+            .prop_map(|(minter, entry)| MintInfo::new(minter, SpineId::now_v7(), entry))
+    }
+
+    fn arb_cert_type() -> impl Strategy<Value = CertificateType> {
+        prop_oneof![
+            ("[a-z]{3,8}", "[a-z0-9]{3,12}").prop_map(|(platform, game_id)| {
+                CertificateType::DigitalGame {
+                    platform,
+                    game_id,
+                    edition: None,
+                }
+            }),
+            ("[a-z]{3,8}", "[a-z]{3,8}").prop_map(|(software_id, license_type)| {
+                CertificateType::SoftwareLicense {
+                    software_id,
+                    license_type,
+                    seats: Some(1),
+                    expires: None,
+                }
+            }),
+            Just(CertificateType::scyborg_license()),
+        ]
+    }
+
+    proptest! {
+        #[test]
+        fn new_certificate_is_always_active(
+            owner in arb_did(),
+            mint_info in arb_mint_info(),
+            cert_type in arb_cert_type(),
+        ) {
+            let cert = Certificate::new(
+                CertificateId::now_v7(),
+                cert_type,
+                &owner,
+                &mint_info,
+            );
+            prop_assert!(cert.is_active());
+            prop_assert!(!cert.is_loaned());
+            prop_assert!(!cert.is_revoked());
+            prop_assert_eq!(cert.transfer_count, 0);
+        }
+
+        #[test]
+        fn effective_holder_is_owner_when_no_loan(
+            owner in arb_did(),
+            mint_info in arb_mint_info(),
+        ) {
+            let cert = Certificate::new(
+                CertificateId::now_v7(),
+                CertificateType::scyborg_license(),
+                &owner,
+                &mint_info,
+            );
+            prop_assert_eq!(cert.effective_holder(), &owner);
+        }
+
+        #[test]
+        fn effective_holder_is_borrower_when_loaned(
+            owner in arb_did(),
+            borrower in arb_did(),
+            mint_info in arb_mint_info(),
+        ) {
+            let mut cert = Certificate::new(
+                CertificateId::now_v7(),
+                CertificateType::scyborg_license(),
+                &owner,
+                &mint_info,
+            );
+            cert.holder = Some(borrower.clone());
+            prop_assert_eq!(cert.effective_holder(), &borrower);
+        }
+
+        #[test]
+        fn loaned_state_is_loaned(
+            entry_hash in arb_entry_hash(),
+        ) {
+            let state = CertificateState::Loaned { loan_entry: entry_hash };
+            let is_loaned = matches!(state, CertificateState::Loaned { .. });
+            prop_assert!(is_loaned);
+        }
+
+        #[test]
+        fn revoked_state_is_revoked(
+            entry_hash in arb_entry_hash(),
+        ) {
+            let state = CertificateState::Revoked {
+                revoke_entry: entry_hash,
+                reason: RevocationReason::OwnerRequest,
+            };
+            let is_revoked = matches!(state, CertificateState::Revoked { .. });
+            prop_assert!(is_revoked);
+        }
+
+        #[test]
+        fn scyborg_license_roundtrip(
+            owner in arb_did(),
+            mint_info in arb_mint_info(),
+        ) {
+            let cert = Certificate::new(
+                CertificateId::now_v7(),
+                CertificateType::scyborg_license(),
+                &owner,
+                &mint_info,
+            ).with_metadata(
+                CertificateMetadata::new()
+                    .with_name("Test License")
+                    .with_scyborg_license("AGPL-3.0-or-later", "code", "Test", true),
+            );
+
+            prop_assert!(cert.cert_type.is_scyborg_license());
+            prop_assert!(cert.metadata.is_scyborg_license());
+            prop_assert_eq!(cert.metadata.scyborg_spdx(), Some("AGPL-3.0-or-later"));
+
+            let json = serde_json::to_string(&cert).expect("serialize");
+            let back: Certificate = serde_json::from_str(&json).expect("deserialize");
+            prop_assert_eq!(back.id, cert.id);
+            prop_assert_eq!(&back.owner, &cert.owner);
+            prop_assert!(back.cert_type.is_scyborg_license());
+        }
+
+        #[test]
+        fn certificate_timestamps_are_non_zero(
+            owner in arb_did(),
+            mint_info in arb_mint_info(),
+        ) {
+            let cert = Certificate::new(
+                CertificateId::now_v7(),
+                CertificateType::scyborg_license(),
+                &owner,
+                &mint_info,
+            );
+            prop_assert!(cert.created_at > Timestamp::from_nanos(0));
+            prop_assert!(cert.updated_at >= cert.created_at);
+        }
+
+        #[test]
+        fn category_is_never_empty(
+            cert_type in arb_cert_type(),
+        ) {
+            prop_assert!(!cert_type.category().is_empty());
+        }
+
+        #[test]
+        fn loan_terms_builder_preserves_values(
+            duration_secs in 1u64..=86400 * 365,
+            auto_return in any::<bool>(),
+            allow_sublend in any::<bool>(),
+        ) {
+            let terms = LoanTerms::new()
+                .with_duration(duration_secs)
+                .with_auto_return(auto_return)
+                .with_sublend(allow_sublend, None);
+            prop_assert_eq!(terms.duration_secs, Some(duration_secs));
+            prop_assert_eq!(terms.auto_return, auto_return);
+            prop_assert_eq!(terms.allow_sublend, allow_sublend);
+        }
+    }
+}
+
 pub use escrow::{EscrowCondition, EscrowId, TransferConditions};
 pub use lifecycle::{CertificateState, LoanInfo, LoanTerms, RevocationReason};
 pub use metadata::{

@@ -374,6 +374,148 @@ pub fn capability_list_pretty() -> String {
     serde_json::to_string_pretty(&capability_list()).unwrap_or_default()
 }
 
+// ============================================================================
+// MCP (Model Context Protocol) tools — for AI agent visibility
+// ============================================================================
+
+/// Return MCP `tools/list` response payload.
+///
+/// Each tool maps to a JSON-RPC method with an `inputSchema` describing
+/// the expected `params`. AI agents (e.g. Squirrel) call `tools/list` to
+/// discover what operations are available, then invoke them via `tools/call`.
+///
+/// Absorbed from Squirrel/biomeOS MCP bridge pattern — primals advertise
+/// tool schemas so agents can construct valid calls without hardcoded
+/// knowledge of any specific primal.
+#[must_use]
+pub fn mcp_tools_list() -> serde_json::Value {
+    serde_json::json!({
+        "tools": [
+            mcp_tool("spine_create", "Create a new sovereign spine (append-only ledger)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string", "description": "Human-readable spine name" },
+                    "owner": { "type": "string", "description": "DID of the spine owner" }
+                },
+                "required": ["name", "owner"]
+            })),
+            mcp_tool("spine_get", "Get a spine by ID", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Spine ID" }
+                },
+                "required": ["spine_id"]
+            })),
+            mcp_tool("entry_append", "Append an entry to a spine", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Target spine ID" },
+                    "domain": { "type": "string", "description": "Entry domain (e.g. 'commit', 'certificate')" },
+                    "payload": { "type": "string", "description": "Entry payload (base64 or JSON string)" }
+                },
+                "required": ["spine_id", "domain", "payload"]
+            })),
+            mcp_tool("entry_get", "Get an entry by spine ID and index", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Spine ID" },
+                    "index": { "type": "integer", "description": "Entry index" }
+                },
+                "required": ["spine_id", "index"]
+            })),
+            mcp_tool("certificate_mint", "Mint a new certificate (memory-bound object)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Spine to mint on" },
+                    "owner": { "type": "string", "description": "Owner DID" },
+                    "cert_type": { "type": "string", "description": "Certificate type" },
+                    "name": { "type": "string", "description": "Certificate name" }
+                },
+                "required": ["spine_id", "owner", "cert_type"]
+            })),
+            mcp_tool("certificate_get", "Get certificate by ID", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID" }
+                },
+                "required": ["certificate_id"]
+            })),
+            mcp_tool("certificate_transfer", "Transfer certificate ownership", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID" },
+                    "from": { "type": "string", "description": "Current owner DID" },
+                    "to": { "type": "string", "description": "New owner DID" }
+                },
+                "required": ["certificate_id", "from", "to"]
+            })),
+            mcp_tool("certificate_loan", "Loan a certificate to another identity", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID" },
+                    "borrower": { "type": "string", "description": "Borrower DID" },
+                    "duration_secs": { "type": "integer", "description": "Loan duration in seconds" }
+                },
+                "required": ["certificate_id", "borrower"]
+            })),
+            mcp_tool("proof_generate_inclusion", "Generate an inclusion proof for an entry", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Spine ID" },
+                    "index": { "type": "integer", "description": "Entry index to prove" }
+                },
+                "required": ["spine_id", "index"]
+            })),
+            mcp_tool("health_check", "Check LoamSpine health status", &serde_json::json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            })),
+            mcp_tool("capability_list", "List all LoamSpine capabilities and methods", &serde_json::json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            })),
+        ]
+    })
+}
+
+fn mcp_tool(name: &str, description: &str, input_schema: &serde_json::Value) -> serde_json::Value {
+    serde_json::json!({
+        "name": name,
+        "description": description,
+        "inputSchema": input_schema,
+    })
+}
+
+/// Handle an MCP `tools/call` by mapping the tool name to a JSON-RPC method.
+///
+/// Returns `(method, params)` suitable for dispatching through the JSON-RPC
+/// handler. Returns `None` if the tool name is unrecognized.
+#[must_use]
+pub fn mcp_tool_to_rpc(
+    tool_name: &str,
+    arguments: serde_json::Value,
+) -> Option<(&'static str, serde_json::Value)> {
+    let method = match tool_name {
+        "spine_create" => "spine.create",
+        "spine_get" => "spine.get",
+        "entry_append" => "entry.append",
+        "entry_get" => "entry.get",
+        "certificate_mint" => "certificate.mint",
+        "certificate_get" => "certificate.get",
+        "certificate_transfer" => "certificate.transfer",
+        "certificate_loan" => "certificate.loan",
+        "certificate_return" => "certificate.return",
+        "proof_generate_inclusion" => "proof.generate_inclusion",
+        "proof_verify_inclusion" => "proof.verify_inclusion",
+        "health_check" => "health.check",
+        "capability_list" => "capabilities.list",
+        _ => return None,
+    };
+    Some((method, arguments))
+}
+
 #[cfg(test)]
 #[expect(
     clippy::unwrap_used,

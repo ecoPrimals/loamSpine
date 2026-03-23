@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.8  
+**Current Version**: 0.9.9  
 **Last Updated**: March 23, 2026
 
 ---
@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,247 |
+| Tests | — | 1,256 |
 | Coverage (llvm-cov) | 90%+ | 92.23% line / 90.46% region / 86.52% function |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
@@ -75,6 +75,14 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All 124 files under 1000 lines (max: 865 in `certificate_tests.rs`). |
 
 ---
+
+## v0.9.9 ResilientSyncEngine, MCP tools, certificate proptests (March 23, 2026)
+
+- **`ResilientSyncEngine`**: SyncEngine wrapped with circuit-breaker + retry for federation outbound IPC.
+- **MCP `tools.list` / `tools.call`**: AI agents (Squirrel/biomeOS) can now discover and invoke LoamSpine operations via Model Context Protocol.
+- **Certificate lifecycle proptests**: 10 new property tests (creation invariants, loan holder semantics, serde roundtrip, state transitions, loan terms builder).
+- **Niche self-knowledge**: `tools.list` and `tools.call` added to METHODS, SEMANTIC_MAPPINGS, and COST_ESTIMATES.
+- Zero TODOs, zero mocks in production, all files under 1000 lines, zero hardcoded addresses.
 
 ## v0.9.8 IPC alignment, cast lints & ecosystem absorption (March 23, 2026)
 

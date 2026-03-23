@@ -186,7 +186,17 @@ impl LoamSpineJsonRpc {
         }
     }
 
-    async fn dispatch(
+    fn dispatch<'a>(
+        &'a self,
+        method: &'a str,
+        params: serde_json::Value,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<serde_json::Value, JsonRpcError>> + Send + 'a>,
+    > {
+        Box::pin(self.dispatch_inner(method, params))
+    }
+
+    async fn dispatch_inner(
         &self,
         method: &str,
         params: serde_json::Value,
@@ -236,6 +246,36 @@ impl LoamSpineJsonRpc {
             "permanence.health_check" => ser(self.service.permanence_healthy().await),
 
             "capabilities.list" => Ok(loam_spine_core::neural_api::capability_list()),
+
+            "tools.list" => Ok(loam_spine_core::neural_api::mcp_tools_list()),
+
+            "tools.call" => {
+                let tool_name = params
+                    .get("name")
+                    .and_then(serde_json::Value::as_str)
+                    .ok_or_else(|| JsonRpcError {
+                        code: INVALID_PARAMS,
+                        message: "tools.call requires 'name' string".to_string(),
+                        data: None,
+                    })?;
+                let arguments = params
+                    .get("arguments")
+                    .cloned()
+                    .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
+                let (rpc_method, rpc_params) = loam_spine_core::neural_api::mcp_tool_to_rpc(
+                    tool_name, arguments,
+                )
+                .ok_or_else(|| JsonRpcError {
+                    code: METHOD_NOT_FOUND,
+                    message: format!("unknown tool: {tool_name}"),
+                    data: None,
+                })?;
+                let inner_result = self.dispatch(rpc_method, rpc_params).await?;
+                Ok(serde_json::json!({
+                    "content": [{ "type": "text", "text": inner_result.to_string() }],
+                    "isError": false,
+                }))
+            }
 
             _ => Err(JsonRpcError {
                 code: METHOD_NOT_FOUND,

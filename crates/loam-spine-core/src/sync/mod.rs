@@ -542,6 +542,103 @@ impl SyncEngine {
     }
 }
 
+// ============================================================================
+// ResilientSyncEngine — circuit-breaker + retry for federation
+// ============================================================================
+
+/// Sync engine wrapped with circuit-breaker and retry protection.
+///
+/// Absorbs the resilience pattern from primalSpring / healthSpring /
+/// rhizoCrypt for outbound IPC. The inner `SyncEngine` handles wire
+/// protocol; this wrapper handles failure isolation.
+///
+/// Uses [`ResilientAdapter`] which combines [`CircuitBreaker`] (lock-free
+/// atomic state machine) with [`RetryPolicy`] (exponential backoff + jitter).
+#[derive(Clone)]
+pub struct ResilientSyncEngine {
+    inner: SyncEngine,
+    adapter: Arc<crate::resilience::ResilientAdapter>,
+}
+
+impl ResilientSyncEngine {
+    /// Wrap a sync engine with resilience.
+    #[must_use]
+    pub fn new(
+        inner: SyncEngine,
+        circuit_config: crate::resilience::CircuitBreakerConfig,
+        retry_config: crate::resilience::RetryPolicyConfig,
+    ) -> Self {
+        let cb = Arc::new(crate::resilience::CircuitBreaker::new(circuit_config));
+        let rp = crate::resilience::RetryPolicy::new(retry_config);
+        let adapter = Arc::new(crate::resilience::ResilientAdapter::new(cb, rp));
+        Self { inner, adapter }
+    }
+
+    /// Wrap with default resilience config.
+    #[must_use]
+    pub fn with_defaults(inner: SyncEngine) -> Self {
+        Self::new(
+            inner,
+            crate::resilience::CircuitBreakerConfig::default(),
+            crate::resilience::RetryPolicyConfig::default(),
+        )
+    }
+
+    /// Access the inner engine for registration and status queries.
+    #[must_use]
+    pub const fn inner(&self) -> &SyncEngine {
+        &self.inner
+    }
+
+    /// Push entries with circuit-breaker and retry.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CapabilityUnavailable` if circuit is open, or the last
+    /// error after all retries exhausted.
+    pub async fn push_entries(
+        &self,
+        spine_id: SpineId,
+        entries: Vec<Entry>,
+    ) -> LoamSpineResult<SyncResult> {
+        let engine = self.inner.clone();
+        let sid = spine_id;
+        let ents = Arc::new(tokio::sync::Mutex::new(Some(entries)));
+        self.adapter
+            .execute(move || {
+                let e = engine.clone();
+                let data = Arc::clone(&ents);
+                async move {
+                    let taken = data.lock().await.take().unwrap_or_default();
+                    e.push_entries(sid, taken).await
+                }
+            })
+            .await
+    }
+
+    /// Pull entries with circuit-breaker and retry.
+    ///
+    /// # Errors
+    ///
+    /// Returns `CapabilityUnavailable` if circuit is open, or the last
+    /// error after all retries exhausted.
+    pub async fn pull_entries(
+        &self,
+        spine_id: SpineId,
+        from_index: u64,
+        limit: u64,
+    ) -> LoamSpineResult<Vec<Entry>> {
+        let engine = self.inner.clone();
+        let sid = spine_id;
+        self.adapter
+            .execute(move || {
+                let e = engine.clone();
+                async move { e.pull_entries(sid, from_index, limit).await }
+            })
+            .await
+    }
+}
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests;

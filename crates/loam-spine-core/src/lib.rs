@@ -213,6 +213,9 @@ pub use resilience::{
     RetryPolicyConfig,
 };
 
+/// Sync federation with circuit-breaker protection.
+pub use sync::ResilientSyncEngine;
+
 /// Test utilities (only available with `testing` feature or in tests).
 #[cfg(any(test, feature = "testing"))]
 pub use traits::signing::testing::{MockSigner, MockVerifier};

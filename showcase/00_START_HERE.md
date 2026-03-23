@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.9.8  
+**Version**: 0.9.9  
 **Status**: Production Ready  
-**Date**: March 16, 2026  
-**Latest**: IPC error phases, cast-lint deny, barraCuda `normalize_method`, 9 new proptests — 1,247 tests, 92%+ line coverage in v0.9.8
+**Date**: March 23, 2026  
+**Latest**: ResilientSyncEngine, MCP tools, certificate proptests — 1,256 tests, 92%+ line coverage in v0.9.9
 
 ---
 
@@ -521,6 +521,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.9.8 - ecoPrimals Ecosystem*  
-*March 16, 2026*
+*LoamSpine v0.9.9 - ecoPrimals Ecosystem*  
+*March 23, 2026*
 

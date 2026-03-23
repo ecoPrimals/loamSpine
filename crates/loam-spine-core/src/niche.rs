@@ -69,6 +69,8 @@ pub const METHODS: &[&str] = &[
     "health.liveness",
     "health.readiness",
     "capability.list",
+    "tools.list",
+    "tools.call",
 ];
 
 /// Semantic mappings: short operation name → fully qualified method.
@@ -100,6 +102,8 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
     ("commit_braid", "braid.commit"),
     ("health_check", "health.check"),
     ("capability_list", "capability.list"),
+    ("tools_list", "tools.list"),
+    ("tools_call", "tools.call"),
 ];
 
 /// Consumed capabilities — what LoamSpine calls on other primals.
@@ -168,6 +172,8 @@ pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
     ("braid.commit", 5, false),
     ("health.check", 1, false),
     ("capability.list", 1, false),
+    ("tools.list", 1, false),
+    ("tools.call", 5, false),
 ];
 
 /// Protocols supported by this primal.

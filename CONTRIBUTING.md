@@ -312,9 +312,9 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.9.8 |
+| Version | 0.9.9 |
 | Edition | 2024 |
-| Tests | 1,247 |
+| Tests | 1,256 |
 | Coverage | 92%+ line / 90%+ region / 86%+ function (llvm-cov) |
 | Max File Size | 865 lines (all < 1000) |
 | Clippy | pedantic + nursery (0 warnings) |

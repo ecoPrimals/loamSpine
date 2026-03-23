@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.9] - 2026-03-23
+
+### Added
+- **`ResilientSyncEngine`**: Circuit-breaker + retry wrapper for `SyncEngine` outbound federation IPC. Uses lock-free atomic `CircuitBreaker` and exponential backoff `RetryPolicy`.
+- **MCP `tools.list` / `tools.call`**: Model Context Protocol support — AI agents discover and invoke LoamSpine operations via structured tool schemas. 11 tools with `inputSchema` definitions.
+- **10 new certificate proptests**: Creation invariants, loan holder semantics, serde roundtrip, state transitions, loan terms builder preservation.
+- **Niche self-knowledge expanded**: `tools.list` and `tools.call` in METHODS, SEMANTIC_MAPPINGS, and COST_ESTIMATES.
+
+### Changed
+- **JSON-RPC dispatcher**: Refactored to `dispatch` / `dispatch_inner` split to support recursive `tools.call` → RPC dispatch without infinite async future sizes.
+- **Zero debt audit**: Confirmed zero TODOs, zero FIXMEs, zero production mocks, zero hardcoded addresses, all files under 1000 lines.
+
+### Metrics
+- Tests: 1,256 passing (up from 1,247)
+- Coverage: 92%+ line / 90%+ region / 86%+ function (unchanged)
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe: 0 in production and tests
+- Max file: 865 lines (all under 1,000)
+- cargo deny: all four checks pass
+
 ## [0.9.8] - 2026-03-23
 
 ### Added
