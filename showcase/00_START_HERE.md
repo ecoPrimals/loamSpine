@@ -475,7 +475,7 @@ cat 00_SHOWCASE_INDEX.md
 - 🔐 **Provable**: Cryptographic proofs of everything
 - 🚀 **Fast**: Pure Rust, zero-copy, optimized
 - 🤝 **Composable**: Seamlessly integrates with ecosystem
-- 🏆 **World-Class**: A+ grade, 1,247 tests passing, 92%+ line coverage
+- 🏆 **World-Class**: A+ grade, 1,256 tests passing, 92%+ line coverage
 - 🌍 **Universal**: tarpc + JSON-RPC for any client
 
 ---

@@ -21,7 +21,7 @@
 
 **What gets registered**:
 - Service name ("loamspine")
-- Service version ("0.9.6")
+- Service version ("0.9.9")
 - Capabilities (spine_management, certificate_management, etc.)
 - Endpoints (tarpc: 9001, jsonrpc: 8080)
 - Metadata (storage backend, uptime, etc.)
@@ -55,7 +55,7 @@
 ```json
 {
   "name": "loamspine",
-  "version": "0.9.6",
+  "version": "0.9.9",
   "endpoints": {
     "tarpc": "http://localhost:9001",
     "jsonrpc": "http://localhost:8080"

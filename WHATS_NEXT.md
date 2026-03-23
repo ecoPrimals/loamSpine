@@ -2,7 +2,7 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.7  
+**Current Version**: 0.9.9  
 **Last Updated**: March 23, 2026
 
 ---
@@ -174,12 +174,38 @@
 
 ---
 
-## v0.9.8 Targets
+## v0.9.8 Completed (March 23, 2026)
+
+- **`normalize_method()`** — Absorbed from barraCuda v0.3.7; centralizes backward-compatible method alias resolution
+- **`IpcPhase` → `IpcErrorPhase`** — Renamed with backward-compatible alias for ecosystem alignment
+- **`extract_rpc_result` + `extract_rpc_result_typed`** — Typed JSON-RPC result extraction utilities
+- **`SyncEngine` structured errors** — Evolved from flat `Network` errors to structured `IpcErrorPhase`
+- **Cast lints denied at workspace level** — `cast_possible_truncation`, `cast_sign_loss`, `cast_precision_loss`, `cast_possible_wrap` — zero violations
+- **9 new proptests** — Entry and Spine invariants (hash determinism, index sensitivity, genesis)
+- **Cross-ecosystem absorption** — Patterns absorbed from review of 9 springs + 10 primals
+- **Tests**: 1,247. Source files: 124. All under 1000 lines.
+
+---
+
+## v0.9.9 Completed (March 23, 2026)
+
+- **`ResilientSyncEngine`** — Circuit-breaker + retry wrapper for SyncEngine federation outbound IPC
+- **MCP `tools.list` / `tools.call`** — Model Context Protocol support for AI agent tool discovery and invocation (11 tools with `inputSchema`)
+- **10 new certificate proptests** — Creation invariants, loan holder semantics, serde roundtrip, state transitions, loan terms builder
+- **Niche self-knowledge expanded** — `tools.list` and `tools.call` in METHODS, SEMANTIC_MAPPINGS, COST_ESTIMATES
+- **Zero debt audit confirmed** — Zero TODOs/FIXMEs, zero production mocks, all files under 1000 lines
+- **Tests**: 1,256. Source files: 124. All under 1000 lines.
+
+---
+
+## v0.10.0 Targets
 
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** — Expand from ~10% to full coverage
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
 - **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate alternatives
+- **`OnceLock` caching** — Static capability/method lookups for `capability_list()` and `mcp_tools_list()`
+- **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS
 
 ---
 

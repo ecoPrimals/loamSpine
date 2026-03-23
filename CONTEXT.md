@@ -25,9 +25,9 @@ to commit, verify, or query permanent records.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later (Scyborg Provenance Trio)
-- **Tests:** 1,247+
+- **Tests:** 1,256+
 - **Coverage:** 92%+ line / 90%+ region / 86%+ function
-- **MSRV:** Rust 2024 edition (nightly)
+- **MSRV:** Rust 2024 edition (1.85+)
 - **Crate count:** 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 
 ## Key Capabilities (JSON-RPC methods)
@@ -41,6 +41,7 @@ to commit, verify, or query permanent records.
 - `permanence.commit_session`, `permanence.verify_commit`, `permanence.get_commit` — Permanent storage
 - `health.check`, `health.liveness`, `health.readiness` — Health probes
 - `capabilities.list` — Capability-based discovery
+- `tools.list`, `tools.call` — MCP (Model Context Protocol) for AI agent tool discovery
 
 ## What This Does NOT Do
 

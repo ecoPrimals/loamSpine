@@ -15,7 +15,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![deny(unsafe_code)]` on production code; test modules prefer `temp-env` over raw `unsafe` env mutations, with `#[expect(unsafe_code, reason)]` where needed (migrated from `#[allow(unsafe_code)]`)
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ function coverage (current: 92%+ line / 90%+ region / 86%+ function, 1,247 tests)
+- **High Coverage**: Aim for 90%+ function coverage (current: 92%+ line / 90%+ region / 86%+ function, 1,256 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -62,7 +62,7 @@ export CARGO_TARGET_DIR=/path/to/.cargo-build/loamSpine/target
 # Build
 cargo build
 
-# Test (1,247 tests)
+# Test (1,256 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)

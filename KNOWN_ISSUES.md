@@ -32,18 +32,15 @@
 
 | Area | Issue | Notes |
 |------|-------|-------|
-| Attestation runtime wiring | **RESOLVED in v0.9.1** — `check_attestation_requirement()` wired into all waypoint operations. `DiscoveredAttestationProvider` sends JSON-RPC `attestation.request` to capability-discovered endpoints; degrades gracefully when unreachable. | |
 | PostgreSQL / RocksDB backends | Specified in `STORAGE_BACKENDS.md` but not yet implemented. | v1.0.0 target. Memory, redb (default), sled, and SQLite backends are complete. |
 | blake3 SIMD performance | Switched to `pure` Rust mode (no C/asm) for ecoBin compliance. Performance impact is ~2-3x slower hashing vs. SIMD, acceptable for LoamSpine's workload. | Can be feature-gated back to SIMD if performance-critical deployment needs it. |
 
 ---
 
-## Edition 2024
+## Platform
 
 | Area | Issue | Notes |
 |------|-------|-------|
-| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[expect(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | **RESOLVED in v0.9.6** — All `unsafe` env mutations migrated to safe `temp_env` patterns using phased `Runtime::block_on` calls (exit runtime between env mutations, re-enter after). Zero `unsafe` in both production and test code. `deny` retained for future flexibility. |
-| Dockerfile MSRV | Updated to `rust:1.85`. Edition 2024 requires Rust 1.85+. | CI MSRV job also updated. |
 | `/proc/self/status` UID | 5-tier socket discovery reads UID from `/proc/self/status` — Linux-only. Falls through to `temp_dir()` on non-Linux. | Graceful degradation; only applies when XDG_RUNTIME_DIR is unset. |
 
 ---
