@@ -10,8 +10,8 @@
 //! This module provides conversion types and `TryFrom` implementations to bridge
 //! between these representations for trio-coordinated commits.
 //!
-//! The canonical wire types live in [`provenance_trio_types`] and are re-exported
-//! here for convenience. All IPC boundaries should use the canonical types.
+//! Wire types are defined locally — each primal owns its own representation of the
+//! JSON-RPC boundary. The JSON shape is the contract, not a shared Rust crate.
 
 use std::fmt;
 
@@ -20,11 +20,168 @@ use serde::{Deserialize, Serialize};
 use crate::error::LoamSpineError;
 use crate::types::{Did, EntryHash, Signature, SpineId, Timestamp};
 
-pub use provenance_trio_types::{
-    self as wire, AgentRef as WireAgentRef, AttestationRef as WireAttestationRef,
-    DehydrationSummary as WireDehydrationSummary, PipelineRequest, PipelineResult,
-    SessionOperationRef as WireSessionOperationRef,
-};
+// ─── Wire types (JSON boundary) ─────────────────────────────────────────────
+// These mirror the JSON shapes produced by rhizoCrypt and consumed by biomeOS.
+// Each primal owns its own copy; the wire format (JSON) is the shared contract.
+
+/// Dehydration summary received from rhizoCrypt over JSON-RPC.
+///
+/// All optional fields use `#[serde(default)]` for backward-compatible
+/// deserialization — rhizoCrypt may evolve its payload over time.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WireDehydrationSummary {
+    /// The primal that performed the dehydration.
+    pub source_primal: String,
+    /// The session that was dehydrated.
+    pub session_id: String,
+    /// Merkle root of the collapsed DAG (hex or prefixed hash string).
+    pub merkle_root: String,
+    /// Total number of vertices in the original DAG.
+    pub vertex_count: u64,
+    /// Number of branches explored (0 if unknown).
+    #[serde(default)]
+    pub branch_count: u64,
+    /// Total payload bytes (0 if unknown).
+    #[serde(default)]
+    pub payload_bytes: u64,
+    /// DIDs of agents who participated.
+    #[serde(default)]
+    pub agents: Vec<String>,
+    /// When the session was created (nanoseconds since epoch, 0 if unknown).
+    #[serde(default)]
+    pub session_start: u64,
+    /// When dehydration occurred (nanoseconds since epoch, 0 if unknown).
+    #[serde(default)]
+    pub dehydrated_at: u64,
+    /// Session type identifier (e.g., "experiment", "rootpulse").
+    #[serde(default)]
+    pub session_type: String,
+    /// Session outcome as a string (e.g., "Success", "Failed").
+    #[serde(default)]
+    pub outcome: String,
+    /// Agent participation summaries.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub agent_summaries: Vec<WireAgentRef>,
+    /// Cryptographic attestations from participating agents.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attestations: Vec<WireAttestationRef>,
+    /// Operations performed during the session.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub operations: Vec<WireSessionOperationRef>,
+    /// Frontier hashes (leaf nodes of the DAG at dehydration time).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub frontier: Vec<String>,
+    /// Niche context (e.g., "rootpulse", "chemistry").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub niche: Option<String>,
+    /// Compression ratio if the DAG was compressed before dehydration.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compression_ratio: Option<f64>,
+}
+
+/// Per-agent participation summary in a dehydration.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WireAgentRef {
+    /// Agent DID.
+    pub agent: String,
+    /// When the agent joined (nanoseconds since epoch).
+    #[serde(default)]
+    pub joined_at: u64,
+    /// When the agent left (None if still active).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub left_at: Option<u64>,
+    /// Number of events produced by this agent.
+    #[serde(default)]
+    pub event_count: u64,
+    /// Agent role in the session.
+    #[serde(default)]
+    pub role: String,
+}
+
+/// Cryptographic attestation reference in a dehydration.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WireAttestationRef {
+    /// Attesting agent DID.
+    pub agent: String,
+    /// Base64-encoded signature.
+    pub signature: String,
+    /// When the attestation was created (nanoseconds since epoch).
+    #[serde(default)]
+    pub attested_at: u64,
+}
+
+/// A high-level operation recorded during a dehydrated session.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WireSessionOperationRef {
+    /// Operation type (e.g., "create", "modify", "derive", "merge").
+    pub op_type: String,
+    /// Content hash of the affected artifact.
+    pub content_hash: String,
+    /// Agent who performed the operation.
+    pub agent: String,
+    /// When the operation occurred (nanoseconds since epoch).
+    #[serde(default)]
+    pub timestamp: u64,
+    /// Optional description.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+/// Request to execute the provenance pipeline (biomeOS graph input).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PipelineRequest {
+    /// rhizoCrypt session to dehydrate.
+    pub session_id: String,
+    /// DID of the agent performing the commit.
+    pub agent_did: String,
+    /// biomeOS family identifier.
+    #[serde(default)]
+    pub family_id: String,
+    /// Optional experiment identifier (for Spring experiments).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub experiment_id: Option<String>,
+    /// Optional niche context (e.g., "rootpulse", "ludospring").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub niche: Option<String>,
+    /// Per-agent contribution data for attribution braids.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub agent_summaries: Vec<WireAgentContribution>,
+}
+
+/// Per-agent contribution data for attribution braids.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WireAgentContribution {
+    /// Agent DID.
+    pub agent_did: String,
+    /// Description of the agent's contribution.
+    #[serde(default)]
+    pub description: String,
+    /// Relative weight of this agent's contribution (0.0 to 1.0).
+    #[serde(default = "default_contribution_weight")]
+    pub weight: f64,
+}
+
+fn default_contribution_weight() -> f64 {
+    1.0
+}
+
+/// Result of a completed provenance pipeline execution.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PipelineResult {
+    /// The dehydration merkle root from rhizoCrypt.
+    pub dehydration_merkle_root: String,
+    /// LoamSpine commit reference (entry hash).
+    pub commit_ref: String,
+    /// sweetGrass braid identifier (if attribution was created).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub braid_ref: Option<String>,
+    /// BearDog signature over the dehydration summary (if signing was available).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature: Option<String>,
+    /// NestGate content address (if content was stored).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_ref: Option<String>,
+}
 
 /// Ephemeral session ID from rhizoCrypt (opaque string, typically UUID v7 hex).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

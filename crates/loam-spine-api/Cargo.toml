@@ -11,9 +11,6 @@ authors.workspace = true
 # Core crate
 loam-spine-core = { path = "../loam-spine-core" }
 
-# Provenance trio canonical wire types
-provenance-trio-types = { workspace = true }
-
 # Pure Rust RPC - tarpc (no protobuf, no gRPC, no C++ tooling)
 tarpc = { version = "0.37", features = ["full"] }
 

@@ -39,8 +39,6 @@ uuid = { version = "1.11", features = ["v7", "serde"] }
 # Testing
 serial_test = "3.0"
 
-# Provenance trio canonical wire types
-provenance-trio-types = { path = "../provenance-trio-types" }
 
 [workspace.lints.rust]
 # deny (not forbid) so #[allow(unsafe_code)] can override in test modules (set_var/remove_var unsafe in edition 2024)

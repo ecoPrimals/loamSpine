@@ -504,8 +504,10 @@ pub struct PermanentStorageGetCommitRequest {
     pub index: u64,
 }
 
-impl From<&provenance_trio_types::DehydrationSummary> for PermanentStorageDehydrationSummary {
-    fn from(w: &provenance_trio_types::DehydrationSummary) -> Self {
+impl From<&loam_spine_core::trio_types::WireDehydrationSummary>
+    for PermanentStorageDehydrationSummary
+{
+    fn from(w: &loam_spine_core::trio_types::WireDehydrationSummary) -> Self {
         Self {
             session_type: w.session_type.clone(),
             vertex_count: w.vertex_count,
@@ -517,8 +519,8 @@ impl From<&provenance_trio_types::DehydrationSummary> for PermanentStorageDehydr
     }
 }
 
-impl From<&provenance_trio_types::DehydrationSummary> for PermanentStorageCommitRequest {
-    fn from(w: &provenance_trio_types::DehydrationSummary) -> Self {
+impl From<&loam_spine_core::trio_types::WireDehydrationSummary> for PermanentStorageCommitRequest {
+    fn from(w: &loam_spine_core::trio_types::WireDehydrationSummary) -> Self {
         Self {
             session_id: w.session_id.clone(),
             merkle_root: w.merkle_root.clone(),

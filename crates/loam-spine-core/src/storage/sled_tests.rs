@@ -685,7 +685,8 @@ async fn sled_list_spines_with_malformed_keys_skips_invalid() {
         tree.insert(valid_id.as_bytes(), bytes).unwrap();
 
         tree.insert(b"short", b"val").unwrap();
-        tree.insert(b"this-key-is-too-long-for-uuid", b"val").unwrap();
+        tree.insert(b"this-key-is-too-long-for-uuid", b"val")
+            .unwrap();
         db.flush().unwrap();
     }
 
@@ -732,7 +733,8 @@ async fn sled_list_certificates_with_malformed_keys_skips_invalid() {
         tree.insert(cert_id.as_bytes().as_slice(), bytes).unwrap();
 
         tree.insert(b"short", b"val").unwrap();
-        tree.insert(b"this-key-is-too-long-for-uuid", b"val").unwrap();
+        tree.insert(b"this-key-is-too-long-for-uuid", b"val")
+            .unwrap();
         db.flush().unwrap();
     }
 
