@@ -5,14 +5,25 @@
 //! These tests verify system behavior under adverse conditions like
 //! rapid concurrent operations, edge cases, and error handling.
 
-// Allow various patterns in tests that would be problematic in production
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_sign_loss)]
-#![allow(clippy::uninlined_format_args)]
-#![allow(clippy::manual_string_new)]
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    reason = "chaos tests use unwrap/expect/panic for failure clarity"
+)]
+#![expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "chaos test data uses small controlled values"
+)]
+#![expect(
+    clippy::uninlined_format_args,
+    reason = "separated args improve readability in long chaos test output"
+)]
+#![expect(
+    clippy::manual_string_new,
+    reason = "explicit String::from preferred in test setup for clarity"
+)]
 
 use loam_spine_core::{
     CertificateType, LoamSpineError, LoanTerms, SECONDS_PER_HOUR,

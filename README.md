@@ -3,7 +3,7 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
-[![Version](https://img.shields.io/badge/version-0.9.9-blue)]()
+[![Version](https://img.shields.io/badge/version-0.9.10-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C256%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20production-red)]()
@@ -167,15 +167,15 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.9.9 |
+| **Version** | 0.9.10 |
 | **Edition** | 2024 |
 | **Tests** | 1,256 passing |
 | **Coverage** | 92%+ line / 90%+ region / 86%+ function (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
 | **Unsafe Code** | 0 in production and tests (`#![deny(unsafe_code)]`) |
-| **Lint Exceptions** | 0 `#[allow]` in production (all `#[expect(reason)]`) |
+| **Lint Exceptions** | 2 `#[allow]` in production (tarpc macro, documented); tests all `#[expect(reason)]` |
 | **Max File Size** | 865 lines (all 124 files < 1000) |
-| **Source Files** | 124 `.rs` files across 2 crates + binary |
+| **Source Files** | 124 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

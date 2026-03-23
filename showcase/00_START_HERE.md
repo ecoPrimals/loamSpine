@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.9.9  
+**Version**: 0.9.10  
 **Status**: Production Ready  
 **Date**: March 23, 2026  
-**Latest**: ResilientSyncEngine, MCP tools, certificate proptests — 1,256 tests, 92%+ line coverage in v0.9.9
+**Latest**: Deep debt resolution, lint pedantry — 1,256 tests, 92%+ line coverage, zero doc warnings in v0.9.10
 
 ---
 
@@ -276,7 +276,7 @@ cd 04-inter-primal/05-full-ecosystem
 ## 🛠️ Prerequisites
 
 ### Minimum (For Level 1)
-- ✅ Rust 1.75+ installed
+- ✅ Rust 1.85+ installed (edition 2024)
 - ✅ LoamSpine built (`cargo build --release`)
 - ✅ That's it! Level 1 works standalone
 
@@ -295,7 +295,7 @@ cd 04-inter-primal/05-full-ecosystem
 ### Verification
 ```bash
 # Check Rust version
-rustc --version  # Should be 1.75+
+rustc --version  # Should be 1.85+ (edition 2024)
 
 # Build LoamSpine
 cargo build --release
@@ -388,7 +388,7 @@ All demos are safe. Feel free to modify and explore!
 ### "Build failed"
 ```bash
 # Check Rust version
-rustc --version  # Need 1.75+
+rustc --version  # Need 1.85+ (edition 2024)
 
 # Update Rust
 rustup update
@@ -521,6 +521,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.9.9 - ecoPrimals Ecosystem*  
+*LoamSpine v0.9.10 - ecoPrimals Ecosystem*  
 *March 23, 2026*
 

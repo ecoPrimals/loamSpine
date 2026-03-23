@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-#![allow(clippy::expect_used, clippy::unwrap_used)]
+#![expect(
+    clippy::expect_used,
+    reason = "integration tests use expect for assertion clarity"
+)]
 
 //! Integration tests for CLI signer with real `BearDog` binary.
 //!

@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.9  
+**Current Version**: 0.9.10  
 **Last Updated**: March 23, 2026
 
 ---
@@ -54,7 +54,8 @@ This document tracks implementation progress against the specification suite in 
 | Max file size | < 1000 lines | 865 max (all 124 files under 1000) |
 | Source files | — | 124 `.rs` files |
 | Edition | 2024 | 2024 |
-| `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
+| `#[allow]` in production | 0 | 2 (`clippy::wildcard_imports` in tarpc server/service — required by macro, documented) |
+| `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
 | `cargo deny check` | pass | advisories ok, bans ok, licenses ok, sources ok |
 
 ---
@@ -75,6 +76,15 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All 124 files under 1000 lines (max: 865 in `certificate_tests.rs`). |
 
 ---
+
+## v0.9.10 Deep debt resolution & lint pedantry (March 23, 2026)
+
+- **Doc warnings fixed**: 3 unresolved intra-doc links in `sync/mod.rs` and `discovery_client/mod.rs` resolved with fully-qualified `crate::` paths.
+- **`#[allow]` → `#[expect(reason)]` in tests**: 20 test/bench/example files migrated. Unfulfilled expectations removed (lints that don't fire in test/bench/example targets are not suppressed). Production `#[allow]` for tarpc wildcard imports documented.
+- **Hardcoded `/tmp/` paths eliminated**: 6 test paths in `lib.rs` evolved to `tempfile::tempdir()` for CI safety and parallel test isolation.
+- **STATUS.md accuracy**: `#[allow]` metric corrected to reflect 2 justified production exceptions.
+- **`cargo deny check`**: Verified passing via local binary (advisories ok, bans ok, licenses ok, sources ok).
+- **Tests**: 1,256 (unchanged). **Coverage**: unchanged. **Source files**: 124 (unchanged). All under 1000 lines.
 
 ## v0.9.9 ResilientSyncEngine, MCP tools, certificate proptests (March 23, 2026)
 

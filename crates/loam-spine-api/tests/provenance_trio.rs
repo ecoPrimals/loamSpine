@@ -11,8 +11,11 @@
 //! validating that loamSpine's `permanent-storage.*` compatibility layer
 //! and native `session.commit` / `braid.commit` APIs work end-to-end.
 
-#![allow(missing_docs)]
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test assertions use unwrap/expect for failure clarity"
+)]
 
 use loam_spine_api::service::LoamSpineRpcService;
 use loam_spine_api::types::*;

@@ -312,14 +312,14 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.9.9 |
+| Version | 0.9.10 |
 | Edition | 2024 |
 | Tests | 1,256 |
 | Coverage | 92%+ line / 90%+ region / 86%+ function (llvm-cov) |
 | Max File Size | 865 lines (all < 1000) |
 | Clippy | pedantic + nursery (0 warnings) |
 | Unsafe Code | 0 in production (`#![deny(unsafe_code)]`) |
-| Lint Exceptions | 0 `#[allow]` (all `#[expect(reason)]`), 0 `unsafe` in production or tests |
+| Lint Exceptions | 2 `#[allow]` in production (tarpc macro, documented), tests all `#[expect(reason)]` or removed; 0 `unsafe` |
 | License | AGPL-3.0-or-later |
 | SPDX Headers | All 124 source files |
 | ecoBin | Zero C dependencies (pure Rust) |

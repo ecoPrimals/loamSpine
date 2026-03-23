@@ -1,7 +1,7 @@
 # 🎯 Showcase Principles
 ## No Mocks, Real Capabilities Only
 
-**Last Updated**: December 23, 2025
+**Last Updated**: March 23, 2026
 
 ---
 
@@ -199,7 +199,7 @@ Features that are **actually implemented** and can be demonstrated:
 - [x] Backup import and verification
 - [x] InMemory storage backend
 - [x] Sled storage backend
-- [x] tarpc RPC service (18 methods)
+- [x] tarpc RPC service (28 methods)
 - [x] JSON-RPC 2.0 server
 - [x] Capability-based discovery registry
 

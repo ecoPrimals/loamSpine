@@ -8,16 +8,19 @@
 //! 3. Performance comparison
 //! 4. Use case recommendations
 
-// Examples allow patterns for demonstration purposes
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::redundant_clone)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::uninlined_format_args)]
-#![allow(clippy::too_many_lines)]
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::semicolon_if_nothing_returned)]
-#![allow(clippy::no_effect_underscore_binding)]
-#![allow(clippy::clone_on_copy)]
+#![expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    reason = "example data uses small controlled values"
+)]
+#![expect(
+    clippy::redundant_clone,
+    reason = "examples show explicit ownership for pedagogical clarity"
+)]
+#![expect(
+    clippy::uninlined_format_args,
+    reason = "examples prioritize readability over production style"
+)]
 
 use loam_spine_core::{
     Did, Spine,

@@ -4,12 +4,11 @@
 //!
 //! Run with: `cargo bench`
 
-// Benchmarks allow patterns that would be problematic in production
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
-#![allow(clippy::missing_panics_doc)]
-#![allow(missing_docs)]
+#![expect(
+    clippy::expect_used,
+    reason = "benchmarks prioritize measurement clarity over production error handling"
+)]
+#![expect(missing_docs, reason = "benchmark harness")]
 
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use loam_spine_core::{

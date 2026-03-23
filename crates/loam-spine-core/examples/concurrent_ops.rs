@@ -8,18 +8,21 @@
 //! 3. Performance under concurrency
 //! 4. Best practices
 
-// Allow patterns for demonstration code clarity
-#![allow(clippy::too_many_lines)]
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::uninlined_format_args)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::redundant_clone)]
-#![allow(clippy::cast_precision_loss)]
-#![allow(clippy::semicolon_if_nothing_returned)]
-#![allow(clippy::no_effect_underscore_binding)]
-#![allow(clippy::clone_on_copy)]
-#![allow(clippy::doc_markdown)]
-#![allow(unused_variables)]
+#![expect(
+    clippy::unwrap_used,
+    reason = "examples use unwrap for demonstration clarity"
+)]
+#![expect(
+    clippy::cast_possible_truncation,
+    reason = "example data uses small controlled values"
+)]
+#![expect(
+    clippy::too_many_lines,
+    clippy::uninlined_format_args,
+    clippy::doc_markdown,
+    reason = "examples prioritize readability over production style"
+)]
+#![expect(unused_variables, reason = "example setup variables for demonstration")]
 
 use loam_spine_core::{
     Did, Spine,

@@ -4,10 +4,14 @@
 //!
 //! Tests the RPC service implementation directly.
 
-// Allow test-specific patterns
-#![allow(missing_docs)]
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-#![allow(clippy::cast_possible_truncation)]
+#![expect(
+    clippy::unwrap_used,
+    reason = "test assertions use unwrap for failure clarity"
+)]
+#![expect(
+    clippy::cast_possible_truncation,
+    reason = "test data uses small controlled values"
+)]
 
 use loam_spine_api::service::LoamSpineRpcService;
 use loam_spine_api::types::*;

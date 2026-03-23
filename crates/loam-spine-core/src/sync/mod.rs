@@ -552,8 +552,9 @@ impl SyncEngine {
 /// rhizoCrypt for outbound IPC. The inner `SyncEngine` handles wire
 /// protocol; this wrapper handles failure isolation.
 ///
-/// Uses [`ResilientAdapter`] which combines [`CircuitBreaker`] (lock-free
-/// atomic state machine) with [`RetryPolicy`] (exponential backoff + jitter).
+/// Uses [`ResilientAdapter`](crate::ResilientAdapter) which combines
+/// [`CircuitBreaker`](crate::CircuitBreaker) (lock-free atomic state machine)
+/// with [`RetryPolicy`](crate::RetryPolicy) (exponential backoff + jitter).
 #[derive(Clone)]
 pub struct ResilientSyncEngine {
     inner: SyncEngine,

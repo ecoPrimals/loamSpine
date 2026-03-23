@@ -5,8 +5,6 @@
 //! Backend-specific tests live in `redb_tests.rs`, `sled_tests.rs`,
 //! `sqlite/tests.rs`, and `certificate_tests.rs`.
 
-#![allow(clippy::unwrap_used, clippy::expect_used)]
-
 use std::sync::Arc;
 
 use crate::entry::{Entry, EntryType, SpineConfig};

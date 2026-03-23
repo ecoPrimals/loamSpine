@@ -5,13 +5,20 @@
 //! Comprehensive fault injection tests for network, disk, memory, and Byzantine scenarios.
 //! These tests verify `LoamSpine`'s resilience under adverse conditions.
 
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)] // Tests use panic! for failure reporting
-#![allow(clippy::assertions_on_constants)] // Test framework uses assert!(true) for smoke tests
-#![allow(clippy::clone_on_ref_ptr)] // Tests intentionally clone Arc for concurrency demos
-#![allow(clippy::cast_possible_truncation)] // Test data uses i32 -> u8 for readability
-#![allow(clippy::cast_sign_loss)] // Test data uses i32 -> u8 for readability
+#![expect(
+    clippy::expect_used,
+    clippy::panic,
+    reason = "fault tests use expect/panic for failure reporting"
+)]
+#![expect(
+    clippy::clone_on_ref_ptr,
+    reason = "tests intentionally clone Arc for concurrency scenarios"
+)]
+#![expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "test data uses small controlled values"
+)]
 
 use loam_spine_core::{
     LoamSpineError,

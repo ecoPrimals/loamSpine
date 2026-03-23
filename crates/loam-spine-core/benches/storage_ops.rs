@@ -4,16 +4,21 @@
 //!
 //! Run with: `cargo bench --bench storage_ops`
 
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
-#![allow(clippy::missing_panics_doc)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::redundant_clone)]
-#![allow(clippy::semicolon_if_nothing_returned)]
-#![allow(clippy::unit_arg)]
-#![allow(clippy::no_effect_underscore_binding)]
-#![allow(missing_docs)]
+#![expect(
+    clippy::expect_used,
+    reason = "benchmarks prioritize measurement clarity over production error handling"
+)]
+#![expect(
+    clippy::cast_possible_truncation,
+    reason = "benchmark data uses small controlled values"
+)]
+#![expect(
+    clippy::redundant_clone,
+    clippy::semicolon_if_nothing_returned,
+    clippy::unit_arg,
+    reason = "criterion macros generate these patterns"
+)]
+#![expect(missing_docs, reason = "benchmark harness")]
 
 use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
 use loam_spine_core::{

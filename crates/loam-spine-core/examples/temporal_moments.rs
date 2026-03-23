@@ -5,9 +5,18 @@
 //! This demonstrates how to use the temporal module to track universal time
 //! across any domain: code commits, art creation, life events, etc.
 
-#![allow(clippy::unwrap_used)] // Examples use unwrap for clarity
-#![allow(clippy::too_many_lines)] // Examples are educational and comprehensive
-#![allow(clippy::uninlined_format_args)] // Older style for clarity
+#![expect(
+    clippy::unwrap_used,
+    reason = "examples use unwrap for demonstration clarity"
+)]
+#![expect(
+    clippy::too_many_lines,
+    reason = "examples are educational and comprehensive"
+)]
+#![expect(
+    clippy::uninlined_format_args,
+    reason = "examples prioritize readability over production style"
+)]
 
 use loam_spine_core::{
     SpineBuilder,

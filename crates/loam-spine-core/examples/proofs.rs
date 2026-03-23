@@ -8,13 +8,14 @@
 //! 3. Verify proofs
 //! 4. Show tamper detection
 
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::redundant_clone)]
-#![allow(clippy::semicolon_if_nothing_returned)]
-#![allow(clippy::too_many_lines)]
-#![allow(clippy::unwrap_used, clippy::expect_used)]
-#![allow(clippy::no_effect_underscore_binding)]
-#![allow(clippy::clone_on_copy)]
+#![expect(
+    clippy::expect_used,
+    reason = "examples use expect for demonstration clarity"
+)]
+#![expect(
+    clippy::too_many_lines,
+    reason = "examples are educational and comprehensive"
+)]
 
 use loam_spine_core::{
     Did, LoamSpineResult, Spine,

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.10] - 2026-03-23
+
+### Fixed
+- **3 doc warnings**: Unresolved intra-doc links to `ResilientAdapter`, `CircuitBreaker`, `RetryPolicy` in `sync/mod.rs` and `discovery_client/mod.rs` resolved with fully-qualified `crate::` paths.
+- **STATUS.md accuracy**: `#[allow]` metric corrected to reflect 2 justified production exceptions (tarpc wildcard imports).
+- **Hardcoded `/tmp/` paths**: 6 test paths in `lib.rs` evolved to `tempfile::tempdir()` for CI safety and parallel test isolation.
+
+### Changed
+- **`#[allow]` → `#[expect(reason)]` in tests**: 20 test/bench/example files migrated. Unfulfilled expectations removed (lints that don't fire in test/bench/example targets need no suppression).
+- **Root docs updated**: README.md, CONTRIBUTING.md, CHANGELOG.md, STATUS.md accuracy aligned with actual state.
+
+### Metrics
+- Tests: 1,256 passing (unchanged)
+- Coverage: 92%+ line / 90%+ region / 86%+ function (unchanged)
+- Clippy: 0 warnings (pedantic + nursery, all features, all targets)
+- Doc warnings: 0 (was 3)
+- Unsafe: 0 in production and tests
+- Max file: 865 lines (all under 1,000)
+- cargo deny: all four checks pass
+
 ## [0.9.9] - 2026-03-23
 
 ### Added

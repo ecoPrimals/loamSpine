@@ -375,7 +375,8 @@ mod tests {
 
     #[tokio::test]
     async fn lifecycle_start_stop() {
-        let config = LoamSpineConfig::default().with_storage_path("/tmp/loamspine-test");
+        let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let config = LoamSpineConfig::default().with_storage_path(dir.path());
 
         let mut spine = LoamSpine::new(config);
         assert_eq!(spine.state(), PrimalState::Created);
@@ -390,7 +391,8 @@ mod tests {
 
     #[tokio::test]
     async fn health_check_when_running() {
-        let config = LoamSpineConfig::default().with_storage_path("/tmp/loamspine-test-health");
+        let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let config = LoamSpineConfig::default().with_storage_path(dir.path());
 
         let mut spine = LoamSpine::new(config);
         spine.start().await.ok();
@@ -449,7 +451,8 @@ mod tests {
 
     #[tokio::test]
     async fn start_already_running() {
-        let config = LoamSpineConfig::default().with_storage_path("/tmp/loamspine-test-running");
+        let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let config = LoamSpineConfig::default().with_storage_path(dir.path());
 
         let mut spine = LoamSpine::new(config);
         spine.start().await.ok();
@@ -463,7 +466,8 @@ mod tests {
 
     #[tokio::test]
     async fn stop_already_stopped() {
-        let config = LoamSpineConfig::default().with_storage_path("/tmp/loamspine-test-stopped");
+        let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let config = LoamSpineConfig::default().with_storage_path(dir.path());
 
         let mut spine = LoamSpine::new(config);
         spine.start().await.ok();
@@ -487,8 +491,8 @@ mod tests {
 
     #[tokio::test]
     async fn health_check_storage_exists() {
-        let config =
-            LoamSpineConfig::default().with_storage_path("/tmp/loamspine-test-health-exists");
+        let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let config = LoamSpineConfig::default().with_storage_path(dir.path());
 
         let mut spine = LoamSpine::new(config);
         spine.start().await.ok();
@@ -505,8 +509,8 @@ mod tests {
 
     #[tokio::test]
     async fn health_check_with_capabilities() {
-        let config =
-            LoamSpineConfig::default().with_storage_path("/tmp/loamspine-test-health-caps");
+        let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let config = LoamSpineConfig::default().with_storage_path(dir.path());
         let caps = CapabilityRegistry::new();
 
         // Register a signer

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![expect(
+    clippy::unwrap_used,
+    reason = "test assertions use unwrap for failure clarity"
+)]
 
 use crate::certificate::{Certificate, CertificateType, MintInfo};
 use crate::entry::{Entry, EntryType, SpineConfig};

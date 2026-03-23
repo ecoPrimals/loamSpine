@@ -2,7 +2,10 @@
 
 //! Tests for integration trait implementations.
 
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![expect(
+    clippy::expect_used,
+    reason = "test assertions use expect for failure clarity"
+)]
 
 use super::*;
 use crate::types::Timestamp;

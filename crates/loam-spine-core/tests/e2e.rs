@@ -5,12 +5,15 @@
 //! These tests exercise the full flow from spine creation through
 //! certificate lifecycle, slice operations, and braid commits.
 
-// Allow various patterns in tests that would be problematic in production
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
-#![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::cast_sign_loss)]
+#![expect(
+    clippy::expect_used,
+    reason = "e2e tests use expect for assertion clarity"
+)]
+#![expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "e2e test data uses small controlled values"
+)]
 
 use loam_spine_core::{
     CertificateType, LoanTerms, SECONDS_PER_HOUR,
