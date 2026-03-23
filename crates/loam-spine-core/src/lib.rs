@@ -47,7 +47,7 @@
 #![warn(clippy::pedantic)]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
-// deny (not forbid) so #[allow(unsafe_code)] can override in test modules (set_var/remove_var in edition 2024)
+// deny (not forbid) retained for future flexibility; zero unsafe in production and tests since v0.9.6
 #![deny(unsafe_code)]
 // Allow some pedantic lints that are too noisy
 #![expect(

@@ -312,7 +312,10 @@ async fn with_service_registry_fails_for_unreachable_endpoint() {
 }
 
 #[tokio::test]
-#[allow(deprecated)]
+#[expect(
+    deprecated,
+    reason = "testing deprecated songbird aliases for backward compatibility"
+)]
 async fn deprecated_songbird_aliases_work() {
     let registry = CapabilityRegistry::new();
     assert!(registry.discover_from_songbird().await.is_err());

@@ -1,6 +1,7 @@
 [package]
 name = "loam-spine-api"
 description = "Pure Rust RPC API for LoamSpine - tarpc + JSON-RPC"
+publish = false
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,7 +13,16 @@ authors.workspace = true
 loam-spine-core = { path = "../loam-spine-core" }
 
 # Pure Rust RPC - tarpc (no protobuf, no gRPC, no C++ tooling)
-tarpc = { version = "0.37", features = ["full"] }
+# Explicit features instead of "full" — drops serde-transport-bincode
+# to avoid pulling bincode v1 via tokio-serde (RUSTSEC-2025-0141)
+tarpc = { version = "0.37", features = [
+    "serde1",
+    "tokio1",
+    "serde-transport",
+    "serde-transport-json",
+    "tcp",
+    "unix",
+] }
 
 # Workspace dependencies
 tokio = { workspace = true }

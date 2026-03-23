@@ -231,7 +231,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
     async fn run_with_signals_requires_real_signal() {
         // This test verifies the function compiles and can be invoked.
         // Actual signal testing requires integration tests with real OS signals.

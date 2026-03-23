@@ -33,8 +33,8 @@ echo ""
 
 echo "Dependency audit..."
 if command -v cargo-deny &>/dev/null; then
-    cargo deny check licenses bans sources --quiet 2>&1
-    echo "  Dependency audit PASSED (licenses, bans, sources)"
+    cargo deny check --quiet 2>&1
+    echo "  Dependency audit PASSED (advisories, bans, licenses, sources)"
 else
     echo "  (cargo-deny not installed, skipping)"
 fi

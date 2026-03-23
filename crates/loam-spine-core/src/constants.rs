@@ -140,6 +140,12 @@ pub const LOCALHOST: &str = "localhost";
 /// Numeric form of localhost, useful when DNS resolution should be avoided.
 pub const LOCALHOST_IP: &str = "127.0.0.1";
 
+/// Standard HTTPS port.
+///
+/// Used in discovery endpoint construction: when a service reports port 443,
+/// the port is omitted from the URL since HTTPS uses it by default.
+pub const HTTPS_DEFAULT_PORT: u16 = 443;
+
 #[cfg(test)]
 mod tests {
     use super::*;

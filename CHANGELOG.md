@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.7] - 2026-03-23
+
+### Changed
+- **tarpc feature trimming**: `features = ["full"]` replaced with explicit list; drops `serde-transport-bincode` to eliminate bincode v1 via tokio-serde transitive path.
+- **`deny.toml` accuracy**: Advisory comments corrected — fxhash/instant traced to sled (not tarpc); bincode v1 to direct dep; opentelemetry_sdk to tarpc hard dep. Three mdns-related advisories documented (async-std, net2, proc-macro-error).
+- **`cargo deny check` now passes clean**: advisories ok, bans ok, licenses ok, sources ok. Added `allow-wildcard-paths`, `publish = false` on all workspace crates, `wrappers = ["rusqlite"]` for libsqlite3-sys.
+- **Sync streaming coverage**: 7 new tests for `push_entries_streaming` and `pull_entries_streaming`. Sync module line coverage: 69% → 91%.
+- **`#[allow(deprecated)]` → `#[expect(deprecated, reason)]`**: Remaining two test-only deprecated aliases migrated.
+- **Hardcoding eliminated**: Port 443 → `HTTPS_DEFAULT_PORT`; capability strings → `external::*` in infant discovery DNS SRV mapping.
+- **unsafe eliminated**: All `infant_discovery` test env mutations migrated to `temp_env::with_vars` + phased `block_on`.
+- **Smart refactors**: `redb_tests.rs` split by domain (574 + 395); `jsonrpc/tests.rs` split by domain (588 + 379).
+
+### Removed
+- Empty `examples/` directory.
+
+### Metrics
+- Tests: 1,232 passing
+- Coverage: 92.23% line / 90.46% region / 86.52% function
+- Clippy: 0 warnings (pedantic + nursery, all features)
+- Doc warnings: 0
+- Unsafe: 0 in production and tests
+- Max file: 865 lines (all 124 files under 1,000)
+- cargo deny: all four checks pass
+
 ## [0.9.6] - 2026-03-17
 
 ### Added

@@ -2,8 +2,8 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.6  
-**Last Updated**: March 17, 2026
+**Current Version**: 0.9.7  
+**Last Updated**: March 23, 2026
 
 ---
 
@@ -46,15 +46,16 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,226 |
-| Coverage (llvm-cov) | 90%+ | TBD (v0.9.6 additions target storage error paths) |
+| Tests | — | 1,232 |
+| Coverage (llvm-cov) | 90%+ | 92.23% line / 90.46% region / 86.52% function |
 | `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 489 max (all 126 files under 1000) |
-| Source files | — | 126 `.rs` files |
+| Max file size | < 1000 lines | 865 max (all 124 files under 1000) |
+| Source files | — | 124 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 0 (all migrated to `#[expect(reason)]`) |
+| `cargo deny check` | pass | advisories ok, bans ok, licenses ok, sources ok |
 
 ---
 
@@ -64,14 +65,31 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 126 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 124 source files |
 | Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All 126 files under 1000 lines (max: 489 in test-only files). |
+| File size limit | PASS | All 124 files under 1000 lines (max: 865 in `certificate_tests.rs`). |
+
+---
+
+## v0.9.7 Dependency Hygiene & Coverage Evolution (March 23, 2026)
+
+- **`cargo deny check` now passes clean**: advisories ok, bans ok, licenses ok, sources ok.
+- **`deny.toml` accuracy**: Advisory comments corrected — `fxhash`/`instant` are sled deps (not tarpc); `bincode` v1 is direct dep (tarpc path eliminated); `opentelemetry_sdk` is tarpc 0.37 hard dep (not feature-gated). Three new mdns-related advisories (async-std, net2, proc-macro-error) documented as optional feature-gated.
+- **tarpc feature trimming**: `features = ["full"]` replaced with explicit feature list dropping `serde-transport-bincode`. Eliminates bincode v1 via tokio-serde transitive path.
+- **`publish = false`**: Added to all workspace crates (private, never published to crates.io). Satisfies cargo-deny wildcard ban with `allow-wildcard-paths`.
+- **`libsqlite3-sys` ban wrapper**: `wrappers = ["rusqlite"]` allows the C dep only through the optional sqlite feature.
+- **Sync streaming coverage**: 7 new tests for `push_entries_streaming` and `pull_entries_streaming` (success, failure fallback, requires-peers, empty state). Sync module line coverage: 69.00% → 90.57%.
+- **`#[allow(deprecated)]` → `#[expect(deprecated, reason)]`**: Remaining two test-only deprecated aliases migrated.
+- **Hardcoding eliminated**: Port 443 → `HTTPS_DEFAULT_PORT` constant; capability strings → `external::*` constants in infant discovery DNS SRV mapping.
+- **unsafe eliminated**: All `infant_discovery` test `unsafe` env mutations migrated to `temp_env::with_vars` + phased `block_on` pattern.
+- **Smart refactors**: `redb_tests.rs` (955 → 574 + 395 `redb_tests_cert_errors.rs`); `jsonrpc/tests.rs` (903 → 588 + 379 `tests_permanence_cert.rs`).
+- **Coverage**: 91.67% → **92.23% line** / 89.87% → **90.46% region** / 86.21% → **86.52% function**.
+- **Tests**: 1,226 → **1,232** (+6 net). Source files: 127 → **124**. All under 1000 lines.
 
 ---
 

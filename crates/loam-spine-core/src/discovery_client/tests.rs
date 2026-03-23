@@ -585,7 +585,10 @@ async fn discover_all_success() {
 async fn advertise_loamspine_deprecated_alias() {
     let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
 
-    #[allow(deprecated)]
+    #[expect(
+        deprecated,
+        reason = "testing deprecated alias to ensure backward compatibility"
+    )]
     let result = client
         .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
         .await;

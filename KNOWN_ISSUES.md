@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: March 17, 2026
+**Last Updated**: March 23, 2026
 
 ---
 
@@ -19,8 +19,12 @@
 
 | Dependency | Issue | Mitigation |
 |------------|-------|------------|
-| `libsqlite3-sys` | C dependency, but only compiled when `sqlite` feature is enabled. Not part of default build. | Feature-gated. Default storage is pure-Rust `redb`. |
-| `async-channel` | Minor duplicate versions pulled in via `mdns` feature dependency tree. | Cosmetic — no functional impact. Will resolve when upstream updates. |
+| `libsqlite3-sys` | C dependency, compiled when `sqlite` feature enabled. Not part of default build. | Feature-gated. `deny.toml` allows only via `rusqlite` wrapper. Default storage is pure-Rust `redb`. |
+| `bincode` v1 | RUSTSEC-2025-0141. Direct dep for storage/backup serialization. | tarpc tokio-serde path eliminated via feature trimming (v0.9.7). Direct usage deep in storage layer — migration to v2 is v1.0.0 scope (storage format breaking change). |
+| `opentelemetry_sdk` | RUSTSEC-2026-0007. Hard dep of tarpc 0.37 (not feature-gated). | Tracked in `deny.toml`; awaiting upstream tarpc resolution. |
+| `sled` | Pulls `fxhash` (RUSTSEC-2025-0057), `instant` (RUSTSEC-2024-0384) via old `parking_lot`. | Optional feature only (`sled-storage`). Default is `redb`. |
+| `mdns` 3.0 | Pulls discontinued `async-std`, deprecated `net2`, unmaintained `proc-macro-error`. | Optional feature only. All three advisories tracked in `deny.toml`. Evaluate modern mDNS alternatives for v0.9.8. |
+| `async-channel` | Minor duplicate versions via `mdns` → `async-std`. | Cosmetic — no functional impact. |
 
 ---
 
@@ -38,7 +42,7 @@
 
 | Area | Issue | Notes |
 |------|-------|-------|
-| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[expect(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | Production code remains protected — `deny` still errors on any `unsafe` in non-test code. Most tests migrated to `temp-env` crate; `lifecycle.rs` evolved to `temp_env::with_var_unset` + manual runtime in v0.9.2. Remaining `unsafe` env mutations in `infant_discovery/tests*.rs` use `#[expect(unsafe_code)]` — these require multiple sequential env changes with awaits between them (temp-env cannot wrap per-await mutation). |
+| `unsafe_code` lint | Changed from `forbid` to `deny` to allow `#[expect(unsafe_code)]` in test modules. Edition 2024 makes `env::set_var`/`remove_var` `unsafe`. | **RESOLVED in v0.9.6** — All `unsafe` env mutations migrated to safe `temp_env` patterns using phased `Runtime::block_on` calls (exit runtime between env mutations, re-enter after). Zero `unsafe` in both production and test code. `deny` retained for future flexibility. |
 | Dockerfile MSRV | Updated to `rust:1.85`. Edition 2024 requires Rust 1.85+. | CI MSRV job also updated. |
 | `/proc/self/status` UID | 5-tier socket discovery reads UID from `/proc/self/status` — Linux-only. Falls through to `temp_dir()` on non-Linux. | Graceful degradation; only applies when XDG_RUNTIME_DIR is unset. |
 

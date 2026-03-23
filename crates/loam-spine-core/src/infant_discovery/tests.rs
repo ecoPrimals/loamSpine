@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::env;
-
 use super::*;
 use serial_test::serial;
 
@@ -17,53 +15,54 @@ async fn test_infant_starts_with_zero_knowledge() {
     assert!(all.is_empty());
 }
 
-#[tokio::test]
+#[test]
 #[serial]
-#[expect(
-    unsafe_code,
-    reason = "async test requires env change mid-test (unset -> set) between awaits; temp-env cannot wrap per-await mutation"
-)]
-async fn test_discover_via_environment() {
-    // Clean environment first
-    unsafe {
-        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-        env::remove_var("SIGNING_SERVICE_URL");
-    }
+fn test_discover_via_environment() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
-    let discovery = InfantDiscovery::new().unwrap();
+    // Phase 1: clean env — ensure no signing endpoints exist
+    let discovery = temp_env::with_vars(
+        [
+            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
+            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
+            ("SIGNING_SERVICE_URL", None::<&str>),
+        ],
+        || {
+            rt.block_on(async {
+                let discovery = InfantDiscovery::new().unwrap();
+                let services = discovery
+                    .find_capability("cryptographic-signing")
+                    .await
+                    .unwrap();
+                assert!(services.is_empty());
+                discovery
+            })
+        },
+    );
 
-    // Should NOT find anything initially
-    let services = discovery
-        .find_capability("cryptographic-signing")
-        .await
-        .unwrap();
-    assert!(services.is_empty());
-
-    // Now set the environment variable
-    unsafe {
-        env::set_var(
-            "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-            "http://localhost:8001",
-        );
-    }
-
-    // Clear cache to force rediscovery
-    discovery.clear_cache().await;
-
-    let services = discovery
-        .find_capability("cryptographic-signing")
-        .await
-        .unwrap();
-
-    assert_eq!(services.len(), 1);
-    assert_eq!(services[0].endpoint, "http://localhost:8001");
-    assert_eq!(services[0].discovered_via, "environment");
-
-    // Cleanup
-    unsafe {
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-    }
+    // Phase 2: set env var and rediscover
+    temp_env::with_vars(
+        [
+            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
+            (
+                "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
+                Some("http://localhost:8001"),
+            ),
+            ("SIGNING_SERVICE_URL", None::<&str>),
+        ],
+        || {
+            rt.block_on(async {
+                discovery.clear_cache().await;
+                let services = discovery
+                    .find_capability("cryptographic-signing")
+                    .await
+                    .unwrap();
+                assert_eq!(services.len(), 1);
+                assert_eq!(services[0].endpoint, "http://localhost:8001");
+                assert_eq!(services[0].discovered_via, "environment");
+            });
+        },
+    );
 }
 
 #[test]
@@ -120,41 +119,48 @@ fn test_cache_functionality() {
     );
 }
 
-#[tokio::test]
+#[test]
 #[serial]
-#[expect(
-    unsafe_code,
-    reason = "async test requires env change mid-test (unset -> set) between awaits; temp-env cannot wrap per-await mutation"
-)]
-async fn test_discover_via_signing_service_url() {
-    unsafe {
-        env::remove_var("CAPABILITY_SIGNING_ENDPOINT");
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-        env::remove_var("SIGNING_SERVICE_URL");
-    }
+fn test_discover_via_signing_service_url() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
-    let discovery = InfantDiscovery::new().unwrap();
-    let services = discovery
-        .find_capability("cryptographic-signing")
-        .await
-        .unwrap();
-    assert!(services.is_empty());
+    let discovery = temp_env::with_vars(
+        [
+            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
+            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
+            ("SIGNING_SERVICE_URL", None::<&str>),
+        ],
+        || {
+            rt.block_on(async {
+                let discovery = InfantDiscovery::new().unwrap();
+                let services = discovery
+                    .find_capability("cryptographic-signing")
+                    .await
+                    .unwrap();
+                assert!(services.is_empty());
+                discovery
+            })
+        },
+    );
 
-    unsafe {
-        env::set_var("SIGNING_SERVICE_URL", "http://localhost:8002");
-    }
-    discovery.clear_cache().await;
-
-    let services = discovery
-        .find_capability("cryptographic-signing")
-        .await
-        .unwrap();
-    assert_eq!(services.len(), 1);
-    assert_eq!(services[0].endpoint, "http://localhost:8002");
-
-    unsafe {
-        env::remove_var("SIGNING_SERVICE_URL");
-    }
+    temp_env::with_vars(
+        [
+            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
+            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
+            ("SIGNING_SERVICE_URL", Some("http://localhost:8002")),
+        ],
+        || {
+            rt.block_on(async {
+                discovery.clear_cache().await;
+                let services = discovery
+                    .find_capability("cryptographic-signing")
+                    .await
+                    .unwrap();
+                assert_eq!(services.len(), 1);
+                assert_eq!(services[0].endpoint, "http://localhost:8002");
+            });
+        },
+    );
 }
 
 #[test]

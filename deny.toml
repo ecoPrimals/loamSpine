@@ -25,8 +25,9 @@ feature-depth = 1
 [bans]
 # Deny multiple versions of the same crate (reduce bloat)
 multiple-versions = "warn"
-# Allow wildcard versions for workspace path dependencies
+# Deny wildcard versions but allow workspace path deps (private, never published separately)
 wildcards = "deny"
+allow-wildcard-paths = true
 highlight = "all"
 workspace-default-features = "allow"
 external-default-features = "allow"
@@ -44,7 +45,7 @@ deny = [
     { crate = "aws-lc-sys", reason = "C dependency — use RustCrypto" },
     { crate = "zstd-sys", reason = "C dependency — use pure Rust zstd" },
     { crate = "lz4-sys", reason = "C dependency — use pure Rust lz4" },
-    { crate = "libsqlite3-sys", reason = "C dependency — sqlite feature-gated" },
+    { crate = "libsqlite3-sys", wrappers = ["rusqlite"], reason = "C dependency — allowed only through rusqlite (sqlite feature-gated)" },
 ]
 
 # Allow these duplicates (transitive deps we can't control)
@@ -91,13 +92,16 @@ registries = []
 # =============================================================================
 
 [advisories]
-# Transitive dependencies from tarpc 0.37; tracked for upstream resolution.
+# Tracked transitive advisories; accurate dependency chains documented below.
 # Aligns with rhizoCrypt/sweetGrass deny.toml advisory ignore lists.
 ignore = [
-    { id = "RUSTSEC-2024-0384", reason = "instant is a transitive dep from tarpc" },
-    { id = "RUSTSEC-2025-0057", reason = "fxhash is a transitive dep from tarpc" },
-    { id = "RUSTSEC-2025-0141", reason = "bincode v1 is a transitive dep from tarpc" },
-    { id = "RUSTSEC-2026-0007", reason = "opentelemetry_sdk is a transitive dep from tarpc" },
+    { id = "RUSTSEC-2024-0384", reason = "instant: sled 0.34 → parking_lot 0.11 → instant (sled-storage feature)" },
+    { id = "RUSTSEC-2025-0057", reason = "fxhash: sled 0.34 direct dep (sled-storage feature)" },
+    { id = "RUSTSEC-2025-0141", reason = "bincode v1: direct dep for storage/backup serialization (tarpc path eliminated via feature trimming)" },
+    { id = "RUSTSEC-2026-0007", reason = "opentelemetry_sdk: tarpc 0.37 hard dep → tracing-opentelemetry (not feature-gated)" },
+    { id = "RUSTSEC-2025-0052", reason = "async-std: mdns 3.0 dep (mdns feature-gated, optional)" },
+    { id = "RUSTSEC-2020-0016", reason = "net2: mdns 3.0 dep — deprecated in favor of socket2 (mdns feature-gated)" },
+    { id = "RUSTSEC-2024-0370", reason = "proc-macro-error: mdns 3.0 → err-derive (mdns feature-gated)" },
 ]
 
 # =============================================================================

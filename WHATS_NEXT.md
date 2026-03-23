@@ -2,8 +2,8 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.6  
-**Last Updated**: March 17, 2026
+**Current Version**: 0.9.7  
+**Last Updated**: March 23, 2026
 
 ---
 
@@ -158,12 +158,28 @@
 
 ---
 
-## v0.9.7 Targets
+## v0.9.7 Completed (March 23, 2026)
 
-- **90%+ line coverage** — Continue storage backend error-path tests (redb, cli_signer)
+- **`cargo deny check` passes clean** — All advisories, bans, licenses, sources ok
+- **`deny.toml` accuracy** — Advisory comments corrected (fxhash/instant → sled, bincode → direct, opentelemetry_sdk → tarpc hard dep); mdns advisories documented
+- **tarpc feature trimming** — `"full"` → explicit features; drops `serde-transport-bincode` (eliminates bincode v1 via tokio-serde)
+- **`publish = false`** — All workspace crates marked private; `allow-wildcard-paths` for cargo-deny
+- **Sync streaming coverage** — 7 new tests; sync module: 69.00% → 90.57% line coverage
+- **`#[allow(deprecated)]` → `#[expect(deprecated, reason)]`** — Remaining test-only aliases migrated
+- **Hardcoding eliminated** — `HTTPS_DEFAULT_PORT`, `external::*` constants in DNS SRV mapping
+- **unsafe eliminated** — `infant_discovery` tests: `temp_env::with_vars` + phased `block_on`
+- **Smart refactors** — `redb_tests.rs` split by domain; `jsonrpc/tests.rs` split by domain
+- **Coverage**: 92.23% line / 90.46% region / 86.52% function (1,232 tests)
+- **Source files**: 124. All under 1000 lines (max: 865).
+
+---
+
+## v0.9.8 Targets
+
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** — Expand from ~10% to full coverage
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
+- **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate alternatives
 
 ---
 

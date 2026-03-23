@@ -494,4 +494,7 @@ pub(crate) async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> 
 mod tests;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_permanence_cert;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_validation;

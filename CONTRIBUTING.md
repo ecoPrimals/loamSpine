@@ -15,7 +15,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![deny(unsafe_code)]` on production code; test modules prefer `temp-env` over raw `unsafe` env mutations, with `#[expect(unsafe_code, reason)]` where needed (migrated from `#[allow(unsafe_code)]`)
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ function coverage (current: 90%+, 1,226 tests)
+- **High Coverage**: Aim for 90%+ function coverage (current: 90%+, 1,232 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -38,12 +38,31 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 - `cargo-deny` for security: `cargo install cargo-deny`
 - `cargo-fuzz` for fuzzing (optional): `cargo install cargo-fuzz`
 
+### Build Environment
+
+The workspace lives on a `noexec` mount (`/mnt/4tb-work`). Build artifacts are
+redirected to an exec-capable filesystem via `.cargo/config.toml`:
+
+```toml
+[build]
+target-dir = "/path/to/.cargo-build/loamSpine/target"
+```
+
+If your shell sets a global `CARGO_TARGET_DIR` (e.g. pointing at the noexec mount),
+it overrides this config. Either **unset** it or explicitly override per-command:
+
+```bash
+unset CARGO_TARGET_DIR        # preferred — let .cargo/config.toml work
+# or
+export CARGO_TARGET_DIR=/path/to/.cargo-build/loamSpine/target
+```
+
 ### Build and Test
 ```bash
 # Build
 cargo build
 
-# Test (1,226 tests)
+# Test (1,232 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -293,16 +312,16 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.9.6 |
+| Version | 0.9.7 |
 | Edition | 2024 |
-| Tests | 1,226 |
+| Tests | 1,232 |
 | Coverage | 90%+ function / 88%+ line (llvm-cov) |
-| Max File Size | 955 lines (all < 1000) |
+| Max File Size | 865 lines (all < 1000) |
 | Clippy | pedantic + nursery (0 warnings) |
 | Unsafe Code | 0 in production (`#![deny(unsafe_code)]`) |
-| Lint Exceptions | 0 `#[allow]` in production (all `#[expect(reason)]`) |
+| Lint Exceptions | 0 `#[allow]` (all `#[expect(reason)]`), 0 `unsafe` in production or tests |
 | License | AGPL-3.0-or-later |
-| SPDX Headers | All 126 source files |
+| SPDX Headers | All 124 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |

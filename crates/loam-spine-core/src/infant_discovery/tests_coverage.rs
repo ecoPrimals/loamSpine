@@ -3,8 +3,6 @@
 //! Extended coverage tests for infant discovery: config edges, cache behavior,
 //! SRV mapping, fallback chains, DNS error paths, registry failures.
 
-use std::env;
-
 use super::*;
 use serial_test::serial;
 
@@ -45,51 +43,66 @@ fn test_discovery_config_from_env_zero_ttl() {
     });
 }
 
-#[tokio::test]
+#[test]
 #[serial]
-#[expect(
-    unsafe_code,
-    reason = "async test requires multiple sequential env changes (set A, await, set B, await); temp-env cannot wrap per-await mutation"
-)]
-async fn test_cache_expiry_triggers_rediscovery_with_zero_ttl() {
-    unsafe {
-        env::remove_var("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT");
-        env::remove_var("SIGNING_SERVICE_URL");
-    }
+fn test_cache_expiry_triggers_rediscovery_with_zero_ttl() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
-    let config = DiscoveryConfig {
-        methods: vec![DiscoveryMethod::Environment],
-        cache_ttl_secs: 0,
-        retry_attempts: 1,
-        discovery_timeout: Duration::from_secs(1),
-    };
-    let discovery = InfantDiscovery::with_config(config).unwrap();
-
-    unsafe {
-        env::set_var("SIGNING_SERVICE_URL", "http://localhost:8888");
-    }
-    let services1 = discovery
-        .find_capability("cryptographic-signing")
-        .await
-        .unwrap();
-    assert_eq!(services1.len(), 1);
-
-    unsafe {
-        env::set_var("SIGNING_SERVICE_URL", "http://localhost:9999");
-    }
-    let services2 = discovery
-        .find_capability("cryptographic-signing")
-        .await
-        .unwrap();
-    assert_eq!(services2.len(), 1);
-    assert_eq!(
-        services2[0].endpoint, "http://localhost:9999",
-        "zero TTL should bypass cache and rediscover"
+    let discovery = temp_env::with_vars(
+        [
+            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
+            ("SIGNING_SERVICE_URL", None::<&str>),
+        ],
+        || {
+            rt.block_on(async {
+                let config = DiscoveryConfig {
+                    methods: vec![DiscoveryMethod::Environment],
+                    cache_ttl_secs: 0,
+                    retry_attempts: 1,
+                    discovery_timeout: Duration::from_secs(1),
+                };
+                InfantDiscovery::with_config(config).unwrap()
+            })
+        },
     );
 
-    unsafe {
-        env::remove_var("SIGNING_SERVICE_URL");
-    }
+    // Phase 2: set to first URL
+    temp_env::with_vars(
+        [
+            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
+            ("SIGNING_SERVICE_URL", Some("http://localhost:8888")),
+        ],
+        || {
+            rt.block_on(async {
+                let services1 = discovery
+                    .find_capability("cryptographic-signing")
+                    .await
+                    .unwrap();
+                assert_eq!(services1.len(), 1);
+            });
+        },
+    );
+
+    // Phase 3: change URL — zero TTL should bypass cache
+    temp_env::with_vars(
+        [
+            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
+            ("SIGNING_SERVICE_URL", Some("http://localhost:9999")),
+        ],
+        || {
+            rt.block_on(async {
+                let services2 = discovery
+                    .find_capability("cryptographic-signing")
+                    .await
+                    .unwrap();
+                assert_eq!(services2.len(), 1);
+                assert_eq!(
+                    services2[0].endpoint, "http://localhost:9999",
+                    "zero TTL should bypass cache and rediscover"
+                );
+            });
+        },
+    );
 }
 
 #[tokio::test]
@@ -307,39 +320,45 @@ fn test_content_storage_service_url_strips_content_prefix() {
     );
 }
 
-#[tokio::test]
+#[test]
 #[serial]
-#[expect(
-    unsafe_code,
-    reason = "async test requires env change mid-test (unset -> set) between awaits; temp-env cannot wrap per-await mutation"
-)]
-async fn test_cached_empty_services_triggers_rediscovery() {
-    unsafe {
-        env::remove_var("CAPABILITY_REDISCOVER_ENDPOINT");
-        env::remove_var("REDISCOVER_SERVICE_URL");
-    }
+fn test_cached_empty_services_triggers_rediscovery() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
-    let config = DiscoveryConfig {
-        methods: vec![DiscoveryMethod::Environment],
-        cache_ttl_secs: 300,
-        retry_attempts: 1,
-        discovery_timeout: Duration::from_secs(1),
-    };
-    let discovery = InfantDiscovery::with_config(config).unwrap();
+    let discovery = temp_env::with_vars(
+        [
+            ("CAPABILITY_REDISCOVER_ENDPOINT", None::<&str>),
+            ("REDISCOVER_SERVICE_URL", None::<&str>),
+        ],
+        || {
+            rt.block_on(async {
+                let config = DiscoveryConfig {
+                    methods: vec![DiscoveryMethod::Environment],
+                    cache_ttl_secs: 300,
+                    retry_attempts: 1,
+                    discovery_timeout: Duration::from_secs(1),
+                };
+                let discovery = InfantDiscovery::with_config(config).unwrap();
+                let services1 = discovery.find_capability("rediscover").await.unwrap();
+                assert!(services1.is_empty());
+                discovery
+            })
+        },
+    );
 
-    let services1 = discovery.find_capability("rediscover").await.unwrap();
-    assert!(services1.is_empty());
-
-    unsafe {
-        env::set_var("REDISCOVER_SERVICE_URL", "http://rediscovered:8080");
-    }
-    let services2 = discovery.find_capability("rediscover").await.unwrap();
-    assert_eq!(services2.len(), 1);
-    assert_eq!(services2[0].endpoint, "http://rediscovered:8080");
-
-    unsafe {
-        env::remove_var("REDISCOVER_SERVICE_URL");
-    }
+    temp_env::with_vars(
+        [
+            ("CAPABILITY_REDISCOVER_ENDPOINT", None::<&str>),
+            ("REDISCOVER_SERVICE_URL", Some("http://rediscovered:8080")),
+        ],
+        || {
+            rt.block_on(async {
+                let services2 = discovery.find_capability("rediscover").await.unwrap();
+                assert_eq!(services2.len(), 1);
+                assert_eq!(services2[0].endpoint, "http://rediscovered:8080");
+            });
+        },
+    );
 }
 
 #[test]

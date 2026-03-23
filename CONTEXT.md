@@ -25,8 +25,8 @@ to commit, verify, or query permanent records.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later (Scyborg Provenance Trio)
-- **Tests:** 1,226+
-- **Coverage:** 90%+ function / 88%+ line
+- **Tests:** 1,232+
+- **Coverage:** 92%+ line / 90%+ region / 86%+ function
 - **MSRV:** Rust 2024 edition (nightly)
 - **Crate count:** 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 

@@ -59,6 +59,9 @@ use hickory_resolver::{
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
+use crate::capabilities::identifiers::external;
+use crate::constants::HTTPS_DEFAULT_PORT;
+
 use crate::capabilities::{DiscoveredService, LoamSpineCapability, ServiceHealth};
 use crate::error::LoamSpineResult;
 
@@ -391,9 +394,7 @@ impl InfantDiscovery {
 
         let mut services = Vec::new();
         for (priority, weight, target, port) in records_data.iter().take(5) {
-            // Limit to top 5
-            // Construct endpoint (assume https for production)
-            let endpoint = if *port == 443 {
+            let endpoint = if *port == HTTPS_DEFAULT_PORT {
                 format!("https://{target}")
             } else {
                 format!("https://{target}:{port}")
@@ -630,7 +631,7 @@ fn parse_mdns_response(
 
     let port = response.port()?;
     let endpoint = if let Some(addr) = response.ip_addr() {
-        if port == 443 {
+        if port == HTTPS_DEFAULT_PORT {
             format!("https://{addr}")
         } else {
             format!("https://{addr}:{port}")
@@ -640,7 +641,7 @@ fn parse_mdns_response(
             RecordKind::SRV { target, .. } => Some(target.clone()),
             _ => None,
         })?;
-        if port == 443 {
+        if port == HTTPS_DEFAULT_PORT {
             format!("https://{target}")
         } else {
             format!("https://{target}:{port}")
@@ -666,21 +667,22 @@ fn parse_mdns_response(
 
 /// Convert capability to DNS SRV service name (RFC 2782)
 ///
+/// Maps capability identifiers from [`crate::capabilities::identifiers::external`]
+/// to their corresponding SRV record names.
+///
 /// Examples:
 /// - "cryptographic-signing" -> "_signing._tcp.local"
 /// - "content-storage" -> "_storage._tcp.local"
 /// - "service-discovery" -> "_discovery._tcp.local"
 fn capability_to_srv_name(capability: &str) -> String {
     let service_part = match capability {
-        "cryptographic-signing" => "signing",
-        "content-storage" => "storage",
-        "service-discovery" => "discovery",
-        "session-management" => "session",
-        "compute-orchestration" => "compute",
-        other => {
-            // Extract last part of capability name
-            other.split('-').next_back().unwrap_or("service")
-        }
+        external::SIGNING => "signing",
+        external::STORAGE => "storage",
+        external::DISCOVERY => "discovery",
+        external::SESSION_MANAGEMENT => "session",
+        external::COMPUTE => "compute",
+        external::ATTESTATION => "attestation",
+        other => other.split('-').next_back().unwrap_or("service"),
     };
 
     format!("_{service_part}._tcp.local")

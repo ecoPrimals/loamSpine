@@ -507,3 +507,181 @@ async fn push_to_peer_parses_rejected_from_server() {
     assert_eq!(result.accepted, 1);
     assert_eq!(result.rejected, 2);
 }
+
+// ========================================================================
+// Streaming method tests
+// ========================================================================
+
+#[tokio::test]
+async fn push_entries_streaming_requires_peers() {
+    let engine = SyncEngine::new();
+    let (tx, _rx) = tokio::sync::mpsc::channel(16);
+    let spine_id = SpineId::now_v7();
+    let result = engine.push_entries_streaming(spine_id, vec![], &tx).await;
+    assert!(result.is_err());
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("no federation peers")
+    );
+}
+
+#[tokio::test]
+async fn push_entries_streaming_success_via_mock_server() {
+    let (endpoint, _handle) = spawn_mock_sync_server(
+        serde_json::json!({"accepted": 2, "rejected": 0}),
+        serde_json::json!({"entries": []}),
+    )
+    .await;
+
+    let engine = SyncEngine::new();
+    engine
+        .register_peer(test_peer_with_endpoint(&endpoint))
+        .await;
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+    let spine_id = SpineId::now_v7();
+    let entries = vec![test_entry(spine_id, 0), test_entry(spine_id, 1)];
+    let result = engine
+        .push_entries_streaming(spine_id, entries, &tx)
+        .await
+        .unwrap();
+    assert_eq!(result.accepted, 2);
+    assert_eq!(result.rejected, 0);
+
+    // Verify stream items: progress(0, Some(2)), progress(2, Some(2)), end
+    let item1 = rx.recv().await.unwrap();
+    assert!(matches!(
+        item1,
+        crate::streaming::StreamItem::Progress { .. }
+    ));
+    let item2 = rx.recv().await.unwrap();
+    assert!(matches!(
+        item2,
+        crate::streaming::StreamItem::Progress { .. }
+    ));
+    let item3 = rx.recv().await.unwrap();
+    assert!(matches!(item3, crate::streaming::StreamItem::End));
+}
+
+#[tokio::test]
+async fn push_entries_streaming_fallback_on_failure() {
+    let engine = SyncEngine::new();
+    engine.register_peer(test_peer()).await;
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+    let spine_id = SpineId::now_v7();
+    let entries = vec![test_entry(spine_id, 0)];
+    let result = engine
+        .push_entries_streaming(spine_id, entries, &tx)
+        .await
+        .unwrap();
+    assert_eq!(result.accepted, 1);
+
+    // Verify stream items: progress(0, Some(1)), error, end
+    let item1 = rx.recv().await.unwrap();
+    assert!(matches!(
+        item1,
+        crate::streaming::StreamItem::Progress { .. }
+    ));
+    let item2 = rx.recv().await.unwrap();
+    assert!(matches!(item2, crate::streaming::StreamItem::Error { .. }));
+    let item3 = rx.recv().await.unwrap();
+    assert!(matches!(item3, crate::streaming::StreamItem::End));
+}
+
+#[tokio::test]
+async fn pull_entries_streaming_requires_peers() {
+    let engine = SyncEngine::new();
+    let (tx, _rx) = tokio::sync::mpsc::channel(16);
+    let spine_id = SpineId::now_v7();
+    let result = engine.pull_entries_streaming(spine_id, 0, 10, &tx).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn pull_entries_streaming_success_via_mock_server() {
+    let spine_id = SpineId::now_v7();
+    let entries = vec![test_entry(spine_id, 0), test_entry(spine_id, 1)];
+    let entries_json = serde_json::to_value(&entries).unwrap();
+
+    let (endpoint, _handle) = spawn_mock_sync_server(
+        serde_json::json!({"accepted": 0}),
+        serde_json::json!({"entries": entries_json}),
+    )
+    .await;
+
+    let engine = SyncEngine::new();
+    engine
+        .register_peer(test_peer_with_endpoint(&endpoint))
+        .await;
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+    let pulled = engine
+        .pull_entries_streaming(spine_id, 0, 10, &tx)
+        .await
+        .unwrap();
+    assert_eq!(pulled.len(), 2);
+
+    // Verify stream items: progress(0, None), progress(2, Some(2)), end
+    let item1 = rx.recv().await.unwrap();
+    assert!(matches!(
+        item1,
+        crate::streaming::StreamItem::Progress { .. }
+    ));
+    let item2 = rx.recv().await.unwrap();
+    assert!(matches!(
+        item2,
+        crate::streaming::StreamItem::Progress { .. }
+    ));
+    let item3 = rx.recv().await.unwrap();
+    assert!(matches!(item3, crate::streaming::StreamItem::End));
+}
+
+#[tokio::test]
+async fn pull_entries_streaming_fallback_on_failure() {
+    let engine = SyncEngine::new();
+    engine.register_peer(test_peer()).await;
+
+    let spine_id = SpineId::now_v7();
+    engine
+        .push_entries(
+            spine_id,
+            vec![test_entry(spine_id, 0), test_entry(spine_id, 1)],
+        )
+        .await
+        .unwrap();
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+    let pulled = engine
+        .pull_entries_streaming(spine_id, 0, 10, &tx)
+        .await
+        .unwrap();
+    assert_eq!(pulled.len(), 2);
+
+    // Verify stream items: progress(0, None), error, end
+    let item1 = rx.recv().await.unwrap();
+    assert!(matches!(
+        item1,
+        crate::streaming::StreamItem::Progress { .. }
+    ));
+    let item2 = rx.recv().await.unwrap();
+    assert!(matches!(item2, crate::streaming::StreamItem::Error { .. }));
+    let item3 = rx.recv().await.unwrap();
+    assert!(matches!(item3, crate::streaming::StreamItem::End));
+}
+
+#[tokio::test]
+async fn pull_entries_streaming_fallback_empty_when_no_state() {
+    let engine = SyncEngine::new();
+    engine.register_peer(test_peer()).await;
+
+    let (tx, _rx) = tokio::sync::mpsc::channel(16);
+    let spine_id = SpineId::now_v7();
+    let pulled = engine
+        .pull_entries_streaming(spine_id, 0, 10, &tx)
+        .await
+        .unwrap();
+    assert!(pulled.is_empty());
+}
