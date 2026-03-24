@@ -54,6 +54,8 @@ mod redb_tests_cert_errors;
 mod redb_tests_coverage;
 #[cfg(all(test, feature = "sled-storage"))]
 mod sled_tests;
+#[cfg(all(test, feature = "sled-storage"))]
+mod sled_tests_certificate;
 #[cfg(test)]
 mod tests;
 

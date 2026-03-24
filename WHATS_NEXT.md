@@ -2,7 +2,7 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.13  
+**Current Version**: 0.9.14  
 **Last Updated**: March 24, 2026
 
 ---
@@ -208,6 +208,15 @@
 - **NDJSON streaming** — `NDJSON_PROTOCOL_VERSION` + `read_ndjson_stream` async helper
 - **CC-BY-SA-4.0 headers** — All 15 specs/ + 6 root markdown documentation files
 - **Tests**: 1,283 (+27). Source files: 127. All under 1000 lines (max: 878).
+
+## v0.9.14 Completed (March 24, 2026)
+
+- **`const fn` promotions** — 11 functions promoted; workspace `missing_const_for_fn` evolved from `allow` to `warn` (zero warnings)
+- **`#[non_exhaustive]` forward compatibility** — 14 public enums protected against downstream match breakage
+- **`DiscoveryProtocol` disambiguation** — Infant discovery naming collision resolved (46 references)
+- **`TarpcServerConfig` configurable** — Hardcoded server limits evolved to runtime-configurable struct
+- **Smart refactor `sled_tests.rs`** — 954 → 725 + 206 lines (certificate tests extracted as domain module)
+- **Tests**: 1,312. Source files: 131. All under 1000 lines (max: 885). Coverage: 92.11% line.
 
 ## v0.9.13 Completed (March 24, 2026)
 

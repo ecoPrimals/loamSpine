@@ -22,11 +22,29 @@ use tarpc::server::{self, Channel};
 use tarpc::tokio_serde::formats::Json;
 use tracing::{info, warn};
 
-/// Maximum concurrent request futures processed in parallel per tarpc server.
-const TARPC_MAX_CONCURRENT_REQUESTS: usize = 100;
+/// Default maximum concurrent request futures processed in parallel.
+pub const DEFAULT_MAX_CONCURRENT_REQUESTS: usize = 100;
 
-/// Maximum active channels (connections) per unique client IP.
-const TARPC_MAX_CHANNELS_PER_IP: u32 = 10;
+/// Default maximum active channels (connections) per unique client IP.
+pub const DEFAULT_MAX_CHANNELS_PER_IP: u32 = 10;
+
+/// Configuration for the tarpc server.
+#[derive(Clone, Debug)]
+pub struct TarpcServerConfig {
+    /// Maximum concurrent request futures processed in parallel.
+    pub max_concurrent_requests: usize,
+    /// Maximum active channels (connections) per unique client IP.
+    pub max_channels_per_ip: u32,
+}
+
+impl Default for TarpcServerConfig {
+    fn default() -> Self {
+        Self {
+            max_concurrent_requests: DEFAULT_MAX_CONCURRENT_REQUESTS,
+            max_channels_per_ip: DEFAULT_MAX_CHANNELS_PER_IP,
+        }
+    }
+}
 
 /// tarpc server for `LoamSpine`.
 ///
@@ -199,7 +217,7 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
     }
 }
 
-/// Run the tarpc server on the specified address.
+/// Run the tarpc server on the specified address with default configuration.
 ///
 /// # Errors
 ///
@@ -208,26 +226,38 @@ pub async fn run_tarpc_server(
     addr: SocketAddr,
     service: LoamSpineRpcService,
 ) -> Result<(), ServerError> {
+    run_tarpc_server_with_config(addr, service, TarpcServerConfig::default()).await
+}
+
+/// Run the tarpc server with explicit configuration.
+///
+/// # Errors
+///
+/// Returns error if server fails to bind or run.
+pub async fn run_tarpc_server_with_config(
+    addr: SocketAddr,
+    service: LoamSpineRpcService,
+    config: TarpcServerConfig,
+) -> Result<(), ServerError> {
     let listener = tarpc::serde_transport::tcp::listen(&addr, Json::default)
         .await
         .map_err(|e| ServerError::Bind(e.to_string()))?;
     let server = LoamSpineTarpcServer::new(service);
 
-    info!("🚀 LoamSpine tarpc server listening on {}", addr);
+    info!("tarpc server listening on {}", addr);
 
     listener
         .filter_map(|r| async {
             match r {
                 Ok(transport) => Some(transport),
                 Err(e) => {
-                    warn!("Failed to accept connection: {}", e);
+                    warn!("failed to accept connection: {}", e);
                     None
                 }
             }
         })
         .map(server::BaseChannel::with_defaults)
-        // Limit connections per IP
-        .max_channels_per_key(TARPC_MAX_CHANNELS_PER_IP, |t| {
+        .max_channels_per_key(config.max_channels_per_ip, |t| {
             t.transport().peer_addr().map_or_else(
                 |_| std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED),
                 |a| a.ip(),
@@ -237,9 +267,8 @@ pub async fn run_tarpc_server(
             let server = server.clone();
             channel.execute(server.serve())
         })
-        // Flatten the nested streams into one stream of futures
         .flatten()
-        .buffer_unordered(TARPC_MAX_CONCURRENT_REQUESTS)
+        .buffer_unordered(config.max_concurrent_requests)
         .for_each(|()| async {})
         .await;
 

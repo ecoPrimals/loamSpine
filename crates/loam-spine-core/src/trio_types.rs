@@ -161,7 +161,7 @@ pub struct WireAgentContribution {
     pub weight: f64,
 }
 
-fn default_contribution_weight() -> f64 {
+const fn default_contribution_weight() -> f64 {
     1.0
 }
 

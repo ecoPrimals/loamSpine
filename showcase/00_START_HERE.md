@@ -2,10 +2,10 @@
 
 **Sovereign Permanence for the ecoPrimals Ecosystem**
 
-**Version**: 0.9.12  
+**Version**: 0.9.14  
 **Status**: Production Ready  
 **Date**: March 24, 2026  
-**Latest**: Deep audit, coverage push, scyBorg licensing — 1,312 tests, 90%+ line coverage, `#![forbid(unsafe_code)]` in v0.9.12
+**Latest**: `const fn` promotions, `#[non_exhaustive]` forward compat, configurable tarpc, smart refactors — 1,312 tests, 92%+ line coverage, `#![forbid(unsafe_code)]` in v0.9.14
 
 ---
 
@@ -521,6 +521,6 @@ cat 00_SHOWCASE_INDEX.md
 
 ---
 
-*LoamSpine v0.9.12 - ecoPrimals Ecosystem*  
+*LoamSpine v0.9.14 - ecoPrimals Ecosystem*  
 *March 24, 2026*
 

@@ -331,6 +331,7 @@ impl SpineBuilder {
 
 /// Spine state.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[non_exhaustive]
 pub enum SpineState {
     /// Actively accepting entries.
     #[default]

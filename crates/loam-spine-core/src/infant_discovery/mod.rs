@@ -70,7 +70,7 @@ use crate::error::LoamSpineResult;
 
 /// Discovery method types
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DiscoveryMethod {
+pub enum DiscoveryProtocol {
     /// Environment variables (highest priority)
     Environment,
     /// mDNS/Bonjour for local network (requires `mdns` feature)
@@ -85,7 +85,7 @@ pub enum DiscoveryMethod {
 #[derive(Debug, Clone)]
 pub struct DiscoveryConfig {
     /// Discovery methods to try (in order)
-    pub methods: Vec<DiscoveryMethod>,
+    pub methods: Vec<DiscoveryProtocol>,
     /// Cache TTL in seconds
     pub cache_ttl_secs: u64,
     /// Retry attempts for failed discoveries
@@ -96,15 +96,15 @@ pub struct DiscoveryConfig {
 
 impl Default for DiscoveryConfig {
     fn default() -> Self {
-        let mut methods = vec![DiscoveryMethod::Environment];
+        let mut methods = vec![DiscoveryProtocol::Environment];
 
         // DNS-SRV is production-grade; available when dns-srv feature is enabled
         #[cfg(feature = "dns-srv")]
-        methods.push(DiscoveryMethod::DnsSrv);
+        methods.push(DiscoveryProtocol::DnsSrv);
 
         // mDNS for zero-config LAN discovery when feature-enabled
         #[cfg(feature = "mdns")]
-        methods.push(DiscoveryMethod::MDns);
+        methods.push(DiscoveryProtocol::MDns);
 
         Self {
             methods,
@@ -125,7 +125,7 @@ impl DiscoveryConfig {
         if let Ok(registry_url) = env::var("SERVICE_REGISTRY_URL") {
             config
                 .methods
-                .push(DiscoveryMethod::ServiceRegistry(registry_url));
+                .push(DiscoveryProtocol::ServiceRegistry(registry_url));
         }
 
         // Allow overriding cache TTL
@@ -247,16 +247,16 @@ impl InfantDiscovery {
             debug!("Trying discovery method: {:?}", method);
 
             let services = match method {
-                DiscoveryMethod::Environment => self.discover_via_environment(capability),
-                DiscoveryMethod::MDns => self.discover_via_mdns(capability).await,
+                DiscoveryProtocol::Environment => self.discover_via_environment(capability),
+                DiscoveryProtocol::MDns => self.discover_via_mdns(capability).await,
                 #[cfg(feature = "dns-srv")]
-                DiscoveryMethod::DnsSrv => self.discover_via_dns_srv(capability).await,
+                DiscoveryProtocol::DnsSrv => self.discover_via_dns_srv(capability).await,
                 #[cfg(not(feature = "dns-srv"))]
-                DiscoveryMethod::DnsSrv => {
+                DiscoveryProtocol::DnsSrv => {
                     debug!("DNS SRV discovery not available (feature not enabled)");
                     vec![]
                 }
-                DiscoveryMethod::ServiceRegistry(url) => {
+                DiscoveryProtocol::ServiceRegistry(url) => {
                     self.discover_via_registry(url, capability).await
                 }
             };

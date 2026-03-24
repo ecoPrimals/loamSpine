@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.13  
+**Current Version**: 0.9.14  
 **Last Updated**: March 24, 2026
 
 ---
@@ -47,12 +47,12 @@ This document tracks implementation progress against the specification suite in 
 | Metric | Target | Current |
 |--------|--------|---------|
 | Tests | — | 1,312 |
-| Coverage (llvm-cov) | 90%+ | 90.02% line / 91.99% region / 86.30% function |
+| Coverage (llvm-cov) | 90%+ | 92.11% line / 90.33% region / 87.83% function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
-| Clippy pedantic+nursery | 0 | 0 |
+| Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 954 max (all 130 files under 1000) |
-| Source files | — | 130 `.rs` files |
+| Max file size | < 1000 lines | 885 max (all 131 files under 1000) |
+| Source files | — | 131 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 2 (`clippy::wildcard_imports` in tarpc server/service — required by macro, documented) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -76,6 +76,15 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All 130 files under 1000 lines (max: 954 in `sled_tests.rs`). |
 
 ---
+
+## v0.9.14 Deep Audit Execution: Idiomatic Evolution & Forward Compatibility (March 24, 2026)
+
+- **`const fn` promotions**: 11 functions promoted to `const fn` across `UsageSummary::is_empty`, `default_contribution_weight`, `AttestationRequirement::is_required`, `RelendingChain::new`, `CircuitBreaker::new`, `RetryPolicy::new`/`max_retries_value`, `ResilientAdapter::new`, `ExpirySweeper::new`, `StreamItem::data`, `hash_u32`. Workspace lint `missing_const_for_fn` evolved from `allow` to `warn` — zero warnings.
+- **`#[non_exhaustive]` forward compatibility**: Added to 14 public enums: `LoamSpineError`, `IpcErrorPhase`, `ApiError`, `ServerError`, `CircuitState`, `SpineState`, `PrimalState`, `HealthStatus`, `ServiceState`, `CapabilityStatus`, `PropagationPolicy`, `AttestationRequirement`, `DepartureReason`, `SliceOperationType`. Cross-crate `From<LoamSpineError>` match updated with catch-all arm.
+- **`DiscoveryProtocol` disambiguation**: Infant discovery `DiscoveryMethod` renamed to `DiscoveryProtocol` to resolve naming collision with `config::DiscoveryMethod` (46 references across 3 files).
+- **`TarpcServerConfig` configurable**: Hardcoded `TARPC_MAX_CONCURRENT_REQUESTS` and `TARPC_MAX_CHANNELS_PER_IP` evolved to `TarpcServerConfig` struct with `run_tarpc_server_with_config()`. Backward-compatible `run_tarpc_server()` uses defaults.
+- **Smart refactor `sled_tests.rs`**: 954 → 725 lines + `sled_tests_certificate.rs` (206 lines). Certificate storage tests extracted as cohesive domain module following established `redb_tests_cert_errors.rs` pattern.
+- **Tests**: 1,312 (unchanged). **Source files**: 130 → **131** (+1 extracted test file). All under 1000 lines (max: 885 in `sync/tests.rs`). **Coverage**: 92.11% line / 90.33% region / 87.83% function. Clippy pedantic+nursery: 0 warnings. Doc warnings: 0.
 
 ## v0.9.13 JSON-RPC 2.0 Compliance, Zero-Copy & Smart Refactors (March 24, 2026)
 

@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.9.13"
+version = "0.9.14"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/ecoPrimals/loamSpine"
@@ -66,7 +66,7 @@ cast_lossless = "warn"
 
 # Allow some pedantic lints that are overly strict
 module_name_repetitions = "allow"  # Acceptable for clarity (e.g., SpineConfig in spine mod)
-missing_const_for_fn = "allow"     # Some functions can't be const due to trait bounds
+missing_const_for_fn = "warn"      # Promoted key candidates; remaining flagged for review
 significant_drop_tightening = "allow"  # Lock scopes are intentional in service code
 must_use_candidate = "allow"       # Will add incrementally
 multiple_crate_versions = "allow"  # Dependencies may have version conflicts

@@ -50,7 +50,7 @@ pub enum StreamItem {
 impl StreamItem {
     /// Create a data item with the given payload.
     #[must_use]
-    pub fn data(payload: serde_json::Value) -> Self {
+    pub const fn data(payload: serde_json::Value) -> Self {
         Self::Data { payload }
     }
 

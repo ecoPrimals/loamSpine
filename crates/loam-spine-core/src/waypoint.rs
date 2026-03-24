@@ -78,6 +78,7 @@ impl Default for WaypointConfig {
 
 /// What data is propagated back to the origin spine when a slice returns.
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum PropagationPolicy {
     /// Never propagate anything.
     Never,
@@ -110,6 +111,7 @@ pub enum PropagationPolicy {
 /// hard-codes the attesting primal's name — it discovers the provider at
 /// runtime through the service registry.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum AttestationRequirement {
     /// No attestation required.
     #[default]
@@ -131,7 +133,7 @@ pub enum AttestationRequirement {
 impl AttestationRequirement {
     /// Whether any attestation is required.
     #[must_use]
-    pub fn is_required(&self) -> bool {
+    pub const fn is_required(&self) -> bool {
         !matches!(self, Self::None)
     }
 
@@ -192,6 +194,7 @@ pub struct AttestationResult {
 
 /// Reasons for slice departure from a waypoint.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum DepartureReason {
     /// Loan term expired.
     Expired,
@@ -262,6 +265,7 @@ pub struct WaypointSummary {
 
 /// Types of operations that can be recorded on an anchored slice.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SliceOperationType {
     /// Generic "use" action.
     Use {
@@ -394,7 +398,7 @@ pub struct RelendingChain {
 impl RelendingChain {
     /// Create an empty chain (no relending yet).
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { links: Vec::new() }
     }
 

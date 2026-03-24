@@ -64,5 +64,7 @@ pub use jsonrpc::{
 };
 pub use rpc::LoamSpineRpc;
 pub use service::LoamSpineRpcService;
-pub use tarpc_server::{LoamSpineTarpcServer, run_tarpc_server};
+pub use tarpc_server::{
+    LoamSpineTarpcServer, TarpcServerConfig, run_tarpc_server, run_tarpc_server_with_config,
+};
 pub use types::*;

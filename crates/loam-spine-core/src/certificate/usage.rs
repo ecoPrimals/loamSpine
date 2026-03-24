@@ -77,7 +77,7 @@ impl UsageSummary {
 
     /// Whether this summary represents zero usage.
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.operation_count == 0 && self.duration_nanos == 0
     }
 }

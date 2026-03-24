@@ -12,6 +12,7 @@ use crate::error::{LoamSpineError, LoamSpineResult};
 
 /// Circuit breaker state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum CircuitState {
     /// Normal operation; calls are allowed.
     Closed,
@@ -75,7 +76,7 @@ pub struct CircuitBreaker {
 impl CircuitBreaker {
     /// Create a new circuit breaker with the given config.
     #[must_use]
-    pub fn new(config: CircuitBreakerConfig) -> Self {
+    pub const fn new(config: CircuitBreakerConfig) -> Self {
         Self {
             config,
             state: AtomicU8::new(STATE_CLOSED),
@@ -262,7 +263,7 @@ pub struct RetryPolicy {
 impl RetryPolicy {
     /// Create a new retry policy with the given config.
     #[must_use]
-    pub fn new(config: RetryPolicyConfig) -> Self {
+    pub const fn new(config: RetryPolicyConfig) -> Self {
         Self { config }
     }
 
@@ -288,15 +289,15 @@ impl RetryPolicy {
 }
 
 impl RetryPolicy {
-    /// Get max_retries from config (cannot be const due to config).
+    /// Get max_retries from config.
     #[must_use]
-    pub fn max_retries_value(&self) -> u32 {
+    pub const fn max_retries_value(&self) -> u32 {
         self.config.max_retries
     }
 }
 
 /// Simple hash for jitter (no external deps).
-fn hash_u32(x: u32) -> u32 {
+const fn hash_u32(x: u32) -> u32 {
     let mut h = x.wrapping_mul(0x9E37_79B9);
     h ^= h >> 16;
     h = h.wrapping_mul(0x85EB_CA6B);
@@ -314,7 +315,10 @@ pub struct ResilientAdapter {
 impl ResilientAdapter {
     /// Create a new resilient adapter with the given circuit breaker and retry policy.
     #[must_use]
-    pub fn new(circuit_breaker: std::sync::Arc<CircuitBreaker>, retry_policy: RetryPolicy) -> Self {
+    pub const fn new(
+        circuit_breaker: std::sync::Arc<CircuitBreaker>,
+        retry_policy: RetryPolicy,
+    ) -> Self {
         Self {
             circuit_breaker,
             retry_policy,

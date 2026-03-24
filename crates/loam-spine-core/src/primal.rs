@@ -11,6 +11,7 @@ use thiserror::Error;
 
 /// Primal lifecycle states.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum PrimalState {
     /// Initial state after construction.
     #[default]
@@ -93,6 +94,7 @@ pub trait PrimalLifecycle {
 
 /// Health status of a primal.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum HealthStatus {
     /// Service is healthy.
     Healthy,

@@ -7,6 +7,7 @@ use thiserror::Error;
 
 /// API-level errors for RPC operations.
 #[derive(Debug, Error, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ApiError {
     /// Spine not found
     #[error("spine not found: {0}")]
@@ -93,6 +94,7 @@ impl From<loam_spine_core::error::LoamSpineError> for ApiError {
             LoamSpineError::EscrowNotFound(id) => {
                 Self::InvalidRequest(format!("escrow not found: {id:?}"))
             }
+            other => Self::Internal(other.to_string()),
         }
     }
 }
@@ -105,6 +107,7 @@ pub type ApiResult<T> = Result<T, ApiError>;
 /// Used by `run_tarpc_server` and `run_jsonrpc_server` for typed error handling
 /// instead of `Box<dyn Error>`.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ServerError {
     /// TCP/socket bind failure (e.g. address in use, permission denied).
     #[error("bind failed: {0}")]

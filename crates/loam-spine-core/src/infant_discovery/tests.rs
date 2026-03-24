@@ -183,7 +183,7 @@ fn test_discovery_config_from_env() {
             let config = DiscoveryConfig::from_env_or_default();
             assert!(config.methods.iter().any(|m| matches!(
                 m,
-                DiscoveryMethod::ServiceRegistry(url) if url == "http://registry.example.com"
+                DiscoveryProtocol::ServiceRegistry(url) if url == "http://registry.example.com"
             )));
             assert_eq!(config.cache_ttl_secs, 600);
         },
@@ -306,7 +306,7 @@ fn test_cache_hit_with_stale_services_triggers_rediscovery() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 0,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -399,7 +399,7 @@ fn test_all_discovered_returns_populated_cache() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 300,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -418,17 +418,20 @@ fn test_all_discovered_returns_populated_cache() {
 
 #[test]
 fn test_discovery_method_equality() {
-    assert_eq!(DiscoveryMethod::Environment, DiscoveryMethod::Environment);
-    assert_eq!(DiscoveryMethod::MDns, DiscoveryMethod::MDns);
-    assert_eq!(DiscoveryMethod::DnsSrv, DiscoveryMethod::DnsSrv);
-    assert_ne!(DiscoveryMethod::Environment, DiscoveryMethod::DnsSrv);
     assert_eq!(
-        DiscoveryMethod::ServiceRegistry("http://a".into()),
-        DiscoveryMethod::ServiceRegistry("http://a".into())
+        DiscoveryProtocol::Environment,
+        DiscoveryProtocol::Environment
+    );
+    assert_eq!(DiscoveryProtocol::MDns, DiscoveryProtocol::MDns);
+    assert_eq!(DiscoveryProtocol::DnsSrv, DiscoveryProtocol::DnsSrv);
+    assert_ne!(DiscoveryProtocol::Environment, DiscoveryProtocol::DnsSrv);
+    assert_eq!(
+        DiscoveryProtocol::ServiceRegistry("http://a".into()),
+        DiscoveryProtocol::ServiceRegistry("http://a".into())
     );
     assert_ne!(
-        DiscoveryMethod::ServiceRegistry("http://a".into()),
-        DiscoveryMethod::ServiceRegistry("http://b".into())
+        DiscoveryProtocol::ServiceRegistry("http://a".into()),
+        DiscoveryProtocol::ServiceRegistry("http://b".into())
     );
 }
 
@@ -445,7 +448,7 @@ fn test_discover_via_environment_pattern2_service_url() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 300,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -476,7 +479,7 @@ fn test_cache_hit_with_fresh_services_skips_rediscovery() {
         || {
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 3600,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -520,7 +523,7 @@ fn test_cache_hit_with_fresh_services_skips_rediscovery() {
 #[tokio::test]
 async fn test_with_config_custom_timeout() {
     let config = DiscoveryConfig {
-        methods: vec![DiscoveryMethod::DnsSrv],
+        methods: vec![DiscoveryProtocol::DnsSrv],
         cache_ttl_secs: 60,
         retry_attempts: 1,
         discovery_timeout: Duration::from_millis(100),
@@ -535,7 +538,7 @@ async fn test_with_config_custom_timeout() {
 #[tokio::test]
 async fn test_mdns_not_enabled_returns_empty() {
     let config = DiscoveryConfig {
-        methods: vec![DiscoveryMethod::MDns],
+        methods: vec![DiscoveryProtocol::MDns],
         cache_ttl_secs: 300,
         retry_attempts: 1,
         discovery_timeout: Duration::from_secs(1),

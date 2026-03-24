@@ -18,6 +18,7 @@ use crate::types::{CertificateId, EntryHash, SpineId, format_hash_short};
 /// and primalSpring's 8-variant `IpcErrorPhase` for ecosystem-wide
 /// structured IPC error handling.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum IpcErrorPhase {
     /// Socket or TCP connection failed (primal unreachable).
     Connect,
@@ -61,6 +62,7 @@ impl fmt::Display for IpcErrorPhase {
 
 /// Errors specific to LoamSpine.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum LoamSpineError {
     /// Configuration error.
     #[error("configuration error: {0}")]

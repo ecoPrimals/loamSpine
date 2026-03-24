@@ -21,6 +21,7 @@ use tokio::time::{Duration, interval};
 /// Transitions: `Starting` → `Ready` → `Running` → `Stopping` → `Stopped`.
 /// Error paths:  any state → `Degraded` (recoverable) or `Error` (needs restart).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 pub enum ServiceState {
     /// Service is initializing (discovery, registration, storage warm-up).
     Starting,

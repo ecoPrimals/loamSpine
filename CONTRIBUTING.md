@@ -314,16 +314,16 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.9.12 |
+| Version | 0.9.14 |
 | Edition | 2024 |
 | Tests | 1,312 |
-| Coverage | 90%+ line / 92%+ region / 86%+ function (llvm-cov) |
-| Max File Size | 954 lines (all < 1000) |
-| Clippy | pedantic + nursery (0 warnings) |
+| Coverage | 92%+ line / 90%+ region / 87%+ function (llvm-cov) |
+| Max File Size | 885 lines (all < 1000) |
+| Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | Lint Exceptions | 2 `#[allow]` in production (tarpc macro, documented), tests all `#[expect(reason)]` or removed |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
-| SPDX Headers | All 124 source files |
+| SPDX Headers | All 131 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |

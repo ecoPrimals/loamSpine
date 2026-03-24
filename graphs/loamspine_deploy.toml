@@ -12,7 +12,7 @@
 # Composable: other graphs can reference this as a sub-graph via depends_on.
 # biomeOS orchestrates germination order; Songbird provides IPC mesh.
 #
-# STATUS: V0.9.10 (March 2026)
+# STATUS: V0.9.14 (March 2026)
 # Run: biomeos deploy graphs/loamspine_deploy.toml
 #      biomeos primal deploy loamspine-permanence
 
@@ -22,7 +22,7 @@ description = "LoamSpine permanence layer — certificates, proofs, selective me
 coordination = "Sequential"
 
 [graph.metadata]
-loamspine_version = "0.9.12"
+loamspine_version = "0.9.14"
 domain = "permanence"
 primal_id = "loamspine"
 protocols = ["jsonrpc", "tarpc"]

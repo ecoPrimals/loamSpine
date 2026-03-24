@@ -7,6 +7,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.14] - 2026-03-24
+
+### Changed
+- **`const fn` promotions**: 11 functions promoted — `UsageSummary::is_empty`, `default_contribution_weight`, `AttestationRequirement::is_required`, `RelendingChain::new`, `CircuitBreaker::new`, `RetryPolicy::new`/`max_retries_value`, `ResilientAdapter::new`, `ExpirySweeper::new`, `StreamItem::data`, `hash_u32`. Workspace lint `missing_const_for_fn` evolved from `allow` to `warn`.
+- **`#[non_exhaustive]` forward compatibility**: 14 public enums protected — `LoamSpineError`, `IpcErrorPhase`, `ApiError`, `ServerError`, `CircuitState`, `SpineState`, `PrimalState`, `HealthStatus`, `ServiceState`, `CapabilityStatus`, `PropagationPolicy`, `AttestationRequirement`, `DepartureReason`, `SliceOperationType`. Cross-crate `From<LoamSpineError>` match updated with catch-all arm.
+- **`DiscoveryProtocol` disambiguation**: Infant discovery `DiscoveryMethod` renamed to `DiscoveryProtocol` to resolve naming collision with `config::DiscoveryMethod` (46 references across 3 files).
+- **`TarpcServerConfig` configurable**: Hardcoded `TARPC_MAX_CONCURRENT_REQUESTS` and `TARPC_MAX_CHANNELS_PER_IP` evolved to `TarpcServerConfig` struct with `run_tarpc_server_with_config()`. Backward-compatible `run_tarpc_server()` preserved.
+
+### Refactored
+- **`sled_tests.rs`**: 954 → 725 lines — certificate storage tests extracted to `sled_tests_certificate.rs` (206 lines) following `redb_tests_cert_errors.rs` domain-split pattern.
+
+### Metrics
+- Tests: 1,312 passing (unchanged)
+- Coverage: 92.11% line / 90.33% region / 87.83% function
+- Source files: 130 → 131 (+1 extracted test file)
+- Clippy: 0 warnings (pedantic + nursery + `missing_const_for_fn` at warn level)
+- Doc warnings: 0
+- All 131 files under 1,000 lines (max: 885)
+
 ## [0.9.13] - 2026-03-24
 
 ### Changed
@@ -961,6 +980,14 @@ spine.append(entry)?;
 
 ---
 
+[0.9.14]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.13...v0.9.14
+[0.9.13]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.12...v0.9.13
+[0.9.12]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.11...v0.9.12
+[0.9.11]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.10...v0.9.11
+[0.9.10]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.9...v0.9.10
+[0.9.9]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.8...v0.9.9
+[0.9.8]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.7...v0.9.8
+[0.9.7]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.6...v0.9.7
 [0.9.6]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.3...v0.9.4

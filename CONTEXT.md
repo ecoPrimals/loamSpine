@@ -29,7 +29,7 @@ to commit, verify, or query permanent records.
 - **Coverage:** 90%+ line / 92%+ region / 86%+ function
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
-- **Version:** 0.9.13
+- **Version:** 0.9.14
 - **Crate count:** 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 
 ## Key Capabilities (JSON-RPC methods)

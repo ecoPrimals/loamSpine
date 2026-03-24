@@ -55,6 +55,7 @@ use crate::waypoint::{AttestationContext, AttestationResult};
 
 /// Capability availability status.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CapabilityStatus {
     /// Capability is available and healthy.
     Available,

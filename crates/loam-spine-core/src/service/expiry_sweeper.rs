@@ -52,7 +52,7 @@ pub struct ExpirySweeper {
 impl ExpirySweeper {
     /// Create a new expiry sweeper.
     #[must_use]
-    pub fn new(service: LoamSpineService, config: ExpirySweeperConfig) -> Self {
+    pub const fn new(service: LoamSpineService, config: ExpirySweeperConfig) -> Self {
         Self { service, config }
     }
 

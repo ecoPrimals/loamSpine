@@ -56,7 +56,7 @@ fn test_cache_expiry_triggers_rediscovery_with_zero_ttl() {
         || {
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 0,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -153,7 +153,7 @@ fn test_environment_pattern1_takes_precedence_over_pattern2() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 300,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -187,7 +187,7 @@ fn test_fallback_discovery_tries_next_method_when_first_empty() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment, DiscoveryMethod::DnsSrv],
+                    methods: vec![DiscoveryProtocol::Environment, DiscoveryProtocol::DnsSrv],
                     cache_ttl_secs: 300,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -222,7 +222,7 @@ fn test_fallback_discovery_breaks_on_first_success() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment, DiscoveryMethod::DnsSrv],
+                    methods: vec![DiscoveryProtocol::Environment, DiscoveryProtocol::DnsSrv],
                     cache_ttl_secs: 300,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -305,7 +305,7 @@ fn test_content_storage_service_url_strips_content_prefix() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 300,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -333,7 +333,7 @@ fn test_cached_empty_services_triggers_rediscovery() {
         || {
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 300,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -376,7 +376,7 @@ fn test_discover_via_environment_capability_key_with_hyphens() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 300,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -403,7 +403,7 @@ fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 3600,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
@@ -467,7 +467,7 @@ fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
 #[tokio::test]
 async fn test_dns_srv_discovery_timeout_on_bogus_domain() {
     let config = DiscoveryConfig {
-        methods: vec![DiscoveryMethod::DnsSrv],
+        methods: vec![DiscoveryProtocol::DnsSrv],
         cache_ttl_secs: 300,
         retry_attempts: 1,
         discovery_timeout: Duration::from_secs(1),
@@ -521,10 +521,10 @@ fn test_discovery_config_clone_and_debug() {
 #[test]
 fn test_discovery_method_debug() {
     let methods = vec![
-        DiscoveryMethod::Environment,
-        DiscoveryMethod::MDns,
-        DiscoveryMethod::DnsSrv,
-        DiscoveryMethod::ServiceRegistry("http://test".into()),
+        DiscoveryProtocol::Environment,
+        DiscoveryProtocol::MDns,
+        DiscoveryProtocol::DnsSrv,
+        DiscoveryProtocol::ServiceRegistry("http://test".into()),
     ];
     for method in &methods {
         let debug = format!("{method:?}");
@@ -534,7 +534,7 @@ fn test_discovery_method_debug() {
 
 #[test]
 fn test_discovery_method_clone() {
-    let method = DiscoveryMethod::ServiceRegistry("http://registry:8082".into());
+    let method = DiscoveryProtocol::ServiceRegistry("http://registry:8082".into());
     let cloned = method.clone();
     assert_eq!(method, cloned);
 }
@@ -542,7 +542,7 @@ fn test_discovery_method_clone() {
 #[tokio::test]
 async fn test_find_capability_dns_srv_only_returns_empty_for_unknown() {
     let config = DiscoveryConfig {
-        methods: vec![DiscoveryMethod::DnsSrv],
+        methods: vec![DiscoveryProtocol::DnsSrv],
         cache_ttl_secs: 300,
         retry_attempts: 1,
         discovery_timeout: Duration::from_secs(2),
@@ -585,7 +585,7 @@ fn test_multiple_capabilities_cached_independently() {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let config = DiscoveryConfig {
-                    methods: vec![DiscoveryMethod::Environment],
+                    methods: vec![DiscoveryProtocol::Environment],
                     cache_ttl_secs: 3600,
                     retry_attempts: 1,
                     discovery_timeout: Duration::from_secs(1),
