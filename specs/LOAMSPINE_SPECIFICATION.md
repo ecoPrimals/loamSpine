@@ -386,436 +386,45 @@ Currency chains remain an **option** for use cases requiring external witnesses,
 
 ## 3. Data Model
 
-### 2.1 Entry Structure
+> **Canonical reference**: See [DATA_MODEL.md](DATA_MODEL.md) for complete type definitions.
+> Certificate-specific structures are defined in [CERTIFICATE_LAYER.md](CERTIFICATE_LAYER.md).
 
-```rust
-/// A single entry in a LoamSpine
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LoamEntry {
-    /// Sequential index within this spine
-    pub index: u64,
-    
-    /// Hash of the previous entry (empty for genesis)
-    pub previous: Option<EntryHash>,
-    
-    /// Timestamp of commitment
-    pub timestamp: Timestamp,
-    
-    /// The agent committing this entry
-    pub committer: Did,
-    
-    /// Entry type
-    pub entry_type: EntryType,
-    
-    /// Entry payload (type-specific)
-    pub payload: EntryPayload,
-    
-    /// Cryptographic signature from committer
-    pub signature: Signature,
-    
-    /// Additional attestations (witnesses, validators)
-    pub attestations: Vec<Attestation>,
-    
-    /// Hash of this entry (computed)
-    pub hash: EntryHash,
-}
+LoamSpine's data model is built on three core types:
 
-/// Entry hash (Blake3)
-pub type EntryHash = [u8; 32];
+| Type | Purpose | Key |
+|------|---------|-----|
+| **Entry** | Immutable, content-addressed ledger record | `EntryHash` (Blake3, 32 bytes) |
+| **Spine** | Ordered sequence of entries, owned by a DID | `SpineId` (UUIDv7) |
+| **Certificate** | Memory-bound object with ownership/loan lifecycle | `CertificateId` (UUIDv7) |
 
-/// Canonical entry for hashing (excludes computed fields)
-impl LoamEntry {
-    pub fn compute_hash(&self) -> EntryHash {
-        let canonical = CanonicalEntry {
-            index: self.index,
-            previous: self.previous,
-            timestamp: self.timestamp,
-            committer: self.committer.clone(),
-            entry_type: self.entry_type.clone(),
-            payload: self.payload.clone(),
-            signature: self.signature.clone(),
-            attestations: self.attestations.clone(),
-        };
-        blake3::hash(&canonical.to_canonical_bytes()).into()
-    }
-}
-```
+### Entry Types (summary)
 
-### 2.2 Entry Types
+Entries are `#[non_exhaustive]` and cover:
 
-```rust
-/// Types of entries that can be committed to LoamSpine
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum EntryType {
-    // === Spine Lifecycle ===
-    /// Genesis entry (first in spine)
-    Genesis { 
-        spine_id: SpineId,
-        owner: Did,
-        config: SpineConfig,
-    },
-    
-    /// Spine metadata update
-    MetadataUpdate { 
-        field: MetadataField,
-        value: Value,
-    },
-    
-    // === RhizoCrypt Commits ===
-    /// Dehydrated RhizoCrypt session
-    SessionCommit {
-        session_id: SessionId,
-        session_type: SessionType,
-        merkle_root: MerkleRoot,
-        summary: DehydrationSummary,
-    },
-    
-    // === Data Anchoring ===
-    /// Anchor a content hash
-    DataAnchor {
-        data_hash: ContentHash,
-        mime_type: String,
-        size: u64,
-        metadata: HashMap<String, Value>,
-    },
-    
-    /// SweetGrass Braid commitment
-    BraidCommit {
-        braid_id: BraidId,
-        braid_hash: ContentHash,
-        subject_hash: ContentHash,
-    },
-    
-    // === Ownership & Transfer ===
-    /// Mint a new Loam certificate
-    CertificateMint {
-        cert_id: CertificateId,
-        cert_type: CertificateType,
-        initial_owner: Did,
-        metadata: CertificateMetadata,
-    },
-    
-    /// Transfer certificate ownership
-    CertificateTransfer {
-        cert_id: CertificateId,
-        from: Did,
-        to: Did,
-        conditions: Option<TransferConditions>,
-    },
-    
-    /// Loan/lending of a certificate
-    CertificateLoan {
-        cert_id: CertificateId,
-        lender: Did,
-        borrower: Did,
-        terms: LoanTerms,
-    },
-    
-    /// Return of loaned certificate
-    CertificateReturn {
-        cert_id: CertificateId,
-        loan_entry: EntryHash,
-    },
-    
-    // === Recursive Stacking ===
-    /// Reference to another spine's entry
-    SpineReference {
-        referenced_spine: SpineId,
-        referenced_entry: EntryHash,
-        reference_type: ReferenceType,
-    },
-    
-    /// Roll-up of multiple entries into single hash
-    Rollup {
-        start_index: u64,
-        end_index: u64,
-        rollup_hash: ContentHash,
-        summary: RollupSummary,
-    },
-    
-    // === Attestations ===
-    /// Third-party attestation about an entry
-    Attestation {
-        subject_entry: EntryHash,
-        attestation_type: AttestationType,
-        claim: Claim,
-    },
-    
-    /// Revocation of previous entry
-    Revocation {
-        revoked_entry: EntryHash,
-        reason: RevocationReason,
-    },
-    
-    // === Slice Operations (Waypoint Support) ===
-    /// Slice arrives at this spine (waypoint anchor)
-    SliceAnchor {
-        /// Unique slice identifier
-        slice_id: SliceId,
-        /// Origin spine and entry
-        origin: SliceOrigin,
-        /// Slice mode
-        mode: SliceMode,
-        /// Terms of the slice
-        terms: SliceTerms,
-    },
-    
-    /// Operation performed on an anchored slice
-    SliceOperation {
-        /// The slice being operated on
-        slice_id: SliceId,
-        /// Operation type
-        operation: SliceOperationType,
-        /// Operation payload hash
-        payload: PayloadRef,
-        /// RhizoCrypt session (if applicable)
-        session: Option<SessionId>,
-    },
-    
-    /// Slice departs this spine
-    SliceDeparture {
-        /// The departing slice
-        slice_id: SliceId,
-        /// Reason for departure
-        reason: DepartureReason,
-        /// Summary of operations performed while here
-        operation_summary: OperationSummary,
-        /// Where the slice is going
-        destination: SliceDestination,
-    },
-    
-    /// Slice returns from waypoint to origin
-    SliceReturn {
-        /// The returning slice
-        slice_id: SliceId,
-        /// Original loan/consignment entry
-        original_entry: EntryHash,
-        /// Waypoint where slice was anchored
-        waypoint_spine: SpineId,
-        /// Summary of waypoint operations (if allowed to propagate)
-        waypoint_summary: Option<WaypointSummary>,
-    },
-    
-    /// External anchor (optional cross-chain/cross-commons reference)
-    ExternalAnchor {
-        /// The entry being anchored
-        entry: EntryHash,
-        /// External anchor reference
-        anchor: ExternalAnchorRef,
-        /// Proof of anchor
-        proof: AnchorProof,
-    },
-    
-    // === Custom ===
-    Custom {
-        type_uri: String,
-        payload: Bytes,
-    },
-}
+- **Spine lifecycle**: `Genesis`, `MetadataUpdate`, `SpineSealed`
+- **Data anchoring**: `SessionCommit` (rhizoCrypt), `DataAnchor`, `BraidCommit` (sweetGrass)
+- **Certificate operations**: `CertificateMint`, `CertificateTransfer`, `CertificateLoan`, `CertificateReturn`
+- **Waypoint/slice operations**: `SliceAnchor`, `SliceOperation`, `SliceDeparture`, `SliceReturn`
+- **Integrity**: `SpineReference`, `Rollup`, `Attestation`, `Revocation`
+- **Extensibility**: `ExternalAnchor`, `Custom`
 
-/// Origin information for a slice
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SliceOrigin {
-    /// Source spine
-    pub spine_id: SpineId,
-    /// Source entry
-    pub entry: EntryHash,
-    /// Certificate (if slice is of a certificate)
-    pub certificate: Option<CertificateId>,
-    /// Owner DID
-    pub owner: Did,
-}
+### Content Addressing
 
-/// Slice operation types
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum SliceOperationType {
-    /// Read/view the slice
-    View,
-    /// Use the slice (e.g., play a game)
-    Use { context: String },
-    /// Modify metadata
-    ModifyMetadata { field: String },
-    /// Sublend to another party
-    Sublend { to: Did, terms: SliceTerms },
-    /// Custom operation
-    Custom { operation: String },
-}
+All entries are content-addressed via Blake3. The hash is computed over a canonical
+representation that excludes computed fields, ensuring deterministic hashing across
+implementations. See [DATA_MODEL.md#content-addressing](DATA_MODEL.md) for the full
+canonical form specification.
 
-/// Where a slice goes when it departs
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum SliceDestination {
-    /// Return to origin spine
-    ReturnToOrigin,
-    /// Transfer to new owner's spine
-    TransferToOwner { new_owner: Did, new_spine: SpineId },
-    /// Move to another waypoint
-    ToWaypoint { waypoint: SpineId },
-    /// Consumed (e.g., one-time use license)
-    Consumed,
-}
+### Certificate Model
 
-/// Summary of operations at a waypoint
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WaypointSummary {
-    /// Duration of stay
-    pub duration: Duration,
-    /// Number of operations
-    pub operation_count: u64,
-    /// Operation types performed
-    pub operation_types: Vec<SliceOperationType>,
-    /// Hash of full operation log (for verification)
-    pub operations_hash: ContentHash,
-}
-```
-
-### 2.3 Spine Structure
-
-```rust
-/// A LoamSpine (the complete ledger)
-#[derive(Clone, Debug)]
-pub struct LoamSpine {
-    /// Unique spine identifier
-    pub spine_id: SpineId,
-    
-    /// Spine owner (DID)
-    pub owner: Did,
-    
-    /// Spine configuration
-    pub config: SpineConfig,
-    
-    /// Genesis entry hash
-    pub genesis: EntryHash,
-    
-    /// Latest entry hash (tip of the spine)
-    pub tip: EntryHash,
-    
-    /// Current entry count
-    pub height: u64,
-    
-    /// Spine metadata
-    pub metadata: SpineMetadata,
-    
-    /// State (active, sealed, archived)
-    pub state: SpineState,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SpineConfig {
-    /// Spine type (personal, community, public)
-    pub spine_type: SpineType,
-    
-    /// Replication policy
-    pub replication: ReplicationPolicy,
-    
-    /// Access control policy
-    pub access: AccessPolicy,
-    
-    /// Required attestations for certain entry types
-    pub attestation_requirements: AttestationRequirements,
-    
-    /// Maximum entries before mandatory rollup
-    pub max_entries_before_rollup: Option<u64>,
-    
-    /// Retention policy
-    pub retention: RetentionPolicy,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum SpineState {
-    /// Actively accepting entries
-    Active,
-    
-    /// Temporarily frozen (e.g., dispute resolution)
-    Frozen { reason: String, until: Option<Timestamp> },
-    
-    /// Permanently sealed (no new entries)
-    Sealed { final_entry: EntryHash },
-    
-    /// Archived (read-only, may be moved to cold storage)
-    Archived,
-}
-```
-
-### 2.4 Certificate Model (Loam Certificates)
-
-The Loam Certificate Layer provides "memory-bound objects":
-
-```rust
-/// A Loam Certificate (memory-bound object)
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LoamCertificate {
-    /// Unique certificate ID
-    pub cert_id: CertificateId,
-    
-    /// Certificate type
-    pub cert_type: CertificateType,
-    
-    /// Current owner
-    pub owner: Did,
-    
-    /// Mint entry (proof of origin)
-    pub mint_entry: EntryHash,
-    
-    /// Current entry (latest state)
-    pub current_entry: EntryHash,
-    
-    /// Full ownership history
-    pub history: Vec<OwnershipRecord>,
-    
-    /// Associated metadata
-    pub metadata: CertificateMetadata,
-    
-    /// Linked data (e.g., RhizoCrypt sessions, external references)
-    pub links: Vec<CertificateLink>,
-    
-    /// Current loan status
-    pub loan_status: Option<LoanStatus>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum CertificateType {
-    // Digital ownership
-    DigitalGameKey { platform: String, game_id: String },
-    DigitalCollectible { collection: String, item_id: String },
-    DigitalLicense { software: String, license_type: String },
-    
-    // Physical ownership
-    VehicleTitle { vin: String },
-    PropertyDeed { parcel_id: String },
-    
-    // Credentials
-    AcademicDegree { institution: String, degree: String },
-    ProfessionalLicense { authority: String, license_type: String },
-    Certification { issuer: String, cert_name: String },
-    
-    // Provenance
-    ArtworkProvenance { artist: String, title: String },
-    BiologicalSample { sample_type: String, origin: String },
-    
-    // Custom
-    Custom { type_uri: String },
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LoanTerms {
-    /// Loan duration
-    pub duration: Option<Duration>,
-    
-    /// Use restrictions
-    pub restrictions: Vec<UseRestriction>,
-    
-    /// Return conditions
-    pub return_conditions: ReturnConditions,
-    
-    /// Automatic return on expiry
-    pub auto_return: bool,
-}
-```
+Certificates are "memory-bound objects" -- digital ownership records that carry their
+complete provenance history. Unlike NFTs, they support lending, time-limited access,
+automatic return, and waypoint anchoring. Full lifecycle specification is in
+[CERTIFICATE_LAYER.md](CERTIFICATE_LAYER.md).
 
 ---
 
-## 3. Architecture
+## 4. Architecture
 
 ### 3.1 Component Overview
 
@@ -1469,51 +1078,10 @@ See [API_SPECIFICATION.md](./API_SPECIFICATION.md) for the full API reference.
 
 ---
 
-## Appendix A: Example Certificate Lifecycle (Game Key)
+## Appendix A: Certificate Lifecycle Example
 
-```
-1. Game publisher mints certificate
-   → MintCertificate(type: DigitalGameKey {
-       platform: "steam",
-       game_id: "half-life-3"
-     }, owner: "did:key:publisher")
-   → CertificateId: "cert-hl3-001"
-
-2. Publisher sells to retailer
-   → TransferCertificate(
-       cert_id: "cert-hl3-001",
-       to: "did:key:gamestop"
-     )
-
-3. Retailer sells to customer
-   → TransferCertificate(
-       cert_id: "cert-hl3-001",
-       to: "did:key:player1"
-     )
-
-4. Customer loans to friend for weekend
-   → LoanCertificate(
-       cert_id: "cert-hl3-001",
-       borrower: "did:key:friend",
-       terms: { duration: 48h, auto_return: true }
-     )
-
-5. Friend plays game (Steam integration)
-   → RhizoCrypt captures play session
-   → Session committed to LoamSpine
-   → Certificate now has play history
-
-6. Loan expires, certificate returns
-   → ReturnCertificate (automatic)
-   → Owner is player1 again
-   → Friend can no longer play
-
-7. Years later: verification
-   → GetCertificateHistory("cert-hl3-001")
-   → Full provenance from publisher to current owner
-   → All play sessions anchored
-   → Certificate value includes history
-```
+For a complete game-key lifecycle walkthrough (mint, sell, loan, play, return, verify),
+see [CERTIFICATE_LAYER.md](CERTIFICATE_LAYER.md).
 
 ---
 

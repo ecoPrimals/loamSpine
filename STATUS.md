@@ -2,8 +2,8 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.11  
-**Last Updated**: March 23, 2026
+**Current Version**: 0.9.12  
+**Last Updated**: March 24, 2026
 
 ---
 
@@ -46,13 +46,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,283 |
-| Coverage (llvm-cov) | 90%+ | 92.23% line / 90.46% region / 86.52% function |
-| `unsafe` in production | 0 | 0 (`#![deny(unsafe_code)]`) |
+| Tests | — | 1,312 |
+| Coverage (llvm-cov) | 90%+ | 90.02% line / 91.99% region / 86.30% function |
+| `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 878 max (all 127 files under 1000) |
-| Source files | — | 127 `.rs` files |
+| Max file size | < 1000 lines | 954 max (all 124 files under 1000) |
+| Source files | — | 124 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 2 (`clippy::wildcard_imports` in tarpc server/service — required by macro, documented) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -67,15 +67,24 @@ This document tracks implementation progress against the specification suite in 
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
 | AGPL-3.0-or-later | PASS | SPDX headers on all 124 source files |
-| Scyborg license | PASS | `CertificateType::scyborg_license()`, metadata builders, schema constants |
+| Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All 124 files under 1000 lines (max: 865 in `certificate_tests.rs`). |
+| File size limit | PASS | All 124 files under 1000 lines (max: 954 in `sled_tests.rs`). |
 
 ---
+
+## v0.9.12 Deep Audit Execution & Coverage Push (March 24, 2026)
+
+- **`#![forbid(unsafe_code)]`**: Evolved from `#![deny(unsafe_code)]` to `#![forbid(unsafe_code)]` in `loam-spine-core` and workspace-level lints per wateringHole ecoBin standard. Zero unsafe code in entire codebase.
+- **Coverage 89.59% → 90.02%**: 29 new tests across redb (corrupt entry via index, short index key), sled (corrupt data in get_spine/get_entry/get_certificate, cross-spine iteration), sqlite (temporary() constructors, flush, get_entry None), types (From<String>, Signature::default, Timestamp::Display, ByteBuffer from &str), trio_types (default weight, as_str accessors), waypoint (RelendingChain::new, DepartureReason::Relend display, SliceOperationType::name variants), streaming (empty line skipping), transport (from_bytes zero-copy, SuccessTransport::default).
+- **Clippy all-targets clean**: Fixed 8 errors in sqlite/tests.rs (2 unused variables → underscore prefix, 6 redundant closures → `PoisonError::into_inner` method reference).
+- **Scyborg triple license files**: Added `LICENSE-ORC` and `LICENSE-CC-BY-SA` for complete ORC + CC-BY-SA-4.0 compliance alongside existing AGPL-3.0 `LICENSE`.
+- **Spec smart-refactor**: `LOAMSPINE_SPECIFICATION.md` reduced from 1521 → 1089 lines by deduplicating §3 Data Model (430 lines of struct definitions → summary + cross-reference to `DATA_MODEL.md`) and Appendix A (→ cross-reference to `CERTIFICATE_LAYER.md`). Fixed duplicate §3 numbering. `DATA_MODEL.md` (1441) and `CERTIFICATE_LAYER.md` (1133) kept intact as cohesive single-domain reference specs.
+- **Tests**: 1,283 → **1,312** (+29). **Source files**: 124. All under 1000 lines (max: 954 in `sled_tests.rs`).
 
 ## v0.9.11 Feature gating, MCP completeness & streaming evolution (March 23, 2026)
 

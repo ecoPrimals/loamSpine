@@ -815,7 +815,9 @@ async fn spawn_garbage_server(garbage: &[u8]) -> (String, tokio::task::JoinHandl
         let len = u32::from_be_bytes(len_buf) as usize;
         let mut buf = vec![0u8; len];
         let _ = stream.read_exact(&mut buf).await;
-        let resp_len = u32::try_from(garbage.len()).unwrap_or(u32::MAX).to_be_bytes();
+        let resp_len = u32::try_from(garbage.len())
+            .unwrap_or(u32::MAX)
+            .to_be_bytes();
         let _ = stream.write_all(&resp_len).await;
         let _ = stream.write_all(&garbage).await;
         let _ = stream.flush().await;
@@ -833,10 +835,15 @@ async fn push_with_non_json_response_returns_error() {
         .await;
 
     let spine_id = SpineId::now_v7();
-    let result = engine.push_entries(spine_id, vec![test_entry(spine_id, 0)]).await;
+    let result = engine
+        .push_entries(spine_id, vec![test_entry(spine_id, 0)])
+        .await;
     assert!(result.is_ok());
     let sync_result = result.unwrap();
-    assert_eq!(sync_result.accepted, 1, "failed RPC queues entries as locally accepted");
+    assert_eq!(
+        sync_result.accepted, 1,
+        "failed RPC queues entries as locally accepted"
+    );
     assert!(
         !sync_result.rejection_reasons.is_empty() || sync_result.accepted > 0,
         "should degrade gracefully on non-JSON response"

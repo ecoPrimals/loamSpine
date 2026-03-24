@@ -24,9 +24,10 @@ to commit, verify, or query permanent records.
 - **Language:** 100% Rust, zero C dependencies (pure-Rust ecoBin)
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
-- **License:** AGPL-3.0-or-later (Scyborg Provenance Trio)
-- **Tests:** 1,256+
-- **Coverage:** 92%+ line / 90%+ region / 86%+ function
+- **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
+- **Tests:** 1,312+
+- **Coverage:** 90%+ line / 92%+ region / 86%+ function
+- **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
 - **Crate count:** 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 

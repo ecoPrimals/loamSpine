@@ -416,7 +416,10 @@ async fn sqlite_get_entry_corrupt_data_returns_error() {
     let hash = storage.save_entry(&entry).await.unwrap();
 
     {
-        let conn = storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let conn = storage
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "UPDATE entries SET data = ? WHERE hash = ?",
             rusqlite::params![b"not valid json", hash.as_slice()],
@@ -430,12 +433,15 @@ async fn sqlite_get_entry_corrupt_data_returns_error() {
 
 #[tokio::test]
 async fn sqlite_get_spine_corrupt_data_returns_error() {
-    let (temp_dir, storage) = spine_storage_from_tempdir();
+    let (_temp_dir, storage) = spine_storage_from_tempdir();
     let spine = create_test_spine();
     storage.save_spine(&spine).await.unwrap();
 
     {
-        let conn = storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let conn = storage
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "UPDATE spines SET data = ? WHERE id = ?",
             rusqlite::params![b"garbage", spine.id.to_string()],
@@ -449,12 +455,15 @@ async fn sqlite_get_spine_corrupt_data_returns_error() {
 
 #[tokio::test]
 async fn sqlite_list_spines_skips_invalid_ids() {
-    let (temp_dir, storage) = spine_storage_from_tempdir();
+    let (_temp_dir, storage) = spine_storage_from_tempdir();
     let spine = create_test_spine();
     storage.save_spine(&spine).await.unwrap();
 
     {
-        let conn = storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let conn = storage
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "INSERT INTO spines (id, data) VALUES (?, ?)",
             rusqlite::params!["not-a-valid-uuid", b"{}"],
@@ -476,10 +485,16 @@ async fn sqlite_get_certificate_corrupt_data_returns_error() {
     let owner = Did::new("did:key:z6MkOwner");
     let spine_id = SpineId::now_v7();
     let cert = create_test_certificate(&owner, spine_id);
-    cert_storage.save_certificate(&cert, spine_id).await.unwrap();
+    cert_storage
+        .save_certificate(&cert, spine_id)
+        .await
+        .unwrap();
 
     {
-        let conn = cert_storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let conn = cert_storage
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "UPDATE certificates SET data = ? WHERE id = ?",
             rusqlite::params![b"broken", cert.id.to_string()],
@@ -500,10 +515,16 @@ async fn sqlite_list_certificates_skips_invalid_ids() {
     let owner = Did::new("did:key:z6MkOwner");
     let spine_id = SpineId::now_v7();
     let cert = create_test_certificate(&owner, spine_id);
-    cert_storage.save_certificate(&cert, spine_id).await.unwrap();
+    cert_storage
+        .save_certificate(&cert, spine_id)
+        .await
+        .unwrap();
 
     {
-        let conn = cert_storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let conn = cert_storage
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "INSERT INTO certificates (id, spine_id, data) VALUES (?, ?, ?)",
             rusqlite::params!["not-uuid", spine_id.to_string(), b"{}"],
@@ -528,7 +549,10 @@ async fn sqlite_get_entries_for_spine_corrupt_entry_returns_error() {
     let hash = storage.save_entry(&entry).await.unwrap();
 
     {
-        let conn = storage.conn.lock().unwrap_or_else(|e| e.into_inner());
+        let conn = storage
+            .conn
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         conn.execute(
             "UPDATE entries SET data = ? WHERE hash = ?",
             rusqlite::params![b"corrupted json", hash.as_slice()],
@@ -562,4 +586,97 @@ fn sqlite_certificate_count_returns_zero_on_empty_db() {
     let db_path = temp_dir.path().join("empty.db");
     let storage = SqliteCertificateStorage::open(&db_path).unwrap();
     assert_eq!(storage.certificate_count(), 0);
+}
+
+// ========================================================================
+// temporary() constructors (exercises in-memory path)
+// ========================================================================
+
+#[tokio::test]
+async fn sqlite_spine_storage_temporary_crud() {
+    let storage = SqliteSpineStorage::temporary().unwrap();
+    let spine = create_test_spine();
+    storage.save_spine(&spine).await.unwrap();
+    assert_eq!(storage.spine_count(), 1);
+    let retrieved = storage.get_spine(spine.id).await.unwrap();
+    assert!(retrieved.is_some());
+}
+
+#[tokio::test]
+async fn sqlite_entry_storage_temporary_crud() {
+    let storage = SqliteEntryStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+    let entry = create_test_entry(&owner, spine_id);
+    let hash = storage.save_entry(&entry).await.unwrap();
+    assert!(storage.entry_exists(hash).await.unwrap());
+    assert_eq!(storage.entry_count(), 1);
+}
+
+#[tokio::test]
+async fn sqlite_certificate_storage_temporary_crud() {
+    let storage = SqliteCertificateStorage::temporary().unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+    let cert = create_test_certificate(&owner, spine_id);
+    storage.save_certificate(&cert, spine_id).await.unwrap();
+    assert_eq!(storage.certificate_count(), 1);
+    let retrieved = storage.get_certificate(cert.id).await.unwrap();
+    assert!(retrieved.is_some());
+}
+
+#[tokio::test]
+async fn sqlite_combined_storage_temporary_crud() {
+    let storage = SqliteStorage::temporary().unwrap();
+    let spine = create_test_spine();
+    storage.spines.save_spine(&spine).await.unwrap();
+
+    let owner = Did::new("did:key:z6MkOwner");
+    let entry = create_test_entry(&owner, spine.id);
+    storage.entries.save_entry(&entry).await.unwrap();
+
+    let cert = create_test_certificate(&owner, spine.id);
+    storage
+        .certificates
+        .save_certificate(&cert, spine.id)
+        .await
+        .unwrap();
+
+    assert_eq!(storage.spines.spine_count(), 1);
+    assert_eq!(storage.entries.entry_count(), 1);
+    assert_eq!(storage.certificates.certificate_count(), 1);
+    storage.flush().unwrap();
+}
+
+// ========================================================================
+// flush() exercises
+// ========================================================================
+
+#[test]
+fn sqlite_spine_storage_flush_via_open() {
+    let (_temp_dir, storage) = spine_storage_from_tempdir();
+    assert!(storage.flush().is_ok());
+}
+
+#[test]
+fn sqlite_entry_storage_flush_via_open() {
+    let (_temp_dir, storage) = entry_storage_from_tempdir();
+    assert!(storage.flush().is_ok());
+}
+
+#[test]
+fn sqlite_certificate_storage_flush_via_open() {
+    let (_temp_dir, storage) = certificate_storage_from_tempdir();
+    assert!(storage.flush().is_ok());
+}
+
+// ========================================================================
+// get_entry None path
+// ========================================================================
+
+#[tokio::test]
+async fn sqlite_get_entry_nonexistent_returns_none() {
+    let storage = SqliteEntryStorage::temporary().unwrap();
+    let result = storage.get_entry([0u8; 32]).await.unwrap();
+    assert!(result.is_none());
 }

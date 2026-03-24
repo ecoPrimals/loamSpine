@@ -2,8 +2,8 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.11  
-**Last Updated**: March 23, 2026
+**Current Version**: 0.9.12  
+**Last Updated**: March 24, 2026
 
 ---
 
@@ -208,6 +208,15 @@
 - **NDJSON streaming** — `NDJSON_PROTOCOL_VERSION` + `read_ndjson_stream` async helper
 - **CC-BY-SA-4.0 headers** — All 15 specs/ + 6 root markdown documentation files
 - **Tests**: 1,283 (+27). Source files: 127. All under 1000 lines (max: 878).
+
+## v0.9.12 Completed (March 24, 2026)
+
+- **`#![forbid(unsafe_code)]`** — Evolved from `deny` to `forbid` workspace-wide per wateringHole ecoBin standard
+- **Coverage push 89.59% → 90.02%** — 29 new tests across redb, sled, sqlite, types, trio_types, waypoint, streaming, transport
+- **Clippy all-targets clean** — Fixed 8 errors in sqlite/tests.rs (unused variables, redundant closures)
+- **scyBorg triple license** — Added `LICENSE-ORC` and `LICENSE-CC-BY-SA` alongside existing AGPL-3.0 `LICENSE`
+- **Spec smart-refactor** — `LOAMSPINE_SPECIFICATION.md` 1521 → 1089 lines (deduplicated data model + appendix)
+- **Tests**: 1,312 (+29). Source files: 124. All under 1000 lines (max: 954).
 
 ---
 

@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.9.11"
+version = "0.9.12"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/ecoPrimals/loamSpine"
@@ -41,8 +41,7 @@ serial_test = "3.0"
 
 
 [workspace.lints.rust]
-# deny (not forbid) retained for future flexibility; zero unsafe in production and tests since v0.9.6
-unsafe_code = "deny"
+unsafe_code = "forbid"
 missing_docs = "warn"
 
 [workspace.lints.clippy]

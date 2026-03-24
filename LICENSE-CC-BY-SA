@@ -1,0 +1,43 @@
+Creative Commons Attribution-ShareAlike 4.0 International
+
+SPDX-License-Identifier: CC-BY-SA-4.0
+
+All non-code creative content in this repository — including but not limited to
+documentation, specifications, diagrams, papers, narrative designs, and
+visualizations — is licensed under the Creative Commons Attribution-ShareAlike
+4.0 International License.
+
+You are free to:
+
+  Share — copy and redistribute the material in any medium or format for any
+          purpose, even commercially.
+
+  Adapt — remix, transform, and build upon the material for any purpose, even
+          commercially.
+
+Under the following terms:
+
+  Attribution — You must give appropriate credit, provide a link to the license,
+                and indicate if changes were made. You may do so in any
+                reasonable manner, but not in any way that suggests the licensor
+                endorses you or your use.
+
+  ShareAlike  — If you remix, transform, or build upon the material, you must
+                distribute your contributions under the same license as the
+                original.
+
+  No additional restrictions — You may not apply legal terms or technological
+                               measures that legally restrict others from doing
+                               anything the license permits.
+
+Full legal text:
+https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+---
+
+scyBorg Triple License Context:
+
+This CC-BY-SA-4.0 license is one layer of the scyBorg triple-copyleft framework:
+  AGPL-3.0-or-later  — All source code (see LICENSE)
+  ORC                 — Game mechanics (see LICENSE-ORC)
+  CC-BY-SA-4.0        — Creative content and documentation (this file)

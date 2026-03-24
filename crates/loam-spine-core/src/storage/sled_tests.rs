@@ -817,3 +817,138 @@ async fn sled_get_entries_for_spine_corrupted_entry_in_index() {
         "error should mention deserialization"
     );
 }
+
+// ========================================================================
+// Corrupted data in get_spine / get_entry / get_certificate (Err paths)
+// ========================================================================
+
+#[tokio::test]
+#[serial]
+async fn sled_get_spine_corrupted_bincode_returns_deserialize_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("spine-corrupt-bc");
+
+    let spine_id = SpineId::now_v7();
+    {
+        let db = sled::open(&path).unwrap();
+        let tree = db.open_tree("spines").unwrap();
+        tree.insert(spine_id.as_bytes().as_slice(), b"not-bincode" as &[u8])
+            .unwrap();
+        db.flush().unwrap();
+    }
+
+    let storage = SledSpineStorage::open(&path).unwrap();
+    let result = storage.get_spine(spine_id).await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("deserialize"));
+}
+
+#[tokio::test]
+#[serial]
+async fn sled_get_entry_corrupted_bincode_returns_deserialize_error() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("entry-corrupt-bc");
+
+    let bad_hash = [0xDEu8; 32];
+    {
+        let db = sled::open(&path).unwrap();
+        let tree = db.open_tree("entries").unwrap();
+        tree.insert(&bad_hash[..], b"garbage" as &[u8]).unwrap();
+        db.flush().unwrap();
+    }
+
+    let storage = SledEntryStorage::open(&path).unwrap();
+    let result = storage.get_entry(bad_hash).await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("deserialize"));
+}
+
+#[tokio::test]
+#[serial]
+async fn sled_get_certificate_corrupted_bincode_returns_deserialize_error() {
+    use crate::storage::{CertificateStorage, SledCertificateStorage};
+    use crate::types::CertificateId;
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("cert-corrupt-bc");
+
+    let cert_id = CertificateId::now_v7();
+    {
+        let db = sled::open(&path).unwrap();
+        let tree = db.open_tree("certificates").unwrap();
+        tree.insert(cert_id.as_bytes().as_slice(), b"corrupt-data" as &[u8])
+            .unwrap();
+        db.flush().unwrap();
+    }
+
+    let storage = SledCertificateStorage::open(&path).unwrap();
+    let result = storage.get_certificate(cert_id).await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("deserialize"));
+}
+
+// ========================================================================
+// get_entries_for_spine key prefix mismatch (different spine)
+// ========================================================================
+
+#[tokio::test]
+#[serial]
+async fn sled_get_entries_for_spine_different_spine_stops_iteration() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("entries-multispine");
+
+    let spine_a = SpineId::now_v7();
+    let spine_b = SpineId::now_v7();
+
+    {
+        let db = sled::open(&path).unwrap();
+        let entries = db.open_tree("entries").unwrap();
+        let index = db.open_tree("entry_index").unwrap();
+
+        let owner = Did::new("did:key:z6MkOwner");
+
+        for (i, sid) in [spine_a, spine_b].iter().enumerate() {
+            let entry = if i == 0 {
+                Entry::genesis(owner.clone(), *sid, SpineConfig::default())
+            } else {
+                Entry::new(
+                    0,
+                    None,
+                    owner.clone(),
+                    EntryType::SpineSealed { reason: None },
+                )
+                .with_spine_id(*sid)
+            };
+            let hash = entry.compute_hash().unwrap();
+            let bytes = bincode::serialize(&entry).unwrap();
+            entries.insert(&hash[..], bytes).unwrap();
+
+            let mut key = [0u8; 24];
+            key[..16].copy_from_slice(sid.as_bytes());
+            key[16..].copy_from_slice(&0u64.to_be_bytes());
+            index.insert(&key[..], &hash[..]).unwrap();
+        }
+
+        db.flush().unwrap();
+    }
+
+    let storage = SledEntryStorage::open(&path).unwrap();
+
+    let a_entries = storage
+        .get_entries_for_spine(spine_a, 0, 100)
+        .await
+        .unwrap();
+    assert!(
+        a_entries.len() <= 1,
+        "should stop at spine boundary, not cross into spine_b"
+    );
+
+    let b_entries = storage
+        .get_entries_for_spine(spine_b, 0, 100)
+        .await
+        .unwrap();
+    assert!(
+        b_entries.len() <= 1,
+        "should only return entries for spine_b"
+    );
+}

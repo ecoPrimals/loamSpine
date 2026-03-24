@@ -1,0 +1,43 @@
+ORC License
+
+This material is released under the Open RPG Creative License (ORC).
+
+Any game mechanics, rules, stat blocks, progression systems, encounter math,
+or mechanical designs contained within this repository are ORC Licensed Material.
+
+ORC is a perpetual, irrevocable, royalty-free license that cannot be revoked
+or restricted by any single entity.
+
+Full text of the ORC License:
+https://azoralaw.com/orclicense/
+
+---
+
+NOTICE OF LICENSED MATERIAL
+
+Licensed Material: All game mechanics, rules, and systems produced by or
+contained within the LoamSpine project and the broader ecoPrimals ecosystem.
+
+Licensor: ecoPrimals contributors
+
+ORC Licensed Material may be freely used, modified, and redistributed under
+the terms of the ORC License.
+
+RESERVED MATERIAL
+
+The following are expressly reserved and are NOT ORC Licensed Material:
+- The "ecoPrimals" name, logo, and trade dress
+- Individual primal names (LoamSpine, BearDog, Songbird, etc.) as trademarks
+- Studio-specific branding and visual identity
+
+Reserved material remains the intellectual property of its respective creators
+and is not licensed under ORC.
+
+---
+
+scyBorg Triple License Context:
+
+This ORC license is one layer of the scyBorg triple-copyleft framework:
+  AGPL-3.0-or-later  — All source code (see LICENSE)
+  ORC                 — Game mechanics (this file)
+  CC-BY-SA-4.0        — Creative content and documentation (see LICENSE-CC-BY-SA)

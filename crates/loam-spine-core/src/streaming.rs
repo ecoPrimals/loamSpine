@@ -238,7 +238,9 @@ mod tests {
     async fn read_ndjson_stream_parses_items() {
         let input = format!(
             "{}{}{}\n",
-            StreamItem::data(serde_json::json!({"id": 1})).to_ndjson_line().unwrap(),
+            StreamItem::data(serde_json::json!({"id": 1}))
+                .to_ndjson_line()
+                .unwrap(),
             StreamItem::progress(1, Some(2)).to_ndjson_line().unwrap(),
             StreamItem::end().to_ndjson_line().unwrap().trim_end(),
         );
@@ -254,7 +256,9 @@ mod tests {
         let input = format!(
             "{}{}",
             StreamItem::fatal("boom").to_ndjson_line().unwrap(),
-            StreamItem::data(serde_json::json!({"after_fatal": true})).to_ndjson_line().unwrap(),
+            StreamItem::data(serde_json::json!({"after_fatal": true}))
+                .to_ndjson_line()
+                .unwrap(),
         );
         let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
         let mut reader = tokio::io::BufReader::new(&mut cursor);
@@ -270,7 +274,13 @@ mod tests {
         let mut reader = tokio::io::BufReader::new(&mut cursor);
         let items = super::read_ndjson_stream(&mut reader).await.unwrap();
         assert_eq!(items.len(), 1);
-        assert!(matches!(items[0], StreamItem::Error { recoverable: true, .. }));
+        assert!(matches!(
+            items[0],
+            StreamItem::Error {
+                recoverable: true,
+                ..
+            }
+        ));
     }
 
     #[test]
@@ -291,5 +301,23 @@ mod tests {
             .collect();
 
         assert_eq!(items, parsed);
+    }
+
+    #[tokio::test]
+    async fn read_ndjson_stream_skips_empty_lines() {
+        let input = format!(
+            "\n\n{}\n\n{}\n",
+            StreamItem::data(serde_json::json!({"ok": true}))
+                .to_ndjson_line()
+                .unwrap()
+                .trim_end(),
+            StreamItem::end().to_ndjson_line().unwrap().trim_end(),
+        );
+        let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
+        let mut reader = tokio::io::BufReader::new(&mut cursor);
+        let items = super::read_ndjson_stream(&mut reader).await.unwrap();
+        assert_eq!(items.len(), 2);
+        assert!(matches!(items[0], StreamItem::Data { .. }));
+        assert!(items[1].is_end());
     }
 }

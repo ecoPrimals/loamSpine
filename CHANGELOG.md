@@ -7,6 +7,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.12] - 2026-03-24
+
+### Changed
+- **`#![forbid(unsafe_code)]`**: Evolved from `deny` to `forbid` in workspace-level lints and `loam-spine-core` crate attribute. Zero unsafe code in entire codebase, including tests.
+- **Spec smart-refactor**: `LOAMSPINE_SPECIFICATION.md` reduced from 1,521 to 1,089 lines by deduplicating data model definitions (cross-references `DATA_MODEL.md`) and certificate appendix (cross-references `CERTIFICATE_LAYER.md`).
+
+### Added
+- **29 new tests**: Redb (corrupt entry via index, short index key), sled (corrupt bincode in get_spine/get_entry/get_certificate, cross-spine iteration stop), SQLite (`temporary()` constructors for all 4 storage types, `flush()` for 3 types, get_entry_nonexistent), types (`Did::from(String)`, `Signature::default`, `Timestamp::Display`, `ByteBuffer from &str`), trio_types (`default_contribution_weight`, `as_str` accessors), waypoint (`RelendingChain::new`, `DepartureReason::Relend` display, `SliceOperationType::name` variants), streaming (empty line skipping), transport (`from_bytes` zero-copy, `SuccessTransport::new`).
+- **`LICENSE-ORC`**: ORC license file for game mechanics (scyBorg triple license).
+- **`LICENSE-CC-BY-SA`**: CC-BY-SA-4.0 license file for creative content and documentation.
+
+### Fixed
+- **Clippy all-targets**: 8 errors in `sqlite/tests.rs` resolved — 2 unused variables renamed with underscore prefix, 6 redundant closures replaced with `PoisonError::into_inner` method reference.
+
+### Metrics
+- Tests: 1,312 passing (up from 1,283)
+- Coverage: 90.02% line / 91.99% region / 86.30% function
+- Clippy: 0 warnings (pedantic + nursery, all features, all targets)
+- Unsafe: 0 (`#![forbid(unsafe_code)]`, was `#![deny(unsafe_code)]`)
+- Max file: 954 lines (all 124 files under 1,000)
+- License: AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
+
 ## [0.9.11] - 2026-03-23
 
 ### Added

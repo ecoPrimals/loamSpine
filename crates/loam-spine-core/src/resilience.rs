@@ -385,9 +385,7 @@ impl ResilientAdapter {
                     last_err = Some(spine_err);
 
                     if !transient {
-                        tracing::debug!(
-                            "permanent failure (no retry): {err_msg}"
-                        );
+                        tracing::debug!("permanent failure (no retry): {err_msg}");
                         break;
                     }
 
@@ -741,7 +739,8 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(
-            attempts.load(Ordering::SeqCst), 1,
+            attempts.load(Ordering::SeqCst),
+            1,
             "permanent errors should only be attempted once"
         );
     }

@@ -528,7 +528,10 @@ fn mcp_tool_to_rpc_returns_canonical_method_names() {
     ];
     for (tool, expected_method) in cases {
         let result = mcp_tool_to_rpc(tool, serde_json::json!({}));
-        assert!(result.is_some(), "tool '{tool}' not found in mcp_tool_to_rpc");
+        assert!(
+            result.is_some(),
+            "tool '{tool}' not found in mcp_tool_to_rpc"
+        );
         let (method, _) = result.unwrap();
         assert_eq!(
             method, expected_method,

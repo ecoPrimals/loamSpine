@@ -100,3 +100,89 @@ async fn redb_certificate_save_overwrite() {
     let retrieved = storage.get_certificate(cert_id).await.unwrap();
     assert!(retrieved.is_some());
 }
+
+// ========================================================================
+// get_entries_for_spine with corrupt data in entry table (via index)
+// ========================================================================
+
+#[tokio::test]
+#[serial]
+async fn redb_get_entries_for_spine_corrupted_entry_in_entries_table() {
+    use redb::{Database, TableDefinition};
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("entries_corrupt_via_index.redb");
+
+    let entries_def: TableDefinition<&[u8], &[u8]> = TableDefinition::new("entries");
+    let index_def: TableDefinition<&[u8], &[u8]> = TableDefinition::new("entry_index");
+    let spine_id = SpineId::now_v7();
+
+    {
+        let db = Database::create(&path).unwrap();
+        let write_txn = db.begin_write().unwrap();
+        {
+            let mut entries = write_txn.open_table(entries_def).unwrap();
+            let mut index = write_txn.open_table(index_def).unwrap();
+            let corrupt_hash = [0xCDu8; 32];
+            let mut key = [0u8; 24];
+            key[..16].copy_from_slice(spine_id.as_bytes());
+            key[16..].copy_from_slice(&0u64.to_be_bytes());
+            index.insert(&key[..], &corrupt_hash[..]).unwrap();
+            entries
+                .insert(&corrupt_hash[..], b"not-bincode" as &[u8])
+                .unwrap();
+        }
+        write_txn.commit().unwrap();
+    }
+
+    let storage = RedbEntryStorage::open(&path).unwrap();
+    let result = storage.get_entries_for_spine(spine_id, 0, 10).await;
+    assert!(result.is_err(), "corrupt entry data via index should error");
+    assert!(result.unwrap_err().to_string().contains("deserialize"));
+}
+
+// ========================================================================
+// get_entries_for_spine with short index key (key.len() < 16)
+// ========================================================================
+
+#[tokio::test]
+#[serial]
+async fn redb_get_entries_for_spine_short_index_key_terminates() {
+    use redb::{Database, TableDefinition};
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let path = temp_dir.path().join("entries_short_key.redb");
+
+    let entries_def: TableDefinition<&[u8], &[u8]> = TableDefinition::new("entries");
+    let index_def: TableDefinition<&[u8], &[u8]> = TableDefinition::new("entry_index");
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+
+    {
+        let db = Database::create(&path).unwrap();
+        let write_txn = db.begin_write().unwrap();
+        {
+            let mut entries_table = write_txn.open_table(entries_def).unwrap();
+            let mut index = write_txn.open_table(index_def).unwrap();
+
+            let mut key = [0u8; 24];
+            key[..16].copy_from_slice(spine_id.as_bytes());
+            key[16..].copy_from_slice(&0u64.to_be_bytes());
+
+            let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
+            let hash = entry.compute_hash().unwrap();
+            let bytes = bincode::serialize(&entry).unwrap();
+
+            entries_table.insert(&hash[..], bytes.as_slice()).unwrap();
+            index.insert(&key[..], &hash[..]).unwrap();
+        }
+        write_txn.commit().unwrap();
+    }
+
+    let storage = RedbEntryStorage::open(&path).unwrap();
+    let entries = storage
+        .get_entries_for_spine(spine_id, 0, 10)
+        .await
+        .unwrap();
+    assert_eq!(entries.len(), 1);
+}

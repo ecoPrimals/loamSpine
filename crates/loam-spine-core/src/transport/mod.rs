@@ -211,4 +211,12 @@ mod tests {
         let debug = format!("{r:?}");
         assert!(debug.contains("200"));
     }
+
+    #[test]
+    fn transport_response_from_bytes_zero_copy() {
+        let body = bytes::Bytes::from_static(b"zero-copy payload");
+        let r = TransportResponse::from_bytes(200, body);
+        assert_eq!(r.status, 200);
+        assert_eq!(&r.body[..], b"zero-copy payload");
+    }
 }

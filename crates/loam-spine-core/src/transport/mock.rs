@@ -240,6 +240,13 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[test]
+    fn success_transport_new_exercises_constructor() {
+        let t = SuccessTransport::new();
+        let debug = format!("{t:?}");
+        assert!(debug.contains("SuccessTransport"));
+    }
+
     #[tokio::test]
     async fn mock_transport_get_with_query_fails() {
         let t = MockTransport::new("http://test:8082");

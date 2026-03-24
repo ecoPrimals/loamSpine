@@ -522,4 +522,23 @@ mod tests {
         assert!(!result.commit_ref.is_empty());
         assert_eq!(result.braid_ref.as_deref(), Some("urn:braid:123"));
     }
+
+    #[test]
+    fn ephemeral_session_id_as_str_accessor() {
+        let id = EphemeralSessionId::new("session-42");
+        assert_eq!(id.as_str(), "session-42");
+    }
+
+    #[test]
+    fn ephemeral_content_hash_as_str_accessor() {
+        let h = EphemeralContentHash::new("deadbeef");
+        assert_eq!(h.as_str(), "deadbeef");
+    }
+
+    #[test]
+    fn wire_agent_contribution_default_weight() {
+        let json = r#"{"agent_did":"did:key:z6MkTest","description":"test agent"}"#;
+        let agent: WireAgentContribution = serde_json::from_str(json).unwrap();
+        assert!((agent.weight - 1.0).abs() < f64::EPSILON);
+    }
 }

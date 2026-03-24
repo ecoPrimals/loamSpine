@@ -15,9 +15,9 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 - **Runtime Discovery**: Use capability registry, not hardcoded dependencies
 
 ### Code Quality
-- **Zero Unsafe in Production**: `#![deny(unsafe_code)]` on production code; test modules prefer `temp-env` over raw `unsafe` env mutations, with `#[expect(unsafe_code, reason)]` where needed (migrated from `#[allow(unsafe_code)]`)
+- **Zero Unsafe in Production**: `#![forbid(unsafe_code)]` workspace-wide; test modules prefer `temp-env` over raw `unsafe` env mutations
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ function coverage (current: 92%+ line / 90%+ region / 86%+ function, 1,256 tests)
+- **High Coverage**: Aim for 90%+ function coverage (current: 90%+ line / 92%+ region / 86%+ function, 1,312 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -64,7 +64,7 @@ export CARGO_TARGET_DIR=/path/to/.cargo-build/loamSpine/target
 # Build
 cargo build
 
-# Test (1,256 tests)
+# Test (1,312 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -292,7 +292,7 @@ pub fn append(&mut self, entry: Entry) -> LoamSpineResult<EntryHash> { ... }
 - We respond within 48 hours
 
 ### Security Guidelines
-- No `unsafe` code in production (enforced by `#![deny(unsafe_code)]`)
+- No `unsafe` code (enforced by `#![forbid(unsafe_code)]` workspace-wide)
 - No deprecated crypto (use modern algorithms)
 - Validate all input at boundaries
 - Use constant-time comparison for secrets
@@ -314,18 +314,18 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.9.10 |
+| Version | 0.9.12 |
 | Edition | 2024 |
-| Tests | 1,256 |
-| Coverage | 92%+ line / 90%+ region / 86%+ function (llvm-cov) |
-| Max File Size | 865 lines (all < 1000) |
+| Tests | 1,312 |
+| Coverage | 90%+ line / 92%+ region / 86%+ function (llvm-cov) |
+| Max File Size | 954 lines (all < 1000) |
 | Clippy | pedantic + nursery (0 warnings) |
-| Unsafe Code | 0 in production (`#![deny(unsafe_code)]`) |
-| Lint Exceptions | 2 `#[allow]` in production (tarpc macro, documented), tests all `#[expect(reason)]` or removed; 0 `unsafe` |
-| License | AGPL-3.0-or-later |
+| Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
+| Lint Exceptions | 2 `#[allow]` in production (tarpc macro, documented), tests all `#[expect(reason)]` or removed |
+| License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | SPDX Headers | All 124 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
-| cargo deny | bans, licenses, sources pass |
+| cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |
 | JSON-RPC Methods | 28 (semantic naming) |
 | Mock isolation | All mocks cfg-gated out of production |

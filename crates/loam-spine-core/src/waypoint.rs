@@ -767,4 +767,49 @@ mod tests {
         let restored: RelendingChain = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(restored.depth(), chain.depth());
     }
+
+    #[test]
+    fn relending_chain_new_empty() {
+        let chain = RelendingChain::new();
+        assert_eq!(chain.depth(), 0);
+        assert!(chain.current_holder().is_none());
+    }
+
+    #[test]
+    fn departure_reason_display_relend() {
+        let wp_id = crate::types::SpineId::now_v7();
+        let reason = DepartureReason::Relend {
+            target_waypoint: wp_id,
+        };
+        let display = reason.to_string();
+        assert!(display.starts_with("relend:"));
+        assert!(display.contains(&wp_id.to_string()));
+    }
+
+    #[test]
+    fn slice_operation_type_names() {
+        assert_eq!(SliceOperationType::View { viewport: None }.name(), "view");
+        assert_eq!(SliceOperationType::Read { pages: None }.name(), "read");
+        assert_eq!(
+            SliceOperationType::Edit {
+                operation_type: "insert".into()
+            }
+            .name(),
+            "edit"
+        );
+        assert_eq!(
+            SliceOperationType::Export {
+                format: "json".into()
+            }
+            .name(),
+            "export"
+        );
+        assert_eq!(
+            SliceOperationType::Custom {
+                operation_name: "special".into(),
+            }
+            .name(),
+            "special"
+        );
+    }
 }

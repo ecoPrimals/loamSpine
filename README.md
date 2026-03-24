@@ -5,12 +5,13 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
-[![Version](https://img.shields.io/badge/version-0.9.10-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C256%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
-[![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20production-red)]()
+[![Version](https://img.shields.io/badge/version-0.9.12-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C312%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-90%25%20line-brightgreen)]()
+[![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
+[![scyBorg](https://img.shields.io/badge/scyBorg-triple%20license-blue)]()
 
 ---
 
@@ -169,16 +170,16 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.9.10 |
+| **Version** | 0.9.12 |
 | **Edition** | 2024 |
-| **Tests** | 1,256 passing |
-| **Coverage** | 92%+ line / 90%+ region / 86%+ function (llvm-cov) |
+| **Tests** | 1,312 passing |
+| **Coverage** | 90%+ line / 92%+ region / 86%+ function (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery, `-D warnings`) |
-| **Unsafe Code** | 0 in production and tests (`#![deny(unsafe_code)]`) |
+| **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 2 `#[allow]` in production (tarpc macro, documented); tests all `#[expect(reason)]` |
-| **Max File Size** | 865 lines (all 124 files < 1000) |
+| **Max File Size** | 954 lines (all 124 files < 1000) |
 | **Source Files** | 124 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
-| **License** | AGPL-3.0-or-later |
+| **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
 | **cargo deny** | advisories, bans, licenses, sources all pass |
@@ -213,7 +214,10 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-AGPL-3.0-or-later. See [LICENSE](./LICENSE).
+scyBorg triple license:
+- **Code**: AGPL-3.0-or-later — see [LICENSE](./LICENSE)
+- **Game Mechanics**: ORC — see [LICENSE-ORC](./LICENSE-ORC)
+- **Creative/Documentation**: CC-BY-SA-4.0 — see [LICENSE-CC-BY-SA](./LICENSE-CC-BY-SA)
 
 ---
 

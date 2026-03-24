@@ -383,7 +383,10 @@ pub fn capability_list_pretty() -> String {
 /// tool schemas so agents can construct valid calls without hardcoded
 /// knowledge of any specific primal.
 #[must_use]
-#[expect(clippy::too_many_lines, reason = "declarative MCP tool schema definitions")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "declarative MCP tool schema definitions"
+)]
 pub fn mcp_tools_list() -> serde_json::Value {
     serde_json::json!({
         "tools": [

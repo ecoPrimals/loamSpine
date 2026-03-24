@@ -434,6 +434,43 @@ mod tests {
         assert_eq!(buffer.len(), 11);
         assert_eq!(slice.len(), 5);
     }
+
+    #[test]
+    fn did_from_owned_string() {
+        let did: Did = String::from("did:key:z6MkOwned").into();
+        assert_eq!(did.as_str(), "did:key:z6MkOwned");
+    }
+
+    #[test]
+    fn signature_default_is_empty() {
+        let sig = Signature::default();
+        assert!(sig.is_empty());
+    }
+
+    #[test]
+    fn signature_as_byte_buffer() {
+        let sig = Signature::from_vec(vec![0xAB, 0xCD]);
+        let buf = sig.as_byte_buffer();
+        assert_eq!(&buf[..], &[0xAB, 0xCD]);
+    }
+
+    #[test]
+    fn timestamp_default_is_now() {
+        let ts = Timestamp::default();
+        assert!(ts.as_nanos() > 0);
+    }
+
+    #[test]
+    fn timestamp_display() {
+        let ts = Timestamp::from_nanos(42_000);
+        assert_eq!(ts.to_string(), "42000ns");
+    }
+
+    #[test]
+    fn byte_buffer_from_str_slice() {
+        let buffer: ByteBuffer = "hello".into_byte_buffer();
+        assert_eq!(&buffer[..], b"hello");
+    }
 }
 
 #[cfg(test)]
