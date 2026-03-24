@@ -16,7 +16,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 // ============================================================================
 // JSON-RPC 2.0 wire types
@@ -64,8 +64,9 @@ pub struct JsonRpcError {
     pub data: Option<serde_json::Value>,
 }
 
-// Standard error codes
+// Standard JSON-RPC 2.0 error codes
 const PARSE_ERROR: i32 = -32700;
+const INVALID_REQUEST: i32 = -32600;
 const METHOD_NOT_FOUND: i32 = -32601;
 const INVALID_PARAMS: i32 = -32602;
 const LOAMSPINE_ERROR: i32 = -32000;
@@ -80,13 +81,13 @@ impl JsonRpcResponse {
         }
     }
 
-    fn error(id: serde_json::Value, code: i32, message: String) -> Self {
+    fn error(id: serde_json::Value, code: i32, message: impl Into<String>) -> Self {
         Self {
             jsonrpc: "2.0".to_string(),
             result: None,
             error: Some(JsonRpcError {
                 code,
-                message,
+                message: message.into(),
                 data: None,
             }),
             id,
@@ -475,18 +476,26 @@ async fn handle_connection(
 
         let response_body = process_request(&handler, &body).await;
 
-        let http_response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-            response_body.len()
-        );
-        writer.write_all(http_response.as_bytes()).await?;
-        writer.write_all(&response_body).await?;
+        if response_body.is_empty() {
+            writer
+                .write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
+                .await?;
+        } else {
+            let http_response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                response_body.len()
+            );
+            writer.write_all(http_response.as_bytes()).await?;
+            writer.write_all(&response_body).await?;
+        }
     } else {
         let body = first_line.trim().as_bytes().to_vec();
         if !body.is_empty() {
             let response_body = process_request(&handler, &body).await;
-            writer.write_all(&response_body).await?;
-            writer.write_all(b"\n").await?;
+            if !response_body.is_empty() {
+                writer.write_all(&response_body).await?;
+                writer.write_all(b"\n").await?;
+            }
         }
     }
 
@@ -494,56 +503,130 @@ async fn handle_connection(
     Ok(())
 }
 
-pub(crate) async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> Vec<u8> {
-    // Try single request first
-    if let Ok(request) = serde_json::from_slice::<JsonRpcRequest>(body) {
-        let response = handler.handle_request(request).await;
-        return serde_json::to_vec(&response).unwrap_or_default();
-    }
+/// Serialize a JSON-RPC response, logging and returning a hard-coded
+/// internal error if serialization itself fails.
+fn serialize_response(response: &JsonRpcResponse) -> Vec<u8> {
+    serde_json::to_vec(response).unwrap_or_else(|e| {
+        error!("Failed to serialize JSON-RPC response: {e}");
+        br#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"internal serialization error"},"id":null}"#.to_vec()
+    })
+}
 
-    // Try batch request
-    if let Ok(batch) = serde_json::from_slice::<Vec<serde_json::Value>>(body) {
-        if batch.is_empty() {
-            let err = JsonRpcResponse::error(
+/// Serialize a batch of JSON-RPC responses with the same fallback.
+fn serialize_response_batch(responses: &[JsonRpcResponse]) -> Vec<u8> {
+    serde_json::to_vec(responses).unwrap_or_else(|e| {
+        error!("Failed to serialize JSON-RPC batch response: {e}");
+        br#"[{"jsonrpc":"2.0","error":{"code":-32603,"message":"internal serialization error"},"id":null}]"#.to_vec()
+    })
+}
+
+/// JSON-RPC 2.0: a request is a notification when the `id` member is absent
+/// or null.  Per spec section 4.1, notifications MUST NOT receive a response.
+fn is_notification(value: &serde_json::Value) -> bool {
+    value.get("id").is_none_or(serde_json::Value::is_null)
+}
+
+pub(crate) async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> Vec<u8> {
+    // Parse as generic JSON first so we can inspect structure and detect
+    // notifications (missing/null `id`) before committing to a type.
+    let parsed: serde_json::Value = match serde_json::from_slice(body) {
+        Ok(v) => v,
+        Err(_) => {
+            return serialize_response(&JsonRpcResponse::error(
                 serde_json::Value::Null,
                 PARSE_ERROR,
-                "empty batch".to_string(),
-            );
-            return serde_json::to_vec(&err).unwrap_or_default();
+                "parse error: invalid JSON",
+            ));
+        }
+    };
+
+    // Single request (JSON object)
+    if parsed.is_object() {
+        let notification = is_notification(&parsed);
+
+        let request: JsonRpcRequest = match serde_json::from_value(parsed) {
+            Ok(r) => r,
+            Err(e) => {
+                if notification {
+                    return Vec::new();
+                }
+                return serialize_response(&JsonRpcResponse::error(
+                    serde_json::Value::Null,
+                    INVALID_REQUEST,
+                    format!("invalid request: {e}"),
+                ));
+            }
+        };
+
+        // JSON-RPC 2.0 spec: "jsonrpc" MUST be exactly "2.0"
+        if request.jsonrpc != "2.0" {
+            if notification {
+                return Vec::new();
+            }
+            return serialize_response(&JsonRpcResponse::error(
+                request.id,
+                INVALID_REQUEST,
+                "jsonrpc version must be \"2.0\"",
+            ));
+        }
+
+        let response = handler.handle_request(request).await;
+        if notification {
+            return Vec::new();
+        }
+        return serialize_response(&response);
+    }
+
+    // Batch request (JSON array)
+    if let serde_json::Value::Array(batch) = parsed {
+        if batch.is_empty() {
+            return serialize_response(&JsonRpcResponse::error(
+                serde_json::Value::Null,
+                INVALID_REQUEST,
+                "empty batch",
+            ));
         }
         let mut responses = Vec::with_capacity(batch.len());
         for item in batch {
-            let is_notification =
-                item.get("id").is_none() || item.get("id").is_some_and(serde_json::Value::is_null);
+            let notification = is_notification(&item);
             match serde_json::from_value::<JsonRpcRequest>(item) {
                 Ok(req) => {
-                    let resp = handler.handle_request(req).await;
-                    if !is_notification {
-                        responses.push(resp);
+                    if req.jsonrpc == "2.0" {
+                        let resp = handler.handle_request(req).await;
+                        if !notification {
+                            responses.push(resp);
+                        }
+                    } else if !notification {
+                        responses.push(JsonRpcResponse::error(
+                            req.id,
+                            INVALID_REQUEST,
+                            "jsonrpc version must be \"2.0\"",
+                        ));
                     }
                 }
                 Err(e) => {
-                    responses.push(JsonRpcResponse::error(
-                        serde_json::Value::Null,
-                        PARSE_ERROR,
-                        format!("parse error in batch element: {e}"),
-                    ));
+                    if !notification {
+                        responses.push(JsonRpcResponse::error(
+                            serde_json::Value::Null,
+                            INVALID_REQUEST,
+                            format!("invalid request in batch: {e}"),
+                        ));
+                    }
                 }
             }
         }
         if responses.is_empty() {
             return Vec::new();
         }
-        return serde_json::to_vec(&responses).unwrap_or_default();
+        return serialize_response_batch(&responses);
     }
 
-    // Neither single nor batch
-    let err = JsonRpcResponse::error(
+    // Neither object nor array
+    serialize_response(&JsonRpcResponse::error(
         serde_json::Value::Null,
         PARSE_ERROR,
-        "parse error: expected JSON-RPC request or batch array".to_string(),
-    );
-    serde_json::to_vec(&err).unwrap_or_default()
+        "expected JSON-RPC request object or batch array",
+    ))
 }
 
 #[cfg(test)]

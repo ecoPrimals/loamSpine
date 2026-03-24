@@ -560,13 +560,13 @@ async fn batch_request_returns_batch_response() {
 }
 
 #[tokio::test]
-async fn batch_empty_returns_parse_error() {
+async fn batch_empty_returns_invalid_request() {
     let server = LoamSpineJsonRpc::default_server();
     let body = b"[]";
     let response = process_request(&server, body).await;
     let parsed: JsonRpcResponse = serde_json::from_slice(&response).unwrap();
     assert!(parsed.error.is_some());
-    assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
+    assert_eq!(parsed.error.as_ref().unwrap().code, -32600);
 }
 
 #[tokio::test]

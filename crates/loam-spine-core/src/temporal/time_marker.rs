@@ -45,32 +45,36 @@ pub enum MarkerType {
 impl TimeMarker {
     /// Create a new mutable marker (branch-like).
     #[must_use]
-    pub fn branch(name: String, moment: MomentId, created_by: String) -> Self {
+    pub fn branch(
+        name: impl Into<String>,
+        moment: MomentId,
+        created_by: impl Into<String>,
+    ) -> Self {
         Self {
-            name,
+            name: name.into(),
             moment,
             marker_type: MarkerType::Mutable,
             description: None,
             created_at: std::time::SystemTime::now(),
-            created_by,
+            created_by: created_by.into(),
         }
     }
 
     /// Create a new immutable marker (tag-like).
     #[must_use]
     pub fn tag(
-        name: String,
+        name: impl Into<String>,
         moment: MomentId,
-        created_by: String,
+        created_by: impl Into<String>,
         description: Option<String>,
     ) -> Self {
         Self {
-            name,
+            name: name.into(),
             moment,
             marker_type: MarkerType::Immutable,
             description,
             created_at: std::time::SystemTime::now(),
-            created_by,
+            created_by: created_by.into(),
         }
     }
 

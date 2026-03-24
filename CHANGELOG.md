@@ -7,6 +7,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.13] - 2026-03-24
+
+### Changed
+- **JSON-RPC 2.0 strict compliance**: `process_request` rewritten — validates `jsonrpc: "2.0"` field (returns `INVALID_REQUEST` -32600 on mismatch), suppresses responses for notifications (missing/null `id`), HTTP notifications return `204 No Content`.
+- **Serialization safety**: All `serde_json::to_vec().unwrap_or_default()` replaced with `serialize_response()` helper — logs errors via `tracing::error!` instead of silently producing empty bytes.
+- **`JsonRpcResponse::error()`**: `message: String` → `message: impl Into<String>` for ergonomic call sites.
+- **`TimeMarker::branch()`/`tag()`**: `name: String, created_by: String` → `impl Into<String>` parameters.
+- **`Signature` deserialization**: Custom `ByteBufferVisitor` replaces `Vec<u8>` intermediary — binary codecs (bincode/postcard) receive owned bytes directly via `visit_byte_buf`.
+
+### Refactored
+- **`spine.rs`**: 854 → 438 lines — tests extracted to `spine_tests.rs` + `spine_proptests.rs` via `#[path]`.
+- **`waypoint.rs`**: 815 → 511 lines — tests extracted to `waypoint_tests.rs` via `#[path]`.
+
+### Metrics
+- Tests: 1,312 passing
+- Source files: 127 → 130 (+3 extracted test files)
+- Clippy: 0 warnings (pedantic + nursery, all features, all targets)
+- Doc warnings: 0
+- All 130 files under 1,000 lines (max: 954)
+
 ## [0.9.12] - 2026-03-24
 
 ### Changed

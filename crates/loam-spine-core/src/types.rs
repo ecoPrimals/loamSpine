@@ -180,8 +180,40 @@ impl<'de> serde::Deserialize<'de> for Signature {
     where
         D: serde::Deserializer<'de>,
     {
-        let bytes: Vec<u8> = serde::Deserialize::deserialize(deserializer)?;
-        Ok(Self::from_vec(bytes))
+        deserializer
+            .deserialize_byte_buf(ByteBufferVisitor)
+            .map(Self)
+    }
+}
+
+/// Visitor that deserializes directly into [`ByteBuffer`] (`Bytes`),
+/// avoiding the intermediate `Vec<u8>` allocation for binary formats.
+/// JSON falls back through `visit_seq` (array of numbers) which still
+/// allocates, but binary codecs (bincode, postcard) use `visit_byte_buf`
+/// for true zero-copy handoff.
+struct ByteBufferVisitor;
+
+impl<'de> serde::de::Visitor<'de> for ByteBufferVisitor {
+    type Value = ByteBuffer;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("byte data")
+    }
+
+    fn visit_byte_buf<E: serde::de::Error>(self, v: Vec<u8>) -> Result<ByteBuffer, E> {
+        Ok(ByteBuffer::from(v))
+    }
+
+    fn visit_bytes<E: serde::de::Error>(self, v: &[u8]) -> Result<ByteBuffer, E> {
+        Ok(ByteBuffer::copy_from_slice(v))
+    }
+
+    fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<ByteBuffer, A::Error> {
+        let mut bytes = Vec::with_capacity(seq.size_hint().unwrap_or(0));
+        while let Some(byte) = seq.next_element()? {
+            bytes.push(byte);
+        }
+        Ok(ByteBuffer::from(bytes))
     }
 }
 

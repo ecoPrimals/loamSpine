@@ -2,7 +2,7 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.12  
+**Current Version**: 0.9.13  
 **Last Updated**: March 24, 2026
 
 ---
@@ -208,6 +208,15 @@
 - **NDJSON streaming** — `NDJSON_PROTOCOL_VERSION` + `read_ndjson_stream` async helper
 - **CC-BY-SA-4.0 headers** — All 15 specs/ + 6 root markdown documentation files
 - **Tests**: 1,283 (+27). Source files: 127. All under 1000 lines (max: 878).
+
+## v0.9.13 Completed (March 24, 2026)
+
+- **JSON-RPC 2.0 spec compliance** — `process_request` rewritten: validates `jsonrpc: "2.0"`, suppresses notification responses (missing/null `id`), correct `INVALID_REQUEST` error codes
+- **Serialization safety** — `unwrap_or_default()` replaced with `serialize_response()` + `tracing::error!` logging fallback
+- **Zero-copy Signature deserialization** — Custom `ByteBufferVisitor` eliminates `Vec<u8>` intermediary for binary codecs
+- **Idiomatic API evolution** — `impl Into<String>` on `JsonRpcResponse::error()`, `TimeMarker::branch()`/`tag()`
+- **Smart refactors** — `spine.rs` 854 → 438 lines, `waypoint.rs` 815 → 511 lines (test extraction, production code unchanged)
+- **Tests**: 1,312. Source files: 127 → 130 (+3 extracted test files). All under 1000 lines.
 
 ## v0.9.12 Completed (March 24, 2026)
 

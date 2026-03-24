@@ -2,7 +2,7 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.12  
+**Current Version**: 0.9.13  
 **Last Updated**: March 24, 2026
 
 ---
@@ -51,8 +51,8 @@ This document tracks implementation progress against the specification suite in 
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 954 max (all 124 files under 1000) |
-| Source files | — | 124 `.rs` files |
+| Max file size | < 1000 lines | 954 max (all 130 files under 1000) |
+| Source files | — | 130 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 2 (`clippy::wildcard_imports` in tarpc server/service — required by macro, documented) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -66,16 +66,26 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 124 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 130 source files |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All 124 files under 1000 lines (max: 954 in `sled_tests.rs`). |
+| File size limit | PASS | All 130 files under 1000 lines (max: 954 in `sled_tests.rs`). |
 
 ---
+
+## v0.9.13 JSON-RPC 2.0 Compliance, Zero-Copy & Smart Refactors (March 24, 2026)
+
+- **JSON-RPC 2.0 spec compliance**: `process_request` rewritten to parse as `Value` first, enabling proper notification detection (no response for missing/null `id`), `jsonrpc: "2.0"` version validation (`INVALID_REQUEST` for mismatches), and correct error codes (empty batch returns `-32600` not `-32700`). Batch items also validated.
+- **Serialization safety**: Replaced all `serde_json::to_vec(&response).unwrap_or_default()` (silent failure) with `serialize_response()` helper that logs via `tracing::error!` and returns a hard-coded JSON-RPC internal error fallback.
+- **HTTP notification support**: Notifications return `204 No Content` over HTTP, empty response on raw TCP. Transport-level replies are clean.
+- **Zero-copy Signature deserialization**: Custom `ByteBufferVisitor` replaces `Vec<u8>` intermediary in `Signature::deserialize`. Binary codecs (bincode, postcard) now receive owned bytes directly via `visit_byte_buf`; JSON falls back through `visit_seq` as before.
+- **Idiomatic API evolution**: `JsonRpcResponse::error()` accepts `impl Into<String>` (eliminates `.to_string()` on literal messages). `TimeMarker::branch()` and `tag()` accept `impl Into<String>` for name/created_by parameters.
+- **Smart refactors**: `spine.rs` 854 → **438 lines** (tests → `spine_tests.rs` + `spine_proptests.rs`). `waypoint.rs` 815 → **511 lines** (tests → `waypoint_tests.rs`). Production code cohesion preserved; only test modules extracted.
+- **Tests**: 1,312 (unchanged). **Source files**: 127 → **130** (+3 extracted test files). All under 1000 lines (max: 954). Clippy pedantic+nursery: 0 warnings. Doc warnings: 0.
 
 ## v0.9.12 Deep Audit Execution & Coverage Push (March 24, 2026)
 
