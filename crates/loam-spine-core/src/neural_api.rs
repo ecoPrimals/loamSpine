@@ -52,8 +52,12 @@ pub fn resolve_socket_path() -> PathBuf {
     if let Ok(s) = std::env::var("LOAMSPINE_SOCKET") {
         return PathBuf::from(s);
     }
-    let family_id = std::env::var("BIOMEOS_FAMILY_ID").unwrap_or_else(|_| "default".to_string());
-    let sock_name = format!("{}-{family_id}.sock", crate::primal_names::SELF_ID);
+    let sock_name = match std::env::var("BIOMEOS_FAMILY_ID") {
+        Ok(family_id) if !family_id.is_empty() => {
+            format!("{}-{family_id}.sock", crate::primal_names::SELF_ID)
+        }
+        _ => format!("{}.sock", crate::primal_names::SELF_ID),
+    };
 
     if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
         return PathBuf::from(runtime_dir)

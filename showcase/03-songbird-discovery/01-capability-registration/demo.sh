@@ -49,7 +49,7 @@ echo ""
 cat > /tmp/loamspine-capabilities.json << 'EOF'
 {
   "primal": "loamSpine",
-  "version": "0.9.14",
+  "version": "0.9.15",
   "provides": [
     "persistent-ledger",
     "immutable-history",

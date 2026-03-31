@@ -17,7 +17,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![forbid(unsafe_code)]` workspace-wide; test modules prefer `temp-env` over raw `unsafe` env mutations
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ function coverage (current: 90%+ line / 92%+ region / 86%+ function, 1,312 tests)
+- **High Coverage**: Aim for 90%+ function coverage (current: 93%+ line / 92%+ region / 87%+ function, 1,397 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -64,7 +64,7 @@ export CARGO_TARGET_DIR=/path/to/.cargo-build/loamSpine/target
 # Build
 cargo build
 
-# Test (1,312 tests)
+# Test (1,397 tests)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -314,16 +314,16 @@ Look for issues labeled `good-first-issue`:
 
 | Metric | Value |
 |--------|-------|
-| Version | 0.9.14 |
+| Version | 0.9.15 |
 | Edition | 2024 |
-| Tests | 1,312 |
-| Coverage | 92%+ line / 90%+ region / 87%+ function (llvm-cov) |
-| Max File Size | 885 lines (all < 1000) |
+| Tests | 1,397 |
+| Coverage | 93%+ line / 92%+ region / 87%+ function (llvm-cov) |
+| Max File Size | 899 lines (all < 1000) |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
-| Lint Exceptions | 2 `#[allow]` in production (tarpc macro, documented), tests all `#[expect(reason)]` or removed |
+| Lint Exceptions | 3 `#[allow]` in production (2× tarpc macro, 1× feature-conditional async), tests all `#[expect(reason)]` or removed |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
-| SPDX Headers | All 131 source files |
+| SPDX Headers | All 129 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |

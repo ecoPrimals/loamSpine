@@ -7,6 +7,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.15] - 2026-03-31
+
+### Fixed
+- **LS-03 startup panic**: Nested `tokio::runtime::Runtime::new()?.block_on()` in `infant_discovery.rs` replaced with `tokio::spawn` — resolves "Cannot start a runtime from within a runtime" crash that blocked the provenance trio pipeline.
+
+### Added
+- **`--port` flag**: UniBin-standard alias for `--jsonrpc-port` per ecosystem CLI convention.
+- **85 new tests**: UDS server (start, accept, stale socket removal, directory creation, drop, shutdown), protocol-level JSON-RPC (method normalization, dispatch outcomes, `tools.call` routing, notification handling, batch edge cases, TCP server, response serialization), lifecycle (advertise_capabilities, heartbeat shutdown/degraded/recovery, state transitions), discovery manifest (filesystem-based with `tempfile`/`temp_env`), CLI signer (bins dir discovery), neural API (MCP tool mapping, capability list structure, socket path edge cases).
+- **`specs/DEPENDENCY_EVOLUTION.md`**: Tracks planned migrations for `bincode v1 → v2`, `mdns → tokio-native`, and completed `sled → redb`.
+
+### Changed
+- **Deprecated API removal**: Removed `discover_from_songbird`, `advertise_to_songbird`, `heartbeat_songbird`, `advertise_loamspine` and their tests — dead code eliminated.
+- **`primal_names.rs` self-knowledge only**: Removed hardcoded external primal names (`SONGBIRD`, `NESTGATE`, `BEARDOG`, `TOADSTOOL`, `CORALREEF`, `RHIZOCRYPT`, `SWEETGRASS`, `SQUIRREL`). Only `SELF_ID`, `BIOMEOS`, `BIOMEOS_SOCKET_DIR` remain — primals discover others at runtime.
+- **`config.rs` songbird alias removed**: `#[serde(alias = "songbird")]` on `DiscoveryMethod::ServiceRegistry` removed.
+- **tokio features narrowed**: `"full"` → `["macros", "rt", "rt-multi-thread", "net", "io-util", "sync", "time", "signal"]` — faster compile, smaller dependency footprint.
+- **Smart refactor `jsonrpc/tests.rs`**: 1,136 → 610 lines + `tests_protocol.rs` (526 lines) — protocol-level tests extracted as cohesive domain module.
+
+### Metrics
+- Tests: 1,312 → **1,397** (+85)
+- Coverage: 92.11% → **93.96% line** / 90.33% → **92.60% region**
+- Source files: 131 → **129** (deprecated code removed, test module added)
+- Clippy: 0 warnings (pedantic + nursery, all features, all targets)
+- Doc warnings: 0
+- All 129 files under 1,000 lines (max: 899)
+
 ## [0.9.14] - 2026-03-24
 
 ### Changed
@@ -980,6 +1005,7 @@ spine.append(entry)?;
 
 ---
 
+[0.9.15]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.14...v0.9.15
 [0.9.14]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.13...v0.9.14
 [0.9.13]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.12...v0.9.13
 [0.9.12]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.11...v0.9.12

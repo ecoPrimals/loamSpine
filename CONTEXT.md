@@ -25,11 +25,11 @@ to commit, verify, or query permanent records.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,312+
-- **Coverage:** 90%+ line / 92%+ region / 86%+ function
+- **Tests:** 1,397+
+- **Coverage:** 93%+ line / 92%+ region / 87%+ function
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
-- **Version:** 0.9.14
+- **Version:** 0.9.15
 - **Crate count:** 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 
 ## Key Capabilities (JSON-RPC methods)

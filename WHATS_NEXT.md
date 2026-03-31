@@ -2,8 +2,8 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.14  
-**Last Updated**: March 24, 2026
+**Current Version**: 0.9.15  
+**Last Updated**: March 31, 2026
 
 ---
 
@@ -209,6 +209,17 @@
 - **CC-BY-SA-4.0 headers** — All 15 specs/ + 6 root markdown documentation files
 - **Tests**: 1,283 (+27). Source files: 127. All under 1000 lines (max: 878).
 
+## v0.9.15 Completed (March 31, 2026)
+
+- **LS-03 startup panic fixed** — Nested `block_on()` inside running async runtime → `tokio::spawn`. Provenance trio pipeline unblocked.
+- **`--port` flag** — UniBin-standard CLI alias for `--jsonrpc-port`
+- **Deprecated API removal** — Songbird aliases and `advertise_loamspine` removed; dead code eliminated
+- **Self-knowledge enforcement** — `primal_names.rs` stripped to `SELF_ID`/`BIOMEOS`/`BIOMEOS_SOCKET_DIR` only; config `"songbird"` alias removed
+- **tokio features narrowed** — `"full"` → explicit feature list for faster compile times
+- **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
+- **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
+- **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
 ## v0.9.14 Completed (March 24, 2026)
 
 - **`const fn` promotions** — 11 functions promoted; workspace `missing_const_for_fn` evolved from `allow` to `warn` (zero warnings)
@@ -243,7 +254,8 @@
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** — Expand from ~10% to full coverage
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
-- **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate alternatives
+- **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate `mdns-sd` or `hickory-resolver` mDNS (see `specs/DEPENDENCY_EVOLUTION.md`)
+- **bincode v1 → v2** — Storage format migration for RUSTSEC-2025-0141 resolution (see `specs/DEPENDENCY_EVOLUTION.md`)
 - **`OnceLock` caching** — Static capability/method lookups for `capability_list()` and `mcp_tools_list()`
 - **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)
 

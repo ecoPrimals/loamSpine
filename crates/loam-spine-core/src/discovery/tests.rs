@@ -311,28 +311,6 @@ async fn with_service_registry_fails_for_unreachable_endpoint() {
     );
 }
 
-#[tokio::test]
-#[expect(
-    deprecated,
-    reason = "testing deprecated songbird aliases for backward compatibility"
-)]
-async fn deprecated_songbird_aliases_work() {
-    let registry = CapabilityRegistry::new();
-    assert!(registry.discover_from_songbird().await.is_err());
-    assert!(registry.heartbeat_songbird().await.is_err());
-    assert!(
-        registry
-            .advertise_to_songbird("http://localhost:9001", "http://localhost:8080")
-            .await
-            .is_err()
-    );
-    assert!(
-        CapabilityRegistry::with_service_registry("http://127.0.0.1:1")
-            .await
-            .is_err()
-    );
-}
-
 #[test]
 fn capability_status_degraded_variant() {
     let degraded = CapabilityStatus::Degraded {
@@ -660,4 +638,262 @@ async fn all_statuses_includes_attestation() {
         attestation_status.map(|(_, s)| s),
         Some(&CapabilityStatus::Unavailable)
     );
+}
+
+// =========================================================================
+// DiscoveredAttestationProvider — TCP JSON-RPC integration tests
+// =========================================================================
+
+/// Spawn a mock attestation TCP server returning a fixed JSON-RPC response.
+async fn spawn_mock_attestation_server(
+    response: serde_json::Value,
+) -> (std::net::SocketAddr, tokio::task::JoinHandle<()>) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let handle = tokio::spawn(async move {
+        if let Ok((mut stream, _)) = listener.accept().await {
+            use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+            let mut reader = BufReader::new(&mut stream);
+            let mut line = String::new();
+            let _ = reader.read_line(&mut line).await;
+            let resp = serde_json::to_string(&response).unwrap() + "\n";
+            let _ = stream.write_all(resp.as_bytes()).await;
+            let _ = stream.flush().await;
+        }
+    });
+    (addr, handle)
+}
+
+#[tokio::test]
+async fn discovered_attestation_provider_jsonrpc_call_success() {
+    let response = serde_json::json!({
+        "jsonrpc": "2.0",
+        "result": { "attested": true, "token": "dGVzdA==" },
+        "id": 1
+    });
+    let (addr, handle) = spawn_mock_attestation_server(response).await;
+    let endpoint = format!("{addr}");
+
+    let result = super::DiscoveredAttestationProvider::jsonrpc_call(
+        &endpoint,
+        "test.method",
+        serde_json::json!({}),
+    )
+    .await;
+    handle.abort();
+
+    assert!(result.is_ok());
+    let val = result.unwrap();
+    assert_eq!(val["attested"], true);
+}
+
+#[tokio::test]
+async fn discovered_attestation_provider_jsonrpc_call_rpc_error() {
+    let response = serde_json::json!({
+        "jsonrpc": "2.0",
+        "error": { "code": -32601, "message": "Method not found" },
+        "id": 1
+    });
+    let (addr, handle) = spawn_mock_attestation_server(response).await;
+    let endpoint = format!("{addr}");
+
+    let result = super::DiscoveredAttestationProvider::jsonrpc_call(
+        &endpoint,
+        "bad.method",
+        serde_json::json!({}),
+    )
+    .await;
+    handle.abort();
+
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("Method not found"));
+}
+
+#[tokio::test]
+async fn discovered_attestation_provider_jsonrpc_call_missing_result() {
+    let response = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1
+    });
+    let (addr, handle) = spawn_mock_attestation_server(response).await;
+    let endpoint = format!("{addr}");
+
+    let result = super::DiscoveredAttestationProvider::jsonrpc_call(
+        &endpoint,
+        "test.method",
+        serde_json::json!({}),
+    )
+    .await;
+    handle.abort();
+
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("missing result"));
+}
+
+#[tokio::test]
+async fn discovered_attestation_provider_jsonrpc_call_connect_failure() {
+    let result = super::DiscoveredAttestationProvider::jsonrpc_call(
+        "127.0.0.1:1",
+        "test.method",
+        serde_json::json!({}),
+    )
+    .await;
+
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn discovered_attestation_provider_jsonrpc_call_invalid_json_response() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let handle = tokio::spawn(async move {
+        if let Ok((mut stream, _)) = listener.accept().await {
+            use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+            let mut reader = BufReader::new(&mut stream);
+            let mut line = String::new();
+            let _ = reader.read_line(&mut line).await;
+            let _ = stream.write_all(b"not json at all\n").await;
+            let _ = stream.flush().await;
+        }
+    });
+    let endpoint = format!("{addr}");
+
+    let result = super::DiscoveredAttestationProvider::jsonrpc_call(
+        &endpoint,
+        "test.method",
+        serde_json::json!({}),
+    )
+    .await;
+    handle.abort();
+
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("parse"));
+}
+
+#[tokio::test]
+async fn discovered_attestation_provider_request_success_via_tcp() {
+    use crate::types::Did;
+    use crate::waypoint::AttestationContext;
+
+    let response = serde_json::json!({
+        "jsonrpc": "2.0",
+        "result": { "attested": true, "token": "dG9rZW4=", "denial_reason": null },
+        "id": 1
+    });
+    let (addr, handle) = spawn_mock_attestation_server(response).await;
+
+    let provider = super::DiscoveredAttestationProvider {
+        attester_did: Did::new("did:attestation:mock"),
+        endpoint: format!("{addr}"),
+    };
+
+    let context = AttestationContext {
+        operation: "anchor".to_string(),
+        waypoint_spine_id: crate::types::SpineId::now_v7(),
+        slice_id: crate::types::SliceId::now_v7(),
+        caller: Some(Did::new("did:key:test")),
+    };
+
+    let result = DynAttestationProvider::request_attestation(&provider, context).await;
+    handle.abort();
+
+    assert!(result.is_ok());
+    let att = result.unwrap();
+    assert!(att.attested);
+}
+
+#[tokio::test]
+async fn discovered_attestation_provider_fallback_on_unreachable() {
+    use crate::types::Did;
+    use crate::waypoint::AttestationContext;
+
+    let provider = super::DiscoveredAttestationProvider {
+        attester_did: Did::new("did:attestation:unreachable"),
+        endpoint: "127.0.0.1:1".to_string(),
+    };
+
+    let context = AttestationContext {
+        operation: "anchor".to_string(),
+        waypoint_spine_id: crate::types::SpineId::now_v7(),
+        slice_id: crate::types::SliceId::now_v7(),
+        caller: None,
+    };
+
+    let result = DynAttestationProvider::request_attestation(&provider, context).await;
+    assert!(result.is_ok());
+    let att = result.unwrap();
+    assert!(
+        att.attested,
+        "should fallback to local approval on unreachable"
+    );
+}
+
+#[tokio::test]
+async fn discovered_attestation_provider_request_denied() {
+    use crate::types::Did;
+    use crate::waypoint::AttestationContext;
+
+    let response = serde_json::json!({
+        "jsonrpc": "2.0",
+        "result": { "attested": false, "denial_reason": "unauthorized", "token": "" },
+        "id": 1
+    });
+    let (addr, handle) = spawn_mock_attestation_server(response).await;
+
+    let provider = super::DiscoveredAttestationProvider {
+        attester_did: Did::new("did:attestation:strict"),
+        endpoint: format!("{addr}"),
+    };
+
+    let context = AttestationContext {
+        operation: "depart".to_string(),
+        waypoint_spine_id: crate::types::SpineId::now_v7(),
+        slice_id: crate::types::SliceId::now_v7(),
+        caller: None,
+    };
+
+    let result = DynAttestationProvider::request_attestation(&provider, context).await;
+    handle.abort();
+
+    assert!(result.is_ok());
+    let att = result.unwrap();
+    assert!(!att.attested);
+    assert_eq!(att.denial_reason.as_deref(), Some("unauthorized"));
+}
+
+#[tokio::test]
+async fn capability_registry_with_discovered_attestation_via_tcp() {
+    use crate::types::Did;
+    use crate::waypoint::AttestationContext;
+
+    let response = serde_json::json!({
+        "jsonrpc": "2.0",
+        "result": { "attested": true, "token": "abc123" },
+        "id": 1
+    });
+    let (addr, handle) = spawn_mock_attestation_server(response).await;
+
+    let provider = Arc::new(super::DiscoveredAttestationProvider {
+        attester_did: Did::new("did:attestation:tcp-test"),
+        endpoint: format!("{addr}"),
+    });
+
+    let registry = CapabilityRegistry::new();
+    registry.register_attestation_provider(provider).await;
+    assert_eq!(
+        registry.attestation_provider_status().await,
+        CapabilityStatus::Available
+    );
+
+    let context = AttestationContext {
+        operation: "anchor".to_string(),
+        waypoint_spine_id: crate::types::SpineId::now_v7(),
+        slice_id: crate::types::SliceId::now_v7(),
+        caller: Some(Did::new("did:key:caller")),
+    };
+    let result = registry.request_attestation(context).await;
+    handle.abort();
+
+    assert!(result.is_ok());
+    assert!(result.unwrap().attested);
 }

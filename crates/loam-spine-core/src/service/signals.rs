@@ -232,10 +232,6 @@ mod tests {
 
     #[tokio::test]
     async fn run_with_signals_requires_real_signal() {
-        // This test verifies the function compiles and can be invoked.
-        // Actual signal testing requires integration tests with real OS signals.
-        // We use a timeout to avoid blocking forever - the function will block
-        // on wait_for_shutdown until SIGTERM/SIGINT is received.
         let service = crate::service::LoamSpineService::new();
         let mut config = crate::config::LoamSpineConfig::default();
         config.discovery.discovery_enabled = false;
@@ -246,7 +242,33 @@ mod tests {
         )
         .await;
 
-        // Timeout is expected - we didn't send a signal
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn shutdown_flag_is_shared_across_handler_and_flag() {
+        let handler = SignalHandler::new();
+        let flag1 = handler.shutdown_flag();
+        let flag2 = handler.shutdown_flag();
+
+        assert!(!handler.is_shutdown());
+        flag1.store(true, Ordering::Relaxed);
+        assert!(handler.is_shutdown());
+        assert!(flag2.load(Ordering::Relaxed));
+
+        flag1.store(false, Ordering::Relaxed);
+        assert!(!handler.is_shutdown());
+        assert!(!flag2.load(Ordering::Relaxed));
+    }
+
+    #[tokio::test]
+    async fn wait_for_shutdown_returns_ok_on_signal_setup() {
+        let handler = SignalHandler::new();
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(50),
+            handler.wait_for_shutdown(),
+        )
+        .await;
+        assert!(result.is_err(), "should timeout since no signal sent");
     }
 }

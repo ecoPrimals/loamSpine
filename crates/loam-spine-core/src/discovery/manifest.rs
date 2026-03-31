@@ -88,6 +88,7 @@ pub fn find_by_name(name: &str) -> Option<PrimalManifest> {
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
     fn parse_manifest_json() {
@@ -115,17 +116,234 @@ mod tests {
 
     #[test]
     fn manifest_dir_without_env() {
-        // Without XDG_RUNTIME_DIR set to a real dir, returns None
-        // (safe to run in CI where the env var may or may not exist)
         let result = manifest_dir();
-        // Just verify it doesn't panic
         let _ = result;
     }
 
     #[test]
     fn discover_manifests_returns_vec() {
         let manifests = discover_manifests();
-        // Should return empty vec if no manifest dir exists
         let _ = manifests;
+    }
+
+    #[test]
+    #[serial]
+    fn manifest_dir_returns_some_when_directory_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let eco_dir = tmp.path().join("ecoPrimals");
+        std::fs::create_dir_all(&eco_dir).unwrap();
+
+        temp_env::with_var(
+            "XDG_RUNTIME_DIR",
+            Some(tmp.path().to_str().unwrap()),
+            || {
+                let result = manifest_dir();
+                assert!(result.is_some());
+                assert_eq!(result.unwrap(), eco_dir);
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn manifest_dir_returns_none_when_directory_missing() {
+        let tmp = tempfile::tempdir().unwrap();
+        temp_env::with_var(
+            "XDG_RUNTIME_DIR",
+            Some(tmp.path().to_str().unwrap()),
+            || {
+                let result = manifest_dir();
+                assert!(
+                    result.is_none(),
+                    "should be None when ecoPrimals/ doesn't exist"
+                );
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn discover_manifests_finds_valid_json_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let eco_dir = tmp.path().join("ecoPrimals");
+        std::fs::create_dir_all(&eco_dir).unwrap();
+
+        let manifest_json = r#"{"name":"testPrimal","socket_path":"/tmp/test.sock","pid":42,"capabilities":["signing"],"version":"1.0.0"}"#;
+        std::fs::write(eco_dir.join("testPrimal.json"), manifest_json).unwrap();
+
+        temp_env::with_var(
+            "XDG_RUNTIME_DIR",
+            Some(tmp.path().to_str().unwrap()),
+            || {
+                let manifests = discover_manifests();
+                assert_eq!(manifests.len(), 1);
+                assert_eq!(manifests[0].name, "testPrimal");
+                assert_eq!(manifests[0].pid, Some(42));
+                assert_eq!(manifests[0].capabilities, vec!["signing"]);
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn discover_manifests_skips_invalid_json() {
+        let tmp = tempfile::tempdir().unwrap();
+        let eco_dir = tmp.path().join("ecoPrimals");
+        std::fs::create_dir_all(&eco_dir).unwrap();
+
+        std::fs::write(eco_dir.join("valid.json"), r#"{"name":"valid"}"#).unwrap();
+        std::fs::write(eco_dir.join("invalid.json"), "not json at all").unwrap();
+        std::fs::write(eco_dir.join("readme.txt"), "not a manifest").unwrap();
+
+        temp_env::with_var(
+            "XDG_RUNTIME_DIR",
+            Some(tmp.path().to_str().unwrap()),
+            || {
+                let manifests = discover_manifests();
+                assert_eq!(manifests.len(), 1);
+                assert_eq!(manifests[0].name, "valid");
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn discover_manifests_skips_non_json_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let eco_dir = tmp.path().join("ecoPrimals");
+        std::fs::create_dir_all(&eco_dir).unwrap();
+
+        std::fs::write(eco_dir.join("manifest.toml"), "[primal]\nname=\"test\"").unwrap();
+        std::fs::write(eco_dir.join("readme.md"), "# Manifests").unwrap();
+
+        temp_env::with_var(
+            "XDG_RUNTIME_DIR",
+            Some(tmp.path().to_str().unwrap()),
+            || {
+                let manifests = discover_manifests();
+                assert!(manifests.is_empty());
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn discover_manifests_handles_multiple_manifests() {
+        let tmp = tempfile::tempdir().unwrap();
+        let eco_dir = tmp.path().join("ecoPrimals");
+        std::fs::create_dir_all(&eco_dir).unwrap();
+
+        std::fs::write(
+            eco_dir.join("primal_a.json"),
+            r#"{"name":"primalA","capabilities":["signing","verification"]}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            eco_dir.join("primal_b.json"),
+            r#"{"name":"primalB","capabilities":["storage"]}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            eco_dir.join("primal_c.json"),
+            r#"{"name":"primalC","capabilities":["compute"]}"#,
+        )
+        .unwrap();
+
+        temp_env::with_var(
+            "XDG_RUNTIME_DIR",
+            Some(tmp.path().to_str().unwrap()),
+            || {
+                let manifests = discover_manifests();
+                assert_eq!(manifests.len(), 3);
+                let names: Vec<&str> = manifests.iter().map(|m| m.name.as_str()).collect();
+                assert!(names.contains(&"primalA"));
+                assert!(names.contains(&"primalB"));
+                assert!(names.contains(&"primalC"));
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn find_by_capability_returns_matching_manifest() {
+        let tmp = tempfile::tempdir().unwrap();
+        let eco_dir = tmp.path().join("ecoPrimals");
+        std::fs::create_dir_all(&eco_dir).unwrap();
+
+        std::fs::write(
+            eco_dir.join("signer.json"),
+            r#"{"name":"signerPrimal","capabilities":["signing","verification"]}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            eco_dir.join("storage.json"),
+            r#"{"name":"storagePrimal","capabilities":["storage"]}"#,
+        )
+        .unwrap();
+
+        temp_env::with_var(
+            "XDG_RUNTIME_DIR",
+            Some(tmp.path().to_str().unwrap()),
+            || {
+                let result = find_by_capability("signing");
+                assert!(result.is_some());
+                assert_eq!(result.unwrap().name, "signerPrimal");
+
+                let result = find_by_capability("storage");
+                assert!(result.is_some());
+                assert_eq!(result.unwrap().name, "storagePrimal");
+
+                let result = find_by_capability("nonexistent");
+                assert!(result.is_none());
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn find_by_name_returns_matching_manifest() {
+        let tmp = tempfile::tempdir().unwrap();
+        let eco_dir = tmp.path().join("ecoPrimals");
+        std::fs::create_dir_all(&eco_dir).unwrap();
+
+        std::fs::write(
+            eco_dir.join("target.json"),
+            r#"{"name":"targetPrimal","socket_path":"/tmp/target.sock","capabilities":["signing"]}"#,
+        )
+        .unwrap();
+
+        temp_env::with_var(
+            "XDG_RUNTIME_DIR",
+            Some(tmp.path().to_str().unwrap()),
+            || {
+                let result = find_by_name("targetPrimal");
+                assert!(result.is_some());
+                let m = result.unwrap();
+                assert_eq!(m.name, "targetPrimal");
+                assert_eq!(m.socket_path.as_deref(), Some("/tmp/target.sock"));
+
+                let result = find_by_name("nonexistent");
+                assert!(result.is_none());
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn discover_manifests_returns_empty_when_no_dir() {
+        temp_env::with_var("XDG_RUNTIME_DIR", None::<&str>, || {
+            let manifests = discover_manifests();
+            assert!(manifests.is_empty());
+        });
+    }
+
+    #[test]
+    fn manifest_clone_and_debug() {
+        let json = r#"{"name":"test","capabilities":["a","b"]}"#;
+        let manifest: PrimalManifest = serde_json::from_str(json).unwrap();
+        let cloned = manifest.clone();
+        assert_eq!(cloned.name, "test");
+        let debug = format!("{manifest:?}");
+        assert!(debug.contains("test"));
     }
 }

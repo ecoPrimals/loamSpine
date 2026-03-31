@@ -581,21 +581,6 @@ async fn discover_all_success() {
     assert!(services.is_empty());
 }
 
-#[tokio::test]
-async fn advertise_loamspine_deprecated_alias() {
-    let client = DiscoveryClient::for_testing_success("http://registry.local:8082");
-
-    #[expect(
-        deprecated,
-        reason = "testing deprecated alias to ensure backward compatibility"
-    )]
-    let result = client
-        .advertise_loamspine("http://localhost:9001", "http://localhost:8080")
-        .await;
-
-    assert!(result.is_ok());
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Non-success status handling
 // ─────────────────────────────────────────────────────────────────────────────

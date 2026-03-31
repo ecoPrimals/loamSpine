@@ -2,41 +2,15 @@
 
 //! Primal name constants — single source of truth for IPC identifiers.
 //!
-//! All primal names used in IPC discovery, registration, and capability
-//! routing are defined here. No hardcoded primal name strings elsewhere
-//! in library code. LoamSpine discovers other primals at runtime via
-//! capability-based discovery; these constants are identifiers, not
-//! assumptions about what is running.
+//! LoamSpine follows the **self-knowledge only** philosophy: it knows its own
+//! identity and discovers other primals at runtime via capability-based
+//! discovery. No other primal names are hardcoded here.
 
 /// This primal's canonical identifier.
 pub const SELF_ID: &str = "loamspine";
 
-/// biomeOS orchestrator.
+/// biomeOS orchestrator identifier (used for socket/IPC paths).
 pub const BIOMEOS: &str = "biomeos";
-
-/// `Songbird` discovery mesh.
-pub const SONGBIRD: &str = "songbird";
-
-/// `NestGate` content-addressed storage.
-pub const NESTGATE: &str = "nestgate";
-
-/// `BearDog` security foundation.
-pub const BEARDOG: &str = "beardog";
-
-/// `ToadStool` compute orchestrator.
-pub const TOADSTOOL: &str = "toadstool";
-
-/// `coralReef` sovereign shader compiler.
-pub const CORALREEF: &str = "coralreef";
-
-/// `rhizoCrypt` ephemeral DAG.
-pub const RHIZOCRYPT: &str = "rhizocrypt";
-
-/// `sweetGrass` semantic attribution.
-pub const SWEETGRASS: &str = "sweetgrass";
-
-/// `Squirrel` AI assistant.
-pub const SQUIRREL: &str = "squirrel";
 
 /// Socket directory name for biomeOS IPC mesh.
 pub const BIOMEOS_SOCKET_DIR: &str = "biomeos";
@@ -51,16 +25,8 @@ mod tests {
     }
 
     #[test]
-    fn all_names_are_lowercase_ascii() {
-        for name in [
-            SELF_ID, BIOMEOS, SONGBIRD, NESTGATE, BEARDOG, TOADSTOOL, CORALREEF, RHIZOCRYPT,
-            SWEETGRASS, SQUIRREL,
-        ] {
-            assert!(
-                name.chars().all(|c| c.is_ascii_lowercase()),
-                "{name} must be lowercase ASCII"
-            );
-        }
+    fn biomeos_is_lowercase() {
+        assert!(BIOMEOS.chars().all(|c| c.is_ascii_lowercase()));
     }
 
     #[test]

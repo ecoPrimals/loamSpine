@@ -377,7 +377,7 @@ spec:
     spec:
       containers:
       - name: loamspine
-        image: ecoprimals/loamspine:0.9.14
+        image: ecoprimals/loamspine:0.9.15
         env:
         - name: SONGBIRD_ENDPOINT
           value: "http://songbird-service:3000"

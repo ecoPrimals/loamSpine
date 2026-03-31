@@ -60,8 +60,14 @@ enum Command {
         #[arg(long)]
         tarpc_port: Option<u16>,
 
+        /// JSON-RPC 2.0 TCP port (`UniBin` standard flag).
+        ///
+        /// Alias for `--jsonrpc-port`. Follows `UNIBIN_ARCHITECTURE_STANDARD.md` v1.1.
+        #[arg(long, conflicts_with = "jsonrpc_port")]
+        port: Option<u16>,
+
         /// JSON-RPC 2.0 port (env: `LOAMSPINE_JSONRPC_PORT`, `JSONRPC_PORT`).
-        #[arg(long)]
+        #[arg(long, conflicts_with = "port")]
         jsonrpc_port: Option<u16>,
 
         /// Bind address (env: `LOAMSPINE_BIND_ADDRESS`, `BIND_ADDRESS`).
@@ -83,10 +89,11 @@ async fn main() -> anyhow::Result<()> {
     match cli.command {
         Command::Server {
             tarpc_port,
+            port,
             jsonrpc_port,
             bind_address,
         } => {
-            run_server(tarpc_port, jsonrpc_port, bind_address).await?;
+            run_server(tarpc_port, port.or(jsonrpc_port), bind_address).await?;
         }
         Command::Capabilities => {
             writeln!(
@@ -145,6 +152,7 @@ async fn run_server(
     let jsonrpc_addr = SocketAddr::new(ip, resolved_jsonrpc_port);
 
     let rpc_service_tarpc = rpc_service.clone();
+    let rpc_service_jsonrpc = rpc_service.clone();
     let tarpc_handle = tokio::spawn(async move {
         info!("Starting tarpc server on {tarpc_addr}");
         if let Err(e) = run_tarpc_server(tarpc_addr, rpc_service_tarpc).await {
@@ -154,13 +162,31 @@ async fn run_server(
 
     let jsonrpc_handle = tokio::spawn(async move {
         info!("Starting JSON-RPC server on {jsonrpc_addr}");
-        match run_jsonrpc_server(jsonrpc_addr, rpc_service).await {
+        match run_jsonrpc_server(jsonrpc_addr, rpc_service_jsonrpc).await {
             Ok(mut handle) => handle.stopped().await,
             Err(e) => error!("JSON-RPC server error: {e}"),
         }
     });
 
     let socket_path = loam_spine_core::neural_api::resolve_socket_path();
+
+    // Start UDS JSON-RPC server (IPC_COMPLIANCE_MATRIX requirement)
+    #[cfg(unix)]
+    let _uds_handle = {
+        match loam_spine_api::run_jsonrpc_uds_server(&socket_path, rpc_service).await {
+            Ok(handle) => {
+                info!("UDS JSON-RPC server listening on {}", socket_path.display());
+                Some(handle)
+            }
+            Err(e) => {
+                error!(
+                    "Failed to start UDS JSON-RPC server at {}: {e}",
+                    socket_path.display()
+                );
+                None
+            }
+        }
+    };
 
     info!("LoamSpine service started successfully");
     info!("  tarpc:    tarpc://{resolved_bind}:{resolved_tarpc_port}");
@@ -216,11 +242,13 @@ mod tests {
         let cli = Cli::parse_from(["loamspine", "server"]);
         if let Command::Server {
             tarpc_port,
+            port,
             jsonrpc_port,
             bind_address,
         } = cli.command
         {
             assert!(tarpc_port.is_none());
+            assert!(port.is_none());
             assert!(jsonrpc_port.is_none());
             assert!(bind_address.is_none());
         } else {
@@ -242,13 +270,29 @@ mod tests {
         ]);
         if let Command::Server {
             tarpc_port,
+            port,
             jsonrpc_port,
             bind_address,
         } = cli.command
         {
             assert_eq!(tarpc_port, Some(9002));
+            assert!(port.is_none());
             assert_eq!(jsonrpc_port, Some(8081));
             assert_eq!(bind_address.as_deref(), Some("127.0.0.1"));
+        } else {
+            panic!("expected Server variant");
+        }
+    }
+
+    #[test]
+    fn cli_parse_server_unibin_port_flag() {
+        let cli = Cli::parse_from(["loamspine", "server", "--port", "7070"]);
+        if let Command::Server {
+            port, jsonrpc_port, ..
+        } = cli.command
+        {
+            assert_eq!(port, Some(7070));
+            assert!(jsonrpc_port.is_none());
         } else {
             panic!("expected Server variant");
         }

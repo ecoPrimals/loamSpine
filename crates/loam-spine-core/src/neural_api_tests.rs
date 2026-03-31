@@ -80,7 +80,7 @@ fn resolve_socket_path_uses_xdg_runtime_dir_when_loamspine_socket_unset() {
             let path = resolve_socket_path();
             assert_eq!(
                 path.to_string_lossy(),
-                "/run/user/1000/biomeos/loamspine-default.sock"
+                "/run/user/1000/biomeos/loamspine.sock"
             );
         },
     );
@@ -192,8 +192,7 @@ fn resolve_socket_path_fallback_when_xdg_unset() {
     temp_env::with_vars(CLEAN, || {
         let path = resolve_socket_path();
         assert!(
-            path.to_string_lossy()
-                .ends_with("biomeos/loamspine-default.sock"),
+            path.to_string_lossy().ends_with("biomeos/loamspine.sock"),
             "got: {}",
             path.display()
         );
@@ -543,4 +542,101 @@ fn mcp_tool_to_rpc_returns_canonical_method_names() {
 #[test]
 fn mcp_tool_to_rpc_returns_none_for_unknown_tool() {
     assert!(mcp_tool_to_rpc("nonexistent_tool", serde_json::json!({})).is_none());
+}
+
+#[test]
+fn mcp_tool_to_rpc_covers_all_known_tools() {
+    let all_tools = [
+        ("spine_create", "spine.create"),
+        ("spine_get", "spine.get"),
+        ("spine_seal", "spine.seal"),
+        ("entry_append", "entry.append"),
+        ("entry_get", "entry.get"),
+        ("entry_get_tip", "entry.get_tip"),
+        ("certificate_mint", "certificate.mint"),
+        ("certificate_get", "certificate.get"),
+        ("certificate_transfer", "certificate.transfer"),
+        ("certificate_loan", "certificate.loan"),
+        ("certificate_return", "certificate.return"),
+        ("certificate_verify", "certificate.verify"),
+        ("certificate_lifecycle", "certificate.lifecycle"),
+        ("slice_anchor", "slice.anchor"),
+        ("slice_checkout", "slice.checkout"),
+        ("slice_record_operation", "slice.record_operation"),
+        ("slice_depart", "slice.depart"),
+        ("proof_generate_inclusion", "proof.generate_inclusion"),
+        ("proof_verify_inclusion", "proof.verify_inclusion"),
+        ("session_commit", "session.commit"),
+        ("braid_commit", "braid.commit"),
+        ("health_check", "health.check"),
+        ("capability_list", "capability.list"),
+    ];
+    for (tool, expected) in all_tools {
+        let result = mcp_tool_to_rpc(tool, serde_json::json!({"test": true}));
+        assert!(result.is_some(), "tool '{tool}' should be recognized");
+        let (method, params) = result.unwrap();
+        assert_eq!(method, expected, "tool '{tool}' mapped incorrectly");
+        assert_eq!(params["test"], true);
+    }
+}
+
+#[test]
+fn mcp_tools_list_schema_structure() {
+    let tools = mcp_tools_list();
+    let tools_array = tools["tools"].as_array().unwrap();
+    assert!(!tools_array.is_empty());
+    for tool in tools_array {
+        assert!(tool.get("name").is_some(), "tool missing name");
+        assert!(
+            tool.get("description").is_some(),
+            "tool missing description"
+        );
+        assert!(
+            tool.get("inputSchema").is_some(),
+            "tool missing inputSchema"
+        );
+        let schema = &tool["inputSchema"];
+        assert_eq!(schema["type"], "object");
+    }
+}
+
+#[test]
+fn capability_list_cost_estimates() {
+    let list = capability_list();
+    let costs = list.get("cost_estimates").unwrap();
+    assert!(costs.get("spine.create").is_some());
+    assert!(costs.get("health.check").is_some());
+    let spine_create = &costs["spine.create"];
+    assert!(spine_create.get("latency_ms").is_some());
+    assert!(spine_create.get("cpu").is_some());
+    assert!(spine_create.get("gpu_eligible").is_some());
+}
+
+#[test]
+fn capability_list_operation_dependencies() {
+    let list = capability_list();
+    let deps = list.get("operation_dependencies").unwrap();
+    assert!(deps.get("entry.append").is_some());
+    let entry_deps = deps["entry.append"].as_array().unwrap();
+    assert!(entry_deps.contains(&serde_json::json!("spine.create")));
+}
+
+#[test]
+#[serial]
+fn resolve_socket_path_empty_family_id_treated_as_unset() {
+    temp_env::with_vars(
+        [
+            ("LOAMSPINE_SOCKET", None),
+            ("XDG_RUNTIME_DIR", Some("/run/user/1000")),
+            ("BIOMEOS_FAMILY_ID", Some("")),
+        ],
+        || {
+            let path = resolve_socket_path();
+            assert_eq!(
+                path.to_string_lossy(),
+                "/run/user/1000/biomeos/loamspine.sock",
+                "empty BIOMEOS_FAMILY_ID should be treated as unset"
+            );
+        },
+    );
 }

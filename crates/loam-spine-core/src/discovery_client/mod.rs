@@ -351,20 +351,6 @@ impl DiscoveryClient {
         Ok(())
     }
 
-    /// Backward-compatible alias for [`Self::advertise_self`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the advertisement fails.
-    #[deprecated(since = "0.9.0", note = "Use advertise_self instead")]
-    pub async fn advertise_loamspine(
-        &self,
-        tarpc_endpoint: &str,
-        jsonrpc_endpoint: &str,
-    ) -> LoamSpineResult<()> {
-        self.advertise_self(tarpc_endpoint, jsonrpc_endpoint).await
-    }
-
     /// Heartbeat to keep advertisement alive.
     ///
     /// # Errors

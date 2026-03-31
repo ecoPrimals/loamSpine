@@ -78,7 +78,7 @@ REGISTER_PAYLOAD='{
   "name": "loamspine",
   "endpoint": "http://localhost:9001",
   "capabilities": ["persistent-ledger"],
-  "metadata": {"version": "0.9.14"}
+  "metadata": {"version": "0.9.15"}
 }'
 
 curl -s -X POST \

@@ -2,8 +2,8 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.14  
-**Last Updated**: March 24, 2026
+**Current Version**: 0.9.15  
+**Last Updated**: March 31, 2026
 
 ---
 
@@ -46,15 +46,15 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,312 |
-| Coverage (llvm-cov) | 90%+ | 92.11% line / 90.33% region / 87.83% function |
+| Tests | — | 1,397 |
+| Coverage (llvm-cov) | 90%+ | 93.96% line / 92.60% region / 87%+ function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 885 max (all 131 files under 1000) |
-| Source files | — | 131 `.rs` files |
+| Max file size | < 1000 lines | 899 max (all 129 files under 1000) |
+| Source files | — | 129 `.rs` files |
 | Edition | 2024 | 2024 |
-| `#[allow]` in production | 0 | 2 (`clippy::wildcard_imports` in tarpc server/service — required by macro, documented) |
+| `#[allow]` in production | 0 | 3 (2× `clippy::wildcard_imports` in tarpc server/service — required by macro; 1× `clippy::unused_async` in infant_discovery — feature-conditional) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
 | `cargo deny check` | pass | advisories ok, bans ok, licenses ok, sources ok |
 
@@ -66,16 +66,28 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 130 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 129 source files |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| File size limit | PASS | All 130 files under 1000 lines (max: 954 in `sled_tests.rs`). |
+| File size limit | PASS | All 129 files under 1000 lines (max: 899 in `discovery/tests.rs`). |
 
 ---
+
+## v0.9.15 Deep Debt & Evolution: LS-03 Fix, Self-Knowledge, Coverage Push (March 31, 2026)
+
+- **LS-03 startup panic fixed**: `block_on()` inside running async runtime → `tokio::spawn`. Provenance trio pipeline unblocked.
+- **`--port` flag**: UniBin-standard CLI alias for `--jsonrpc-port`.
+- **Deprecated API removal**: Songbird aliases (`discover_from_songbird`, `advertise_to_songbird`, `heartbeat_songbird`) and `advertise_loamspine` removed with all tests.
+- **Self-knowledge enforcement**: `primal_names.rs` stripped to `SELF_ID`, `BIOMEOS`, `BIOMEOS_SOCKET_DIR` only — external primal names removed. Serde `"songbird"` alias removed from config.
+- **tokio features narrowed**: `"full"` → explicit feature list — faster compile times, smaller dependency footprint.
+- **Smart refactor `jsonrpc/tests.rs`**: Extracted `tests_protocol.rs` (526 lines) for protocol-level tests. Both files under 1,000 lines.
+- **Dependency evolution documented**: `specs/DEPENDENCY_EVOLUTION.md` tracks `bincode v1 → v2`, `mdns` crate evolution, `sled → redb` completion.
+- **85 new tests**: UDS server, protocol-level JSON-RPC, lifecycle state transitions, discovery manifest, CLI signer, neural API edge cases.
+- **Tests**: 1,312 → **1,397** (+85). **Source files**: 131 → **129**. All under 1000 lines (max: 899). **Coverage**: 93.96% line / 92.60% region. Clippy pedantic+nursery: 0 warnings. Doc warnings: 0.
 
 ## v0.9.14 Deep Audit Execution: Idiomatic Evolution & Forward Compatibility (March 24, 2026)
 

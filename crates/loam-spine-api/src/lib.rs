@@ -62,6 +62,8 @@ pub use error::{ApiError, ApiResult, ServerError};
 pub use jsonrpc::{
     JsonRpcRequest, JsonRpcResponse, LoamSpineJsonRpc, ServerHandle, run_jsonrpc_server,
 };
+#[cfg(unix)]
+pub use jsonrpc::{UdsServerHandle, run_jsonrpc_uds_server};
 pub use rpc::LoamSpineRpc;
 pub use service::LoamSpineRpcService;
 pub use tarpc_server::{

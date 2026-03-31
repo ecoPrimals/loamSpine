@@ -806,4 +806,75 @@ esac
         assert_eq!(ENV_SIGNER_PATH, "LOAMSPINE_SIGNER_PATH");
         assert_eq!(ENV_SIGNER_KEY, "LOAMSPINE_SIGNER_KEY");
     }
+
+    #[test]
+    #[serial]
+    fn discover_binary_finds_signer_in_bins_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let signer_path = tmp.path().join("signer");
+        std::fs::write(&signer_path, "#!/bin/sh\nexit 0").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&signer_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+
+        temp_env::with_vars(
+            [
+                (ENV_SIGNER_PATH, None::<&str>),
+                (ENV_BINS_DIR, Some(tmp.path().to_str().unwrap())),
+            ],
+            || {
+                let result = CliSigner::discover_binary();
+                assert!(result.is_some(), "should find signer in bins dir");
+                assert_eq!(result.unwrap(), signer_path);
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn discover_binary_finds_signing_service_in_bins_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let svc_path = tmp.path().join("signing-service");
+        std::fs::write(&svc_path, "#!/bin/sh\nexit 0").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&svc_path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+
+        temp_env::with_vars(
+            [
+                (ENV_SIGNER_PATH, None::<&str>),
+                (ENV_BINS_DIR, Some(tmp.path().to_str().unwrap())),
+            ],
+            || {
+                let result = CliSigner::discover_binary();
+                assert!(result.is_some(), "should find signing-service in bins dir");
+                assert_eq!(result.unwrap(), svc_path);
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn discover_binary_bins_dir_missing_falls_through() {
+        temp_env::with_vars(
+            [
+                (ENV_SIGNER_PATH, None::<&str>),
+                (ENV_BINS_DIR, Some("/tmp/nonexistent-bins-dir-xyz-12345")),
+            ],
+            || {
+                let result = CliSigner::discover_binary();
+                // May still find something on PATH; just ensure no panic
+                let _ = result;
+            },
+        );
+    }
+
+    #[test]
+    fn env_bins_dir_constant_defined() {
+        assert_eq!(ENV_BINS_DIR, "LOAMSPINE_BINS_DIR");
+    }
 }

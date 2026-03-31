@@ -586,3 +586,25 @@ async fn empty_body_returns_parse_error() {
     assert!(parsed.error.is_some());
     assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
 }
+
+#[tokio::test]
+async fn non_object_non_array_returns_parse_error() {
+    let server = LoamSpineJsonRpc::default_server();
+    let body = br#""just a string""#;
+    let response = process_request(&server, body).await;
+    let parsed: JsonRpcResponse = serde_json::from_slice(&response).unwrap();
+    assert!(parsed.error.is_some());
+    assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
+}
+
+#[tokio::test]
+async fn numeric_json_value_returns_parse_error() {
+    let server = LoamSpineJsonRpc::default_server();
+    let body = b"42";
+    let response = process_request(&server, body).await;
+    let parsed: JsonRpcResponse = serde_json::from_slice(&response).unwrap();
+    assert!(parsed.error.is_some());
+    assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
+}
+
+// Protocol-level, UDS, TCP, and infrastructure tests split into tests_protocol.rs

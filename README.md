@@ -5,8 +5,8 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
-[![Version](https://img.shields.io/badge/version-0.9.14-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C312%20passing-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.9.15-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C397%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
@@ -40,8 +40,8 @@ cargo test --workspace
 # Run the service (UniBin)
 cargo run --release --bin loamspine -- server
 
-# With explicit ports
-cargo run --release --bin loamspine -- server --tarpc-port 9001 --jsonrpc-port 8080
+# With explicit ports (--port is an alias for --jsonrpc-port per UniBin standard)
+cargo run --release --bin loamspine -- server --port 8080 --tarpc-port 9001
 
 # UniBin introspection
 cargo run --release --bin loamspine -- capabilities
@@ -69,7 +69,7 @@ cargo deny check licenses bans sources
 loamSpine/
 ├── bin/loamspine-service/     # UniBin: server | capabilities | socket
 ├── crates/
-│   ├── loam-spine-core/       # Core library (102 source files)
+│   ├── loam-spine-core/       # Core library
 │   │   └── src/
 │   │       ├── backup/            # Backup/restore
 │   │       ├── capabilities.rs    # Capability definitions
@@ -170,15 +170,15 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.9.14 |
+| **Version** | 0.9.15 |
 | **Edition** | 2024 |
-| **Tests** | 1,312 passing |
-| **Coverage** | 92%+ line / 90%+ region / 87%+ function (llvm-cov) |
+| **Tests** | 1,397 passing |
+| **Coverage** | 93%+ line / 92%+ region / 87%+ function (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Lint Exceptions** | 2 `#[allow]` in production (tarpc macro, documented); tests all `#[expect(reason)]` |
-| **Max File Size** | 885 lines (all 131 files < 1000) |
-| **Source Files** | 131 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Lint Exceptions** | 3 `#[allow]` in production (2× tarpc macro, 1× feature-conditional async); tests all `#[expect(reason)]` |
+| **Max File Size** | 899 lines (all 129 files < 1000) |
+| **Source Files** | 129 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

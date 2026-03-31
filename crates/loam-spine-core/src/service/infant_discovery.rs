@@ -136,7 +136,7 @@ impl InfantDiscovery {
         }
 
         // Method 2: DNS SRV records (production)
-        if let Some(endpoint) = self.try_dns_srv_discovery() {
+        if let Some(endpoint) = self.try_dns_srv_discovery().await {
             tracing::info!("✅ Discovery service found via DNS SRV: {}", endpoint);
             return DiscoveryClient::connect(&endpoint).await;
         }
@@ -200,14 +200,13 @@ impl InfantDiscovery {
     /// This is the standard production discovery method.
     ///
     /// Note: Disabled in test mode to avoid runtime conflicts. Use environment variables in tests.
-    #[expect(
-        clippy::unused_self,
-        reason = "method on self for consistent discovery chain API"
+    #[allow(
+        clippy::unused_async,
+        reason = "async required for dns-srv feature builds; lint fires only in no-feature builds"
     )]
-    fn try_dns_srv_discovery(&self) -> Option<String> {
+    async fn try_dns_srv_discovery(&self) -> Option<String> {
         tracing::debug!("🔍 Attempting DNS SRV discovery (_discovery._tcp.local)...");
 
-        // Skip DNS SRV in test mode to avoid runtime conflicts
         #[cfg(test)]
         {
             tracing::debug!("🔍 DNS SRV discovery disabled in test mode, trying next method");
@@ -219,64 +218,32 @@ impl InfantDiscovery {
             use hickory_resolver::TokioAsyncResolver;
             use hickory_resolver::config::{ResolverConfig, ResolverOpts};
 
-            // Check if we have a runtime available
-            let Some(handle) = tokio::runtime::Handle::try_current().ok() else {
-                // No runtime available, skip DNS discovery
-                tracing::debug!(
-                    "🔍 No tokio runtime available for DNS resolution, trying next method"
-                );
-                return None;
-            };
+            let resolver =
+                TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
 
-            // Use spawn_blocking to avoid nested runtime issues
-
-            handle.block_on(async {
-                tokio::task::spawn_blocking(|| {
-                    // Create a new runtime for the DNS lookup
-                    let rt = tokio::runtime::Runtime::new().ok()?;
-
-                    rt.block_on(async {
-                        let resolver = TokioAsyncResolver::tokio(
-                            ResolverConfig::default(),
-                            ResolverOpts::default(),
+            let srv_query = "_discovery._tcp.local";
+            match resolver.srv_lookup(srv_query).await {
+                Ok(response) => response.iter().next().map_or_else(
+                    || {
+                        tracing::debug!(
+                            "🔍 No SRV records found for {}, trying next method",
+                            srv_query
                         );
-
-                        // Query for _discovery._tcp.local SRV record
-                        let srv_query = "_discovery._tcp.local";
-                        match resolver.srv_lookup(srv_query).await {
-                            Ok(response) => response.iter().next().map_or_else(
-                                || {
-                                    tracing::debug!(
-                                        "🔍 No SRV records found for {}, trying next method",
-                                        srv_query
-                                    );
-                                    None
-                                },
-                                |srv| {
-                                    let target = srv.target().to_utf8();
-                                    let port = srv.port();
-
-                                    // Construct endpoint URL
-                                    let endpoint =
-                                        format!("http://{}:{}", target.trim_end_matches('.'), port);
-                                    tracing::info!("✅ DNS SRV discovery successful: {}", endpoint);
-                                    Some(endpoint)
-                                },
-                            ),
-                            Err(e) => {
-                                tracing::debug!(
-                                    "🔍 DNS SRV lookup failed: {}, trying next method",
-                                    e
-                                );
-                                None
-                            }
-                        }
-                    })
-                })
-                .await
-                .ok()
-                .flatten()
-            })
+                        None
+                    },
+                    |srv| {
+                        let target = srv.target().to_utf8();
+                        let port = srv.port();
+                        let endpoint = format!("http://{}:{}", target.trim_end_matches('.'), port);
+                        tracing::info!("✅ DNS SRV discovery successful: {}", endpoint);
+                        Some(endpoint)
+                    },
+                ),
+                Err(e) => {
+                    tracing::debug!("🔍 DNS SRV lookup failed: {}, trying next method", e);
+                    None
+                }
+            }
         }
 
         #[cfg(all(not(test), not(feature = "dns-srv")))]
@@ -438,7 +405,7 @@ mod tests {
     #[tokio::test]
     async fn dns_srv_discovery_no_records() {
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.try_dns_srv_discovery();
+        let result = infant.try_dns_srv_discovery().await;
 
         // Returns None in test environment (no DNS SRV records configured)
         // In production, would return endpoint if DNS is properly configured

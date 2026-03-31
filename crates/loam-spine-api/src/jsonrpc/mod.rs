@@ -438,7 +438,19 @@ async fn handle_connection(
     handler: Arc<LoamSpineJsonRpc>,
     stream: tokio::net::TcpStream,
 ) -> Result<(), std::io::Error> {
-    let (reader, mut writer) = stream.into_split();
+    let (reader, writer) = stream.into_split();
+    handle_stream(handler, reader, writer).await
+}
+
+async fn handle_stream<R, W>(
+    handler: Arc<LoamSpineJsonRpc>,
+    reader: R,
+    mut writer: W,
+) -> Result<(), std::io::Error>
+where
+    R: tokio::io::AsyncRead + Unpin,
+    W: tokio::io::AsyncWrite + Unpin,
+{
     let mut buf_reader = BufReader::new(reader);
 
     let mut first_line = String::new();
@@ -629,12 +641,129 @@ pub(crate) async fn process_request(handler: &LoamSpineJsonRpc, body: &[u8]) -> 
     ))
 }
 
+// ============================================================================
+// Unix Domain Socket server (IPC_COMPLIANCE_MATRIX requirement)
+// ============================================================================
+
+/// Server handle for a UDS JSON-RPC listener.
+#[cfg(unix)]
+pub struct UdsServerHandle {
+    shutdown: tokio::sync::watch::Sender<bool>,
+    done: tokio::sync::watch::Receiver<bool>,
+    path: std::path::PathBuf,
+}
+
+#[cfg(unix)]
+impl UdsServerHandle {
+    /// Stop the UDS server.
+    pub fn stop(&self) {
+        let _ = self.shutdown.send(true);
+    }
+
+    /// Wait until the server has stopped.
+    pub async fn stopped(&mut self) {
+        let _ = self.done.changed().await;
+    }
+
+    /// Get the socket path.
+    #[must_use]
+    pub fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+}
+
+#[cfg(unix)]
+impl Drop for UdsServerHandle {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+/// Run a JSON-RPC server on a Unix domain socket.
+///
+/// Binds at the given path, accepting newline-delimited JSON-RPC requests.
+/// Creates the parent directory if it does not exist and removes any stale
+/// socket file from a previous run.
+///
+/// # Errors
+///
+/// Returns error if the socket cannot be bound.
+#[cfg(unix)]
+pub async fn run_jsonrpc_uds_server(
+    path: impl Into<std::path::PathBuf>,
+    service: LoamSpineRpcService,
+) -> Result<UdsServerHandle, ServerError> {
+    let path = path.into();
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| ServerError::Bind(format!("cannot create socket directory: {e}")))?;
+    }
+
+    // Remove stale socket from a previous run
+    if path.exists() {
+        std::fs::remove_file(&path)
+            .map_err(|e| ServerError::Bind(format!("cannot remove stale socket: {e}")))?;
+    }
+
+    let listener = tokio::net::UnixListener::bind(&path)
+        .map_err(|e| ServerError::Bind(format!("UDS bind at {}: {e}", path.display())))?;
+
+    let handler = Arc::new(LoamSpineJsonRpc::new(service));
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let (done_tx, done_rx) = tokio::sync::watch::channel(false);
+
+    info!(
+        "LoamSpine JSON-RPC UDS server listening on {}",
+        path.display()
+    );
+
+    tokio::spawn(async move {
+        let mut rx = shutdown_rx;
+        loop {
+            tokio::select! {
+                result = listener.accept() => {
+                    match result {
+                        Ok((stream, _peer)) => {
+                            debug!("JSON-RPC UDS connection accepted");
+                            let h = Arc::clone(&handler);
+                            tokio::spawn(async move {
+                                let (reader, writer) = stream.into_split();
+                                if let Err(e) = handle_stream(h, reader, writer).await {
+                                    warn!("UDS connection error: {e}");
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            warn!("UDS accept error: {e}");
+                        }
+                    }
+                }
+                _ = rx.changed() => {
+                    info!("JSON-RPC UDS server shutting down");
+                    break;
+                }
+            }
+        }
+        let _ = done_tx.send(true);
+    });
+
+    Ok(UdsServerHandle {
+        shutdown: shutdown_tx,
+        done: done_rx,
+        path,
+    })
+}
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_permanence_cert;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_protocol;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_validation;

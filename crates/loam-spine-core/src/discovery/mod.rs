@@ -165,16 +165,6 @@ impl CapabilityRegistry {
         Ok(())
     }
 
-    /// Backward-compatible alias for [`Self::discover_from_registry`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if discovery fails.
-    #[deprecated(since = "0.9.0", note = "Use discover_from_registry instead")]
-    pub async fn discover_from_songbird(&self) -> LoamSpineResult<()> {
-        self.discover_from_registry().await
-    }
-
     /// Advertise LoamSpine's capabilities to the service registry.
     ///
     /// # Errors
@@ -200,21 +190,6 @@ impl CapabilityRegistry {
         Ok(())
     }
 
-    /// Backward-compatible alias for [`Self::advertise_to_registry`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if advertisement fails.
-    #[deprecated(since = "0.9.0", note = "Use advertise_to_registry instead")]
-    pub async fn advertise_to_songbird(
-        &self,
-        tarpc_endpoint: &str,
-        jsonrpc_endpoint: &str,
-    ) -> LoamSpineResult<()> {
-        self.advertise_to_registry(tarpc_endpoint, jsonrpc_endpoint)
-            .await
-    }
-
     /// Send heartbeat to the service registry to keep advertisement alive.
     ///
     /// # Errors
@@ -230,16 +205,6 @@ impl CapabilityRegistry {
 
         client.heartbeat().await?;
         Ok(())
-    }
-
-    /// Backward-compatible alias for [`Self::heartbeat_registry`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if heartbeat fails.
-    #[deprecated(since = "0.9.0", note = "Use heartbeat_registry instead")]
-    pub async fn heartbeat_songbird(&self) -> LoamSpineResult<()> {
-        self.heartbeat_registry().await
     }
 
     // ========================================================================

@@ -128,7 +128,6 @@ pub enum DiscoveryMethod {
     /// - Consul
     /// - etcd
     /// - Custom implementations
-    #[serde(alias = "songbird")] // Backward compatibility
     ServiceRegistry,
     /// Multicast DNS.
     Mdns,
@@ -322,13 +321,6 @@ mod tests {
         let json = serde_json::to_string(&methods).unwrap();
         let parsed: Vec<DiscoveryMethod> = serde_json::from_str(&json).unwrap();
         assert_eq!(methods, parsed);
-    }
-
-    #[test]
-    fn discovery_method_songbird_alias() {
-        let json = r#""songbird""#;
-        let method: DiscoveryMethod = serde_json::from_str(json).unwrap();
-        assert_eq!(method, DiscoveryMethod::ServiceRegistry);
     }
 
     #[test]
