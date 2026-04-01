@@ -2,8 +2,8 @@
 
 # Development Roadmap
 
-**Current Version**: 0.9.15  
-**Last Updated**: March 31, 2026
+**Current Version**: 0.9.16  
+**Last Updated**: April 1, 2026
 
 ---
 
@@ -219,6 +219,14 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 Completed (April 1, 2026)
+
+- **Concurrent test evolution** — All seven phases completed: full suite is concurrent (**~3s**), **zero `#[serial]`** (was 121), **`serial_test`** and **`temp_env`** removed from the workspace.
+- **Inner/outer function pattern** — Pure inner functions for dependency injection; public APIs remain thin env wrappers where needed.
+- **Deterministic time control** — `tokio::time::pause()` + `advance()` replace wall-clock sleeps in affected tests.
+- **Dynamic ports** — **`portpicker`** for integration tests to avoid port collisions under parallel execution.
+- **1,270 tests** — Consolidated from 1,397 (redundant trivial tests dropped); all concurrent.
 
 ## v0.9.14 Completed (March 24, 2026)
 

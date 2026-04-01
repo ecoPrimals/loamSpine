@@ -5,8 +5,8 @@
 **Permanence Layer -- Selective Memory & Loam Certificates**
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
-[![Version](https://img.shields.io/badge/version-0.9.15-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C397%20passing-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C270%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
@@ -170,9 +170,9 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Metric | Value |
 |--------|-------|
-| **Version** | 0.9.15 |
+| **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,397 passing |
+| **Tests** | 1,270 passing (all concurrent, ~3s) |
 | **Coverage** | 93%+ line / 92%+ region / 87%+ function (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |

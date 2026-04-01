@@ -127,15 +127,28 @@ impl CliSigner {
     /// 3. System PATH (looks for common signing service names)
     #[must_use]
     pub fn discover_binary() -> Option<PathBuf> {
-        if let Ok(path) = std::env::var(ENV_SIGNER_PATH) {
-            let path = PathBuf::from(path);
+        let signer_path = std::env::var(ENV_SIGNER_PATH).ok();
+        let bins_dir = std::env::var(ENV_BINS_DIR).ok();
+        Self::discover_binary_from(signer_path.as_deref(), bins_dir.as_deref())
+    }
+
+    /// Discover signing service binary using explicit path hints (no environment reads).
+    ///
+    /// `signer_path` corresponds to `LOAMSPINE_SIGNER_PATH`; `bins_dir` to `LOAMSPINE_BINS_DIR`.
+    /// Pass `None` for either to match “unset” behavior (default bins dir is `../bins`).
+    #[must_use]
+    pub fn discover_binary_from(
+        signer_path: Option<&str>,
+        bins_dir: Option<&str>,
+    ) -> Option<PathBuf> {
+        if let Some(path_str) = signer_path {
+            let path = PathBuf::from(path_str);
             if path.exists() {
                 return Some(path);
             }
         }
 
-        let bins_dir =
-            std::env::var(ENV_BINS_DIR).map_or_else(|_| PathBuf::from("../bins"), PathBuf::from);
+        let bins_dir = bins_dir.map_or_else(|| PathBuf::from("../bins"), PathBuf::from);
         if bins_dir.is_dir() {
             for candidate in &["signer", "signing-service"] {
                 let path = bins_dir.join(candidate);

@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.9.15"
+version = "0.9.16"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/ecoPrimals/loamSpine"
@@ -37,7 +37,8 @@ blake3 = { version = "1.5", default-features = false, features = ["pure"] }
 uuid = { version = "1.11", features = ["v7", "serde"] }
 
 # Testing
-serial_test = "3.0"
+tempfile = "3.14"
+portpicker = "0.1"
 
 
 [workspace.lints.rust]

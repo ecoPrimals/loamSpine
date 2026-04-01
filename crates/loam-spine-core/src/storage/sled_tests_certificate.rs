@@ -18,7 +18,7 @@ use crate::storage::{
     CertificateStorage, EntryStorage, SledCertificateStorage, SledStorage, SpineStorage,
 };
 use crate::types::{CertificateId, Did, SpineId, Timestamp};
-use serial_test::serial;
+
 
 fn create_sled_test_spine() -> Spine {
     Spine::new(
@@ -137,18 +137,17 @@ async fn sled_combined_flush_all_components() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_get_certificate_corrupted_data_returns_error() {
     let temp_dir = tempfile::tempdir().unwrap();
-    let path = temp_dir.path().join("certs");
+    let path = temp_dir.path().join("certs-corrupt");
 
-    let db = sled::open(&path).unwrap();
-    let tree = db.open_tree("certificates").unwrap();
     let bad_id = CertificateId::now_v7();
-    tree.insert(bad_id.as_bytes(), b"garbage").unwrap();
-    db.flush().unwrap();
-    drop(tree);
-    drop(db);
+    {
+        let db = sled::open(&path).unwrap();
+        let tree = db.open_tree("certificates").unwrap();
+        tree.insert(bad_id.as_bytes(), b"garbage").unwrap();
+        db.flush().unwrap();
+    }
 
     let storage = SledCertificateStorage::open(&path).unwrap();
     let result = storage.get_certificate(bad_id).await;
@@ -156,7 +155,6 @@ async fn sled_get_certificate_corrupted_data_returns_error() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_get_certificate_corrupted_bincode_returns_deserialize_error() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("cert-corrupt-bc");
@@ -177,7 +175,6 @@ async fn sled_get_certificate_corrupted_bincode_returns_deserialize_error() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_list_certificates_with_malformed_keys_skips_invalid() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("certs-malformed");

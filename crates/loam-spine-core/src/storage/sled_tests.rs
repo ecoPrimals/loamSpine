@@ -11,7 +11,7 @@ use crate::entry::{Entry, EntryType, SpineConfig};
 use crate::spine::Spine;
 use crate::storage::{EntryStorage, SledEntryStorage, SledSpineStorage, SledStorage, SpineStorage};
 use crate::types::{Did, SpineId};
-use serial_test::serial;
+
 
 fn create_test_spine() -> Spine {
     let owner = Did::new("did:key:z6MkOwner");
@@ -179,7 +179,6 @@ async fn sled_combined_storage() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_storage_persistence() {
     let temp_dir = tempfile::tempdir().unwrap();
 
@@ -341,18 +340,17 @@ async fn sled_spine_delete() {
 // ========================================================================
 
 #[tokio::test]
-#[serial]
 async fn sled_get_spine_corrupted_data_returns_error() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("spines");
 
-    let db = sled::open(&path).unwrap();
-    let tree = db.open_tree("spines").unwrap();
     let bad_id = SpineId::now_v7();
-    tree.insert(bad_id.as_bytes(), b"invalid-bincode").unwrap();
-    db.flush().unwrap();
-    drop(tree);
-    drop(db);
+    {
+        let db = sled::open(&path).unwrap();
+        let tree = db.open_tree("spines").unwrap();
+        tree.insert(bad_id.as_bytes(), b"invalid-bincode").unwrap();
+        db.flush().unwrap();
+    }
 
     let storage = SledSpineStorage::open(&path).unwrap();
     let result = storage.get_spine(bad_id).await;
@@ -360,21 +358,19 @@ async fn sled_get_spine_corrupted_data_returns_error() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_get_entry_corrupted_data_returns_error() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("entries");
 
-    let db = sled::open(&path).unwrap();
-    let entries = db.open_tree("entries").unwrap();
-    let index = db.open_tree("entry_index").unwrap();
-    let bad_hash = [0u8; 32];
-    entries.insert(&bad_hash[..], b"corrupt").unwrap();
-    index.insert(&[0u8; 24][..], &bad_hash[..]).unwrap();
-    db.flush().unwrap();
-    drop(entries);
-    drop(index);
-    drop(db);
+    {
+        let db = sled::open(&path).unwrap();
+        let entries = db.open_tree("entries").unwrap();
+        let index = db.open_tree("entry_index").unwrap();
+        let bad_hash = [0u8; 32];
+        entries.insert(&bad_hash[..], b"corrupt").unwrap();
+        index.insert(&[0u8; 24][..], &bad_hash[..]).unwrap();
+        db.flush().unwrap();
+    }
 
     let storage = SledEntryStorage::open(&path).unwrap();
     let result = storage.get_entry(bad_hash).await;
@@ -382,7 +378,6 @@ async fn sled_get_entry_corrupted_data_returns_error() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_storage_open_with_base_path() {
     let temp_dir = tempfile::tempdir().unwrap();
     let storage = SledStorage::open(temp_dir.path()).unwrap();
@@ -515,7 +510,6 @@ async fn sled_get_entries_for_spine_limit_exceeds_available() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_list_spines_with_malformed_keys_skips_invalid() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("spines-malformed");
@@ -541,7 +535,6 @@ async fn sled_list_spines_with_malformed_keys_skips_invalid() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_entry_index_missing_entry_skipped() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("entries-orphan");
@@ -582,7 +575,6 @@ async fn sled_entry_index_missing_entry_skipped() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_get_entries_for_spine_corrupted_entry_in_index() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("entries-corrupt");
@@ -617,7 +609,6 @@ async fn sled_get_entries_for_spine_corrupted_entry_in_index() {
 // ========================================================================
 
 #[tokio::test]
-#[serial]
 async fn sled_get_spine_corrupted_bincode_returns_deserialize_error() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("spine-corrupt-bc");
@@ -638,7 +629,6 @@ async fn sled_get_spine_corrupted_bincode_returns_deserialize_error() {
 }
 
 #[tokio::test]
-#[serial]
 async fn sled_get_entry_corrupted_bincode_returns_deserialize_error() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("entry-corrupt-bc");
@@ -662,7 +652,6 @@ async fn sled_get_entry_corrupted_bincode_returns_deserialize_error() {
 // ========================================================================
 
 #[tokio::test]
-#[serial]
 async fn sled_get_entries_for_spine_different_spine_stops_iteration() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("entries-multispine");

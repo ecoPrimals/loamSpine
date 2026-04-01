@@ -315,8 +315,8 @@ impl PrimalLifecycle for LoamSpine {
         self.state = PrimalState::Stopping;
         tracing::info!(name = %self.config.name, "LoamSpine stopping...");
 
-        // Cleanup: flush pending storage ops, cancel discovery timers.
-        // Currently a no-op; sled flushes on drop, in-memory is transient.
+        // Storage backends (redb, sled) flush on drop; in-memory is transient.
+        // Discovery timers are managed by LifecycleManager, not here.
 
         self.state = PrimalState::Stopped;
         self.started_at = None;

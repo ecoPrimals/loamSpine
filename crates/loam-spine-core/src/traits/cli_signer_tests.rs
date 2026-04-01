@@ -13,7 +13,6 @@ mod tests {
     use super::super::*;
     use crate::discovery::{DynSigner, DynVerifier};
     use crate::types::ByteBuffer;
-    use serial_test::serial;
     use std::path::PathBuf;
     use std::sync::Arc;
 
@@ -78,19 +77,15 @@ mod tests {
 
     #[test]
     fn discover_binary_returns_none_if_not_found() {
-        temp_env::with_var(ENV_SIGNER_PATH, None::<&str>, || {
-            let result = CliSigner::discover_binary();
-            let _ = result;
-        });
+        let result = CliSigner::discover_binary_from(None, None);
+        let _ = result;
     }
 
     #[test]
     fn discover_binary_respects_env_var() {
         let test_path = "/tmp/test-signer";
-        temp_env::with_var(ENV_SIGNER_PATH, Some(test_path), || {
-            let result = CliSigner::discover_binary();
-            assert!(result.is_none());
-        });
+        let result = CliSigner::discover_binary_from(Some(test_path), None);
+        assert!(result.is_none());
     }
 
     #[test]
@@ -289,18 +284,14 @@ mod tests {
 
     #[test]
     fn environment_variable_priority() {
-        temp_env::with_var(ENV_SIGNER_PATH, Some("/test/priority/path"), || {
-            let result = CliSigner::discover_binary();
-            assert!(result.is_none());
-        });
+        let result = CliSigner::discover_binary_from(Some("/test/priority/path"), None);
+        assert!(result.is_none());
     }
 
     #[test]
     fn binary_discovery_searches_multiple_locations() {
-        temp_env::with_var(ENV_SIGNER_PATH, None::<&str>, || {
-            let result = CliSigner::discover_binary();
-            let _ = result;
-        });
+        let result = CliSigner::discover_binary_from(None, None);
+        let _ = result;
     }
 
     #[test]
@@ -614,7 +605,6 @@ esac
     }
 
     #[test]
-    #[serial]
     fn discover_binary_returns_path_when_env_points_to_existing_binary() {
         let Some((true_path, _)) = get_test_binary_for_error_paths() else {
             eprintln!("⚠️  Skipping: true/false binaries not found (non-Unix?)");
@@ -622,14 +612,12 @@ esac
         };
 
         let path_str = true_path.to_string_lossy();
-        temp_env::with_var(ENV_SIGNER_PATH, Some(path_str.as_ref()), || {
-            let result = CliSigner::discover_binary();
-            assert!(result.is_some());
-            assert_eq!(
-                result.as_ref().unwrap().to_string_lossy(),
-                true_path.to_string_lossy()
-            );
-        });
+        let result = CliSigner::discover_binary_from(Some(path_str.as_ref()), None);
+        assert!(result.is_some());
+        assert_eq!(
+            result.as_ref().unwrap().to_string_lossy(),
+            true_path.to_string_lossy()
+        );
     }
 
     // =========================================================================
@@ -637,35 +625,22 @@ esac
     // =========================================================================
 
     #[test]
-    #[serial]
     fn discover_binary_env_var_nonexistent_path_falls_through() {
-        temp_env::with_var(
-            ENV_SIGNER_PATH,
+        let result = CliSigner::discover_binary_from(
             Some("/tmp/loamspine-nonexistent-binary-xyz-9999"),
-            || {
-                let result = CliSigner::discover_binary();
-                assert!(
-                    result.is_none(),
-                    "non-existent env path should fall through"
-                );
-            },
+            None,
+        );
+        assert!(
+            result.is_none(),
+            "non-existent env path should fall through"
         );
     }
 
     #[test]
-    #[serial]
     fn discover_binary_returns_none_when_nothing_available() {
-        temp_env::with_vars(
-            [
-                (ENV_SIGNER_PATH, None::<&str>),
-                (ENV_SIGNER_KEY, None::<&str>),
-            ],
-            || {
-                let result = CliSigner::discover_binary();
-                // May or may not find a system binary; just ensure no panic
-                let _ = result;
-            },
-        );
+        let result = CliSigner::discover_binary_from(None, None);
+        // May or may not find a system binary; just ensure no panic
+        let _ = result;
     }
 
     #[test]
@@ -808,7 +783,6 @@ esac
     }
 
     #[test]
-    #[serial]
     fn discover_binary_finds_signer_in_bins_dir() {
         let tmp = tempfile::tempdir().unwrap();
         let signer_path = tmp.path().join("signer");
@@ -819,21 +793,12 @@ esac
             std::fs::set_permissions(&signer_path, std::fs::Permissions::from_mode(0o755)).unwrap();
         }
 
-        temp_env::with_vars(
-            [
-                (ENV_SIGNER_PATH, None::<&str>),
-                (ENV_BINS_DIR, Some(tmp.path().to_str().unwrap())),
-            ],
-            || {
-                let result = CliSigner::discover_binary();
-                assert!(result.is_some(), "should find signer in bins dir");
-                assert_eq!(result.unwrap(), signer_path);
-            },
-        );
+        let result = CliSigner::discover_binary_from(None, Some(tmp.path().to_str().unwrap()));
+        assert!(result.is_some(), "should find signer in bins dir");
+        assert_eq!(result.unwrap(), signer_path);
     }
 
     #[test]
-    #[serial]
     fn discover_binary_finds_signing_service_in_bins_dir() {
         let tmp = tempfile::tempdir().unwrap();
         let svc_path = tmp.path().join("signing-service");
@@ -844,33 +809,16 @@ esac
             std::fs::set_permissions(&svc_path, std::fs::Permissions::from_mode(0o755)).unwrap();
         }
 
-        temp_env::with_vars(
-            [
-                (ENV_SIGNER_PATH, None::<&str>),
-                (ENV_BINS_DIR, Some(tmp.path().to_str().unwrap())),
-            ],
-            || {
-                let result = CliSigner::discover_binary();
-                assert!(result.is_some(), "should find signing-service in bins dir");
-                assert_eq!(result.unwrap(), svc_path);
-            },
-        );
+        let result = CliSigner::discover_binary_from(None, Some(tmp.path().to_str().unwrap()));
+        assert!(result.is_some(), "should find signing-service in bins dir");
+        assert_eq!(result.unwrap(), svc_path);
     }
 
     #[test]
-    #[serial]
     fn discover_binary_bins_dir_missing_falls_through() {
-        temp_env::with_vars(
-            [
-                (ENV_SIGNER_PATH, None::<&str>),
-                (ENV_BINS_DIR, Some("/tmp/nonexistent-bins-dir-xyz-12345")),
-            ],
-            || {
-                let result = CliSigner::discover_binary();
-                // May still find something on PATH; just ensure no panic
-                let _ = result;
-            },
-        );
+        let result = CliSigner::discover_binary_from(None, Some("/tmp/nonexistent-bins-dir-xyz-12345"));
+        // May still find something on PATH; just ensure no panic
+        let _ = result;
     }
 
     #[test]

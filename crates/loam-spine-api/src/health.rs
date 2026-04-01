@@ -356,7 +356,7 @@ mod tests {
         ));
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn health_status_tracks_uptime() {
         let checker = HealthChecker::new();
 
@@ -367,8 +367,7 @@ mod tests {
             "Initial uptime should be less than a minute"
         );
 
-        // Wait a bit (but use proper async sleep, not blocking)
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        tokio::time::advance(Duration::from_millis(100)).await;
 
         // Second check - uptime should have increased
         let health2 = checker.check_health().await.unwrap();

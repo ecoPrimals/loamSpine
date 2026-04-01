@@ -45,8 +45,13 @@
 //! # }
 //! ```
 
+use std::collections::HashMap;
+
 use crate::discovery_client::DiscoveryClient;
 use crate::error::{LoamSpineError, LoamSpineResult};
+
+/// DNS SRV query for the discovery service (RFC 2782).
+const DISCOVERY_SRV_QUERY: &str = "_discovery._tcp.local";
 
 /// Infant discovery - discovers the discovery service at runtime.
 ///
@@ -127,10 +132,45 @@ impl InfantDiscovery {
     /// # }
     /// ```
     pub async fn discover_discovery_service(&self) -> LoamSpineResult<DiscoveryClient> {
+        self.discover_discovery_service_with(None).await
+    }
+
+    /// Discover the discovery service with an optional pre-resolved endpoint.
+    ///
+    /// When `endpoint_override` is `Some`, it is used as the first-priority
+    /// endpoint (equivalent to a non-empty `DISCOVERY_ENDPOINT`). When `None`,
+    /// `DISCOVERY_ENDPOINT` is read from the environment. An override of `Some("")`
+    /// skips the environment step (same as an empty variable).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LoamSpineError`] if no discovery method succeeds.
+    pub async fn discover_discovery_service_with(
+        &self,
+        endpoint_override: Option<&str>,
+    ) -> LoamSpineResult<DiscoveryClient> {
+        self.discover_discovery_service_with_env(endpoint_override, &HashMap::new())
+            .await
+    }
+
+    /// Like [`Self::discover_discovery_service_with`], but resolves `DISCOVERY_ENDPOINT` from
+    /// `env_overrides` before reading the process environment (for config injection / tests).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LoamSpineError`] if no discovery method succeeds.
+    pub async fn discover_discovery_service_with_env(
+        &self,
+        endpoint_override: Option<&str>,
+        env_overrides: &HashMap<String, String>,
+    ) -> LoamSpineResult<DiscoveryClient> {
         tracing::info!("🔍 Starting infant discovery (zero knowledge → full knowledge)...");
 
         // Method 1: Environment variable (highest priority)
-        if let Some(endpoint) = self.try_environment_discovery() {
+        if let Some(endpoint) = match endpoint_override {
+            None => Self::try_environment_discovery_from(None, Some(env_overrides)),
+            Some(s) => Self::try_environment_discovery_from(Some(s), Some(env_overrides)),
+        } {
             tracing::info!("✅ Discovery service found via environment: {}", endpoint);
             return DiscoveryClient::connect(&endpoint).await;
         }
@@ -170,27 +210,30 @@ impl InfantDiscovery {
         &self.self_capabilities
     }
 
-    /// Try to discover via environment variable.
+    /// Try environment discovery with an explicit endpoint value (pure, no env reads when set).
     ///
-    /// Checks `DISCOVERY_ENDPOINT` environment variable.
-    #[expect(
-        clippy::unused_self,
-        reason = "method on self for consistent discovery chain API"
-    )]
-    fn try_environment_discovery(&self) -> Option<String> {
-        match std::env::var("DISCOVERY_ENDPOINT") {
-            Ok(endpoint) if !endpoint.is_empty() => {
-                tracing::debug!("🔍 Found DISCOVERY_ENDPOINT: {}", endpoint);
-                Some(endpoint)
+    /// When `endpoint` is `None`, falls back to `DISCOVERY_ENDPOINT`. When `Some("")`,
+    /// the environment step is skipped (same as an unset or empty variable).
+    #[must_use]
+    pub fn try_environment_discovery_with(&self, endpoint: Option<&str>) -> Option<String> {
+        Self::try_environment_discovery_from(endpoint, None)
+    }
+
+    fn try_environment_discovery_from(
+        endpoint: Option<&str>,
+        env_overrides: Option<&HashMap<String, String>>,
+    ) -> Option<String> {
+        let value = endpoint.map(String::from).or_else(|| {
+            env_overrides
+                .and_then(|m| m.get("DISCOVERY_ENDPOINT").cloned())
+                .or_else(|| std::env::var("DISCOVERY_ENDPOINT").ok())
+        });
+        match value {
+            Some(v) if !v.is_empty() => {
+                tracing::info!("🔍 Discovery endpoint from environment: {v}");
+                Some(v)
             }
-            Ok(_) => {
-                tracing::debug!("🔍 DISCOVERY_ENDPOINT is empty, skipping");
-                None
-            }
-            Err(_) => {
-                tracing::debug!("🔍 DISCOVERY_ENDPOINT not set, trying next method");
-                None
-            }
+            _ => None,
         }
     }
 
@@ -205,7 +248,7 @@ impl InfantDiscovery {
         reason = "async required for dns-srv feature builds; lint fires only in no-feature builds"
     )]
     async fn try_dns_srv_discovery(&self) -> Option<String> {
-        tracing::debug!("🔍 Attempting DNS SRV discovery (_discovery._tcp.local)...");
+        tracing::debug!("🔍 Attempting DNS SRV discovery ({DISCOVERY_SRV_QUERY})...");
 
         #[cfg(test)]
         {
@@ -221,13 +264,11 @@ impl InfantDiscovery {
             let resolver =
                 TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
 
-            let srv_query = "_discovery._tcp.local";
-            match resolver.srv_lookup(srv_query).await {
+            match resolver.srv_lookup(DISCOVERY_SRV_QUERY).await {
                 Ok(response) => response.iter().next().map_or_else(
                     || {
                         tracing::debug!(
-                            "🔍 No SRV records found for {}, trying next method",
-                            srv_query
+                            "🔍 No SRV records found for {DISCOVERY_SRV_QUERY}, trying next method",
                         );
                         None
                     },
@@ -235,12 +276,12 @@ impl InfantDiscovery {
                         let target = srv.target().to_utf8();
                         let port = srv.port();
                         let endpoint = format!("http://{}:{}", target.trim_end_matches('.'), port);
-                        tracing::info!("✅ DNS SRV discovery successful: {}", endpoint);
+                        tracing::info!("✅ DNS SRV discovery successful: {endpoint}");
                         Some(endpoint)
                     },
                 ),
                 Err(e) => {
-                    tracing::debug!("🔍 DNS SRV lookup failed: {}, trying next method", e);
+                    tracing::debug!("🔍 DNS SRV lookup failed: {e}, trying next method");
                     None
                 }
             }
@@ -346,7 +387,6 @@ impl Default for InfantDiscovery {
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
-    use serial_test::serial;
 
     #[test]
     fn infant_discovery_creation() {
@@ -379,27 +419,17 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn environment_discovery_with_var() {
-        temp_env::with_var(
-            "DISCOVERY_ENDPOINT",
-            Some("http://test.example.com:8082"),
-            || {
-                let infant = InfantDiscovery::new(vec!["test".to_string()]);
-                let result = infant.try_environment_discovery();
-                assert_eq!(result, Some("http://test.example.com:8082".to_string()));
-            },
-        );
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.try_environment_discovery_with(Some("http://test.example.com:8082"));
+        assert_eq!(result, Some("http://test.example.com:8082".to_string()));
     }
 
     #[test]
-    #[serial]
     fn environment_discovery_without_var() {
-        temp_env::with_var("DISCOVERY_ENDPOINT", None::<&str>, || {
-            let infant = InfantDiscovery::new(vec!["test".to_string()]);
-            let result = infant.try_environment_discovery();
-            assert!(result.is_none());
-        });
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.try_environment_discovery_with(Some(""));
+        assert!(result.is_none());
     }
 
     #[tokio::test]
@@ -436,65 +466,44 @@ mod tests {
         assert_eq!(result, Some(expected_endpoint));
     }
 
-    #[test]
-    #[serial]
-    fn discovery_service_full_chain() {
-        temp_env::with_var(
-            "DISCOVERY_ENDPOINT",
-            Some("http://test.example.com:8082"),
-            || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on(async {
-                    let infant = InfantDiscovery::new(vec!["test".to_string()]);
-                    let result = infant.discover_discovery_service().await;
-                    assert!(result.is_err());
-                });
-            },
+    #[tokio::test]
+    async fn discovery_service_full_chain() {
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant
+            .discover_discovery_service_with(Some("http://test.example.com:8082"))
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn discover_discovery_service_unreachable_endpoint_returns_error() {
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant
+            .discover_discovery_service_with(Some("http://127.0.0.1:1"))
+            .await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        let err_str = err.to_string();
+        assert!(
+            err_str.contains("unavailable")
+                || err_str.contains("registry")
+                || err_str.contains("127"),
+            "Expected connection error: {err_str}",
         );
     }
 
-    #[test]
-    #[serial]
-    fn discover_discovery_service_unreachable_endpoint_returns_error() {
-        temp_env::with_var("DISCOVERY_ENDPOINT", Some("http://127.0.0.1:1"), || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let infant = InfantDiscovery::new(vec!["test".to_string()]);
-                let result = infant.discover_discovery_service().await;
-                assert!(result.is_err());
-                let err = result.unwrap_err();
-                let err_str = err.to_string();
-                assert!(
-                    err_str.contains("unavailable")
-                        || err_str.contains("registry")
-                        || err_str.contains("127"),
-                    "Expected connection error: {err_str}",
-                );
-            });
-        });
+    #[tokio::test]
+    async fn discover_discovery_service_development_fallback_connection_fails() {
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.discover_discovery_service_with(Some("")).await;
+        assert!(result.is_err());
     }
 
     #[test]
-    #[serial]
-    fn discover_discovery_service_development_fallback_connection_fails() {
-        temp_env::with_var("DISCOVERY_ENDPOINT", None::<&str>, || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let infant = InfantDiscovery::new(vec!["test".to_string()]);
-                let result = infant.discover_discovery_service().await;
-                assert!(result.is_err());
-            });
-        });
-    }
-
-    #[test]
-    #[serial]
     fn discover_discovery_service_empty_env_skipped() {
-        temp_env::with_var("DISCOVERY_ENDPOINT", Some(""), || {
-            let infant = InfantDiscovery::new(vec!["test".to_string()]);
-            let result = infant.try_environment_discovery();
-            assert!(result.is_none());
-        });
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.try_environment_discovery_with(Some(""));
+        assert!(result.is_none());
     }
 
     #[tokio::test]
@@ -522,55 +531,41 @@ mod tests {
         assert!(caps.contains(&loamspine::CERTIFICATE_AUTHORITY.to_string()));
     }
 
-    #[test]
-    #[serial]
-    fn discover_discovery_service_env_takes_priority_over_fallback() {
+    #[tokio::test]
+    async fn discover_discovery_service_env_takes_priority_over_fallback() {
         // When DISCOVERY_ENDPOINT is set, it should be used (even if unreachable)
-        temp_env::with_var(
-            "DISCOVERY_ENDPOINT",
-            Some("http://env-priority-test.example:9999"),
-            || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on(async {
-                    let infant = InfantDiscovery::new(vec!["test".to_string()]);
-                    let result = infant.discover_discovery_service().await;
-                    // Should fail to connect (unreachable) but we used env, not fallback
-                    assert!(result.is_err());
-                    let err_str = result.unwrap_err().to_string();
-                    assert!(
-                        err_str.contains("env-priority-test")
-                            || err_str.contains("9999")
-                            || err_str.contains("unavailable"),
-                        "Expected env endpoint in error: {err_str}",
-                    );
-                });
-            },
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant
+            .discover_discovery_service_with(Some("http://env-priority-test.example:9999"))
+            .await;
+        // Should fail to connect (unreachable) but we used env, not fallback
+        assert!(result.is_err());
+        let err_str = result.unwrap_err().to_string();
+        assert!(
+            err_str.contains("env-priority-test")
+                || err_str.contains("9999")
+                || err_str.contains("unavailable"),
+            "Expected env endpoint in error: {err_str}",
         );
     }
 
-    #[test]
-    #[serial]
-    fn discover_discovery_service_fallback_chain_when_env_unset() {
+    #[tokio::test]
+    async fn discover_discovery_service_fallback_chain_when_env_unset() {
         // No env var -> DNS (None in test) -> mDNS (None) -> dev fallback -> connect fails
-        temp_env::with_var("DISCOVERY_ENDPOINT", None::<&str>, || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let infant = InfantDiscovery::new(vec!["test".to_string()]);
-                let result = infant.discover_discovery_service().await;
-                assert!(result.is_err());
-                let err = result.unwrap_err();
-                let err_str = err.to_string();
-                // Connection to localhost:8082 should fail (no server)
-                assert!(
-                    err_str.contains("unavailable")
-                        || err_str.contains("registry")
-                        || err_str.contains("localhost")
-                        || err_str.contains("8082")
-                        || err_str.contains("connection"),
-                    "Expected connection error from fallback: {err_str}",
-                );
-            });
-        });
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.discover_discovery_service_with(Some("")).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        let err_str = err.to_string();
+        // Connection to localhost:8082 should fail (no server)
+        assert!(
+            err_str.contains("unavailable")
+                || err_str.contains("registry")
+                || err_str.contains("localhost")
+                || err_str.contains("8082")
+                || err_str.contains("connection"),
+            "Expected connection error from fallback: {err_str}",
+        );
     }
 
     #[test]
@@ -600,12 +595,9 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn environment_discovery_empty_string_skipped() {
-        temp_env::with_var("DISCOVERY_ENDPOINT", Some(""), || {
-            let infant = InfantDiscovery::new(vec!["test".to_string()]);
-            let result = infant.try_environment_discovery();
-            assert!(result.is_none());
-        });
+        let infant = InfantDiscovery::new(vec!["test".to_string()]);
+        let result = infant.try_environment_discovery_with(Some(""));
+        assert!(result.is_none());
     }
 }

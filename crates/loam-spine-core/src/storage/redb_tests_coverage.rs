@@ -5,7 +5,7 @@
 use crate::entry::{Entry, SpineConfig};
 use crate::storage::{EntryStorage, RedbEntryStorage};
 use crate::types::{CertificateId, Did, SpineId};
-use serial_test::serial;
+
 
 fn create_test_certificate(owner: &Did, spine_id: SpineId) -> crate::certificate::Certificate {
     use crate::certificate::{Certificate, CertificateType, MintInfo};
@@ -33,7 +33,6 @@ fn create_test_certificate(owner: &Did, spine_id: SpineId) -> crate::certificate
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_list_certificates_with_malformed_key_skips_invalid() {
     use crate::storage::{CertificateStorage, RedbCertificateStorage};
     use redb::{Database, TableDefinition};
@@ -106,7 +105,6 @@ async fn redb_certificate_save_overwrite() {
 // ========================================================================
 
 #[tokio::test]
-#[serial]
 async fn redb_get_entries_for_spine_corrupted_entry_in_entries_table() {
     use redb::{Database, TableDefinition};
 
@@ -146,7 +144,6 @@ async fn redb_get_entries_for_spine_corrupted_entry_in_entries_table() {
 // ========================================================================
 
 #[tokio::test]
-#[serial]
 async fn redb_get_entries_for_spine_short_index_key_terminates() {
     use redb::{Database, TableDefinition};
 

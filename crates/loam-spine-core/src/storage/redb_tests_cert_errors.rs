@@ -16,7 +16,7 @@ use crate::storage::{
     RedbStorage, SpineStorage,
 };
 use crate::types::{CertificateId, Did, SpineId, Timestamp};
-use serial_test::serial;
+
 
 fn create_test_spine() -> Spine {
     let owner = Did::new("did:key:z6MkRedbOwner");
@@ -189,7 +189,6 @@ async fn redb_combined_flush_all_components() {
 // ========================================================================
 
 #[tokio::test]
-#[serial]
 async fn redb_get_spine_corrupted_data_returns_error() {
     use redb::{Database, TableDefinition};
 
@@ -220,7 +219,6 @@ async fn redb_get_spine_corrupted_data_returns_error() {
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_get_entry_corrupted_data_returns_error() {
     use redb::{Database, TableDefinition};
 
@@ -252,7 +250,6 @@ async fn redb_get_entry_corrupted_data_returns_error() {
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_get_certificate_corrupted_data_returns_error() {
     use redb::{Database, TableDefinition};
 
@@ -294,7 +291,6 @@ async fn redb_list_spines_skips_malformed_keys() {
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_list_spines_with_raw_malformed_keys_skips_invalid() {
     use redb::{Database, TableDefinition};
 
@@ -324,7 +320,6 @@ async fn redb_list_spines_with_raw_malformed_keys_skips_invalid() {
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_entry_index_missing_entry_skipped() {
     use redb::{Database, TableDefinition};
 

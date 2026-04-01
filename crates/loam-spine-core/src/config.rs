@@ -3,6 +3,7 @@
 //! LoamSpine configuration.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// Configuration for LoamSpine.
@@ -90,6 +91,10 @@ pub struct DiscoveryConfig {
     ///
     /// LoamSpine will attempt each method in order until successful.
     pub methods: Vec<DiscoveryMethod>,
+
+    /// Environment variable overrides for infant discovery (e.g. tests injecting `DISCOVERY_ENDPOINT`).
+    #[serde(default)]
+    pub env_overrides: HashMap<String, String>,
 }
 
 /// Heartbeat retry configuration.
@@ -170,6 +175,8 @@ impl Default for DiscoveryConfig {
                 DiscoveryMethod::LocalBinaries,
                 DiscoveryMethod::Fallback,
             ],
+
+            env_overrides: HashMap::new(),
         }
     }
 }

@@ -1,9 +1,10 @@
-# Local override: workspace is on a noexec mount (/mnt/4tb-work).
-# Build artifacts go to ~/.cargo-build/ on the exec-capable root filesystem.
-# Override with CARGO_TARGET_DIR env var for your machine.
+# Build configuration for LoamSpine.
 #
-# This path uses ~ expansion via shell; cargo resolves it at build time.
-# Contributors on different mounts can override via:
-#   CARGO_TARGET_DIR=/path/to/exec/target cargo build
-[build]
-target-dir = "/path/to/.cargo-build/loamSpine/target"
+# If your workspace is on a noexec mount (e.g. /mnt/4tb-work), override
+# the target directory via environment variable:
+#
+#   CARGO_TARGET_DIR=~/.cargo-build/loamSpine/target cargo build
+#
+# Or uncomment and edit the line below for a persistent local override:
+# [build]
+# target-dir = "/home/youruser/.cargo-build/loamSpine/target"

@@ -8,7 +8,7 @@ use crate::entry::{Entry, EntryType, SpineConfig};
 use crate::spine::Spine;
 use crate::storage::{EntryStorage, RedbEntryStorage, RedbSpineStorage, RedbStorage, SpineStorage};
 use crate::types::{Did, SpineId};
-use serial_test::serial;
+
 
 fn create_test_spine() -> Spine {
     let owner = Did::new("did:key:z6MkOwner");
@@ -176,7 +176,6 @@ async fn redb_combined_storage() {
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_storage_persistence() {
     let temp_dir =
         std::env::temp_dir().join(format!("loamspine-redb-test-{}", uuid::Uuid::now_v7()));
@@ -341,7 +340,6 @@ async fn redb_spine_delete() {
 // ========================================================================
 
 #[tokio::test]
-#[serial]
 async fn redb_open_with_new_directory() {
     let temp_dir =
         std::env::temp_dir().join(format!("loamspine-redb-newdir-{}", uuid::Uuid::now_v7()));
@@ -351,7 +349,6 @@ async fn redb_open_with_new_directory() {
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_open_with_nested_path() {
     let base = std::env::temp_dir().join(format!("loamspine-redb-nested-{}", uuid::Uuid::now_v7()));
     let temp_dir = base.join("a/b");
@@ -361,7 +358,6 @@ async fn redb_open_with_nested_path() {
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_storage_open_with_base_path() {
     let temp_dir =
         std::env::temp_dir().join(format!("loamspine-redb-base-{}", uuid::Uuid::now_v7()));
@@ -373,7 +369,6 @@ async fn redb_storage_open_with_base_path() {
 }
 
 #[tokio::test]
-#[serial]
 async fn redb_open_existing_dir_preserves_data() {
     let temp_dir =
         std::env::temp_dir().join(format!("loamspine-redb-existing-{}", uuid::Uuid::now_v7()));

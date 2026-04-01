@@ -7,6 +7,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.16] - 2026-04-01
+
+### Changed
+- **Inner/outer function pattern** for all env-dependent code paths — pure `resolve_*` / `_from` / `_with` inner functions with thin outer public APIs (`constants/network.rs`, `neural_api.rs`, infant discovery, `manifest.rs`, `cli_signer.rs`, `lifecycle.rs`).
+- **`CliSigner::discover_binary_from`**: Pure discovery with explicit `signer_path` / `bins_dir` parameters (no hidden env reads in the testable core).
+- **`DiscoveryConfig.env_overrides`**: `HashMap<String, String>` for test config injection without process env mutation.
+- **Integration tests**: Dynamic port allocation via **`portpicker`** to avoid collisions under parallel runs.
+- **Deterministic async timing**: Eight test sites now use `tokio::time::pause()` + `advance()` instead of wall-clock sleeps.
+
+### Removed
+- **`serial_test`** dependency — zero `#[serial]` attributes in the codebase (was 121).
+- **`temp-env`** dependency — env injection for tests uses pure functions and `env_overrides` instead.
+
+### Metrics
+- Tests: 1,397 → **1,270** (consolidated; trivial env-read tests removed)
+- `#[serial]`: **0** (was 121)
+- Full workspace test suite: **~3s** (all concurrent)
+- Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
+
 ## [0.9.15] - 2026-03-31
 
 ### Fixed
@@ -1005,6 +1024,7 @@ spine.append(entry)?;
 
 ---
 
+[0.9.16]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.15...v0.9.16
 [0.9.15]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.14...v0.9.15
 [0.9.14]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.13...v0.9.14
 [0.9.13]: https://github.com/ecoPrimals/loamSpine/compare/v0.9.12...v0.9.13

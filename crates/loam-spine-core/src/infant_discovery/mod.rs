@@ -92,6 +92,9 @@ pub struct DiscoveryConfig {
     pub retry_attempts: u32,
     /// Timeout for each discovery attempt
     pub discovery_timeout: Duration,
+    /// Environment variable overrides (for config-injection in tests).
+    /// When a key exists here it is returned instead of `std::env::var`.
+    pub env_overrides: HashMap<String, String>,
 }
 
 impl Default for DiscoveryConfig {
@@ -111,30 +114,35 @@ impl Default for DiscoveryConfig {
             cache_ttl_secs: 300,
             retry_attempts: 3,
             discovery_timeout: Duration::from_secs(5),
+            env_overrides: HashMap::new(),
         }
     }
 }
 
 impl DiscoveryConfig {
-    /// Create configuration from environment or defaults
+    /// Create configuration from environment or defaults.
     #[must_use]
     pub fn from_env_or_default() -> Self {
-        let mut config = Self::default();
+        Self::from_explicit(
+            env::var("SERVICE_REGISTRY_URL").ok().as_deref(),
+            env::var("DISCOVERY_CACHE_TTL")
+                .ok()
+                .and_then(|s| s.parse().ok()),
+        )
+    }
 
-        // Check for service registry URL
-        if let Ok(registry_url) = env::var("SERVICE_REGISTRY_URL") {
+    /// Create configuration from explicit values (pure, no env reads).
+    #[must_use]
+    pub fn from_explicit(registry_url: Option<&str>, cache_ttl: Option<u64>) -> Self {
+        let mut config = Self::default();
+        if let Some(url) = registry_url {
             config
                 .methods
-                .push(DiscoveryProtocol::ServiceRegistry(registry_url));
+                .push(DiscoveryProtocol::ServiceRegistry(url.to_string()));
         }
-
-        // Allow overriding cache TTL
-        if let Ok(ttl_str) = env::var("DISCOVERY_CACHE_TTL")
-            && let Ok(ttl) = ttl_str.parse::<u64>()
-        {
+        if let Some(ttl) = cache_ttl {
             config.cache_ttl_secs = ttl;
         }
-
         config
     }
 }
@@ -186,6 +194,15 @@ impl InfantDiscovery {
     #[must_use]
     pub fn own_capabilities(&self) -> &[LoamSpineCapability] {
         &self.own_capabilities
+    }
+
+    /// Look up an environment variable, preferring `env_overrides` when present.
+    fn env_lookup(&self, key: &str) -> Option<String> {
+        self.config
+            .env_overrides
+            .get(key)
+            .cloned()
+            .or_else(|| env::var(key).ok())
     }
 
     /// Discover services that provide a capability
@@ -304,7 +321,7 @@ impl InfantDiscovery {
             capability.to_uppercase().replace('-', "_")
         );
 
-        if let Ok(endpoint) = env::var(&capability_key) {
+        if let Some(endpoint) = self.env_lookup(&capability_key) {
             debug!(
                 "Found capability endpoint: {} = {}",
                 capability_key, endpoint
@@ -334,7 +351,7 @@ impl InfantDiscovery {
                 .replace("CONTENT_", "")
         );
 
-        if let Ok(endpoint) = env::var(&service_key) {
+        if let Some(endpoint) = self.env_lookup(&service_key) {
             debug!("Found service URL: {service_key} = {endpoint}");
 
             services.push(DiscoveredService {

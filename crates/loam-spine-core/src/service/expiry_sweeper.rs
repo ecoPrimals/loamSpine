@@ -157,11 +157,47 @@ impl ExpirySweeperHandle {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "tests use unwrap/expect for conciseness"
+)]
 mod tests {
     use super::*;
     use crate::certificate::{CertificateType, LoanTerms};
-    use crate::types::Did;
+    use crate::types::{CertificateId, Did, Timestamp};
+
+    /// Loan expiry uses `Timestamp::now()` (wall clock). Tokio's paused clock does not advance it.
+    fn wait_until_wall_clock_past_expiry(expires_at: Timestamp) {
+        while Timestamp::now() <= expires_at {
+            std::thread::sleep(std::time::Duration::from_micros(50));
+        }
+    }
+
+    async fn wait_until_all_loans_expired_by_wall_clock(
+        service: &LoamSpineService,
+        cert_ids: &[CertificateId],
+    ) {
+        loop {
+            let mut all_expired = true;
+            for &id in cert_ids {
+                let cert = service.get_certificate(id).await.expect("certificate");
+                let loan = cert.active_loan.as_ref().unwrap();
+                let Some(expires_at) = loan.expires_at else {
+                    all_expired = false;
+                    break;
+                };
+                if Timestamp::now() <= expires_at {
+                    all_expired = false;
+                    break;
+                }
+            }
+            if all_expired {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_micros(50));
+        }
+    }
 
     #[tokio::test]
     async fn sweep_once_no_loans() {
@@ -193,14 +229,22 @@ mod tests {
             .await
             .unwrap();
 
-        let terms = LoanTerms::new().with_duration(1).with_auto_return(true);
+        let terms = LoanTerms::new().with_duration(0).with_auto_return(true);
 
         service
             .loan_certificate(cert_id, owner.clone(), borrower.clone(), terms)
             .await
             .unwrap();
 
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        let expires_at = service
+            .get_certificate(cert_id)
+            .await
+            .expect("certificate")
+            .active_loan
+            .as_ref()
+            .and_then(|l| l.expires_at)
+            .expect("expires_at");
+        wait_until_wall_clock_past_expiry(expires_at);
 
         let sweeper = ExpirySweeper::new(service.clone(), ExpirySweeperConfig::default());
         let count = sweeper.sweep_once().await.unwrap();
@@ -251,8 +295,6 @@ mod tests {
             .loan_certificate(cert_id, owner.clone(), borrower.clone(), terms)
             .await
             .unwrap();
-
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
         let sweeper = ExpirySweeper::new(service.clone(), ExpirySweeperConfig::default());
         let count = sweeper.sweep_once().await.unwrap();
@@ -323,7 +365,7 @@ mod tests {
             .await
             .unwrap();
 
-        let terms = LoanTerms::new().with_duration(1).with_auto_return(true);
+        let terms = LoanTerms::new().with_duration(0).with_auto_return(true);
 
         service
             .loan_certificate(cert1, owner.clone(), borrower.clone(), terms.clone())
@@ -338,7 +380,7 @@ mod tests {
             .await
             .unwrap();
 
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        wait_until_all_loans_expired_by_wall_clock(&service, &[cert1, cert2, cert3]).await;
 
         let sweeper = ExpirySweeper::new(service.clone(), ExpirySweeperConfig::default());
         let count = sweeper.sweep_once().await.unwrap();
@@ -349,7 +391,7 @@ mod tests {
         assert!(!service.get_certificate(cert3).await.unwrap().is_loaned());
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn expiry_sweeper_spawn_and_shutdown() {
         let service = LoamSpineService::new();
         let config = ExpirySweeperConfig::default().with_interval(60);
@@ -358,6 +400,6 @@ mod tests {
         let handle = sweeper.spawn();
         handle.stop();
 
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        tokio::time::advance(std::time::Duration::from_millis(100)).await;
     }
 }

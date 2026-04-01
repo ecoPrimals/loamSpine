@@ -40,27 +40,31 @@ pub const CAPABILITIES: &[&str] = &[
     "capability.list",
 ];
 
-/// Resolve the socket path for LoamSpine's IPC endpoint.
+/// Resolve the socket path from explicit config values (pure, no env reads).
 ///
-/// 5-tier resolution order:
-/// 1. `LOAMSPINE_SOCKET` environment variable (explicit override)
-/// 2. `$XDG_RUNTIME_DIR/biomeos/loamspine-{family_id}.sock`
-/// 3. `/run/user/{uid}/biomeos/loamspine-{family_id}.sock` (Linux)
-/// 4. `{temp_dir}/biomeos/loamspine-{family_id}.sock`
+/// Resolution order:
+/// 1. `socket_override` (from `LOAMSPINE_SOCKET`)
+/// 2. `runtime_dir/biomeos/loamspine-{family_id}.sock`
+/// 3. `/run/user/{uid}/biomeos/...` (Linux)
+/// 4. `temp_dir/biomeos/...`
 #[must_use]
-pub fn resolve_socket_path() -> PathBuf {
-    if let Ok(s) = std::env::var("LOAMSPINE_SOCKET") {
+pub fn resolve_socket_path_with(
+    socket_override: Option<&str>,
+    family_id: Option<&str>,
+    runtime_dir: Option<&str>,
+) -> PathBuf {
+    if let Some(s) = socket_override {
         return PathBuf::from(s);
     }
-    let sock_name = match std::env::var("BIOMEOS_FAMILY_ID") {
-        Ok(family_id) if !family_id.is_empty() => {
-            format!("{}-{family_id}.sock", crate::primal_names::SELF_ID)
+    let sock_name = match family_id {
+        Some(fid) if !fid.is_empty() => {
+            format!("{}-{fid}.sock", crate::primal_names::SELF_ID)
         }
         _ => format!("{}.sock", crate::primal_names::SELF_ID),
     };
 
-    if let Ok(runtime_dir) = std::env::var("XDG_RUNTIME_DIR") {
-        return PathBuf::from(runtime_dir)
+    if let Some(rd) = runtime_dir {
+        return PathBuf::from(rd)
             .join(crate::primal_names::BIOMEOS_SOCKET_DIR)
             .join(&sock_name);
     }
@@ -75,16 +79,40 @@ pub fn resolve_socket_path() -> PathBuf {
         .join(sock_name)
 }
 
-/// Resolve the NeuralAPI socket path for connecting to biomeOS.
-fn resolve_neural_api_socket() -> Option<PathBuf> {
-    if let Ok(s) = std::env::var("BIOMEOS_NEURAL_API_SOCKET") {
+/// Resolve the socket path for LoamSpine's IPC endpoint (reads env).
+#[must_use]
+pub fn resolve_socket_path() -> PathBuf {
+    resolve_socket_path_with(
+        std::env::var("LOAMSPINE_SOCKET").ok().as_deref(),
+        std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref(),
+        std::env::var("XDG_RUNTIME_DIR").ok().as_deref(),
+    )
+}
+
+/// Resolve the NeuralAPI socket from explicit config values (pure, no env reads).
+#[must_use]
+pub fn resolve_neural_api_socket_with(
+    neural_socket: Option<&str>,
+    runtime_dir: Option<&str>,
+    family_id: Option<&str>,
+) -> Option<PathBuf> {
+    if let Some(s) = neural_socket {
         return Some(PathBuf::from(s));
     }
-    let runtime_dir = std::env::var("XDG_RUNTIME_DIR").ok()?;
-    let family_id = std::env::var("BIOMEOS_FAMILY_ID").unwrap_or_else(|_| "default".to_string());
+    let rd = runtime_dir?;
+    let fid = family_id.unwrap_or("default");
     Some(PathBuf::from(format!(
-        "{runtime_dir}/biomeos/neural-api-{family_id}.sock"
+        "{rd}/biomeos/neural-api-{fid}.sock"
     )))
+}
+
+/// Resolve the NeuralAPI socket path for connecting to biomeOS (reads env).
+fn resolve_neural_api_socket() -> Option<PathBuf> {
+    resolve_neural_api_socket_with(
+        std::env::var("BIOMEOS_NEURAL_API_SOCKET").ok().as_deref(),
+        std::env::var("XDG_RUNTIME_DIR").ok().as_deref(),
+        std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref(),
+    )
 }
 
 /// Register LoamSpine with biomeOS's NeuralAPI.
@@ -109,6 +137,14 @@ pub async fn register_with_neural_api() -> crate::error::LoamSpineResult<bool> {
     }
 
     let our_socket = resolve_socket_path();
+    register_at_socket(&socket_path, &our_socket).await
+}
+
+/// Inner registration logic (pure — no env reads, testable concurrently).
+pub(crate) async fn register_at_socket(
+    socket_path: &std::path::Path,
+    our_socket: &std::path::Path,
+) -> crate::error::LoamSpineResult<bool> {
     let pid = std::process::id();
     let capabilities: &[&str] = CAPABILITIES;
 
@@ -223,7 +259,13 @@ pub async fn deregister_from_neural_api() -> crate::error::LoamSpineResult<()> {
         tracing::debug!("NeuralAPI socket not found, skipping deregister");
         return Ok(());
     }
+    deregister_at_socket(&socket_path).await
+}
 
+/// Inner deregistration logic (pure — no env reads, testable concurrently).
+pub(crate) async fn deregister_at_socket(
+    socket_path: &std::path::Path,
+) -> crate::error::LoamSpineResult<()> {
     let params = serde_json::json!({ "name": crate::primal_names::SELF_ID });
     let request = serde_json::json!({
         "jsonrpc": "2.0",

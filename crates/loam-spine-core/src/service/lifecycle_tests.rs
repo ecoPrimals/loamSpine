@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use super::*;
-use serial_test::serial;
 
 #[test]
 fn lifecycle_manager_creation() {
@@ -43,23 +42,20 @@ fn service_state_subscribe() {
 }
 
 #[test]
-#[serial]
 fn lifecycle_transitions_through_states() {
-    temp_env::with_var_unset("DISCOVERY_ENDPOINT", || {
-        tokio::runtime::Runtime::new().unwrap().block_on(async {
-            let service = LoamSpineService::new();
-            let mut config = LoamSpineConfig::default();
-            config.discovery.discovery_enabled = false;
-            let mut manager = LifecycleManager::new(service, config);
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = false;
+        let mut manager = LifecycleManager::new(service, config);
 
-            assert_eq!(manager.state(), ServiceState::Stopped);
+        assert_eq!(manager.state(), ServiceState::Stopped);
 
-            manager.start().await.unwrap();
-            assert_eq!(manager.state(), ServiceState::Running);
+        manager.start().await.unwrap();
+        assert_eq!(manager.state(), ServiceState::Running);
 
-            manager.stop().await.unwrap();
-            assert_eq!(manager.state(), ServiceState::Stopped);
-        });
+        manager.stop().await.unwrap();
+        assert_eq!(manager.state(), ServiceState::Stopped);
     });
 }
 
@@ -370,22 +366,23 @@ async fn send_heartbeat_with_retry_success_immediate() {
 }
 
 #[test]
-#[serial]
 fn lifecycle_start_with_no_endpoint_clears_env() {
-    temp_env::with_var("DISCOVERY_ENDPOINT", None::<&str>, || {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let service = LoamSpineService::new();
-            let mut config = LoamSpineConfig::default();
-            config.discovery.discovery_enabled = true;
-            config.discovery.discovery_endpoint = None;
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let service = LoamSpineService::new();
+        let mut config = LoamSpineConfig::default();
+        config.discovery.discovery_enabled = true;
+        config.discovery.discovery_endpoint = None;
+        config.discovery.env_overrides.insert(
+            "DISCOVERY_ENDPOINT".to_string(),
+            String::new(),
+        );
 
-            let mut manager = LifecycleManager::new(service, config);
-            let result = manager.start().await;
+        let mut manager = LifecycleManager::new(service, config);
+        let result = manager.start().await;
 
-            assert!(result.is_ok());
-            assert!(manager.discovery_client.is_none());
-        });
+        assert!(result.is_ok());
+        assert!(manager.discovery_client.is_none());
     });
 }
 
@@ -548,7 +545,7 @@ async fn advertise_capabilities_propagates_error() {
     assert!(result.is_err());
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn heartbeat_task_exits_on_shutdown_signal() {
     let service = LoamSpineService::new();
     let mut config = LoamSpineConfig::default();
@@ -563,7 +560,7 @@ async fn heartbeat_task_exits_on_shutdown_signal() {
     assert!(manager.heartbeat_task.is_some());
 
     manager.shutdown.store(true, Ordering::Relaxed);
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    tokio::time::advance(Duration::from_secs(2)).await;
 
     if let Some(task) = manager.heartbeat_task.take() {
         let result = tokio::time::timeout(Duration::from_secs(5), task).await;
@@ -571,7 +568,7 @@ async fn heartbeat_task_exits_on_shutdown_signal() {
     }
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn heartbeat_task_marks_degraded_after_threshold() {
     let service = LoamSpineService::new();
     let mut config = LoamSpineConfig::default();
@@ -589,7 +586,7 @@ async fn heartbeat_task_marks_degraded_after_threshold() {
     let client = crate::discovery_client::DiscoveryClient::for_testing("http://127.0.0.1:1");
     manager.start_heartbeat_for_testing(client, 1);
 
-    tokio::time::sleep(Duration::from_secs(5)).await;
+    tokio::time::advance(Duration::from_secs(5)).await;
 
     if let Some(task) = manager.heartbeat_task.take() {
         let result = tokio::time::timeout(Duration::from_secs(10), task).await;
@@ -600,7 +597,7 @@ async fn heartbeat_task_marks_degraded_after_threshold() {
     }
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn heartbeat_task_recovers_on_success() {
     let service = LoamSpineService::new();
     let mut config = LoamSpineConfig::default();
@@ -612,7 +609,7 @@ async fn heartbeat_task_recovers_on_success() {
     let client = crate::discovery_client::DiscoveryClient::for_testing_success("http://test:8082");
     manager.start_heartbeat_for_testing(client, 1);
 
-    tokio::time::sleep(Duration::from_secs(3)).await;
+    tokio::time::advance(Duration::from_secs(3)).await;
 
     manager.stop().await.expect("stop");
 }

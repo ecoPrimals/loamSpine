@@ -75,7 +75,7 @@ impl LoamSpineRpcService {
         let status = HealthStatus::Healthy;
         let report = if request.include_details {
             Some(HealthReport {
-                name: "LoamSpine".to_string(),
+                name: loam_spine_core::primal_names::SELF_ID.to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 status: status.clone(),
                 uptime_secs: Some(0),

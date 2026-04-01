@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Network configuration helpers with environment-first discovery
+//! Network configuration helpers with environment-first discovery.
 //!
-//! This module provides functions to resolve network configuration at runtime,
-//! following the "infant discovery" pattern where all configuration is
-//! discovered from the environment rather than hardcoded.
+//! Each public function has a pure inner variant (prefixed `resolve_`) that
+//! accepts pre-fetched values instead of reading `std::env::var` directly.
+//! The outer wrapper reads env once and delegates.  Tests exercise the inner
+//! functions for concurrency safety.
 
 use std::borrow::Cow;
 use std::env;
@@ -12,137 +13,73 @@ use tracing::{debug, warn};
 
 use crate::constants::{DEFAULT_JSONRPC_PORT, DEFAULT_TARPC_PORT, OS_ASSIGNED_PORT};
 
-/// Get JSON-RPC port from environment or default
+// ──────────────────────────────────────────────────────────────────────────────
+// Inner pure functions (no env reads)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Resolve JSON-RPC port from optional environment values.
 ///
-/// Priority order:
-/// 1. `LOAMSPINE_JSONRPC_PORT` environment variable
-/// 2. `JSONRPC_PORT` environment variable (generic)
-/// 3. Default development port (8080)
-///
-/// # Examples
-///
-/// ```rust
-/// use loam_spine_core::constants::network::jsonrpc_port;
-///
-/// // Set via environment
-/// unsafe { std::env::set_var("LOAMSPINE_JSONRPC_PORT", "8888"); }
-/// assert_eq!(jsonrpc_port(), 8888);
-///
-/// // Falls back to default
-/// unsafe { std::env::remove_var("LOAMSPINE_JSONRPC_PORT"); }
-/// unsafe { std::env::remove_var("JSONRPC_PORT"); }
-/// assert_eq!(jsonrpc_port(), 8080);
-/// ```
-pub fn jsonrpc_port() -> u16 {
-    // Try LoamSpine-specific env var first
-    if let Ok(port_str) = env::var("LOAMSPINE_JSONRPC_PORT") {
+/// Priority: `loamspine_port` > `generic_port` > [`DEFAULT_JSONRPC_PORT`].
+/// Invalid values fall through to the next tier.
+#[must_use]
+pub fn resolve_jsonrpc_port(loamspine_port: Option<&str>, generic_port: Option<&str>) -> u16 {
+    if let Some(port_str) = loamspine_port {
         if let Ok(port) = port_str.parse::<u16>() {
-            debug!("Using JSON-RPC port from LOAMSPINE_JSONRPC_PORT: {}", port);
+            debug!("Using JSON-RPC port from LOAMSPINE_JSONRPC_PORT: {port}");
             return port;
         }
-        warn!(
-            "Invalid LOAMSPINE_JSONRPC_PORT value: {}, using default",
-            port_str
-        );
+        warn!("Invalid LOAMSPINE_JSONRPC_PORT value: {port_str}, using default");
     }
-
-    // Try generic env var
-    if let Ok(port_str) = env::var("JSONRPC_PORT") {
+    if let Some(port_str) = generic_port {
         if let Ok(port) = port_str.parse::<u16>() {
-            debug!("Using JSON-RPC port from JSONRPC_PORT: {}", port);
+            debug!("Using JSON-RPC port from JSONRPC_PORT: {port}");
             return port;
         }
-        warn!("Invalid JSONRPC_PORT value: {}, using default", port_str);
+        warn!("Invalid JSONRPC_PORT value: {port_str}, using default");
     }
-
-    // Development default
-    debug!("Using default JSON-RPC port: {}", DEFAULT_JSONRPC_PORT);
+    debug!("Using default JSON-RPC port: {DEFAULT_JSONRPC_PORT}");
     DEFAULT_JSONRPC_PORT
 }
 
-/// Get tarpc port from environment or default
+/// Resolve tarpc port from optional environment values.
 ///
-/// Priority order:
-/// 1. `LOAMSPINE_TARPC_PORT` environment variable
-/// 2. `TARPC_PORT` environment variable (generic)
-/// 3. Default development port (9001)
-///
-/// # Examples
-///
-/// ```rust
-/// use loam_spine_core::constants::network::tarpc_port;
-///
-/// // Set via environment
-/// unsafe { std::env::set_var("LOAMSPINE_TARPC_PORT", "9999"); }
-/// assert_eq!(tarpc_port(), 9999);
-///
-/// // Falls back to default
-/// unsafe { std::env::remove_var("LOAMSPINE_TARPC_PORT"); }
-/// unsafe { std::env::remove_var("TARPC_PORT"); }
-/// assert_eq!(tarpc_port(), 9001);
-/// ```
-pub fn tarpc_port() -> u16 {
-    // Try LoamSpine-specific env var first
-    if let Ok(port_str) = env::var("LOAMSPINE_TARPC_PORT") {
+/// Priority: `loamspine_port` > `generic_port` > [`DEFAULT_TARPC_PORT`].
+#[must_use]
+pub fn resolve_tarpc_port(loamspine_port: Option<&str>, generic_port: Option<&str>) -> u16 {
+    if let Some(port_str) = loamspine_port {
         if let Ok(port) = port_str.parse::<u16>() {
-            debug!("Using tarpc port from LOAMSPINE_TARPC_PORT: {}", port);
+            debug!("Using tarpc port from LOAMSPINE_TARPC_PORT: {port}");
             return port;
         }
-        warn!(
-            "Invalid LOAMSPINE_TARPC_PORT value: {}, using default",
-            port_str
-        );
+        warn!("Invalid LOAMSPINE_TARPC_PORT value: {port_str}, using default");
     }
-
-    // Try generic env var
-    if let Ok(port_str) = env::var("TARPC_PORT") {
+    if let Some(port_str) = generic_port {
         if let Ok(port) = port_str.parse::<u16>() {
-            debug!("Using tarpc port from TARPC_PORT: {}", port);
+            debug!("Using tarpc port from TARPC_PORT: {port}");
             return port;
         }
-        warn!("Invalid TARPC_PORT value: {}, using default", port_str);
+        warn!("Invalid TARPC_PORT value: {port_str}, using default");
     }
-
-    // Development default
-    debug!("Using default tarpc port: {}", DEFAULT_TARPC_PORT);
+    debug!("Using default tarpc port: {DEFAULT_TARPC_PORT}");
     DEFAULT_TARPC_PORT
 }
 
-/// Get bind address from environment or default
+/// Resolve bind address from optional environment values.
 ///
-/// Priority order:
-/// 1. `LOAMSPINE_BIND_ADDRESS` environment variable
-/// 2. `BIND_ADDRESS` environment variable (generic)
-/// 3. Default: "0.0.0.0" (all interfaces)
-///
-/// # Examples
-///
-/// ```rust
-/// use loam_spine_core::constants::network::bind_address;
-///
-/// // Set specific interface
-/// unsafe { std::env::set_var("LOAMSPINE_BIND_ADDRESS", "127.0.0.1"); }
-/// assert_eq!(bind_address(), "127.0.0.1");
-///
-/// // Default to all interfaces
-/// unsafe { std::env::remove_var("LOAMSPINE_BIND_ADDRESS"); }
-/// unsafe { std::env::remove_var("BIND_ADDRESS"); }
-/// assert_eq!(bind_address(), "0.0.0.0");
-/// ```
-pub fn bind_address() -> Cow<'static, str> {
-    // Try LoamSpine-specific env var first
-    if let Ok(addr) = env::var("LOAMSPINE_BIND_ADDRESS") {
-        debug!("Using bind address from LOAMSPINE_BIND_ADDRESS: {}", addr);
-        return Cow::Owned(addr);
+/// Priority: `loamspine_addr` > `generic_addr` > `"0.0.0.0"`.
+#[must_use]
+pub fn resolve_bind_address(
+    loamspine_addr: Option<&str>,
+    generic_addr: Option<&str>,
+) -> Cow<'static, str> {
+    if let Some(addr) = loamspine_addr {
+        debug!("Using bind address from LOAMSPINE_BIND_ADDRESS: {addr}");
+        return Cow::Owned(addr.to_owned());
     }
-
-    // Try generic env var
-    if let Ok(addr) = env::var("BIND_ADDRESS") {
-        debug!("Using bind address from BIND_ADDRESS: {}", addr);
-        return Cow::Owned(addr);
+    if let Some(addr) = generic_addr {
+        debug!("Using bind address from BIND_ADDRESS: {addr}");
+        return Cow::Owned(addr.to_owned());
     }
-
-    // Default to all interfaces (zero-copy: borrow static constant)
     debug!(
         "Using default bind address: {}",
         crate::constants::BIND_ALL_IPV4
@@ -150,90 +87,119 @@ pub fn bind_address() -> Cow<'static, str> {
     Cow::Borrowed(crate::constants::BIND_ALL_IPV4)
 }
 
-/// Check if we should use OS-assigned ports (recommended for production)
+/// Resolve whether OS-assigned ports should be used.
 ///
-/// Returns `true` if:
-/// - `USE_OS_ASSIGNED_PORTS=true` environment variable is set, or
-/// - `LOAMSPINE_OS_PORTS=true` environment variable is set
-///
-/// When true, services should bind to port 0 and let the OS assign ports.
-///
-/// # Examples
-///
-/// ```rust
-/// use loam_spine_core::constants::network::{use_os_assigned_ports, tarpc_port};
-///
-/// unsafe { std::env::set_var("USE_OS_ASSIGNED_PORTS", "true"); }
-/// assert!(use_os_assigned_ports());
-///
-/// // In application code
-/// let port = if use_os_assigned_ports() {
-///     0  // OS assigns port
-/// } else {
-///     tarpc_port()  // Use configured or default port
-/// };
-/// ```
+/// Returns `true` when either input is a truthy string (`"true"`, `"1"`, `"yes"`).
 #[must_use]
-pub fn use_os_assigned_ports() -> bool {
-    env::var("USE_OS_ASSIGNED_PORTS")
-        .or_else(|_| env::var("LOAMSPINE_OS_PORTS"))
-        .map(|v| v.to_lowercase() == "true" || v == "1" || v.to_lowercase() == "yes")
-        .unwrap_or(false)
+pub fn resolve_use_os_assigned_ports(use_os: Option<&str>, loamspine_os: Option<&str>) -> bool {
+    fn is_truthy(v: &str) -> bool {
+        let low = v.to_lowercase();
+        low == "true" || v == "1" || low == "yes"
+    }
+    use_os.or(loamspine_os).is_some_and(is_truthy)
 }
 
-/// Get the actual port to bind to, considering OS assignment preference
-///
-/// This is the recommended function to use when starting services.
-///
-/// # Examples
-///
-/// ```rust
-/// use loam_spine_core::constants::network::actual_jsonrpc_port;
-///
-/// // OS assignment enabled
-/// unsafe { std::env::set_var("USE_OS_ASSIGNED_PORTS", "true"); }
-/// assert_eq!(actual_jsonrpc_port(), 0);
-///
-/// // OS assignment disabled, uses configured port
-/// unsafe { std::env::remove_var("USE_OS_ASSIGNED_PORTS"); }
-/// unsafe { std::env::set_var("LOAMSPINE_JSONRPC_PORT", "8888"); }
-/// assert_eq!(actual_jsonrpc_port(), 8888);
-/// ```
-pub fn actual_jsonrpc_port() -> u16 {
-    if use_os_assigned_ports() {
+/// Resolve actual JSON-RPC port considering OS assignment preference.
+#[must_use]
+pub fn resolve_actual_jsonrpc_port(os_assigned: bool, port: u16) -> u16 {
+    if os_assigned {
         debug!("Using OS-assigned port for JSON-RPC");
         OS_ASSIGNED_PORT
     } else {
-        jsonrpc_port()
+        port
     }
 }
 
-/// Get the actual tarpc port to bind to, considering OS assignment preference
-///
-/// # Examples
-///
-/// ```rust
-/// use loam_spine_core::constants::network::actual_tarpc_port;
-///
-/// // OS assignment enabled
-/// unsafe { std::env::set_var("USE_OS_ASSIGNED_PORTS", "true"); }
-/// assert_eq!(actual_tarpc_port(), 0);
-///
-/// // OS assignment disabled, uses configured port
-/// unsafe { std::env::remove_var("USE_OS_ASSIGNED_PORTS"); }
-/// unsafe { std::env::set_var("LOAMSPINE_TARPC_PORT", "9999"); }
-/// assert_eq!(actual_tarpc_port(), 9999);
-/// ```
-pub fn actual_tarpc_port() -> u16 {
-    if use_os_assigned_ports() {
+/// Resolve actual tarpc port considering OS assignment preference.
+#[must_use]
+pub fn resolve_actual_tarpc_port(os_assigned: bool, port: u16) -> u16 {
+    if os_assigned {
         debug!("Using OS-assigned port for tarpc");
         OS_ASSIGNED_PORT
     } else {
-        tarpc_port()
+        port
     }
 }
 
-/// Build a complete endpoint URL from parts
+/// Resolve the biomeos socket base directory from an optional runtime dir.
+///
+/// 3-tier resolution:
+/// 1. `runtime_dir` (from `$XDG_RUNTIME_DIR`)
+/// 2. `/run/user/{uid}/biomeos/` (Linux, UID from `/proc/self/status`)
+/// 3. `temp_dir/biomeos/`
+#[must_use]
+pub fn resolve_socket_base_dir_with(runtime_dir: Option<&str>) -> std::path::PathBuf {
+    if let Some(rd) = runtime_dir {
+        return std::path::PathBuf::from(format!("{rd}/biomeos"));
+    }
+    #[cfg(target_os = "linux")]
+    if let Some(path) = linux_run_user_biomeos() {
+        return path;
+    }
+    std::env::temp_dir().join("biomeos")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Outer wrappers (read env, delegate to pure functions)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Get JSON-RPC port from environment or default.
+///
+/// Priority: `LOAMSPINE_JSONRPC_PORT` > `JSONRPC_PORT` > default (8080).
+#[must_use]
+pub fn jsonrpc_port() -> u16 {
+    resolve_jsonrpc_port(
+        env::var("LOAMSPINE_JSONRPC_PORT").ok().as_deref(),
+        env::var("JSONRPC_PORT").ok().as_deref(),
+    )
+}
+
+/// Get tarpc port from environment or default.
+///
+/// Priority: `LOAMSPINE_TARPC_PORT` > `TARPC_PORT` > default (9001).
+#[must_use]
+pub fn tarpc_port() -> u16 {
+    resolve_tarpc_port(
+        env::var("LOAMSPINE_TARPC_PORT").ok().as_deref(),
+        env::var("TARPC_PORT").ok().as_deref(),
+    )
+}
+
+/// Get bind address from environment or default.
+///
+/// Priority: `LOAMSPINE_BIND_ADDRESS` > `BIND_ADDRESS` > `"0.0.0.0"`.
+#[must_use]
+pub fn bind_address() -> Cow<'static, str> {
+    resolve_bind_address(
+        env::var("LOAMSPINE_BIND_ADDRESS").ok().as_deref(),
+        env::var("BIND_ADDRESS").ok().as_deref(),
+    )
+}
+
+/// Check if we should use OS-assigned ports.
+///
+/// Returns `true` if `USE_OS_ASSIGNED_PORTS` or `LOAMSPINE_OS_PORTS` is truthy.
+#[must_use]
+pub fn use_os_assigned_ports() -> bool {
+    resolve_use_os_assigned_ports(
+        env::var("USE_OS_ASSIGNED_PORTS").ok().as_deref(),
+        env::var("LOAMSPINE_OS_PORTS").ok().as_deref(),
+    )
+}
+
+/// Get the actual JSON-RPC port to bind to, considering OS assignment.
+#[must_use]
+pub fn actual_jsonrpc_port() -> u16 {
+    resolve_actual_jsonrpc_port(use_os_assigned_ports(), jsonrpc_port())
+}
+
+/// Get the actual tarpc port to bind to, considering OS assignment.
+#[must_use]
+pub fn actual_tarpc_port() -> u16 {
+    resolve_actual_tarpc_port(use_os_assigned_ports(), tarpc_port())
+}
+
+/// Build a complete endpoint URL from parts.
 ///
 /// # Examples
 ///
@@ -260,9 +226,8 @@ pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -
 
 /// Build the environment variable name for a primal's socket path.
 ///
-/// Follows the ecosystem convention from sweetGrass: `{PRIMAL}_SOCKET`
-/// where `{PRIMAL}` is the uppercased primal name with hyphens replaced
-/// by underscores (e.g., `"rhizoCrypt"` → `"RHIZOCRYPT_SOCKET"`).
+/// Follows: `{PRIMAL}_SOCKET` where `{PRIMAL}` is uppercased with hyphens
+/// replaced by underscores.
 ///
 /// # Examples
 ///
@@ -280,8 +245,6 @@ pub fn socket_env_var(primal_name: &str) -> String {
 
 /// Build the environment variable name for a primal's address.
 ///
-/// Follows the ecosystem convention: `{PRIMAL}_ADDRESS` for TCP endpoints.
-///
 /// # Examples
 ///
 /// ```rust
@@ -295,6 +258,23 @@ pub fn address_env_var(primal_name: &str) -> String {
     format!("{}_ADDRESS", primal_name.to_uppercase().replace('-', "_"))
 }
 
+/// Resolve a primal's socket path using an optional env override, then
+/// falling back to the standard biomeos layout.
+///
+/// Pure inner: accepts the override value directly.
+#[must_use]
+pub fn resolve_primal_socket_with(
+    env_override: Option<&str>,
+    primal: &str,
+    family_id: &str,
+) -> std::path::PathBuf {
+    if let Some(path) = env_override {
+        debug!("Using {primal} socket from env override: {path}");
+        return std::path::PathBuf::from(path);
+    }
+    resolve_primal_socket(primal, family_id)
+}
+
 /// Resolve a primal's socket path using the environment override pattern.
 ///
 /// Checks `{PRIMAL}_SOCKET` env var first, then falls back to the
@@ -302,11 +282,7 @@ pub fn address_env_var(primal_name: &str) -> String {
 #[must_use]
 pub fn resolve_primal_socket_with_env(primal: &str, family_id: &str) -> std::path::PathBuf {
     let env_key = socket_env_var(primal);
-    if let Ok(path) = env::var(&env_key) {
-        debug!("Using {primal} socket from {env_key}: {path}");
-        return std::path::PathBuf::from(path);
-    }
-    resolve_primal_socket(primal, family_id)
+    resolve_primal_socket_with(env::var(&env_key).ok().as_deref(), primal, family_id)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -322,37 +298,58 @@ pub enum IpcProtocol {
     Tarpc,
 }
 
-/// Resolve the IPC socket path for a given primal, following the wateringHole
-/// `UNIVERSAL_IPC_STANDARD_V3` and `PRIMAL_IPC_PROTOCOL` conventions.
+/// Resolve the IPC socket path for a given primal.
 ///
-/// Socket naming: `{primal}-{family_id}.sock` for JSON-RPC,
-/// `{primal}-{family_id}.tarpc.sock` for tarpc.
-///
-/// 5-tier resolution order:
-/// 1. `$XDG_RUNTIME_DIR/biomeos/`
-/// 2. `/run/user/{uid}/biomeos/` (Linux, UID from `/proc/self/status`)
-/// 3. `{temp_dir}/biomeos/`
+/// Socket naming: `{primal}-{family_id}.sock`
 #[must_use]
 pub fn resolve_primal_socket(primal: &str, family_id: &str) -> std::path::PathBuf {
     let base = resolve_socket_base_dir();
-    base.join(format!("{primal}-{family_id}.sock"))
+    resolve_primal_socket_from(&base, primal, family_id)
+}
+
+/// Resolve the IPC socket from a known base directory (pure, no env reads).
+#[must_use]
+pub fn resolve_primal_socket_from(
+    base_dir: &std::path::Path,
+    primal: &str,
+    family_id: &str,
+) -> std::path::PathBuf {
+    base_dir.join(format!("{primal}-{family_id}.sock"))
 }
 
 /// Resolve the tarpc socket path for a given primal.
 #[must_use]
 pub fn resolve_primal_tarpc_socket(primal: &str, family_id: &str) -> std::path::PathBuf {
     let base = resolve_socket_base_dir();
-    base.join(format!("{primal}-{family_id}.tarpc.sock"))
+    resolve_primal_tarpc_socket_from(&base, primal, family_id)
+}
+
+/// Resolve the tarpc socket from a known base directory (pure, no env reads).
+#[must_use]
+pub fn resolve_primal_tarpc_socket_from(
+    base_dir: &std::path::Path,
+    primal: &str,
+    family_id: &str,
+) -> std::path::PathBuf {
+    base_dir.join(format!("{primal}-{family_id}.tarpc.sock"))
 }
 
 /// Protocol escalation: prefer tarpc when `.tarpc.sock` exists,
 /// fall back to JSON-RPC `.sock`.
-///
-/// This implements the wateringHole `PRIMAL_IPC_PROTOCOL` standard:
-/// JSON-RPC is always available; tarpc is optional and higher-performance.
 #[must_use]
 pub fn negotiate_protocol(primal: &str, family_id: &str) -> (IpcProtocol, std::path::PathBuf) {
-    let tarpc_sock = resolve_primal_tarpc_socket(primal, family_id);
+    let base = resolve_socket_base_dir();
+    negotiate_protocol_from(&base, primal, family_id)
+}
+
+/// Protocol escalation from a known base directory (pure, no env reads).
+#[must_use]
+pub fn negotiate_protocol_from(
+    base_dir: &std::path::Path,
+    primal: &str,
+    family_id: &str,
+) -> (IpcProtocol, std::path::PathBuf) {
+    let tarpc_sock = resolve_primal_tarpc_socket_from(base_dir, primal, family_id);
     if tarpc_sock.exists() {
         debug!(
             "Protocol escalation: tarpc socket found at {}",
@@ -360,8 +357,7 @@ pub fn negotiate_protocol(primal: &str, family_id: &str) -> (IpcProtocol, std::p
         );
         return (IpcProtocol::Tarpc, tarpc_sock);
     }
-
-    let jsonrpc_sock = resolve_primal_socket(primal, family_id);
+    let jsonrpc_sock = resolve_primal_socket_from(base_dir, primal, family_id);
     debug!(
         "Using JSON-RPC socket at {} (tarpc not available)",
         jsonrpc_sock.display()
@@ -370,25 +366,12 @@ pub fn negotiate_protocol(primal: &str, family_id: &str) -> (IpcProtocol, std::p
 }
 
 fn resolve_socket_base_dir() -> std::path::PathBuf {
-    // Tier 1: XDG_RUNTIME_DIR (standard, set by pam_systemd)
-    if let Ok(runtime_dir) = env::var("XDG_RUNTIME_DIR") {
-        return std::path::PathBuf::from(format!("{runtime_dir}/biomeos"));
-    }
-
-    // Tier 2: /run/user/{uid}/biomeos/ (Linux fallback when XDG unset)
-    #[cfg(target_os = "linux")]
-    if let Some(path) = linux_run_user_biomeos() {
-        return path;
-    }
-
-    // Tier 3: temp_dir/biomeos/
-    std::env::temp_dir().join("biomeos")
+    resolve_socket_base_dir_with(env::var("XDG_RUNTIME_DIR").ok().as_deref())
 }
 
 /// Detect the current user's runtime directory via `/proc/self/status`.
 ///
-/// Returns `Some(path)` only if the directory actually exists on disk,
-/// avoiding phantom paths in containers or minimal environments.
+/// Returns `Some(path)` only if the directory actually exists on disk.
 #[cfg(target_os = "linux")]
 pub(crate) fn linux_run_user_biomeos() -> Option<std::path::PathBuf> {
     let status = std::fs::read_to_string("/proc/self/status").ok()?;
@@ -405,276 +388,156 @@ pub(crate) fn linux_run_user_biomeos() -> Option<std::path::PathBuf> {
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests {
     use super::*;
-    use serial_test::serial;
 
-    const CLEAN: [(&str, Option<&str>); 9] = [
-        ("LOAMSPINE_JSONRPC_PORT", None),
-        ("JSONRPC_PORT", None),
-        ("LOAMSPINE_TARPC_PORT", None),
-        ("TARPC_PORT", None),
-        ("USE_OS_ASSIGNED_PORTS", None),
-        ("LOAMSPINE_OS_PORTS", None),
-        ("LOAMSPINE_USE_OS_ASSIGNED_PORTS", None),
-        ("LOAMSPINE_BIND_ADDRESS", None),
-        ("BIND_ADDRESS", None),
-    ];
+    // ── Port resolution ──────────────────────────────────────────────────
 
     #[test]
-    #[serial]
-    fn test_jsonrpc_port_from_env() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_JSONRPC_PORT", Some("8888")));
-        temp_env::with_vars(vars, || assert_eq!(jsonrpc_port(), 8888));
+    fn jsonrpc_port_from_loamspine_env() {
+        assert_eq!(resolve_jsonrpc_port(Some("8888"), None), 8888);
     }
 
     #[test]
-    #[serial]
-    fn test_jsonrpc_port_default() {
-        temp_env::with_vars(CLEAN, || assert_eq!(jsonrpc_port(), DEFAULT_JSONRPC_PORT));
+    fn jsonrpc_port_default_when_unset() {
+        assert_eq!(resolve_jsonrpc_port(None, None), DEFAULT_JSONRPC_PORT);
     }
 
     #[test]
-    #[serial]
-    fn test_tarpc_port_from_env() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_TARPC_PORT", Some("9999")));
-        temp_env::with_vars(vars, || assert_eq!(tarpc_port(), 9999));
+    fn jsonrpc_port_invalid_loamspine_falls_back_to_generic() {
+        assert_eq!(resolve_jsonrpc_port(Some("invalid"), Some("7777")), 7777);
     }
 
     #[test]
-    #[serial]
-    fn test_os_assigned_ports() {
-        let mut on = CLEAN.to_vec();
-        on.push(("USE_OS_ASSIGNED_PORTS", Some("1")));
-        temp_env::with_vars(on, || assert!(use_os_assigned_ports()));
-
-        let mut off = CLEAN.to_vec();
-        off.push(("USE_OS_ASSIGNED_PORTS", Some("0")));
-        temp_env::with_vars(off, || assert!(!use_os_assigned_ports()));
+    fn jsonrpc_port_invalid_both_falls_back_to_default() {
+        assert_eq!(
+            resolve_jsonrpc_port(Some("not-a-number"), Some("also-invalid")),
+            DEFAULT_JSONRPC_PORT,
+        );
     }
 
     #[test]
-    #[serial]
-    fn test_actual_ports_with_os_assignment() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("USE_OS_ASSIGNED_PORTS", Some("1")));
-        temp_env::with_vars(vars, || {
-            assert!(use_os_assigned_ports());
-            assert_eq!(actual_jsonrpc_port(), 0);
-            assert_eq!(actual_tarpc_port(), 0);
-        });
+    fn jsonrpc_port_generic_env_var() {
+        assert_eq!(resolve_jsonrpc_port(None, Some("5555")), 5555);
     }
 
     #[test]
-    fn test_build_endpoint() {
+    fn tarpc_port_from_env() {
+        assert_eq!(resolve_tarpc_port(Some("9999"), None), 9999);
+    }
+
+    #[test]
+    fn tarpc_port_default() {
+        assert_eq!(resolve_tarpc_port(None, None), DEFAULT_TARPC_PORT);
+    }
+
+    #[test]
+    fn tarpc_port_invalid_loamspine_falls_back_to_generic() {
+        assert_eq!(resolve_tarpc_port(Some("invalid"), Some("8888")), 8888);
+    }
+
+    #[test]
+    fn tarpc_port_generic_env_var() {
+        assert_eq!(resolve_tarpc_port(None, Some("7777")), 7777);
+    }
+
+    #[test]
+    fn tarpc_port_invalid_both_falls_back_to_default() {
+        assert_eq!(
+            resolve_tarpc_port(Some("bad"), Some("worse")),
+            DEFAULT_TARPC_PORT,
+        );
+    }
+
+    // ── OS-assigned ports ────────────────────────────────────────────────
+
+    #[test]
+    fn os_assigned_ports_on_1() {
+        assert!(resolve_use_os_assigned_ports(Some("1"), None));
+    }
+
+    #[test]
+    fn os_assigned_ports_off_0() {
+        assert!(!resolve_use_os_assigned_ports(Some("0"), None));
+    }
+
+    #[test]
+    fn os_assigned_ports_yes() {
+        assert!(resolve_use_os_assigned_ports(Some("yes"), None));
+    }
+
+    #[test]
+    fn os_assigned_ports_true() {
+        assert!(resolve_use_os_assigned_ports(Some("true"), None));
+    }
+
+    #[test]
+    fn os_assigned_ports_loamspine_os_ports() {
+        assert!(resolve_use_os_assigned_ports(None, Some("true")));
+    }
+
+    #[test]
+    fn os_assigned_ports_unset() {
+        assert!(!resolve_use_os_assigned_ports(None, None));
+    }
+
+    // ── Actual ports ─────────────────────────────────────────────────────
+
+    #[test]
+    fn actual_ports_with_os_assignment() {
+        assert_eq!(resolve_actual_jsonrpc_port(true, 8080), OS_ASSIGNED_PORT);
+        assert_eq!(resolve_actual_tarpc_port(true, 9001), OS_ASSIGNED_PORT);
+    }
+
+    #[test]
+    fn actual_ports_without_os_assignment() {
+        assert_eq!(resolve_actual_jsonrpc_port(false, 3333), 3333);
+        assert_eq!(resolve_actual_tarpc_port(false, 4444), 4444);
+    }
+
+    // ── Bind address ─────────────────────────────────────────────────────
+
+    #[test]
+    fn bind_address_loamspine_specific() {
+        assert_eq!(resolve_bind_address(Some("127.0.0.1"), None), "127.0.0.1");
+    }
+
+    #[test]
+    fn bind_address_generic() {
+        assert_eq!(
+            resolve_bind_address(None, Some("192.0.2.1")),
+            "192.0.2.1"
+        );
+    }
+
+    #[test]
+    fn bind_address_default() {
+        assert_eq!(
+            resolve_bind_address(None, None),
+            crate::constants::BIND_ALL_IPV4
+        );
+    }
+
+    // ── Build endpoint ───────────────────────────────────────────────────
+
+    #[test]
+    fn build_endpoint_without_path() {
         assert_eq!(
             build_endpoint("http", "localhost", 8080, None),
-            "http://localhost:8080"
+            "http://localhost:8080",
         );
+    }
+
+    #[test]
+    fn build_endpoint_with_path() {
         assert_eq!(
             build_endpoint("http", "localhost", 8080, Some("/api")),
-            "http://localhost:8080/api"
+            "http://localhost:8080/api",
         );
     }
 
-    #[test]
-    #[serial]
-    fn test_jsonrpc_port_invalid_loamspine_falls_back_to_generic() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_JSONRPC_PORT", Some("invalid")));
-        vars.push(("JSONRPC_PORT", Some("7777")));
-        temp_env::with_vars(vars, || assert_eq!(jsonrpc_port(), 7777));
-    }
+    // ── Env var name builders ────────────────────────────────────────────
 
     #[test]
-    #[serial]
-    fn test_jsonrpc_port_invalid_both_falls_back_to_default() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_JSONRPC_PORT", Some("not-a-number")));
-        vars.push(("JSONRPC_PORT", Some("also-invalid")));
-        temp_env::with_vars(vars, || assert_eq!(jsonrpc_port(), DEFAULT_JSONRPC_PORT));
-    }
-
-    #[test]
-    #[serial]
-    fn test_jsonrpc_port_generic_env_var() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("JSONRPC_PORT", Some("5555")));
-        temp_env::with_vars(vars, || assert_eq!(jsonrpc_port(), 5555));
-    }
-
-    #[test]
-    #[serial]
-    fn test_tarpc_port_invalid_loamspine_falls_back_to_generic() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_TARPC_PORT", Some("invalid")));
-        vars.push(("TARPC_PORT", Some("8888")));
-        temp_env::with_vars(vars, || assert_eq!(tarpc_port(), 8888));
-    }
-
-    #[test]
-    #[serial]
-    fn test_tarpc_port_generic_env_var() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("TARPC_PORT", Some("7777")));
-        temp_env::with_vars(vars, || assert_eq!(tarpc_port(), 7777));
-    }
-
-    #[test]
-    #[serial]
-    fn test_tarpc_port_invalid_both_falls_back_to_default() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_TARPC_PORT", Some("bad")));
-        vars.push(("TARPC_PORT", Some("worse")));
-        temp_env::with_vars(vars, || assert_eq!(tarpc_port(), DEFAULT_TARPC_PORT));
-    }
-
-    #[test]
-    #[serial]
-    fn test_use_os_assigned_ports_yes() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("USE_OS_ASSIGNED_PORTS", Some("yes")));
-        temp_env::with_vars(vars, || assert!(use_os_assigned_ports()));
-    }
-
-    #[test]
-    #[serial]
-    fn test_use_os_assigned_ports_true() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("USE_OS_ASSIGNED_PORTS", Some("true")));
-        temp_env::with_vars(vars, || assert!(use_os_assigned_ports()));
-    }
-
-    #[test]
-    #[serial]
-    fn test_use_os_assigned_ports_loamspine_os_ports() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_OS_PORTS", Some("true")));
-        temp_env::with_vars(vars, || assert!(use_os_assigned_ports()));
-    }
-
-    #[test]
-    #[serial]
-    fn test_bind_address_loamspine_specific() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_BIND_ADDRESS", Some("127.0.0.1")));
-        temp_env::with_vars(vars, || assert_eq!(bind_address(), "127.0.0.1"));
-    }
-
-    #[test]
-    #[serial]
-    fn test_bind_address_generic() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("BIND_ADDRESS", Some("192.0.2.1")));
-        temp_env::with_vars(vars, || assert_eq!(bind_address(), "192.0.2.1"));
-    }
-
-    #[test]
-    #[serial]
-    fn test_bind_address_default() {
-        temp_env::with_vars(CLEAN, || {
-            assert_eq!(bind_address(), crate::constants::BIND_ALL_IPV4);
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn test_actual_ports_without_os_assignment() {
-        let mut vars = CLEAN.to_vec();
-        vars.push(("LOAMSPINE_JSONRPC_PORT", Some("3333")));
-        vars.push(("LOAMSPINE_TARPC_PORT", Some("4444")));
-        temp_env::with_vars(vars, || {
-            assert_eq!(actual_jsonrpc_port(), 3333);
-            assert_eq!(actual_tarpc_port(), 4444);
-        });
-    }
-
-    // ──────────────────────────────────────────────────────────────────────
-    // Protocol escalation tests
-    // ──────────────────────────────────────────────────────────────────────
-
-    #[test]
-    #[serial]
-    fn test_resolve_primal_socket_path() {
-        temp_env::with_vars([("XDG_RUNTIME_DIR", None::<&str>)], || {
-            let path = resolve_primal_socket("loamspine", "default");
-            assert!(
-                path.to_string_lossy()
-                    .ends_with("biomeos/loamspine-default.sock"),
-                "got: {}",
-                path.display()
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn test_resolve_primal_tarpc_socket_path() {
-        temp_env::with_vars([("XDG_RUNTIME_DIR", None::<&str>)], || {
-            let path = resolve_primal_tarpc_socket("loamspine", "default");
-            assert!(
-                path.to_string_lossy()
-                    .ends_with("biomeos/loamspine-default.tarpc.sock"),
-                "got: {}",
-                path.display()
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn test_resolve_primal_socket_with_xdg() {
-        temp_env::with_vars([("XDG_RUNTIME_DIR", Some("/run/user/1000"))], || {
-            let path = resolve_primal_socket("rhizocrypt", "myfamily");
-            assert_eq!(
-                path.to_string_lossy(),
-                "/run/user/1000/biomeos/rhizocrypt-myfamily.sock"
-            );
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn test_negotiate_protocol_prefers_tarpc_when_available() {
-        let tmp = tempfile::tempdir().unwrap();
-        let xdg = tmp.path().to_str().unwrap().to_string();
-        temp_env::with_vars([("XDG_RUNTIME_DIR", Some(xdg.as_str()))], || {
-            let biomeos_dir = tmp.path().join("biomeos");
-            std::fs::create_dir_all(&biomeos_dir).unwrap();
-            std::fs::write(biomeos_dir.join("testprimal-dev.sock"), "").unwrap();
-            std::fs::write(biomeos_dir.join("testprimal-dev.tarpc.sock"), "").unwrap();
-
-            let (protocol, path) = negotiate_protocol("testprimal", "dev");
-            assert_eq!(protocol, IpcProtocol::Tarpc);
-            assert!(path.to_string_lossy().contains("tarpc.sock"));
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn test_negotiate_protocol_falls_back_to_jsonrpc() {
-        let tmp = tempfile::tempdir().unwrap();
-        let xdg = tmp.path().to_str().unwrap().to_string();
-        temp_env::with_vars([("XDG_RUNTIME_DIR", Some(xdg.as_str()))], || {
-            let biomeos_dir = tmp.path().join("biomeos");
-            std::fs::create_dir_all(&biomeos_dir).unwrap();
-            std::fs::write(biomeos_dir.join("testprimal-dev.sock"), "").unwrap();
-
-            let (protocol, path) = negotiate_protocol("testprimal", "dev");
-            assert_eq!(protocol, IpcProtocol::JsonRpc);
-            assert!(!path.to_string_lossy().contains("tarpc"));
-        });
-    }
-
-    #[test]
-    fn test_ipc_protocol_equality() {
-        assert_eq!(IpcProtocol::JsonRpc, IpcProtocol::JsonRpc);
-        assert_eq!(IpcProtocol::Tarpc, IpcProtocol::Tarpc);
-        assert_ne!(IpcProtocol::JsonRpc, IpcProtocol::Tarpc);
-    }
-
-    #[test]
-    fn test_socket_env_var() {
+    fn socket_env_var_formatting() {
         assert_eq!(socket_env_var("rhizoCrypt"), "RHIZOCRYPT_SOCKET");
         assert_eq!(socket_env_var("sweetGrass"), "SWEETGRASS_SOCKET");
         assert_eq!(socket_env_var("loamSpine"), "LOAMSPINE_SOCKET");
@@ -682,36 +545,110 @@ mod tests {
     }
 
     #[test]
-    fn test_address_env_var() {
+    fn address_env_var_formatting() {
         assert_eq!(address_env_var("rhizoCrypt"), "RHIZOCRYPT_ADDRESS");
         assert_eq!(address_env_var("songbird"), "SONGBIRD_ADDRESS");
         assert_eq!(address_env_var("loamSpine"), "LOAMSPINE_ADDRESS");
     }
 
+    // ── Socket base dir ──────────────────────────────────────────────────
+
     #[test]
-    #[serial]
-    fn test_resolve_primal_socket_with_env_override() {
-        let vars = [("TESTPRIMAL_SOCKET", Some("/tmp/override.sock"))];
-        temp_env::with_vars(vars, || {
-            let path = resolve_primal_socket_with_env("testprimal", "dev");
-            assert_eq!(path, std::path::PathBuf::from("/tmp/override.sock"));
-        });
+    fn socket_base_dir_with_xdg() {
+        let base = resolve_socket_base_dir_with(Some("/run/user/1000"));
+        assert_eq!(base, std::path::PathBuf::from("/run/user/1000/biomeos"));
     }
 
     #[test]
-    #[serial]
-    fn test_resolve_primal_socket_with_env_fallback() {
-        let tmp = tempfile::tempdir().unwrap();
-        let xdg = tmp.path().to_str().unwrap().to_string();
-        temp_env::with_vars(
-            [
-                ("TESTPRIMAL_SOCKET", None),
-                ("XDG_RUNTIME_DIR", Some(xdg.as_str())),
-            ],
-            || {
-                let path = resolve_primal_socket_with_env("testprimal", "dev");
-                assert!(path.to_string_lossy().contains("testprimal-dev.sock"));
-            },
+    fn socket_base_dir_fallback() {
+        let base = resolve_socket_base_dir_with(None);
+        assert!(
+            base.to_string_lossy().ends_with("biomeos"),
+            "got: {}",
+            base.display(),
         );
+    }
+
+    // ── Primal socket resolution ─────────────────────────────────────────
+
+    #[test]
+    fn primal_socket_path() {
+        let base = resolve_socket_base_dir_with(None);
+        let path = resolve_primal_socket_from(&base, "loamspine", "default");
+        assert!(
+            path.to_string_lossy()
+                .ends_with("biomeos/loamspine-default.sock"),
+            "got: {}",
+            path.display(),
+        );
+    }
+
+    #[test]
+    fn primal_tarpc_socket_path() {
+        let base = resolve_socket_base_dir_with(None);
+        let path = resolve_primal_tarpc_socket_from(&base, "loamspine", "default");
+        assert!(
+            path.to_string_lossy()
+                .ends_with("biomeos/loamspine-default.tarpc.sock"),
+            "got: {}",
+            path.display(),
+        );
+    }
+
+    #[test]
+    fn primal_socket_with_xdg() {
+        let base = resolve_socket_base_dir_with(Some("/run/user/1000"));
+        let path = resolve_primal_socket_from(&base, "rhizocrypt", "myfamily");
+        assert_eq!(
+            path.to_string_lossy(),
+            "/run/user/1000/biomeos/rhizocrypt-myfamily.sock",
+        );
+    }
+
+    #[test]
+    fn primal_socket_with_env_override() {
+        let path =
+            resolve_primal_socket_with(Some("/tmp/override.sock"), "testprimal", "dev");
+        assert_eq!(path, std::path::PathBuf::from("/tmp/override.sock"));
+    }
+
+    #[test]
+    fn primal_socket_with_env_fallback() {
+        let path = resolve_primal_socket_with(None, "testprimal", "dev");
+        assert!(path.to_string_lossy().contains("testprimal-dev.sock"));
+    }
+
+    // ── Protocol negotiation ─────────────────────────────────────────────
+
+    #[test]
+    fn negotiate_protocol_prefers_tarpc_when_available() {
+        let tmp = tempfile::tempdir().unwrap();
+        let biomeos_dir = tmp.path().join("biomeos");
+        std::fs::create_dir_all(&biomeos_dir).unwrap();
+        std::fs::write(biomeos_dir.join("testprimal-dev.sock"), "").unwrap();
+        std::fs::write(biomeos_dir.join("testprimal-dev.tarpc.sock"), "").unwrap();
+
+        let (protocol, path) = negotiate_protocol_from(&biomeos_dir, "testprimal", "dev");
+        assert_eq!(protocol, IpcProtocol::Tarpc);
+        assert!(path.to_string_lossy().contains("tarpc.sock"));
+    }
+
+    #[test]
+    fn negotiate_protocol_falls_back_to_jsonrpc() {
+        let tmp = tempfile::tempdir().unwrap();
+        let biomeos_dir = tmp.path().join("biomeos");
+        std::fs::create_dir_all(&biomeos_dir).unwrap();
+        std::fs::write(biomeos_dir.join("testprimal-dev.sock"), "").unwrap();
+
+        let (protocol, path) = negotiate_protocol_from(&biomeos_dir, "testprimal", "dev");
+        assert_eq!(protocol, IpcProtocol::JsonRpc);
+        assert!(!path.to_string_lossy().contains("tarpc"));
+    }
+
+    #[test]
+    fn ipc_protocol_equality() {
+        assert_eq!(IpcProtocol::JsonRpc, IpcProtocol::JsonRpc);
+        assert_eq!(IpcProtocol::Tarpc, IpcProtocol::Tarpc);
+        assert_ne!(IpcProtocol::JsonRpc, IpcProtocol::Tarpc);
     }
 }

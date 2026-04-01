@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use super::*;
-use serial_test::serial;
+use std::collections::HashMap;
 
 #[tokio::test]
 async fn test_infant_starts_with_zero_knowledge() {
@@ -15,152 +15,88 @@ async fn test_infant_starts_with_zero_knowledge() {
     assert!(all.is_empty());
 }
 
-#[test]
-#[serial]
-fn test_discover_via_environment() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
+#[tokio::test]
+async fn test_discover_via_environment() {
+    // Phase 1: clean overrides — ensure no signing endpoints exist
+    let mut discovery = InfantDiscovery::with_config(DiscoveryConfig::default()).unwrap();
+    let services = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert!(services.is_empty());
 
-    // Phase 1: clean env — ensure no signing endpoints exist
-    let discovery = temp_env::with_vars(
-        [
-            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
-            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
-            ("SIGNING_SERVICE_URL", None::<&str>),
-        ],
-        || {
-            rt.block_on(async {
-                let discovery = InfantDiscovery::new().unwrap();
-                let services = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert!(services.is_empty());
-                discovery
-            })
-        },
+    // Phase 2: set override and rediscover
+    discovery.clear_cache().await;
+    discovery.config.env_overrides.insert(
+        "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT".into(),
+        "http://localhost:8001".into(),
     );
-
-    // Phase 2: set env var and rediscover
-    temp_env::with_vars(
-        [
-            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
-            (
-                "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-                Some("http://localhost:8001"),
-            ),
-            ("SIGNING_SERVICE_URL", None::<&str>),
-        ],
-        || {
-            rt.block_on(async {
-                discovery.clear_cache().await;
-                let services = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services.len(), 1);
-                assert_eq!(services[0].endpoint, "http://localhost:8001");
-                assert_eq!(services[0].discovered_via, "environment");
-            });
-        },
-    );
+    let services = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services.len(), 1);
+    assert_eq!(services[0].endpoint, "http://localhost:8001");
+    assert_eq!(services[0].discovered_via, "environment");
 }
 
-#[test]
-#[serial]
-fn test_degraded_mode_when_no_services() {
-    temp_env::with_var("CAPABILITY_STORAGE_ENDPOINT", None::<&str>, || {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let discovery = InfantDiscovery::new().unwrap();
-            let services = discovery.find_capability("content-storage").await.unwrap();
-            assert!(services.is_empty());
-        });
-    });
+#[tokio::test]
+async fn test_degraded_mode_when_no_services() {
+    let discovery = InfantDiscovery::with_config(DiscoveryConfig::default()).unwrap();
+    let services = discovery.find_capability("content-storage").await.unwrap();
+    assert!(services.is_empty());
 }
 
-#[test]
-#[serial]
-fn test_cache_functionality() {
-    temp_env::with_vars(
-        [
-            (
-                "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT",
-                Some("http://localhost:8001"),
-            ),
-            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
-            ("SIGNING_SERVICE_URL", None::<&str>),
-        ],
-        || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let discovery = InfantDiscovery::new().unwrap();
-
-                let services1 = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services1.len(), 1);
-
-                let services2 = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services2.len(), 1);
-
-                discovery.clear_cache().await;
-
-                let services3 = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services3.len(), 1);
-            });
-        },
+#[tokio::test]
+async fn test_cache_functionality() {
+    let mut config = DiscoveryConfig::default();
+    config.env_overrides.insert(
+        "CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT".into(),
+        "http://localhost:8001".into(),
     );
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    let services1 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services1.len(), 1);
+
+    let services2 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services2.len(), 1);
+
+    discovery.clear_cache().await;
+
+    let services3 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services3.len(), 1);
 }
 
-#[test]
-#[serial]
-fn test_discover_via_signing_service_url() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
+#[tokio::test]
+async fn test_discover_via_signing_service_url() {
+    let mut discovery = InfantDiscovery::with_config(DiscoveryConfig::default()).unwrap();
+    let services = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert!(services.is_empty());
 
-    let discovery = temp_env::with_vars(
-        [
-            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
-            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
-            ("SIGNING_SERVICE_URL", None::<&str>),
-        ],
-        || {
-            rt.block_on(async {
-                let discovery = InfantDiscovery::new().unwrap();
-                let services = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert!(services.is_empty());
-                discovery
-            })
-        },
-    );
-
-    temp_env::with_vars(
-        [
-            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
-            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
-            ("SIGNING_SERVICE_URL", Some("http://localhost:8002")),
-        ],
-        || {
-            rt.block_on(async {
-                discovery.clear_cache().await;
-                let services = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services.len(), 1);
-                assert_eq!(services[0].endpoint, "http://localhost:8002");
-            });
-        },
-    );
+    discovery.clear_cache().await;
+    discovery
+        .config
+        .env_overrides
+        .insert("SIGNING_SERVICE_URL".into(), "http://localhost:8002".into());
+    let services = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services.len(), 1);
+    assert_eq!(services[0].endpoint, "http://localhost:8002");
 }
 
 #[test]
@@ -172,22 +108,13 @@ fn test_discovery_config_default() {
 }
 
 #[test]
-#[serial]
 fn test_discovery_config_from_env() {
-    temp_env::with_vars(
-        [
-            ("SERVICE_REGISTRY_URL", Some("http://registry.example.com")),
-            ("DISCOVERY_CACHE_TTL", Some("600")),
-        ],
-        || {
-            let config = DiscoveryConfig::from_env_or_default();
-            assert!(config.methods.iter().any(|m| matches!(
-                m,
-                DiscoveryProtocol::ServiceRegistry(url) if url == "http://registry.example.com"
-            )));
-            assert_eq!(config.cache_ttl_secs, 600);
-        },
-    );
+    let config = DiscoveryConfig::from_explicit(Some("http://registry.example.com"), Some(600));
+    assert!(config.methods.iter().any(|m| matches!(
+        m,
+        DiscoveryProtocol::ServiceRegistry(url) if url == "http://registry.example.com"
+    )));
+    assert_eq!(config.cache_ttl_secs, 600);
 }
 
 #[test]
@@ -197,27 +124,14 @@ fn test_capability_to_srv_name_indirect() {
     assert!(!capabilities.is_empty());
 }
 
-#[test]
-#[serial]
-fn test_service_registry_discovery_returns_empty() {
-    temp_env::with_vars(
-        [
-            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
-            ("SIGNING_SERVICE_URL", None::<&str>),
-            ("SERVICE_REGISTRY_URL", Some("http://registry.test")),
-        ],
-        || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let config = DiscoveryConfig::from_env_or_default();
-                let discovery = InfantDiscovery::with_config(config).unwrap();
-                discovery.clear_cache().await;
+#[tokio::test]
+async fn test_service_registry_discovery_returns_empty() {
+    let config = DiscoveryConfig::from_explicit(Some("http://registry.test"), None);
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+    discovery.clear_cache().await;
 
-                let services = discovery.find_capability("signing").await.unwrap();
-                assert!(services.is_empty());
-            });
-        },
-    );
+    let services = discovery.find_capability("signing").await.unwrap();
+    assert!(services.is_empty());
 }
 
 #[tokio::test]
@@ -293,57 +207,40 @@ fn test_own_capabilities_are_loamspine_specific() {
     );
 }
 
-#[test]
-#[serial]
-fn test_cache_hit_with_stale_services_triggers_rediscovery() {
-    temp_env::with_vars(
-        [
-            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
-            ("SIGNING_SERVICE_URL", Some("http://localhost:9999")),
-            ("SERVICE_REGISTRY_URL", None::<&str>),
-        ],
-        || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let config = DiscoveryConfig {
-                    methods: vec![DiscoveryProtocol::Environment],
-                    cache_ttl_secs: 0,
-                    retry_attempts: 1,
-                    discovery_timeout: Duration::from_secs(1),
-                };
-                let discovery = InfantDiscovery::with_config(config).unwrap();
-
-                let services = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services.len(), 1);
-
-                let services2 = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services2.len(), 1);
-            });
-        },
+#[tokio::test]
+async fn test_cache_hit_with_stale_services_triggers_rediscovery() {
+    let mut config = DiscoveryConfig {
+        methods: vec![DiscoveryProtocol::Environment],
+        cache_ttl_secs: 0,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+        env_overrides: HashMap::new(),
+    };
+    config.env_overrides.insert(
+        "SIGNING_SERVICE_URL".into(),
+        "http://localhost:9999".into(),
     );
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    let services = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services.len(), 1);
+
+    let services2 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services2.len(), 1);
 }
 
 #[test]
-#[serial]
 fn test_discovery_config_from_env_invalid_ttl_uses_default() {
-    temp_env::with_vars(
-        [
-            ("SERVICE_REGISTRY_URL", None::<&str>),
-            ("DISCOVERY_CACHE_TTL", Some("not-a-number")),
-        ],
-        || {
-            let config = DiscoveryConfig::from_env_or_default();
-            assert_eq!(
-                config.cache_ttl_secs, 300,
-                "invalid TTL should leave default"
-            );
-        },
+    let config = DiscoveryConfig::from_explicit(None, None);
+    assert_eq!(
+        config.cache_ttl_secs, 300,
+        "invalid TTL should leave default"
     );
 }
 
@@ -390,30 +287,25 @@ async fn test_is_fresh_with_zero_ttl() {
     );
 }
 
-#[test]
-fn test_all_discovered_returns_populated_cache() {
-    temp_env::with_var(
-        "CAPABILITY_TEST_ENDPOINT",
-        Some("http://localhost:1234"),
-        || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let config = DiscoveryConfig {
-                    methods: vec![DiscoveryProtocol::Environment],
-                    cache_ttl_secs: 300,
-                    retry_attempts: 1,
-                    discovery_timeout: Duration::from_secs(1),
-                };
-                let discovery = InfantDiscovery::with_config(config).unwrap();
+#[tokio::test]
+async fn test_all_discovered_returns_populated_cache() {
+    let mut config = DiscoveryConfig {
+        methods: vec![DiscoveryProtocol::Environment],
+        cache_ttl_secs: 300,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+        env_overrides: HashMap::new(),
+    };
+    config
+        .env_overrides
+        .insert("CAPABILITY_TEST_ENDPOINT".into(), "http://localhost:1234".into());
+    let discovery = InfantDiscovery::with_config(config).unwrap();
 
-                let _ = discovery.find_capability("test").await.unwrap();
+    let _ = discovery.find_capability("test").await.unwrap();
 
-                let all = discovery.all_discovered().await;
-                assert!(all.contains_key("test"));
-                assert_eq!(all["test"].len(), 1);
-            });
-        },
-    );
+    let all = discovery.all_discovered().await;
+    assert!(all.contains_key("test"));
+    assert_eq!(all["test"].len(), 1);
 }
 
 #[test]
@@ -435,88 +327,60 @@ fn test_discovery_method_equality() {
     );
 }
 
-#[test]
-#[serial]
-fn test_discover_via_environment_pattern2_service_url() {
-    temp_env::with_vars(
-        [
-            ("CAPABILITY_STORAGE_ENDPOINT", None::<&str>),
-            ("CAPABILITY_CONTENT_STORAGE_ENDPOINT", None::<&str>),
-            ("STORAGE_SERVICE_URL", Some("http://localhost:7777")),
-        ],
-        || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let config = DiscoveryConfig {
-                    methods: vec![DiscoveryProtocol::Environment],
-                    cache_ttl_secs: 300,
-                    retry_attempts: 1,
-                    discovery_timeout: Duration::from_secs(1),
-                };
-                let discovery = InfantDiscovery::with_config(config).unwrap();
+#[tokio::test]
+async fn test_discover_via_environment_pattern2_service_url() {
+    let mut config = DiscoveryConfig {
+        methods: vec![DiscoveryProtocol::Environment],
+        cache_ttl_secs: 300,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+        env_overrides: HashMap::new(),
+    };
+    config
+        .env_overrides
+        .insert("STORAGE_SERVICE_URL".into(), "http://localhost:7777".into());
+    let discovery = InfantDiscovery::with_config(config).unwrap();
 
-                let services = discovery.find_capability("content-storage").await.unwrap();
-                assert_eq!(services.len(), 1);
-                assert_eq!(services[0].endpoint, "http://localhost:7777");
-                assert_eq!(services[0].discovered_via, "environment");
-            });
-        },
-    );
+    let services = discovery.find_capability("content-storage").await.unwrap();
+    assert_eq!(services.len(), 1);
+    assert_eq!(services[0].endpoint, "http://localhost:7777");
+    assert_eq!(services[0].discovered_via, "environment");
 }
 
-#[test]
-#[serial]
-fn test_cache_hit_with_fresh_services_skips_rediscovery() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    // Phase 1: populate cache with endpoint "localhost:1111"
-    let discovery = temp_env::with_vars(
-        [
-            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
-            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
-            ("SIGNING_SERVICE_URL", Some("http://localhost:1111")),
-        ],
-        || {
-            rt.block_on(async {
-                let config = DiscoveryConfig {
-                    methods: vec![DiscoveryProtocol::Environment],
-                    cache_ttl_secs: 3600,
-                    retry_attempts: 1,
-                    discovery_timeout: Duration::from_secs(1),
-                };
-                let discovery = InfantDiscovery::with_config(config).unwrap();
-                let services1 = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services1.len(), 1);
-                assert_eq!(services1[0].endpoint, "http://localhost:1111");
-                discovery
-            })
-        },
+#[tokio::test]
+async fn test_cache_hit_with_fresh_services_skips_rediscovery() {
+    let mut config = DiscoveryConfig {
+        methods: vec![DiscoveryProtocol::Environment],
+        cache_ttl_secs: 3600,
+        retry_attempts: 1,
+        discovery_timeout: Duration::from_secs(1),
+        env_overrides: HashMap::new(),
+    };
+    config.env_overrides.insert(
+        "SIGNING_SERVICE_URL".into(),
+        "http://localhost:1111".into(),
     );
+    let mut discovery = InfantDiscovery::with_config(config).unwrap();
+    let services1 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services1.len(), 1);
+    assert_eq!(services1[0].endpoint, "http://localhost:1111");
 
-    // Phase 2: env now points at "localhost:2222", but cache should return the
-    // original "localhost:1111" without rediscovering.
-    temp_env::with_vars(
-        [
-            ("CAPABILITY_CRYPTOGRAPHIC_SIGNING_ENDPOINT", None::<&str>),
-            ("CAPABILITY_SIGNING_ENDPOINT", None::<&str>),
-            ("SIGNING_SERVICE_URL", Some("http://localhost:2222")),
-        ],
-        || {
-            rt.block_on(async {
-                let services2 = discovery
-                    .find_capability("cryptographic-signing")
-                    .await
-                    .unwrap();
-                assert_eq!(services2.len(), 1);
-                assert_eq!(
-                    services2[0].endpoint, "http://localhost:1111",
-                    "should use cached value, not re-read env"
-                );
-            });
-        },
+    // Overrides now point at 2222, but cache should return the original 1111 without rediscovering.
+    discovery
+        .config
+        .env_overrides
+        .insert("SIGNING_SERVICE_URL".into(), "http://localhost:2222".into());
+    let services2 = discovery
+        .find_capability("cryptographic-signing")
+        .await
+        .unwrap();
+    assert_eq!(services2.len(), 1);
+    assert_eq!(
+        services2[0].endpoint, "http://localhost:1111",
+        "should use cached value, not re-read env"
     );
 }
 
@@ -527,6 +391,7 @@ async fn test_with_config_custom_timeout() {
         cache_ttl_secs: 60,
         retry_attempts: 1,
         discovery_timeout: Duration::from_millis(100),
+        ..DiscoveryConfig::default()
     };
     let discovery = InfantDiscovery::with_config(config).unwrap();
     assert_eq!(
@@ -542,6 +407,7 @@ async fn test_mdns_not_enabled_returns_empty() {
         cache_ttl_secs: 300,
         retry_attempts: 1,
         discovery_timeout: Duration::from_secs(1),
+        ..DiscoveryConfig::default()
     };
     let discovery = InfantDiscovery::with_config(config).unwrap();
     let services = discovery.find_capability("signing").await.unwrap();

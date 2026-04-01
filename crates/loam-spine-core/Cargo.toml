@@ -19,7 +19,7 @@ tracing = { workspace = true }
 blake3.workspace = true
 
 # UUIDs for identifiers
-uuid = { version = "1.11", features = ["v7", "serde"] }
+uuid = { workspace = true }
 
 # Persistent storage (pure Rust embedded database)
 sled = { version = "0.34", optional = true }
@@ -77,10 +77,8 @@ sqlite = ["dep:rusqlite"]
 tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 chrono = "0.4"
-serial_test = { workspace = true }
-tempfile = "3.14"
+tempfile = { workspace = true }
 proptest = "1.10.0"
-temp-env = "0.3.6"
 
 [[bench]]
 name = "core_ops"

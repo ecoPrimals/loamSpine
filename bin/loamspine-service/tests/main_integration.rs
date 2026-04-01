@@ -10,7 +10,6 @@
 
 use assert_cmd::Command;
 use predicates::prelude::*;
-use serial_test::serial;
 
 /// Helper to get the loamspine binary for testing.
 fn loamspine_cmd() -> Command {
@@ -59,7 +58,6 @@ fn server_subcommand_help_succeeds() {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[test]
-#[serial]
 fn capabilities_outputs_valid_json() {
     let output = loamspine_cmd()
         .arg("capabilities")
@@ -95,7 +93,6 @@ fn capabilities_outputs_valid_json() {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[test]
-#[serial]
 fn socket_outputs_path() {
     let output = loamspine_cmd()
         .arg("socket")
@@ -114,21 +111,16 @@ fn socket_outputs_path() {
 }
 
 #[test]
-#[serial]
 fn socket_respects_loamspine_socket_env() {
-    temp_env::with_vars(
-        [("LOAMSPINE_SOCKET", Some("/custom/loamspine.sock"))],
-        || {
-            let output = loamspine_cmd()
-                .arg("socket")
-                .output()
-                .expect("socket subcommand failed");
+    let output = loamspine_cmd()
+        .env("LOAMSPINE_SOCKET", "/custom/loamspine.sock")
+        .arg("socket")
+        .output()
+        .expect("socket subcommand failed");
 
-            assert!(output.status.success());
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            assert_eq!(stdout.trim(), "/custom/loamspine.sock");
-        },
-    );
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(stdout.trim(), "/custom/loamspine.sock");
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -136,19 +128,22 @@ fn socket_respects_loamspine_socket_env() {
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[test]
-#[serial]
 fn server_starts_and_shuts_down_via_signal() {
+    use std::net::TcpStream;
     use std::thread;
     use std::time::{Duration, Instant};
+
+    let tarpc_port = portpicker::pick_unused_port().expect("tarpc port");
+    let jsonrpc_port = portpicker::pick_unused_port().expect("jsonrpc port");
 
     let bin_path = assert_cmd::cargo::cargo_bin("loamspine");
     let mut child = std::process::Command::new(&bin_path)
         .args([
             "server",
             "--tarpc-port",
-            "19001",
+            &tarpc_port.to_string(),
             "--jsonrpc-port",
-            "18080",
+            &jsonrpc_port.to_string(),
             "--bind-address",
             "127.0.0.1",
         ])
@@ -157,7 +152,18 @@ fn server_starts_and_shuts_down_via_signal() {
         .spawn()
         .expect("failed to spawn loamspine server");
 
-    thread::sleep(Duration::from_millis(1500));
+    let jsonrpc_addr = format!("127.0.0.1:{jsonrpc_port}");
+    let ready_deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        if TcpStream::connect(&jsonrpc_addr).is_ok() {
+            break;
+        }
+        if Instant::now() >= ready_deadline {
+            let _ = child.kill();
+            panic!("server did not become ready on {jsonrpc_addr}");
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
 
     #[cfg(unix)]
     {
@@ -195,15 +201,17 @@ fn server_starts_and_shuts_down_via_signal() {
 }
 
 #[test]
-#[serial]
 fn server_with_invalid_bind_address_fails() {
+    let tarpc_port = portpicker::pick_unused_port().expect("tarpc port");
+    let jsonrpc_port = portpicker::pick_unused_port().expect("jsonrpc port");
+
     let output = loamspine_cmd()
         .args([
             "server",
             "--tarpc-port",
-            "19002",
+            &tarpc_port.to_string(),
             "--jsonrpc-port",
-            "18081",
+            &jsonrpc_port.to_string(),
             "--bind-address",
             "not-a-valid-ip",
         ])

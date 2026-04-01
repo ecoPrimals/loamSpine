@@ -2,7 +2,13 @@
 
 # Known Issues
 
-**Last Updated**: March 31, 2026
+**Last Updated**: April 1, 2026
+
+---
+
+## Testing
+
+The full workspace test suite runs **fully concurrent** (no `#[serial]`; no dependency on serialized execution or process-wide env mutexes for correctness).
 
 ---
 

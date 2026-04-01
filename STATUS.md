@@ -2,8 +2,8 @@
 
 # Implementation Status
 
-**Current Version**: 0.9.15  
-**Last Updated**: March 31, 2026
+**Current Version**: 0.9.16  
+**Last Updated**: April 1, 2026
 
 ---
 
@@ -46,7 +46,8 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,397 |
+| Tests | — | 1,270 |
+| Concurrent testing | — | All tests concurrent (zero `#[serial]`) |
 | Coverage (llvm-cov) | 90%+ | 93.96% line / 92.60% region / 87%+ function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
@@ -76,6 +77,17 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All 129 files under 1000 lines (max: 899 in `discovery/tests.rs`). |
 
 ---
+
+## v0.9.16 Concurrent Test Evolution (April 1, 2026)
+
+- **Seven-phase concurrent test evolution completed**: Removed workspace dependencies on `serial_test` and `temp_env`; **`#[serial]` tests: 121 → 0** across the codebase.
+- **Inner/outer function pattern**: Pure `resolve_*` / `_from` / `_with` inner functions for config injection; thin env-reading wrappers as the outer public API (`constants/network.rs`, `neural_api.rs`, infant discovery, `manifest.rs`, `cli_signer.rs`, `lifecycle.rs`).
+- **`DiscoveryConfig.env_overrides`**: `HashMap<String, String>` for test config injection without mutating process environment.
+- **`CliSigner::discover_binary_from`**: Pure function with explicit `signer_path` / `bins_dir` parameters.
+- **Deterministic timing**: Eight test sites that used sleeps now use `tokio::time::pause()` + `advance()` for deterministic async time.
+- **Dynamic ports**: `portpicker` crate for integration tests — no fixed-port collisions under full concurrency.
+- **Test consolidation**: **1,397 → 1,270** tests (trivial env-read tests removed). **Source files**: 129 (unchanged). **Max file**: 899 lines (unchanged). Full suite runs in **~3 seconds** with all tests concurrent.
+- **Quality**: Clippy pedantic + nursery, **0 warnings** (`-D warnings`). All tests pass on three consecutive runs.
 
 ## v0.9.15 Deep Debt & Evolution: LS-03 Fix, Self-Knowledge, Coverage Push (March 31, 2026)
 

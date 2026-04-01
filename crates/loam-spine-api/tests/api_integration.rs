@@ -543,8 +543,17 @@ async fn start_jsonrpc_server() -> (SocketAddr, loam_spine_api::jsonrpc::ServerH
     let handle = loam_spine_api::jsonrpc::run_jsonrpc_server(addr, service)
         .await
         .unwrap();
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-    (handle.local_addr(), handle)
+    let local = handle.local_addr();
+    let mut attempts = 0_u32;
+    loop {
+        if tokio::net::TcpStream::connect(local).await.is_ok() {
+            break;
+        }
+        attempts += 1;
+        assert!(attempts <= 50, "server did not become ready");
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+    (local, handle)
 }
 
 #[tokio::test]

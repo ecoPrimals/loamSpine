@@ -13,7 +13,7 @@
 use loam_spine_core::Entry;
 use loam_spine_core::traits::cli_signer::{CliSigner, CliVerifier};
 use loam_spine_core::traits::signing::{Signer, Verifier};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Path to `BearDog` binary
 const BEARDOG_BIN: &str = "../bins/beardog";
@@ -100,24 +100,17 @@ async fn test_cli_signer_invalid_binary_path() {
 }
 
 #[tokio::test]
-async fn test_cli_signer_with_environment_variable() {
+async fn test_cli_signer_discover_binary_from_explicit_path() {
     if !beardog_available() {
         eprintln!("⚠️  Skipping test: BearDog binary not available");
         return;
     }
 
-    temp_env::with_vars(
-        [
-            ("LOAMSPINE_SIGNER_PATH", Some(BEARDOG_BIN)),
-            ("LOAMSPINE_SIGNER_KEY", Some("test-key")),
-        ],
-        || {
-            let signer_path = std::env::var("LOAMSPINE_SIGNER_PATH");
-            assert!(signer_path.is_ok(), "Should read LOAMSPINE_SIGNER_PATH");
-            if let Ok(path) = signer_path {
-                assert_eq!(path, BEARDOG_BIN);
-            }
-        },
+    let resolved = CliSigner::discover_binary_from(Some(BEARDOG_BIN), None);
+    assert_eq!(
+        resolved,
+        Some(PathBuf::from(BEARDOG_BIN)),
+        "discover_binary_from should return the explicit signer path when it exists"
     );
 }
 

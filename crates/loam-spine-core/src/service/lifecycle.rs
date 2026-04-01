@@ -144,7 +144,13 @@ impl LifecycleManager {
                 // Use infant discovery to find the discovery service
                 let infant = crate::service::InfantDiscovery::from_advertised();
 
-                match infant.discover_discovery_service().await {
+                match infant
+                    .discover_discovery_service_with_env(
+                        None,
+                        &self.config.discovery.env_overrides,
+                    )
+                    .await
+                {
                     Ok(client) => {
                         tracing::info!("✅ Infant discovery successful!");
                         self.discovery_client = Some(client);
