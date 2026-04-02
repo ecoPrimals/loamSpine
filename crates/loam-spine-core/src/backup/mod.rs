@@ -90,9 +90,10 @@ impl SpineBackup {
 
         let mut previous_hash: Option<[u8; 32]> = None;
         for (i, entry) in self.entries.iter().enumerate() {
-            if entry.index != i as u64 {
+            let idx = u64::try_from(i).unwrap_or(u64::MAX);
+            if entry.index != idx {
                 errors.push(BackupError::InvalidEntryIndex {
-                    expected: i as u64,
+                    expected: idx,
                     found: entry.index,
                 });
             }
@@ -101,7 +102,7 @@ impl SpineBackup {
                 Ok(h) => h,
                 Err(e) => {
                     errors.push(BackupError::HashComputationFailed {
-                        index: i as u64,
+                        index: idx,
                         message: e.to_string(),
                     });
                     continue;
@@ -112,7 +113,7 @@ impl SpineBackup {
                 if let Some(prev) = previous_hash
                     && entry.previous != Some(prev)
                 {
-                    errors.push(BackupError::ChainBroken { at_index: i as u64 });
+                    errors.push(BackupError::ChainBroken { at_index: idx });
                 }
             } else if entry.previous.is_some() {
                 errors.push(BackupError::ChainBroken { at_index: 0 });
@@ -141,7 +142,8 @@ impl SpineBackup {
         let data = bincode::serialize(self)
             .map_err(|e| LoamSpineError::Internal(format!("Failed to serialize backup: {e}")))?;
 
-        let len = data.len() as u64;
+        let len = u64::try_from(data.len())
+            .map_err(|_| LoamSpineError::Internal("Backup data exceeds u64 length".into()))?;
         writer
             .write_all(&len.to_le_bytes())
             .map_err(|e| LoamSpineError::Internal(format!("Failed to write length: {e}")))?;

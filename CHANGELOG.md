@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`DiscoveryConfig.env_overrides`**: `HashMap<String, String>` for test config injection without process env mutation.
 - **Integration tests**: Dynamic port allocation via **`portpicker`** to avoid collisions under parallel runs.
 - **Deterministic async timing**: Eight test sites now use `tokio::time::pause()` + `advance()` instead of wall-clock sleeps.
+- **`DiscoveryClient.endpoint`**: `String` → `Arc<str>` for O(1) clone in resilient adapter retry loops.
+- **`advertise_self` capabilities**: Hardcoded string literals replaced with `capabilities::identifiers::loamspine::ADVERTISED` (single source of truth).
+- **`advertise_self` metadata**: Protocol identifiers and metadata values centralized in `constants::protocol` and `constants::metadata` modules.
+- **`HealthStatus` caching**: Version string and capabilities vector cached with `OnceLock` via `cached_version()` / `cached_capabilities()`.
+- **`HealthError` structured errors**: `check_health`/`check_readiness` evolved from `Result<_, String>` to `Result<_, HealthError>` with `thiserror`-derived `StorageUnavailable`/`DiscoveryUnavailable` variants.
+- **JSON-RPC envelope zero-alloc**: `JsonRpcResponse.jsonrpc` evolved from `String` to `Cow<'static, str>`; `success()` promoted to `const fn`.
+- **`OnceLock` for capability/MCP JSON**: `capability_list()` and `mcp_tools_list()` now return `&'static serde_json::Value` initialized once.
+- **`as` casts evolved**: Remaining `as usize`/`as char`/`as u64` casts in production code replaced with `usize::from()`, `char::from()`, `u64::try_from()`.
+- **Test extraction**: `transport/neural_api.rs` inline tests → `transport/neural_api_tests.rs` (328 lines extracted).
 
 ### Removed
 - **`serial_test`** dependency — zero `#[serial]` attributes in the codebase (was 121).
@@ -24,7 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests: 1,397 → **1,270** (consolidated; trivial env-read tests removed)
 - `#[serial]`: **0** (was 121)
 - Full workspace test suite: **~3s** (all concurrent)
+- Coverage: **91.96%** line / **87.07%** region / **93.39%** function (llvm-cov)
 - Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
+- Doc warnings: **0**
+- `cargo deny check`: all pass
 
 ## [0.9.15] - 2026-03-31
 

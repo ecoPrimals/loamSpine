@@ -12,7 +12,6 @@ use crate::spine::Spine;
 use crate::storage::{EntryStorage, SledEntryStorage, SledSpineStorage, SledStorage, SpineStorage};
 use crate::types::{Did, SpineId};
 
-
 fn create_test_spine() -> Spine {
     let owner = Did::new("did:key:z6MkOwner");
     Spine::new(owner, Some("Test".into()), SpineConfig::default())
@@ -362,11 +361,11 @@ async fn sled_get_entry_corrupted_data_returns_error() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("entries");
 
+    let bad_hash = [0u8; 32];
     {
         let db = sled::open(&path).unwrap();
         let entries = db.open_tree("entries").unwrap();
         let index = db.open_tree("entry_index").unwrap();
-        let bad_hash = [0u8; 32];
         entries.insert(&bad_hash[..], b"corrupt").unwrap();
         index.insert(&[0u8; 24][..], &bad_hash[..]).unwrap();
         db.flush().unwrap();

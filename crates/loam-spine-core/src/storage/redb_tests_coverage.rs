@@ -6,7 +6,6 @@ use crate::entry::{Entry, SpineConfig};
 use crate::storage::{EntryStorage, RedbEntryStorage};
 use crate::types::{CertificateId, Did, SpineId};
 
-
 fn create_test_certificate(owner: &Did, spine_id: SpineId) -> crate::certificate::Certificate {
     use crate::certificate::{Certificate, CertificateType, MintInfo};
     use crate::types::Timestamp;

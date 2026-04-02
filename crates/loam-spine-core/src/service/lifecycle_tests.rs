@@ -373,10 +373,10 @@ fn lifecycle_start_with_no_endpoint_clears_env() {
         let mut config = LoamSpineConfig::default();
         config.discovery.discovery_enabled = true;
         config.discovery.discovery_endpoint = None;
-        config.discovery.env_overrides.insert(
-            "DISCOVERY_ENDPOINT".to_string(),
-            String::new(),
-        );
+        config
+            .discovery
+            .env_overrides
+            .insert("DISCOVERY_ENDPOINT".to_string(), String::new());
 
         let mut manager = LifecycleManager::new(service, config);
         let result = manager.start().await;

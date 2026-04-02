@@ -145,10 +145,7 @@ impl LifecycleManager {
                 let infant = crate::service::InfantDiscovery::from_advertised();
 
                 match infant
-                    .discover_discovery_service_with_env(
-                        None,
-                        &self.config.discovery.env_overrides,
-                    )
+                    .discover_discovery_service_with_env(None, &self.config.discovery.env_overrides)
                     .await
                 {
                     Ok(client) => {

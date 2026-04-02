@@ -216,10 +216,9 @@ async fn test_cache_hit_with_stale_services_triggers_rediscovery() {
         discovery_timeout: Duration::from_secs(1),
         env_overrides: HashMap::new(),
     };
-    config.env_overrides.insert(
-        "SIGNING_SERVICE_URL".into(),
-        "http://localhost:9999".into(),
-    );
+    config
+        .env_overrides
+        .insert("SIGNING_SERVICE_URL".into(), "http://localhost:9999".into());
     let discovery = InfantDiscovery::with_config(config).unwrap();
 
     let services = discovery
@@ -296,9 +295,10 @@ async fn test_all_discovered_returns_populated_cache() {
         discovery_timeout: Duration::from_secs(1),
         env_overrides: HashMap::new(),
     };
-    config
-        .env_overrides
-        .insert("CAPABILITY_TEST_ENDPOINT".into(), "http://localhost:1234".into());
+    config.env_overrides.insert(
+        "CAPABILITY_TEST_ENDPOINT".into(),
+        "http://localhost:1234".into(),
+    );
     let discovery = InfantDiscovery::with_config(config).unwrap();
 
     let _ = discovery.find_capability("test").await.unwrap();
@@ -356,10 +356,9 @@ async fn test_cache_hit_with_fresh_services_skips_rediscovery() {
         discovery_timeout: Duration::from_secs(1),
         env_overrides: HashMap::new(),
     };
-    config.env_overrides.insert(
-        "SIGNING_SERVICE_URL".into(),
-        "http://localhost:1111".into(),
-    );
+    config
+        .env_overrides
+        .insert("SIGNING_SERVICE_URL".into(), "http://localhost:1111".into());
     let mut discovery = InfantDiscovery::with_config(config).unwrap();
     let services1 = discovery
         .find_capability("cryptographic-signing")

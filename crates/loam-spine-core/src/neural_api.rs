@@ -7,6 +7,7 @@
 //! can route capability requests to LoamSpine.
 
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
@@ -101,9 +102,7 @@ pub fn resolve_neural_api_socket_with(
     }
     let rd = runtime_dir?;
     let fid = family_id.unwrap_or("default");
-    Some(PathBuf::from(format!(
-        "{rd}/biomeos/neural-api-{fid}.sock"
-    )))
+    Some(PathBuf::from(format!("{rd}/biomeos/neural-api-{fid}.sock")))
 }
 
 /// Resolve the NeuralAPI socket path for connecting to biomeOS (reads env).
@@ -338,11 +337,25 @@ pub(crate) async fn deregister_at_socket(
     Ok(())
 }
 
+/// Cached capability list — initialized once, reused for all subsequent calls.
+static CAPABILITY_LIST_CACHE: OnceLock<serde_json::Value> = OnceLock::new();
+
+/// Cached MCP tools list — initialized once, reused for all subsequent calls.
+static MCP_TOOLS_CACHE: OnceLock<serde_json::Value> = OnceLock::new();
+
 /// Return the capability list as a JSON-RPC response payload.
 /// Implements the `capability.list` semantic method.
 /// Aligns with ludoSpring's enhanced format: domain, method, dependencies, cost tier.
+///
+/// Uses `OnceLock` to initialize the JSON value once and return a reference thereafter,
+/// avoiding re-building the `serde_json::Value` tree on every call.
 #[must_use]
-pub fn capability_list() -> serde_json::Value {
+pub fn capability_list() -> &'static serde_json::Value {
+    CAPABILITY_LIST_CACHE.get_or_init(capability_list_inner)
+}
+
+/// Build the capability list JSON (called once by `OnceLock`).
+fn capability_list_inner() -> serde_json::Value {
     serde_json::json!({
         "primal": PRIMAL_NAME,
         "version": env!("CARGO_PKG_VERSION"),
@@ -412,7 +425,7 @@ pub fn capability_list() -> serde_json::Value {
 /// Used by the `loamspine capabilities` CLI subcommand.
 #[must_use]
 pub fn capability_list_pretty() -> String {
-    serde_json::to_string_pretty(&capability_list()).unwrap_or_default()
+    serde_json::to_string_pretty(capability_list()).unwrap_or_default()
 }
 
 // ============================================================================
@@ -428,12 +441,19 @@ pub fn capability_list_pretty() -> String {
 /// Absorbed from Squirrel/biomeOS MCP bridge pattern — primals advertise
 /// tool schemas so agents can construct valid calls without hardcoded
 /// knowledge of any specific primal.
+///
+/// Uses `OnceLock` to initialize the JSON value once and return a reference thereafter.
 #[must_use]
+pub fn mcp_tools_list() -> &'static serde_json::Value {
+    MCP_TOOLS_CACHE.get_or_init(mcp_tools_list_inner)
+}
+
+/// Build the MCP tools JSON (called once by `OnceLock`).
 #[expect(
     clippy::too_many_lines,
     reason = "declarative MCP tool schema definitions"
 )]
-pub fn mcp_tools_list() -> serde_json::Value {
+fn mcp_tools_list_inner() -> serde_json::Value {
     serde_json::json!({
         "tools": [
             mcp_tool("spine_create", "Create a new sovereign spine (append-only ledger)", &serde_json::json!({

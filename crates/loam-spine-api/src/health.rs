@@ -9,8 +9,40 @@
 //! - `/health/ready` - Readiness probe (ready for traffic?)
 
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime};
+
+/// Cached version string — initialized once from compile-time `CARGO_PKG_VERSION`.
+static VERSION_CACHE: OnceLock<String> = OnceLock::new();
+
+/// Cached capability strings — initialized once from the canonical ADVERTISED set.
+static CAPABILITIES_CACHE: OnceLock<Vec<String>> = OnceLock::new();
+
+fn cached_version() -> &'static str {
+    VERSION_CACHE.get_or_init(|| env!("CARGO_PKG_VERSION").to_string())
+}
+
+fn cached_capabilities() -> &'static [String] {
+    CAPABILITIES_CACHE.get_or_init(|| {
+        loam_spine_core::capabilities::identifiers::loamspine::ADVERTISED
+            .iter()
+            .map(|&s| s.to_string())
+            .collect()
+    })
+}
+
+/// Structured error type for health check failures.
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum HealthError {
+    /// Storage backend is unavailable.
+    #[error("storage backend unavailable")]
+    StorageUnavailable,
+
+    /// Discovery service is unavailable.
+    #[error("discovery service unavailable")]
+    DiscoveryUnavailable,
+}
 
 /// Health status response.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -181,7 +213,7 @@ impl HealthChecker {
         clippy::unused_async,
         reason = "will become truly async when health probes query network"
     )]
-    pub async fn check_health(&self) -> Result<HealthStatus, String> {
+    pub async fn check_health(&self) -> Result<HealthStatus, HealthError> {
         // Check storage health
         let storage_healthy = self.check_storage();
 
@@ -204,16 +236,13 @@ impl HealthChecker {
 
         Ok(HealthStatus {
             status,
-            version: env!("CARGO_PKG_VERSION").to_string(),
+            version: cached_version().to_string(),
             uptime_seconds: uptime,
             dependencies: DependencyHealth {
                 storage: storage_healthy,
                 discovery: discovery_healthy,
             },
-            capabilities: loam_spine_core::capabilities::identifiers::loamspine::ADVERTISED
-                .iter()
-                .map(|&s| s.to_string())
-                .collect(),
+            capabilities: cached_capabilities().to_vec(),
         })
     }
 
@@ -234,7 +263,7 @@ impl HealthChecker {
         clippy::unused_async,
         reason = "will become truly async when readiness probes query storage"
     )]
-    pub async fn check_readiness(&self) -> Result<ReadinessProbe, String> {
+    pub async fn check_readiness(&self) -> Result<ReadinessProbe, HealthError> {
         // Check critical dependencies
         let storage_healthy = self.check_storage();
 

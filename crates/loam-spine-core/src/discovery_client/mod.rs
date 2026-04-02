@@ -68,8 +68,8 @@ use crate::transport::DiscoveryTransport;
 /// `/register`, `/heartbeat`, and `/deregister` HTTP endpoints.
 #[derive(Clone, Debug)]
 pub struct DiscoveryClient {
-    /// Registry endpoint.
-    endpoint: String,
+    /// Registry endpoint (Arc for O(1) clone in resilient adapters).
+    endpoint: Arc<str>,
     /// Pluggable HTTP transport.
     transport: Arc<dyn DiscoveryTransport>,
 }
@@ -130,7 +130,7 @@ impl DiscoveryClient {
         )
     )]
     pub async fn connect(endpoint: impl Into<String>) -> LoamSpineResult<Self> {
-        let endpoint = endpoint.into();
+        let endpoint: Arc<str> = Arc::from(endpoint.into());
 
         // Try Tower Atomic first (ecoBin)
         #[cfg(feature = "tower-atomic")]
@@ -138,7 +138,7 @@ impl DiscoveryClient {
             match crate::transport::NeuralApiTransport::new(None) {
                 Ok(transport) => {
                     let client = Self {
-                        endpoint: endpoint.clone(),
+                        endpoint: Arc::clone(&endpoint),
                         transport: Arc::new(transport),
                     };
                     client.health_check().await?;
@@ -155,7 +155,7 @@ impl DiscoveryClient {
         {
             let transport = crate::transport::HttpTransport::new()?;
             let client = Self {
-                endpoint: endpoint.clone(),
+                endpoint: Arc::clone(&endpoint),
                 transport: Arc::new(transport),
             };
             client.health_check().await?;
@@ -179,10 +179,10 @@ impl DiscoveryClient {
     /// Returns an error if the registry is unreachable.
     #[cfg(feature = "discovery-http")]
     pub async fn connect_http(endpoint: impl Into<String>) -> LoamSpineResult<Self> {
-        let endpoint = endpoint.into();
+        let endpoint: Arc<str> = Arc::from(endpoint.into());
         let transport = crate::transport::HttpTransport::new()?;
         let client = Self {
-            endpoint: endpoint.clone(),
+            endpoint,
             transport: Arc::new(transport),
         };
         client.health_check().await?;
@@ -200,9 +200,9 @@ impl DiscoveryClient {
         endpoint: impl Into<String>,
         transport: Arc<dyn DiscoveryTransport>,
     ) -> LoamSpineResult<Self> {
-        let endpoint = endpoint.into();
+        let endpoint: Arc<str> = Arc::from(endpoint.into());
         let client = Self {
-            endpoint: endpoint.clone(),
+            endpoint,
             transport,
         };
         client.health_check().await?;
@@ -293,39 +293,38 @@ impl DiscoveryClient {
 
         let advertisement = ServiceAdvertisement {
             name: crate::neural_api::PRIMAL_NAME.to_string(),
-            primary_role: "permanence".to_string(),
-            capabilities: vec![
-                "permanence".to_string(),
-                "selective-memory".to_string(),
-                "spine-management".to_string(),
-                "certificate-management".to_string(),
-                "inclusion-proofs".to_string(),
-                "backup".to_string(),
-                "restore".to_string(),
-            ],
+            primary_role: crate::capabilities::identifiers::loamspine::PERMANENT_LEDGER.to_string(),
+            capabilities: crate::capabilities::identifiers::loamspine::ADVERTISED
+                .iter()
+                .map(|&s| s.to_string())
+                .collect(),
             endpoints: vec![
                 ServiceEndpoint {
-                    protocol: "tarpc".to_string(),
+                    protocol: crate::constants::protocol::TARPC.to_string(),
                     address: tarpc_endpoint.to_string(),
                     port: tarpc_port,
                     health_check: None,
                 },
                 ServiceEndpoint {
-                    protocol: "jsonrpc".to_string(),
+                    protocol: crate::constants::protocol::JSONRPC.to_string(),
                     address: jsonrpc_endpoint.to_string(),
                     port: jsonrpc_port,
-                    health_check: Some("/health".to_string()),
+                    health_check: Some(crate::constants::protocol::HEALTH_PATH.to_string()),
                 },
             ],
             metadata: [
-                ("version".to_string(), env!("CARGO_PKG_VERSION").to_string()),
-                ("language".to_string(), "rust".to_string()),
-                ("rpc_style".to_string(), "pure-rust".to_string()),
-                ("storage_backend".to_string(), "redb".to_string()),
-                ("zero_copy".to_string(), "true".to_string()),
-                ("unsafe_code".to_string(), "false".to_string()),
+                ("version", env!("CARGO_PKG_VERSION")),
+                ("language", crate::constants::metadata::LANGUAGE),
+                ("rpc_style", crate::constants::metadata::RPC_STYLE),
+                (
+                    "storage_backend",
+                    crate::constants::metadata::STORAGE_BACKEND,
+                ),
+                ("zero_copy", "true"),
+                ("unsafe_code", "false"),
             ]
             .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect(),
         };
 
@@ -405,9 +404,9 @@ impl DiscoveryClient {
     #[cfg(test)]
     #[must_use]
     pub fn for_testing(endpoint: impl Into<String>) -> Self {
-        let endpoint = endpoint.into();
+        let endpoint: Arc<str> = Arc::from(endpoint.into());
         Self {
-            transport: Arc::new(crate::transport::mock::MockTransport::new(&endpoint)),
+            transport: Arc::new(crate::transport::mock::MockTransport::new(&*endpoint)),
             endpoint,
         }
     }
@@ -418,10 +417,9 @@ impl DiscoveryClient {
     #[cfg(test)]
     #[must_use]
     pub fn for_testing_success(endpoint: impl Into<String>) -> Self {
-        let endpoint = endpoint.into();
         Self {
             transport: Arc::new(crate::transport::mock::SuccessTransport::new()),
-            endpoint,
+            endpoint: Arc::from(endpoint.into()),
         }
     }
 
@@ -435,7 +433,7 @@ impl DiscoveryClient {
         transport: Arc<dyn DiscoveryTransport>,
     ) -> Self {
         Self {
-            endpoint: endpoint.into(),
+            endpoint: Arc::from(endpoint.into()),
             transport,
         }
     }

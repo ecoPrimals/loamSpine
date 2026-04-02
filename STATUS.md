@@ -48,7 +48,7 @@ This document tracks implementation progress against the specification suite in 
 |--------|--------|---------|
 | Tests | — | 1,270 |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`) |
-| Coverage (llvm-cov) | 90%+ | 93.96% line / 92.60% region / 87%+ function |
+| Coverage (llvm-cov) | 90%+ | 91.96% line / 87.07% region / 93.39% function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
@@ -72,11 +72,21 @@ This document tracks implementation progress against the specification suite in 
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
-| Zero-copy | PASS | `Did` → `Arc<str>`, `Bytes` for payloads, `Cow<'static, str>` for config, zero-alloc JSON-RPC dispatch, `[u8; 24]` stack keys for storage, `entry.clone()` eliminated — `tip_entry()` zero-copy persistence |
+| Zero-copy | PASS | `Did` → `Arc<str>`, `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow`, `capability_list()`/`mcp_tools_list()` → `OnceLock<Value>`, `HealthStatus` version/caps cached via `OnceLock`, `Bytes` for payloads, `[u8; 24]` stack keys, `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | File size limit | PASS | All 129 files under 1000 lines (max: 899 in `discovery/tests.rs`). |
 
 ---
+
+## v0.9.16 Deep Debt Evolution & Zero-Copy Hardening (April 1--2, 2026)
+
+- **Zero-copy evolution**: `DiscoveryClient.endpoint` evolved from `String` to `Arc<str>` for O(1) clone in resilient adapter retry loops. `JsonRpcResponse.jsonrpc` evolved from `String` to `Cow<'static, str>` with `success()` promoted to `const fn`. `capability_list()` and `mcp_tools_list()` cached with `OnceLock` — return `&'static serde_json::Value`. `HealthStatus` version/capabilities cached with `OnceLock` via `cached_version()`/`cached_capabilities()`.
+- **Hardcoding elimination**: `advertise_self` capabilities replaced with `capabilities::identifiers::loamspine::ADVERTISED`. Protocol identifiers centralized in `constants::protocol::{TARPC, JSONRPC, HEALTH_PATH}`. Metadata values centralized in `constants::metadata::{LANGUAGE, RPC_STYLE, STORAGE_BACKEND}`.
+- **Structured errors**: `HealthError` enum with `thiserror` replaces `Result<_, String>` on `check_health`/`check_readiness`.
+- **`as` cast elimination**: All remaining production `as usize`/`as char`/`as u64` casts evolved to `usize::from()`, `char::from()`, `u64::try_from()`.
+- **Test extraction**: `transport/neural_api.rs` inline tests → `transport/neural_api_tests.rs` (328 lines).
+- **`primal-capabilities.toml`**: Version bumped to 0.9.16.
+- **Coverage**: 91.96% line / 87.07% region / 93.39% function. All checks pass (fmt, clippy, test, doc, deny).
 
 ## v0.9.16 Concurrent Test Evolution (April 1, 2026)
 

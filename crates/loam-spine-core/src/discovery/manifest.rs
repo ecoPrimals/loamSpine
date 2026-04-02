@@ -39,11 +39,7 @@ pub struct PrimalManifest {
 #[must_use]
 pub fn manifest_dir_from(base: &Path) -> Option<PathBuf> {
     let dir = base.join("ecoPrimals");
-    if dir.is_dir() {
-        Some(dir)
-    } else {
-        None
-    }
+    if dir.is_dir() { Some(dir) } else { None }
 }
 
 /// Discover all primal manifests under `base/ecoPrimals/*.json`.

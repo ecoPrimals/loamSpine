@@ -203,9 +203,10 @@ impl Spine {
 
         for (i, entry) in self.entries.iter().enumerate() {
             // Check index
-            if entry.index != i as u64 {
+            let idx = u64::try_from(i).unwrap_or(u64::MAX);
+            if entry.index != idx {
                 errors.push(ChainError::IndexGap {
-                    expected: i as u64,
+                    expected: idx,
                     actual: entry.index,
                 });
             }

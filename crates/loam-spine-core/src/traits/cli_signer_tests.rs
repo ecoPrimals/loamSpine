@@ -816,7 +816,8 @@ esac
 
     #[test]
     fn discover_binary_bins_dir_missing_falls_through() {
-        let result = CliSigner::discover_binary_from(None, Some("/tmp/nonexistent-bins-dir-xyz-12345"));
+        let result =
+            CliSigner::discover_binary_from(None, Some("/tmp/nonexistent-bins-dir-xyz-12345"));
         // May still find something on PATH; just ensure no panic
         let _ = result;
     }

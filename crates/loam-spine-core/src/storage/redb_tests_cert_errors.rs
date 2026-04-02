@@ -17,7 +17,6 @@ use crate::storage::{
 };
 use crate::types::{CertificateId, Did, SpineId, Timestamp};
 
-
 fn create_test_spine() -> Spine {
     let owner = Did::new("did:key:z6MkRedbOwner");
     Spine::new(owner, Some("RedbTest".into()), SpineConfig::default())

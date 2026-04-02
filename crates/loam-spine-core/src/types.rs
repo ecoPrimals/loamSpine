@@ -319,8 +319,8 @@ mod hex {
     pub fn encode(bytes: &[u8]) -> String {
         let mut s = String::with_capacity(bytes.len() * 2);
         for &b in bytes {
-            s.push(HEX_CHARS[(b >> 4) as usize] as char);
-            s.push(HEX_CHARS[(b & 0xf) as usize] as char);
+            s.push(char::from(HEX_CHARS[usize::from(b >> 4)]));
+            s.push(char::from(HEX_CHARS[usize::from(b & 0xf)]));
         }
         s
     }

@@ -341,7 +341,7 @@ impl LoamSpineService {
         }
 
         let chain_root = crate::proof::compute_merkle_root(&entries);
-        let chain_length = entries.len() as u64;
+        let chain_length = u64::try_from(entries.len()).unwrap_or(u64::MAX);
 
         Ok(CertificateOwnershipProof {
             certificate_id: cert_id,

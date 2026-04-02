@@ -254,10 +254,10 @@ async fn test_cached_empty_services_triggers_rediscovery() {
     let services1 = discovery.find_capability("rediscover").await.unwrap();
     assert!(services1.is_empty());
 
-    discovery
-        .config
-        .env_overrides
-        .insert("REDISCOVER_SERVICE_URL".into(), "http://rediscovered:8080".into());
+    discovery.config.env_overrides.insert(
+        "REDISCOVER_SERVICE_URL".into(),
+        "http://rediscovered:8080".into(),
+    );
     let services2 = discovery.find_capability("rediscover").await.unwrap();
     assert_eq!(services2.len(), 1);
     assert_eq!(services2[0].endpoint, "http://rediscovered:8080");
@@ -292,10 +292,9 @@ async fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
         discovery_timeout: Duration::from_secs(1),
         env_overrides: HashMap::new(),
     };
-    config.env_overrides.insert(
-        "SIGNING_SERVICE_URL".into(),
-        "http://localhost:1111".into(),
-    );
+    config
+        .env_overrides
+        .insert("SIGNING_SERVICE_URL".into(), "http://localhost:1111".into());
     let discovery = InfantDiscovery::with_config(config).unwrap();
 
     let services1 = discovery

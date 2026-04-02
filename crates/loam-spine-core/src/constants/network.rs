@@ -607,8 +607,7 @@ mod tests {
 
     #[test]
     fn primal_socket_with_env_override() {
-        let path =
-            resolve_primal_socket_with(Some("/tmp/override.sock"), "testprimal", "dev");
+        let path = resolve_primal_socket_with(Some("/tmp/override.sock"), "testprimal", "dev");
         assert_eq!(path, std::path::PathBuf::from("/tmp/override.sock"));
     }
 

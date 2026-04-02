@@ -23,7 +23,7 @@ fallback_strategy = "best-available"
 name = "loamspine"
 description = "Permanence layer providing selective memory and certificate management"
 primary_role = "permanence"
-version = "0.9.15"
+version = "0.9.16"
 
 capabilities = [
     # Core permanence capabilities
@@ -123,8 +123,6 @@ methods = [
     "fallback",          # Graceful degradation
 ]
 
-# Note: "songbird" is aliased to "service-registry" for backward compatibility
-
 # Service registry integration (universal adapter)
 #
 # Compatible with any RFC 2782 compliant service discovery system:
@@ -137,8 +135,6 @@ service_registry_enabled = true
 # Production deployments discover the registry via DNS SRV (_discovery._tcp.local)
 # or environment variables. This value is only used as a last-resort fallback.
 service_registry_endpoint = "http://localhost:8082"
-
-# Legacy Songbird fields removed in v0.8.0 (use service_registry_* instead)
 
 # Cache settings
 cache_enabled = true

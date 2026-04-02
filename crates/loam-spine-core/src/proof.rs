@@ -148,7 +148,7 @@ impl CertificateProof {
     /// Add transfer proofs.
     #[must_use]
     pub fn with_transfers(mut self, proofs: Vec<InclusionProof>) -> Self {
-        self.history_summary.transfer_count = proofs.len() as u64;
+        self.history_summary.transfer_count = u64::try_from(proofs.len()).unwrap_or(u64::MAX);
         self.transfer_proofs = proofs;
         self
     }

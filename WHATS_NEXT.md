@@ -220,13 +220,18 @@
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
-## v0.9.16 Completed (April 1, 2026)
+## v0.9.16 Completed (April 1--2, 2026)
 
 - **Concurrent test evolution** — All seven phases completed: full suite is concurrent (**~3s**), **zero `#[serial]`** (was 121), **`serial_test`** and **`temp_env`** removed from the workspace.
 - **Inner/outer function pattern** — Pure inner functions for dependency injection; public APIs remain thin env wrappers where needed.
 - **Deterministic time control** — `tokio::time::pause()` + `advance()` replace wall-clock sleeps in affected tests.
 - **Dynamic ports** — **`portpicker`** for integration tests to avoid port collisions under parallel execution.
+- **Zero-copy evolution** — `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow<'static, str>` (`const fn success()`), `capability_list()`/`mcp_tools_list()` → `OnceLock<Value>`, `HealthStatus` version/caps cached via `OnceLock`.
+- **Hardcoding elimination** — `advertise_self` capabilities → `ADVERTISED` constants; protocol/metadata strings → `constants::protocol`/`constants::metadata` modules.
+- **Structured errors** — `HealthError` enum replaces `Result<_, String>` on health checks.
+- **`as` cast elimination** — All remaining production casts evolved to `From`/`try_from`.
 - **1,270 tests** — Consolidated from 1,397 (redundant trivial tests dropped); all concurrent.
+- **Coverage**: 91.96% line / 87.07% region / 93.39% function.
 
 ## v0.9.14 Completed (March 24, 2026)
 
@@ -264,7 +269,7 @@
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
 - **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate `mdns-sd` or `hickory-resolver` mDNS (see `specs/DEPENDENCY_EVOLUTION.md`)
 - **bincode v1 → v2** — Storage format migration for RUSTSEC-2025-0141 resolution (see `specs/DEPENDENCY_EVOLUTION.md`)
-- **`OnceLock` caching** — Static capability/method lookups for `capability_list()` and `mcp_tools_list()`
+- ~~**`OnceLock` caching**~~ — Completed in v0.9.16: `capability_list()`, `mcp_tools_list()`, `HealthStatus` version/caps
 - **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)
 
 ---

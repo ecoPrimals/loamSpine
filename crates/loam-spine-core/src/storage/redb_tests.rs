@@ -9,7 +9,6 @@ use crate::spine::Spine;
 use crate::storage::{EntryStorage, RedbEntryStorage, RedbSpineStorage, RedbStorage, SpineStorage};
 use crate::types::{Did, SpineId};
 
-
 fn create_test_spine() -> Spine {
     let owner = Did::new("did:key:z6MkOwner");
     Spine::new(owner, Some("Test".into()), SpineConfig::default())

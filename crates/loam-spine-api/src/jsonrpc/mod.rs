@@ -40,8 +40,8 @@ pub struct JsonRpcRequest {
 /// A JSON-RPC 2.0 response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonRpcResponse {
-    /// Protocol version.
-    pub jsonrpc: String,
+    /// Protocol version (always `"2.0"`; `Cow` avoids allocation).
+    pub jsonrpc: std::borrow::Cow<'static, str>,
     /// Successful result (mutually exclusive with `error`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<serde_json::Value>,
@@ -72,9 +72,9 @@ const INVALID_PARAMS: i32 = -32602;
 const LOAMSPINE_ERROR: i32 = -32000;
 
 impl JsonRpcResponse {
-    fn success(id: serde_json::Value, result: serde_json::Value) -> Self {
+    const fn success(id: serde_json::Value, result: serde_json::Value) -> Self {
         Self {
-            jsonrpc: "2.0".to_string(),
+            jsonrpc: std::borrow::Cow::Borrowed("2.0"),
             result: Some(result),
             error: None,
             id,
@@ -83,7 +83,7 @@ impl JsonRpcResponse {
 
     fn error(id: serde_json::Value, code: i32, message: impl Into<String>) -> Self {
         Self {
-            jsonrpc: "2.0".to_string(),
+            jsonrpc: std::borrow::Cow::Borrowed("2.0"),
             result: None,
             error: Some(JsonRpcError {
                 code,
@@ -246,9 +246,9 @@ impl LoamSpineJsonRpc {
             "permanence.get_commit" => rpc!(params, permanent_storage_get_commit),
             "permanence.health_check" => ser(self.service.permanence_healthy().await),
 
-            "capabilities.list" => Ok(loam_spine_core::neural_api::capability_list()),
+            "capabilities.list" => Ok(loam_spine_core::neural_api::capability_list().clone()),
 
-            "tools.list" => Ok(loam_spine_core::neural_api::mcp_tools_list()),
+            "tools.list" => Ok(loam_spine_core::neural_api::mcp_tools_list().clone()),
 
             "tools.call" => {
                 let tool_name = params

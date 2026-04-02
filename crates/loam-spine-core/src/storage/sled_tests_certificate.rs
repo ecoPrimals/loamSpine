@@ -19,7 +19,6 @@ use crate::storage::{
 };
 use crate::types::{CertificateId, Did, SpineId, Timestamp};
 
-
 fn create_sled_test_spine() -> Spine {
     Spine::new(
         Did::new("did:key:z6MkSledCert"),

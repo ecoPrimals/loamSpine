@@ -146,6 +146,26 @@ pub const LOCALHOST_IP: &str = "127.0.0.1";
 /// the port is omitted from the URL since HTTPS uses it by default.
 pub const HTTPS_DEFAULT_PORT: u16 = 443;
 
+/// Protocol identifiers for service advertisement and discovery.
+pub mod protocol {
+    /// tarpc (Rust-to-Rust) transport protocol identifier.
+    pub const TARPC: &str = "tarpc";
+    /// JSON-RPC transport protocol identifier.
+    pub const JSONRPC: &str = "jsonrpc";
+    /// Standard health-check endpoint path.
+    pub const HEALTH_PATH: &str = "/health";
+}
+
+/// Metadata keys and values for service advertisement.
+pub mod metadata {
+    /// Implementation language.
+    pub const LANGUAGE: &str = "rust";
+    /// RPC style used by this primal.
+    pub const RPC_STYLE: &str = "pure-rust";
+    /// Storage backend.
+    pub const STORAGE_BACKEND: &str = "redb";
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
