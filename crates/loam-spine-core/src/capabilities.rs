@@ -58,6 +58,8 @@ pub mod identifiers {
         pub const TEMPORAL_TRACKING: &str = "temporal-tracking";
         /// Provides waypoint anchoring for data journeys
         pub const WAYPOINT_ANCHORING: &str = "waypoint-anchoring";
+        /// Provides public chain anchoring for external provenance verification
+        pub const PUBLIC_ANCHORING: &str = "public-anchoring";
 
         /// Canonical capability set for service advertisement and discovery.
         ///
@@ -69,6 +71,7 @@ pub mod identifiers {
             CERTIFICATE_AUTHORITY,
             PROOF_GENERATION,
             TEMPORAL_TRACKING,
+            PUBLIC_ANCHORING,
         ];
     }
 
@@ -86,6 +89,8 @@ pub mod identifiers {
         pub const COMPUTE: &str = "compute-orchestration";
         /// Operation attestation for waypoint semantics
         pub const ATTESTATION: &str = "attestation";
+        /// Chain anchor submission (blockchain/data-commons write access)
+        pub const CHAIN_ANCHOR: &str = "chain-anchor";
     }
 }
 
@@ -138,6 +143,14 @@ pub enum LoamSpineCapability {
         supports_journey_tracking: bool,
         /// Permanent audit trail
         immutable_history: bool,
+    },
+
+    /// Public chain anchoring for external provenance verification
+    PublicAnchoring {
+        /// Supported anchor target types
+        anchor_targets: Vec<String>,
+        /// Whether verification of anchors is supported
+        supports_verification: bool,
     },
 }
 
@@ -244,6 +257,7 @@ impl LoamSpineCapability {
             Self::ProofGeneration { .. } => loamspine::PROOF_GENERATION,
             Self::TemporalTracking { .. } => loamspine::TEMPORAL_TRACKING,
             Self::WaypointAnchoring { .. } => loamspine::WAYPOINT_ANCHORING,
+            Self::PublicAnchoring { .. } => loamspine::PUBLIC_ANCHORING,
         }
     }
 
@@ -293,6 +307,15 @@ impl LoamSpineCapability {
             Self::WaypointAnchoring {
                 supports_journey_tracking: true,
                 immutable_history: true,
+            },
+            Self::PublicAnchoring {
+                anchor_targets: vec![
+                    "bitcoin".into(),
+                    "ethereum".into(),
+                    "federated-spine".into(),
+                    "data-commons".into(),
+                ],
+                supports_verification: true,
             },
         ]
     }
@@ -457,7 +480,7 @@ mod tests {
 
         // We should know our own capabilities
         assert!(!capabilities.is_empty());
-        assert!(capabilities.len() >= 5);
+        assert!(capabilities.len() >= 6);
 
         // Verify we have core capabilities
         assert!(

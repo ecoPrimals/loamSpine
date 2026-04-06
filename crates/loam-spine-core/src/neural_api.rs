@@ -37,6 +37,8 @@ pub const CAPABILITIES: &[&str] = &[
     "slice.checkout",
     "proof.generate",
     "proof.verify",
+    "anchor.publish",
+    "anchor.verify",
     "health.check",
     "capability.list",
 ];
@@ -382,6 +384,8 @@ fn capability_list_inner() -> serde_json::Value {
             { "method": "proof.verify_inclusion", "domain": "proof", "cost": "medium", "deps": [] },
             { "method": "session.commit", "domain": "integration", "cost": "medium", "deps": ["spine.create"] },
             { "method": "braid.commit", "domain": "integration", "cost": "medium", "deps": ["spine.create"] },
+            { "method": "anchor.publish", "domain": "anchor", "cost": "low", "deps": ["spine.create"] },
+            { "method": "anchor.verify", "domain": "anchor", "cost": "low", "deps": ["anchor.publish"] },
             { "method": "health.check", "domain": "health", "cost": "low", "deps": [] },
             { "method": "capability.list", "domain": "meta", "cost": "low", "deps": [] },
         ],
@@ -397,6 +401,8 @@ fn capability_list_inner() -> serde_json::Value {
             "proof.generate_inclusion": ["entry.append"],
             "session.commit": ["spine.create"],
             "braid.commit": ["spine.create"],
+            "anchor.publish": ["spine.create"],
+            "anchor.verify": ["anchor.publish"],
         },
         "cost_estimates": {
             "spine.create":              { "latency_ms": 1, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
@@ -416,6 +422,8 @@ fn capability_list_inner() -> serde_json::Value {
             "session.commit":            { "latency_ms": 5, "cpu": "medium", "memory_bytes": 16384, "gpu_eligible": false },
             "braid.commit":              { "latency_ms": 5, "cpu": "medium", "memory_bytes": 16384, "gpu_eligible": false },
             "health.check":              { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
+            "anchor.publish":            { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
+            "anchor.verify":             { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
             "capability.list":           { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
         },
     })
@@ -635,6 +643,25 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 },
                 "required": ["spine_id", "braid_id", "braid_hash", "committer"]
             })),
+            mcp_tool("anchor_publish", "Record a public chain anchor on a spine (external provenance verification)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "string", "description": "Spine ID (UUID)" },
+                    "anchor_target": { "type": "string", "description": "Target system: Bitcoin, Ethereum, FederatedSpine, DataCommons, or Other" },
+                    "tx_ref": { "type": "string", "description": "Transaction hash or proof reference on external system" },
+                    "block_height": { "type": "integer", "description": "Block height or sequence number (0 if N/A)" },
+                    "anchor_timestamp": { "type": "integer", "description": "Anchor confirmation timestamp (epoch ms)" }
+                },
+                "required": ["spine_id", "anchor_target", "tx_ref", "anchor_timestamp"]
+            })),
+            mcp_tool("anchor_verify", "Verify a spine's state against a recorded public chain anchor", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "string", "description": "Spine ID (UUID)" },
+                    "anchor_entry_hash": { "type": "string", "description": "Specific anchor entry hash (hex); omit for latest" }
+                },
+                "required": ["spine_id"]
+            })),
             mcp_tool("health_check", "Check LoamSpine health status", &serde_json::json!({
                 "type": "object",
                 "properties": {},
@@ -688,6 +715,8 @@ pub fn mcp_tool_to_rpc(
         "proof_verify_inclusion" => "proof.verify_inclusion",
         "session_commit" => "session.commit",
         "braid_commit" => "braid.commit",
+        "anchor_publish" => "anchor.publish",
+        "anchor_verify" => "anchor.verify",
         "health_check" => "health.check",
         "capability_list" => "capability.list",
         _ => return None,

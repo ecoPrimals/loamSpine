@@ -160,6 +160,22 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
         self.service.get_certificate(request).await
     }
 
+    async fn publish_anchor(
+        self,
+        _: tarpc::context::Context,
+        request: AnchorPublishRequest,
+    ) -> Result<AnchorPublishResponse, ApiError> {
+        self.service.publish_anchor(request).await
+    }
+
+    async fn verify_anchor(
+        self,
+        _: tarpc::context::Context,
+        request: AnchorVerifyRequest,
+    ) -> Result<AnchorVerifyResponse, ApiError> {
+        self.service.verify_anchor(request).await
+    }
+
     async fn anchor_slice(
         self,
         _: tarpc::context::Context,

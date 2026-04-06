@@ -332,36 +332,28 @@ Resolution collapses the DAG into either:
 - **COMMIT**: New entry appended to canonical spine
 - **ROLLBACK**: Spine unchanged, DAG discarded
 
-### 2.5 External Anchors (Optional)
+### 2.5 External Anchors (Implemented)
 
-While LoamSpine is sovereign by default, it can optionally anchor to external systems for additional verification:
+LoamSpine is sovereign by default but can anchor spine states to external append-only
+ledgers for independent, external verification. Implemented as `EntryType::PublicChainAnchor`
+with a chain-agnostic `AnchorTarget` enum. LoamSpine only **records the receipt** — the
+actual chain submission is performed by a capability-discovered `"chain-anchor"` primal.
 
 ```rust
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ExternalAnchor {
-    /// Anchor to gAIa global commons
-    GaiaCommons { 
-        shard_id: GaiaShardId,
-    },
-    
-    /// Anchor to another federated LoamSpine
-    FederatedSpine { 
-        spine_id: SpineId,
-        peer_id: PeerId,
-    },
-    
-    /// Anchor to external blockchain (optional, not required)
-    ExternalChain {
-        chain: ChainType,
-        tx_hash: TxHash,
-    },
-    
-    /// Anchor to data commons (preferred over currency chains)
-    DataCommons {
-        commons_id: CommonsId,
-        anchor_hash: ContentHash,
-    },
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum AnchorTarget {
+    Bitcoin,
+    Ethereum,
+    FederatedSpine { peer_id: String },
+    DataCommons { commons_id: String },
+    Other { name: String },
 }
+```
+
+JSON-RPC methods: `anchor.publish` (record receipt), `anchor.verify` (verify state against
+recorded anchor). See `crates/loam-spine-core/src/entry/mod.rs` and
+`crates/loam-spine-core/src/service/anchor.rs` for the implementation.
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ChainType {

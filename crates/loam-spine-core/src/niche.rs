@@ -34,6 +34,7 @@ pub const DOMAINS: &[&str] = &[
     "certificate",
     "proof",
     "waypoint",
+    "anchor",
     "health",
     "meta",
     "integration",
@@ -65,6 +66,8 @@ pub const METHODS: &[&str] = &[
     "proof.verify_inclusion",
     "session.commit",
     "braid.commit",
+    "anchor.publish",
+    "anchor.verify",
     "health.check",
     "health.liveness",
     "health.readiness",
@@ -100,6 +103,8 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
     ("verify_inclusion_proof", "proof.verify_inclusion"),
     ("commit_session", "session.commit"),
     ("commit_braid", "braid.commit"),
+    ("publish_anchor", "anchor.publish"),
+    ("verify_anchor", "anchor.verify"),
     ("health_check", "health.check"),
     ("capability_list", "capability.list"),
     ("tools_list", "tools.list"),
@@ -117,6 +122,7 @@ pub const CONSUMED_CAPABILITIES: &[&str] = &[
     crate::capabilities::identifiers::external::SESSION_MANAGEMENT,
     crate::capabilities::identifiers::external::COMPUTE,
     crate::capabilities::identifiers::external::ATTESTATION,
+    crate::capabilities::identifiers::external::CHAIN_ANCHOR,
 ];
 
 /// Dependencies for primal deployment.
@@ -145,6 +151,11 @@ pub const DEPENDENCIES: &[(&str, bool, &str)] = &[
         false,
         "operation attestation for waypoint semantics (enforcement deferred)",
     ),
+    (
+        crate::capabilities::identifiers::external::CHAIN_ANCHOR,
+        false,
+        "external chain anchor submission (loamSpine only records receipts)",
+    ),
 ];
 
 /// Cost estimates for biomeOS scheduling.
@@ -170,6 +181,8 @@ pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
     ("proof.verify_inclusion", 5, false),
     ("session.commit", 5, false),
     ("braid.commit", 5, false),
+    ("anchor.publish", 2, false),
+    ("anchor.verify", 2, false),
     ("health.check", 1, false),
     ("capability.list", 1, false),
     ("tools.list", 1, false),

@@ -7,7 +7,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.9.16] - 2026-04-01
+## [0.9.16] - 2026-04-06
+
+### Added
+- **Public chain anchor**: `EntryType::PublicChainAnchor` + `AnchorTarget` enum for external provenance verification. Anchors spine state hashes to any append-only ledger (Bitcoin, Ethereum, federated spines, data commons). LoamSpine records receipts only — actual chain submission is capability-discovered (`"chain-anchor"` primal).
+- **JSON-RPC `anchor.publish` / `anchor.verify`**: Two new methods for recording and verifying public chain anchors, wired through both JSON-RPC and tarpc.
+- **`public-anchoring` capability**: Advertised via capabilities registry, neural API, MCP tools, and niche self-knowledge.
+- **`chain-anchor` consumed capability**: Optional external dependency for chain submission primals.
+- **10 new anchor tests**: Entry serde roundtrip, domain classification, service method roundtrip, verify logic, JSON-RPC dispatch (publish + verify), anchor target serde, missing spine, non-anchor entry, latest anchor resolution.
 
 ### Changed
 - **Inner/outer function pattern** for all env-dependent code paths — pure `resolve_*` / `_from` / `_with` inner functions with thin outer public APIs (`constants/network.rs`, `neural_api.rs`, infant discovery, `manifest.rs`, `cli_signer.rs`, `lifecycle.rs`).
@@ -23,14 +30,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JSON-RPC envelope zero-alloc**: `JsonRpcResponse.jsonrpc` evolved from `String` to `Cow<'static, str>`; `success()` promoted to `const fn`.
 - **`OnceLock` for capability/MCP JSON**: `capability_list()` and `mcp_tools_list()` now return `&'static serde_json::Value` initialized once.
 - **`as` casts evolved**: Remaining `as usize`/`as char`/`as u64` casts in production code replaced with `usize::from()`, `char::from()`, `u64::try_from()`.
-- **Test extraction**: `transport/neural_api.rs` inline tests → `transport/neural_api_tests.rs` (328 lines extracted).
+- **`StorageResultExt` trait**: New extension trait on `Result<T, E: Display>` providing `.storage_err()` and `.storage_ctx("context")` methods, eliminating ~85 verbose `.map_err(|e| LoamSpineError::Storage(e.to_string()))` closures across `redb.rs`, `sled.rs`, and storage modules.
+- **redb storage**: 54 `.to_string()` closures replaced with `StorageResultExt` methods (redb.rs: 628 → 512 lines).
+- **sled storage**: 31 `.to_string()` closures replaced with `StorageResultExt` methods (sled.rs: 519 → 461 lines).
+- **Test extraction**: Large production files refactored via `#[path]` test extraction:
+  - `resilience.rs`: 789 → 421 lines (368 lines → `resilience_tests.rs`)
+  - `proof.rs`: 759 → 384 lines (375 lines → `proof_tests.rs`)
+  - `service/mod.rs` (API): 796 → 137 lines (659 lines → `service_tests.rs`)
+  - `transport/neural_api.rs`: inline tests → `transport/neural_api_tests.rs` (328 lines extracted)
 
 ### Removed
 - **`serial_test`** dependency — zero `#[serial]` attributes in the codebase (was 121).
 - **`temp-env`** dependency — env injection for tests uses pure functions and `env_overrides` instead.
 
 ### Metrics
-- Tests: 1,397 → **1,270** (consolidated; trivial env-read tests removed)
+- Tests: 1,397 → **1,280** (consolidated; trivial env-read tests removed; 10 public chain anchor tests added)
 - `#[serial]`: **0** (was 121)
 - Full workspace test suite: **~3s** (all concurrent)
 - Coverage: **91.96%** line / **87.07%** region / **93.39%** function (llvm-cov)

@@ -203,6 +203,35 @@ impl Entry {
     }
 }
 
+/// Target system for public chain anchoring.
+///
+/// Follows the spec's philosophy: data commons and federated spines are
+/// preferred over currency chains (zero transaction cost, self-sovereign).
+/// Chain-agnostic — any append-only ledger works.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum AnchorTarget {
+    /// Bitcoin (high security, slow, expensive).
+    Bitcoin,
+    /// Ethereum (programmable, moderate cost).
+    Ethereum,
+    /// Federated LoamSpine instance (preferred — zero cost, self-sovereign).
+    FederatedSpine {
+        /// Peer identifier of the federated spine.
+        peer_id: String,
+    },
+    /// Data commons (preferred — zero transaction cost).
+    DataCommons {
+        /// Commons identifier.
+        commons_id: String,
+    },
+    /// Any other append-only system.
+    Other {
+        /// Chain or system name.
+        name: String,
+    },
+}
+
 /// Types of entries that can be committed to LoamSpine.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -372,6 +401,26 @@ pub enum EntryType {
         moment: Box<Moment>,
     },
 
+    // === External Anchoring ===
+    /// Public chain anchor proving spine state existed at a point in time.
+    ///
+    /// Records the result of anchoring a spine's state hash to an external
+    /// append-only ledger (blockchain, data commons, federated spine).
+    /// The actual chain submission is performed by a capability-discovered
+    /// `"chain-anchor"` primal — loamSpine only records the receipt.
+    PublicChainAnchor {
+        /// Which chain or anchor system was used.
+        anchor_target: AnchorTarget,
+        /// The spine state hash that was anchored (Blake3 of tip entry).
+        state_hash: ContentHash,
+        /// Transaction hash or proof reference on the external system.
+        tx_ref: String,
+        /// Block height or sequence number (0 if not applicable).
+        block_height: u64,
+        /// Timestamp when the anchor was confirmed on the external system.
+        anchor_timestamp: Timestamp,
+    },
+
     // === Custom ===
     /// Custom entry type with zero-copy payload.
     Custom {
@@ -407,6 +456,7 @@ impl EntryType {
             | Self::SliceOperation { .. }
             | Self::SliceDeparture { .. } => "slice",
             Self::TemporalMoment { .. } => "temporal",
+            Self::PublicChainAnchor { .. } => "anchor",
             Self::Custom { .. } => "custom",
         }
     }

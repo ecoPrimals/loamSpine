@@ -107,7 +107,7 @@ pub use config::LoamSpineConfig;
 /// `LoamSpine` errors.
 pub use error::{
     DispatchOutcome, IpcErrorPhase, IpcPhase, LoamSpineError, LoamSpineResult, OrExit,
-    extract_rpc_error, extract_rpc_result, extract_rpc_result_typed,
+    StorageResultExt, extract_rpc_error, extract_rpc_result, extract_rpc_result_typed,
 };
 
 /// Core types.
@@ -132,7 +132,7 @@ pub use types::{
 };
 
 /// Entry types.
-pub use entry::{Entry, EntryType, SpineConfig as EntrySpineConfig};
+pub use entry::{AnchorTarget, Entry, EntryType, SpineConfig as EntrySpineConfig};
 
 /// Spine types.
 pub use spine::{ChainError, ChainVerification, Spine, SpineBuilder, SpineState};

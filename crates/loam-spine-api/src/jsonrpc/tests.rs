@@ -607,4 +607,113 @@ async fn numeric_json_value_returns_parse_error() {
     assert_eq!(parsed.error.as_ref().unwrap().code, -32700);
 }
 
+// ============================================================================
+// Public Chain Anchor dispatch tests
+// ============================================================================
+
+#[tokio::test]
+async fn anchor_publish_and_verify_dispatch() {
+    use crate::types::{
+        AnchorPublishRequest, AnchorPublishResponse, AnchorVerifyRequest, AnchorVerifyResponse,
+    };
+    use loam_spine_core::entry::AnchorTarget;
+
+    let server = LoamSpineJsonRpc::default_server();
+
+    let create_resp: crate::types::CreateSpineResponse = rpc_call(
+        &server,
+        "spine.create",
+        &CreateSpineRequest {
+            name: "anchor-dispatch-test".into(),
+            owner: Did::new("did:key:z6MkAnchor"),
+            config: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let publish_resp: AnchorPublishResponse = rpc_call(
+        &server,
+        "anchor.publish",
+        &AnchorPublishRequest {
+            spine_id: create_resp.spine_id,
+            anchor_target: AnchorTarget::DataCommons {
+                commons_id: "test-commons".into(),
+            },
+            tx_ref: "bafytest123".into(),
+            block_height: 0,
+            anchor_timestamp: loam_spine_core::types::Timestamp::now(),
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_ne!(publish_resp.entry_hash, [0u8; 32]);
+    assert_ne!(publish_resp.state_hash, [0u8; 32]);
+
+    let verify_resp: AnchorVerifyResponse = rpc_call(
+        &server,
+        "anchor.verify",
+        &AnchorVerifyRequest {
+            spine_id: create_resp.spine_id,
+            anchor_entry_hash: Some(publish_resp.entry_hash),
+        },
+    )
+    .await
+    .unwrap();
+
+    assert!(verify_resp.verified);
+    assert_eq!(verify_resp.tx_ref, "bafytest123");
+    assert_eq!(verify_resp.state_hash, publish_resp.state_hash);
+}
+
+#[tokio::test]
+async fn anchor_verify_latest_dispatch() {
+    use crate::types::{AnchorPublishRequest, AnchorVerifyRequest, AnchorVerifyResponse};
+    use loam_spine_core::entry::AnchorTarget;
+
+    let server = LoamSpineJsonRpc::default_server();
+
+    let create_resp: crate::types::CreateSpineResponse = rpc_call(
+        &server,
+        "spine.create",
+        &CreateSpineRequest {
+            name: "anchor-latest-test".into(),
+            owner: Did::new("did:key:z6MkLatest"),
+            config: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    let _: crate::types::AnchorPublishResponse = rpc_call(
+        &server,
+        "anchor.publish",
+        &AnchorPublishRequest {
+            spine_id: create_resp.spine_id,
+            anchor_target: AnchorTarget::Ethereum,
+            tx_ref: "0xdeadbeef".into(),
+            block_height: 42,
+            anchor_timestamp: loam_spine_core::types::Timestamp::now(),
+        },
+    )
+    .await
+    .unwrap();
+
+    let verify_resp: AnchorVerifyResponse = rpc_call(
+        &server,
+        "anchor.verify",
+        &AnchorVerifyRequest {
+            spine_id: create_resp.spine_id,
+            anchor_entry_hash: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    assert!(verify_resp.verified);
+    assert_eq!(verify_resp.tx_ref, "0xdeadbeef");
+    assert_eq!(verify_resp.block_height, 42);
+}
+
 // Protocol-level, UDS, TCP, and infrastructure tests split into tests_protocol.rs

@@ -29,7 +29,7 @@ use std::path::Path;
 
 use crate::certificate::Certificate;
 use crate::entry::Entry;
-use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::error::{LoamSpineResult, StorageResultExt};
 use crate::spine::Spine;
 use crate::types::{CertificateId, EntryHash, SpineId};
 
@@ -54,10 +54,8 @@ impl SledSpineStorage {
     ///
     /// Returns error if database cannot be opened or directory cannot be created.
     pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
-        let db = sled::open(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let tree = db
-            .open_tree("spines")
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = sled::open(path).storage_err()?;
+        let tree = db.open_tree("spines").storage_err()?;
         Ok(Self { db, tree })
     }
 
@@ -70,12 +68,8 @@ impl SledSpineStorage {
     /// Returns error if database cannot be created.
     pub fn temporary() -> LoamSpineResult<Self> {
         let config = sled::Config::new().temporary(true);
-        let db = config
-            .open()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let tree = db
-            .open_tree("spines")
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = config.open().storage_err()?;
+        let tree = db.open_tree("spines").storage_err()?;
         Ok(Self { db, tree })
     }
 
@@ -95,9 +89,7 @@ impl SledSpineStorage {
     ///
     /// Returns error if flush fails (e.g., disk full).
     pub fn flush(&self) -> LoamSpineResult<()> {
-        self.db
-            .flush()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        self.db.flush().storage_err()?;
         Ok(())
     }
 }
@@ -105,39 +97,33 @@ impl SledSpineStorage {
 impl SpineStorage for SledSpineStorage {
     async fn get_spine(&self, id: SpineId) -> LoamSpineResult<Option<Spine>> {
         let key = id.as_bytes();
-        match self.tree.get(key) {
-            Ok(Some(bytes)) => {
-                let spine: Spine = bincode::deserialize(&bytes)
-                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+        let value = self.tree.get(key).storage_err()?;
+        match value {
+            Some(bytes) => {
+                let spine: Spine = bincode::deserialize(&bytes).storage_ctx("deserialize")?;
                 Ok(Some(spine))
             }
-            Ok(None) => Ok(None),
-            Err(e) => Err(LoamSpineError::Storage(e.to_string())),
+            None => Ok(None),
         }
     }
 
     async fn save_spine(&self, spine: &Spine) -> LoamSpineResult<()> {
         let key = spine.id.as_bytes();
-        let bytes = bincode::serialize(spine)
-            .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
-        self.tree
-            .insert(key, bytes)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let bytes = bincode::serialize(spine).storage_ctx("serialize")?;
+        self.tree.insert(key, bytes).storage_err()?;
         Ok(())
     }
 
     async fn delete_spine(&self, id: SpineId) -> LoamSpineResult<()> {
         let key = id.as_bytes();
-        self.tree
-            .remove(key)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        self.tree.remove(key).storage_err()?;
         Ok(())
     }
 
     async fn list_spines(&self) -> LoamSpineResult<Vec<SpineId>> {
         let mut ids = Vec::new();
         for item in &self.tree {
-            let (key, _) = item.map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let (key, _) = item.storage_err()?;
             if key.len() == 16 {
                 let mut bytes = [0u8; 16];
                 bytes.copy_from_slice(&key);
@@ -169,13 +155,9 @@ impl SledEntryStorage {
     ///
     /// Returns error if database cannot be opened or directory cannot be created.
     pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
-        let db = sled::open(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let entries_tree = db
-            .open_tree("entries")
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let index_tree = db
-            .open_tree("entry_index")
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = sled::open(path).storage_err()?;
+        let entries_tree = db.open_tree("entries").storage_err()?;
+        let index_tree = db.open_tree("entry_index").storage_err()?;
         Ok(Self {
             db,
             entries_tree,
@@ -192,15 +174,9 @@ impl SledEntryStorage {
     /// Returns error if database cannot be created.
     pub fn temporary() -> LoamSpineResult<Self> {
         let config = sled::Config::new().temporary(true);
-        let db = config
-            .open()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let entries_tree = db
-            .open_tree("entries")
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let index_tree = db
-            .open_tree("entry_index")
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = config.open().storage_err()?;
+        let entries_tree = db.open_tree("entries").storage_err()?;
+        let index_tree = db.open_tree("entry_index").storage_err()?;
         Ok(Self {
             db,
             entries_tree,
@@ -224,9 +200,7 @@ impl SledEntryStorage {
     ///
     /// Returns error if flush fails (e.g., disk full).
     pub fn flush(&self) -> LoamSpineResult<()> {
-        self.db
-            .flush()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        self.db.flush().storage_err()?;
         Ok(())
     }
 
@@ -245,40 +219,29 @@ impl SledEntryStorage {
 
 impl EntryStorage for SledEntryStorage {
     async fn get_entry(&self, hash: EntryHash) -> LoamSpineResult<Option<Entry>> {
-        match self.entries_tree.get(hash) {
-            Ok(Some(bytes)) => {
-                let entry: Entry = bincode::deserialize(&bytes)
-                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+        let value = self.entries_tree.get(hash).storage_err()?;
+        match value {
+            Some(bytes) => {
+                let entry: Entry = bincode::deserialize(&bytes).storage_ctx("deserialize")?;
                 Ok(Some(entry))
             }
-            Ok(None) => Ok(None),
-            Err(e) => Err(LoamSpineError::Storage(e.to_string())),
+            None => Ok(None),
         }
     }
 
     async fn save_entry(&self, entry: &Entry) -> LoamSpineResult<EntryHash> {
         let hash = entry.compute_hash()?;
-        let bytes = bincode::serialize(entry)
-            .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
-
-        // Save the entry
-        self.entries_tree
-            .insert(hash, bytes)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-
-        // Update index: spine_id + entry_index → entry_hash
+        let bytes = bincode::serialize(entry).storage_ctx("serialize")?;
+        self.entries_tree.insert(hash, bytes).storage_err()?;
         let index_key = Self::make_index_key(entry.spine_id, entry.index);
         self.index_tree
             .insert(index_key, hash.as_slice())
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-
+            .storage_err()?;
         Ok(hash)
     }
 
     async fn entry_exists(&self, hash: EntryHash) -> LoamSpineResult<bool> {
-        self.entries_tree
-            .contains_key(hash)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))
+        self.entries_tree.contains_key(hash).storage_err()
     }
 
     async fn get_entries_for_spine(
@@ -290,27 +253,19 @@ impl EntryStorage for SledEntryStorage {
         let mut entries = Vec::new();
         let start_key = Self::make_index_key(spine_id, start_index);
 
-        // Scan from start_key
         for item in self.index_tree.range(start_key..) {
             if entries.len() >= usize::try_from(limit).unwrap_or(usize::MAX) {
                 break;
             }
 
-            let (key, hash_bytes) = item.map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let (key, hash_bytes) = item.storage_err()?;
 
-            // Check if still same spine_id (first 16 bytes)
             if key.len() < 16 || &key[..16] != spine_id.as_bytes() {
                 break;
             }
 
-            // Get the entry
-            if let Some(entry_bytes) = self
-                .entries_tree
-                .get(&hash_bytes)
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?
-            {
-                let entry: Entry = bincode::deserialize(&entry_bytes)
-                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+            if let Some(entry_bytes) = self.entries_tree.get(&hash_bytes).storage_err()? {
+                let entry: Entry = bincode::deserialize(&entry_bytes).storage_ctx("deserialize")?;
                 entries.push(entry);
             }
         }
@@ -336,10 +291,8 @@ impl SledCertificateStorage {
     ///
     /// Returns error if database cannot be opened.
     pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
-        let db = sled::open(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let tree = db
-            .open_tree("certificates")
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = sled::open(path).storage_err()?;
+        let tree = db.open_tree("certificates").storage_err()?;
         Ok(Self { db, tree })
     }
 
@@ -350,12 +303,8 @@ impl SledCertificateStorage {
     /// Returns error if database cannot be created.
     pub fn temporary() -> LoamSpineResult<Self> {
         let config = sled::Config::new().temporary(true);
-        let db = config
-            .open()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let tree = db
-            .open_tree("certificates")
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = config.open().storage_err()?;
+        let tree = db.open_tree("certificates").storage_err()?;
         Ok(Self { db, tree })
     }
 
@@ -371,9 +320,7 @@ impl SledCertificateStorage {
     ///
     /// Returns error if flush fails.
     pub fn flush(&self) -> LoamSpineResult<()> {
-        self.db
-            .flush()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        self.db.flush().storage_err()?;
         Ok(())
     }
 }
@@ -383,14 +330,14 @@ impl CertificateStorage for SledCertificateStorage {
         &self,
         id: CertificateId,
     ) -> LoamSpineResult<Option<(Certificate, SpineId)>> {
-        match self.tree.get(id.as_bytes()) {
-            Ok(Some(bytes)) => {
-                let pair: (Certificate, SpineId) = bincode::deserialize(&bytes)
-                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+        let value = self.tree.get(id.as_bytes()).storage_err()?;
+        match value {
+            Some(bytes) => {
+                let pair: (Certificate, SpineId) =
+                    bincode::deserialize(&bytes).storage_ctx("deserialize")?;
                 Ok(Some(pair))
             }
-            Ok(None) => Ok(None),
-            Err(e) => Err(LoamSpineError::Storage(e.to_string())),
+            None => Ok(None),
         }
     }
 
@@ -400,25 +347,20 @@ impl CertificateStorage for SledCertificateStorage {
         spine_id: SpineId,
     ) -> LoamSpineResult<()> {
         let key = certificate.id.as_bytes();
-        let bytes = bincode::serialize(&(certificate, spine_id))
-            .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
-        self.tree
-            .insert(key, bytes)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let bytes = bincode::serialize(&(certificate, spine_id)).storage_ctx("serialize")?;
+        self.tree.insert(key, bytes).storage_err()?;
         Ok(())
     }
 
     async fn delete_certificate(&self, id: CertificateId) -> LoamSpineResult<()> {
-        self.tree
-            .remove(id.as_bytes())
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        self.tree.remove(id.as_bytes()).storage_err()?;
         Ok(())
     }
 
     async fn list_certificates(&self) -> LoamSpineResult<Vec<CertificateId>> {
         let mut ids = Vec::new();
         for item in &self.tree {
-            let (key, _) = item.map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let (key, _) = item.storage_err()?;
             if key.len() == 16 {
                 let mut bytes = [0u8; 16];
                 bytes.copy_from_slice(&key);

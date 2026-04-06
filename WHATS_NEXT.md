@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 1, 2026
+**Last Updated**: April 6, 2026
 
 ---
 
@@ -220,7 +220,26 @@
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
-## v0.9.16 Completed (April 1--2, 2026)
+## v0.9.16 Storage Error Evolution & Smart Refactoring (April 6, 2026)
+
+- **`StorageResultExt` trait** — Extension trait on `Result<T, E: Display>` providing `.storage_err()` and `.storage_ctx("context")` — eliminates ~85 verbose `.map_err(|e| LoamSpineError::Storage(e.to_string()))` closures across redb and sled backends.
+- **redb.rs evolution** — 54 closure-based error conversions → trait methods (628 → 512 lines, -18%).
+- **sled.rs evolution** — 31 closure-based error conversions → trait methods (519 → 461 lines, -11%).
+- **Smart test extraction** — Three production files refactored below 500 lines via `#[path]` test extraction:
+  - `resilience.rs`: 789 → 421 (tests → `resilience_tests.rs`)
+  - `proof.rs`: 759 → 384 (tests → `proof_tests.rs`)
+  - `service/mod.rs` (API): 796 → 137 (tests → `service_tests.rs`)
+- **Source files**: 129 → **136**. All under 1000 lines. 1,280 tests pass. Zero clippy warnings.
+
+## v0.9.16 Public Chain Anchor (April 6, 2026)
+
+- **Public chain anchor** — `EntryType::PublicChainAnchor` + `AnchorTarget` enum for external provenance verification. Anchors spine state hashes to any append-only ledger (Bitcoin, Ethereum, federated spines, data commons). LoamSpine records receipts only — chain submission is capability-discovered (`"chain-anchor"`).
+- **JSON-RPC + tarpc** — `anchor.publish` and `anchor.verify` wired through both transports.
+- **Capability advertisement** — `"public-anchoring"` provided, `"chain-anchor"` consumed. MCP tools, neural API, niche all updated.
+- **Closes Gap 4** from wetSpring NUCLEUS handoff — provenance braids are now externally verifiable; wetSpring Tier 3 `verify_url` can link to `anchor.verify`.
+- **1,280 tests** — 10 new anchor tests.
+
+## v0.9.16 Deep Debt & Zero-Copy (April 1--2, 2026)
 
 - **Concurrent test evolution** — All seven phases completed: full suite is concurrent (**~3s**), **zero `#[serial]`** (was 121), **`serial_test`** and **`temp_env`** removed from the workspace.
 - **Inner/outer function pattern** — Pure inner functions for dependency injection; public APIs remain thin env wrappers where needed.
@@ -269,7 +288,8 @@
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
 - **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate `mdns-sd` or `hickory-resolver` mDNS (see `specs/DEPENDENCY_EVOLUTION.md`)
 - **bincode v1 → v2** — Storage format migration for RUSTSEC-2025-0141 resolution (see `specs/DEPENDENCY_EVOLUTION.md`)
-- ~~**`OnceLock` caching**~~ — Completed in v0.9.16: `capability_list()`, `mcp_tools_list()`, `HealthStatus` version/caps
+- ~~**`OnceLock` caching**~~ — Completed in v0.9.16
+- ~~**`StorageResultExt` / storage error boilerplate**~~ — Completed in v0.9.16: trait replaces 85+ closures
 - **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)
 
 ---

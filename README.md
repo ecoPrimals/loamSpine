@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C270%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C280%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
@@ -92,6 +92,7 @@ loamSpine/
 │   │       │   ├── certificate_loan.rs  # Loan lifecycle (loan, return, sublend)
 │   │       │   ├── certificate_escrow.rs # Escrow (hold, release, cancel)
 │   │       │   ├── expiry_sweeper.rs # Background expired-loan auto-return
+│   │       │   ├── anchor.rs       # Public chain anchor (record + verify receipts)
 │   │       │   ├── integration.rs # Trait implementations
 │   │       │   ├── signals.rs     # Signal handling
 │   │       │   └── waypoint.rs    # Anchoring, operations, departure, attestation, proofs
@@ -110,7 +111,7 @@ loamSpine/
 │           ├── service/       # Domain-focused RPC ops
 │           ├── health.rs      # Health checks
 │           └── error.rs       # API errors
-├── specs/                     # 11 specification documents
+├── specs/                     # 13 specification documents
 ├── showcase/                  # Interactive demos (71 files)
 └── fuzz/                      # Fuzz testing targets
 ```
@@ -149,6 +150,8 @@ loamSpine/
 | **Compat** | `permanent-storage.verifyCommit` | Verify via rhizoCrypt format |
 | **Compat** | `permanent-storage.getCommit` | Retrieve via rhizoCrypt format |
 | **Compat** | `permanent-storage.healthCheck` | Health for rhizoCrypt clients |
+| **Anchor** | `anchor.publish` | Record public chain anchor receipt |
+| **Anchor** | `anchor.verify` | Verify anchor against spine state |
 | **Health** | `health.check` | Service status |
 | **Meta** | `capability.list` | List primal capabilities |
 
@@ -173,13 +176,13 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,270 passing (all concurrent, ~3s) |
+| **Tests** | 1,280 passing (all concurrent, ~3s) |
 | **Coverage** | 92% line / 87% region / 93% function (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 3 `#[allow]` in production (2× tarpc macro, 1× feature-conditional async); tests all `#[expect(reason)]` |
-| **Max File Size** | 899 lines (all 129 files < 1000) |
-| **Source Files** | 129 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Max File Size** | 899 lines (all 136 files < 1000) |
+| **Source Files** | 136 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

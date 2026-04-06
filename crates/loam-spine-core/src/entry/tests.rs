@@ -496,3 +496,55 @@ fn entry_with_spine_id_clears_cache() {
     let entry2 = entry.with_spine_id(spine_id2);
     assert_eq!(entry2.spine_id, spine_id2);
 }
+
+#[test]
+fn entry_type_serde_roundtrip_public_chain_anchor() {
+    use crate::entry::AnchorTarget;
+
+    let ty = EntryType::PublicChainAnchor {
+        anchor_target: AnchorTarget::DataCommons {
+            commons_id: "ipfs-commons-v1".into(),
+        },
+        state_hash: [42u8; 32],
+        tx_ref: "bafybeihash123".into(),
+        block_height: 0,
+        anchor_timestamp: Timestamp::now(),
+    };
+    let json = serde_json::to_vec(&ty).expect("serialize");
+    let restored: EntryType = serde_json::from_slice(&json).expect("deserialize");
+    assert!(matches!(
+        restored,
+        EntryType::PublicChainAnchor {
+            block_height: 0,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn public_chain_anchor_domain() {
+    use crate::entry::AnchorTarget;
+
+    let ty = EntryType::PublicChainAnchor {
+        anchor_target: AnchorTarget::Bitcoin,
+        state_hash: [0u8; 32],
+        tx_ref: "tx_abc".into(),
+        block_height: 800_000,
+        anchor_timestamp: Timestamp::now(),
+    };
+    assert_eq!(ty.domain(), "anchor");
+}
+
+#[test]
+fn public_chain_anchor_not_allowed_in_waypoint() {
+    use crate::entry::AnchorTarget;
+
+    let ty = EntryType::PublicChainAnchor {
+        anchor_target: AnchorTarget::Ethereum,
+        state_hash: [0u8; 32],
+        tx_ref: "0xdeadbeef".into(),
+        block_height: 1,
+        anchor_timestamp: Timestamp::now(),
+    };
+    assert!(!ty.allowed_in_waypoint());
+}

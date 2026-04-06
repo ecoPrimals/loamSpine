@@ -7,7 +7,8 @@
 
 use crate::error::ApiError;
 use crate::types::{
-    AnchorSliceRequest, AnchorSliceResponse, AppendEntryRequest, AppendEntryResponse,
+    AnchorPublishRequest, AnchorPublishResponse, AnchorSliceRequest, AnchorSliceResponse,
+    AnchorVerifyRequest, AnchorVerifyResponse, AppendEntryRequest, AppendEntryResponse,
     CheckoutSliceRequest, CheckoutSliceResponse, CommitBraidRequest, CommitBraidResponse,
     CommitSessionRequest, CommitSessionResponse, CreateSpineRequest, CreateSpineResponse,
     GenerateInclusionProofRequest, GenerateInclusionProofResponse, GetCertificateRequest,
@@ -151,6 +152,24 @@ pub trait LoamSpineRpc {
     async fn verify_inclusion_proof(
         request: VerifyInclusionProofRequest,
     ) -> Result<VerifyInclusionProofResponse, ApiError>;
+
+    // ========================================================================
+    // Public Chain Anchor Operations
+    // ========================================================================
+
+    /// Record a public chain anchor on a spine.
+    ///
+    /// Stores the receipt of anchoring a spine's state hash to an external
+    /// append-only ledger. The actual chain submission is performed by a
+    /// capability-discovered `"chain-anchor"` primal.
+    async fn publish_anchor(
+        request: AnchorPublishRequest,
+    ) -> Result<AnchorPublishResponse, ApiError>;
+
+    /// Verify a spine's state against a recorded public chain anchor.
+    ///
+    /// Checks that the recorded state hash matches the spine's actual state.
+    async fn verify_anchor(request: AnchorVerifyRequest) -> Result<AnchorVerifyResponse, ApiError>;
 
     // ========================================================================
     // Health Operations

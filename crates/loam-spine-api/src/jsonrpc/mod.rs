@@ -241,6 +241,9 @@ impl LoamSpineJsonRpc {
             "proof.generate_inclusion" => rpc!(params, generate_inclusion_proof),
             "proof.verify_inclusion" => rpc!(params, verify_inclusion_proof),
 
+            "anchor.publish" => rpc!(params, publish_anchor),
+            "anchor.verify" => rpc!(params, verify_anchor),
+
             "permanence.commit_session" => rpc!(params, permanent_storage_commit_session),
             "permanence.verify_commit" => rpc!(params, permanent_storage_verify_commit),
             "permanence.get_commit" => rpc!(params, permanent_storage_get_commit),

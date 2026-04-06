@@ -25,25 +25,25 @@ to commit, verify, or query permanent records.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,397+
-- **Coverage:** 93%+ line / 92%+ region / 87%+ function
+- **Tests:** 1,280 (all concurrent, ~3s)
+- **Coverage:** 92% line / 87% region / 93% function
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
-- **Version:** 0.9.15
-- **Crate count:** 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Version:** 0.9.16
+- **Source files:** 136 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 
 ## Key Capabilities (JSON-RPC methods)
 
 - `spine.create`, `spine.get`, `spine.seal` — Spine lifecycle
 - `entry.append`, `entry.get`, `entry.get_tip` — Entry management
-- `certificate.mint`, `certificate.transfer`, `certificate.loan`, `certificate.return` — Loam Certificates
+- `certificate.mint`, `certificate.transfer`, `certificate.loan`, `certificate.return`, `certificate.verify`, `certificate.lifecycle` — Loam Certificates
 - `session.commit`, `braid.commit` — Provenance trio coordination
-- `slice.anchor`, `slice.checkout` — Selective memory slices
-- `proof.generate_inclusion`, `proof.verify_inclusion` — Merkle inclusion proofs
-- `permanence.commit_session`, `permanence.verify_commit`, `permanence.get_commit` — Permanent storage
-- `health.check`, `health.liveness`, `health.readiness` — Health probes
-- `capabilities.list` — Capability-based discovery
-- `tools.list`, `tools.call` — MCP (Model Context Protocol) for AI agent tool discovery
+- `slice.anchor`, `slice.record_operation`, `slice.depart` — Waypoint anchoring
+- `anchor.publish`, `anchor.verify` — Public chain anchoring for external provenance
+- `proof.generate_inclusion` — Merkle inclusion proofs
+- `permanent-storage.commitSession`, `permanent-storage.verifyCommit`, `permanent-storage.getCommit` — Compat layer
+- `health.check` — Health probes
+- `capability.list` — Capability-based discovery
 
 ## What This Does NOT Do
 

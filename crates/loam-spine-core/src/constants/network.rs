@@ -502,10 +502,7 @@ mod tests {
 
     #[test]
     fn bind_address_generic() {
-        assert_eq!(
-            resolve_bind_address(None, Some("192.0.2.1")),
-            "192.0.2.1"
-        );
+        assert_eq!(resolve_bind_address(None, Some("192.0.2.1")), "192.0.2.1");
     }
 
     #[test]

@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 1, 2026
+**Last Updated**: April 6, 2026
 
 ---
 
@@ -23,7 +23,7 @@ This document tracks implementation progress against the specification suite in 
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
 | [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | COMPLETE | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig` with `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective). `AttestationResult` for capability-discovered attestation providers. `PropagationPolicy`, `SliceTerms`, `SliceOperationType`, `WaypointSummary` types defined. `RelendingChain` with multi-hop sublend/return. `ExpirySweeper` for auto-return. |
 | [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | COMPLETE | Core CRUD + loan/return + sublend + `verify_certificate` + `generate_provenance_proof` + escrow + `UsageSummary` integrated into `CertificateReturn` and `LoanRecord`. `WaypointSummary` re-used from waypoint module. Scyborg license schema. Certificate module: types, lifecycle, metadata, provenance, escrow, usage, tests. |
-| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 28 JSON-RPC methods, tarpc server, semantic naming. Spec updated to match implementation. |
+| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 30 JSON-RPC methods (+`anchor.publish`, `anchor.verify`), tarpc server, semantic naming. Spec updated to match implementation. |
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory, redb (default), sled (optional), SQLite (feature-gated, refactored to modular `sqlite/` directory). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,270 |
+| Tests | — | 1,280 |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`) |
 | Coverage (llvm-cov) | 90%+ | 91.96% line / 87.07% region / 93.39% function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 899 max (all 129 files under 1000) |
-| Source files | — | 129 `.rs` files |
+| Max file size | < 1000 lines | 899 max (all 136 files under 1000) |
+| Source files | — | 136 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 3 (2× `clippy::wildcard_imports` in tarpc server/service — required by macro; 1× `clippy::unused_async` in infant_discovery — feature-conditional) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -77,6 +77,26 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All 129 files under 1000 lines (max: 899 in `discovery/tests.rs`). |
 
 ---
+
+## v0.9.16 Storage Error Evolution & Smart Refactoring (April 6, 2026)
+
+- **`StorageResultExt` trait**: New extension trait on `Result<T, E: Display>` providing `.storage_err()` and `.storage_ctx("context")` methods. Eliminates ~85 verbose `.map_err(|e| LoamSpineError::Storage(e.to_string()))` closures.
+- **redb.rs evolution**: 54 closure-based error conversions replaced with trait methods (628 → 512 lines, -18%).
+- **sled.rs evolution**: 31 closure-based error conversions replaced with trait methods (519 → 461 lines, -11%).
+- **Smart test extraction**: Three production files refactored below 500 lines via `#[path]` test extraction:
+  - `resilience.rs`: 789 → 421 lines (368 lines → `resilience_tests.rs`)
+  - `proof.rs`: 759 → 384 lines (375 lines → `proof_tests.rs`)
+  - `service/mod.rs` (API): 796 → 137 lines (659 lines → `service_tests.rs`)
+- **Source files**: 129 → **136** `.rs` files. All 1,280 tests pass. Zero clippy warnings. Zero doc warnings.
+
+## v0.9.16 Public Chain Anchor (April 6, 2026)
+
+- **External provenance verification**: `EntryType::PublicChainAnchor` + `AnchorTarget` enum. Records anchor receipts from any append-only ledger (Bitcoin, Ethereum, federated spines, data commons). Actual chain submission is delegated to a capability-discovered `"chain-anchor"` primal.
+- **JSON-RPC + tarpc**: `anchor.publish` and `anchor.verify` methods wired through both transports.
+- **Capability advertisement**: `"public-anchoring"` provided capability, `"chain-anchor"` consumed capability. MCP tools, neural API, niche self-knowledge all updated.
+- **Closes Gap 4** from wetSpring NUCLEUS handoff: provenance braids are now externally verifiable. wetSpring's Tier 3 `verify_url` can link to `anchor.verify`.
+- **10 new tests**: Entry serde roundtrip, domain, waypoint exclusion, service methods (roundtrip, latest, missing spine, non-anchor, target serde), JSON-RPC dispatch (publish + verify).
+- **Tests**: 1,270 → **1,280**. All checks pass (fmt, clippy, test, doc).
 
 ## v0.9.16 Deep Debt Evolution & Zero-Copy Hardening (April 1--2, 2026)
 

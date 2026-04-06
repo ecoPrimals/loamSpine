@@ -32,7 +32,7 @@ use redb::{Database, ReadableTable, ReadableTableMetadata, TableDefinition};
 
 use crate::certificate::Certificate;
 use crate::entry::Entry;
-use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::error::{LoamSpineResult, StorageResultExt};
 use crate::spine::Spine;
 use crate::types::{CertificateId, EntryHash, SpineId};
 
@@ -63,10 +63,9 @@ impl RedbSpineStorage {
     pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
         let path = path.as_ref();
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| LoamSpineError::Storage(format!("create dir: {e}")))?;
+            std::fs::create_dir_all(parent).storage_ctx("create dir")?;
         }
-        let db = Database::create(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = Database::create(path).storage_err()?;
         ensure_table(&db, SPINES)?;
         Ok(Self { db: Arc::new(db) })
     }
@@ -113,21 +112,13 @@ impl RedbSpineStorage {
 impl SpineStorage for RedbSpineStorage {
     async fn get_spine(&self, id: SpineId) -> LoamSpineResult<Option<Spine>> {
         let key = id.as_bytes();
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let table = read_txn
-            .open_table(SPINES)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let value = table
-            .get(key.as_ref())
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(SPINES).storage_err()?;
+        let value = table.get(key.as_ref()).storage_err()?;
         match value {
             Some(guard) => {
-                let bytes = guard.value();
-                let spine: Spine = bincode::deserialize(bytes)
-                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+                let spine: Spine =
+                    bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
                 Ok(Some(spine))
             }
             None => Ok(None),
@@ -136,60 +127,34 @@ impl SpineStorage for RedbSpineStorage {
 
     async fn save_spine(&self, spine: &Spine) -> LoamSpineResult<()> {
         let key = spine.id.as_bytes();
-        let bytes = bincode::serialize(spine)
-            .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
-        let write_txn = self
-            .db
-            .begin_write()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let bytes = bincode::serialize(spine).storage_ctx("serialize")?;
+        let write_txn = self.db.begin_write().storage_err()?;
         {
-            let mut table = write_txn
-                .open_table(SPINES)
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-            table
-                .insert(key.as_ref(), bytes.as_slice())
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let mut table = write_txn.open_table(SPINES).storage_err()?;
+            table.insert(key.as_ref(), bytes.as_slice()).storage_err()?;
         }
-        write_txn
-            .commit()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        write_txn.commit().storage_err()?;
         Ok(())
     }
 
     async fn delete_spine(&self, id: SpineId) -> LoamSpineResult<()> {
         let key = id.as_bytes();
-        let write_txn = self
-            .db
-            .begin_write()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let write_txn = self.db.begin_write().storage_err()?;
         {
-            let mut table = write_txn
-                .open_table(SPINES)
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-            table
-                .remove(key.as_ref())
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let mut table = write_txn.open_table(SPINES).storage_err()?;
+            table.remove(key.as_ref()).storage_err()?;
         }
-        write_txn
-            .commit()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        write_txn.commit().storage_err()?;
         Ok(())
     }
 
     async fn list_spines(&self) -> LoamSpineResult<Vec<SpineId>> {
         let mut ids = Vec::new();
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let table = read_txn
-            .open_table(SPINES)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let range = table
-            .iter()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(SPINES).storage_err()?;
+        let range = table.iter().storage_err()?;
         for item in range {
-            let (key_guard, _) = item.map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let (key_guard, _) = item.storage_err()?;
             let key = key_guard.value();
             if key.len() == 16 {
                 let mut bytes = [0u8; 16];
@@ -220,10 +185,9 @@ impl RedbEntryStorage {
     pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
         let path = path.as_ref();
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| LoamSpineError::Storage(format!("create dir: {e}")))?;
+            std::fs::create_dir_all(parent).storage_ctx("create dir")?;
         }
-        let db = Database::create(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = Database::create(path).storage_err()?;
         ensure_table(&db, ENTRIES)?;
         ensure_table(&db, ENTRY_INDEX)?;
         Ok(Self { db: Arc::new(db) })
@@ -274,21 +238,13 @@ impl RedbEntryStorage {
 
 impl EntryStorage for RedbEntryStorage {
     async fn get_entry(&self, hash: EntryHash) -> LoamSpineResult<Option<Entry>> {
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let table = read_txn
-            .open_table(ENTRIES)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let value = table
-            .get(&hash[..])
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(ENTRIES).storage_err()?;
+        let value = table.get(&hash[..]).storage_err()?;
         match value {
             Some(guard) => {
-                let bytes = guard.value();
-                let entry: Entry = bincode::deserialize(bytes)
-                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+                let entry: Entry =
+                    bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
                 Ok(Some(entry))
             }
             None => Ok(None),
@@ -297,46 +253,28 @@ impl EntryStorage for RedbEntryStorage {
 
     async fn save_entry(&self, entry: &Entry) -> LoamSpineResult<EntryHash> {
         let hash = entry.compute_hash()?;
-        let bytes = bincode::serialize(entry)
-            .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
+        let bytes = bincode::serialize(entry).storage_ctx("serialize")?;
         let index_key = Self::make_index_key(entry.spine_id, entry.index);
 
-        let write_txn = self
-            .db
-            .begin_write()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let write_txn = self.db.begin_write().storage_err()?;
         {
-            let mut entries_table = write_txn
-                .open_table(ENTRIES)
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-            let mut index_table = write_txn
-                .open_table(ENTRY_INDEX)
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let mut entries_table = write_txn.open_table(ENTRIES).storage_err()?;
+            let mut index_table = write_txn.open_table(ENTRY_INDEX).storage_err()?;
             entries_table
                 .insert(&hash[..], bytes.as_slice())
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+                .storage_err()?;
             index_table
                 .insert(index_key.as_slice(), &hash[..])
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+                .storage_err()?;
         }
-        write_txn
-            .commit()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        write_txn.commit().storage_err()?;
         Ok(hash)
     }
 
     async fn entry_exists(&self, hash: EntryHash) -> LoamSpineResult<bool> {
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let table = read_txn
-            .open_table(ENTRIES)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let exists = table
-            .get(&hash[..])
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?
-            .is_some();
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(ENTRIES).storage_err()?;
+        let exists = table.get(&hash[..]).storage_err()?.is_some();
         Ok(exists)
     }
 
@@ -350,38 +288,25 @@ impl EntryStorage for RedbEntryStorage {
         let limit_usize = usize::try_from(limit).unwrap_or(usize::MAX);
         let spine_prefix = spine_id.as_bytes();
 
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let index_table = read_txn
-            .open_table(ENTRY_INDEX)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let entries_table = read_txn
-            .open_table(ENTRIES)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let read_txn = self.db.begin_read().storage_err()?;
+        let index_table = read_txn.open_table(ENTRY_INDEX).storage_err()?;
+        let entries_table = read_txn.open_table(ENTRIES).storage_err()?;
 
         let mut entries = Vec::new();
-        let range = index_table
-            .range(start_key.as_slice()..)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let range = index_table.range(start_key.as_slice()..).storage_err()?;
         for item in range {
             if entries.len() >= limit_usize {
                 break;
             }
-            let (key_guard, hash_guard) =
-                item.map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let (key_guard, hash_guard) = item.storage_err()?;
             let key = key_guard.value();
             if key.len() < 16 || &key[..16] != spine_prefix {
                 break;
             }
             let hash_bytes = hash_guard.value();
-            if let Some(entry_guard) = entries_table
-                .get(hash_bytes)
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?
-            {
-                let entry: Entry = bincode::deserialize(entry_guard.value())
-                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+            if let Some(entry_guard) = entries_table.get(hash_bytes).storage_err()? {
+                let entry: Entry =
+                    bincode::deserialize(entry_guard.value()).storage_ctx("deserialize")?;
                 entries.push(entry);
             }
         }
@@ -404,10 +329,9 @@ impl RedbCertificateStorage {
     pub fn open<P: AsRef<Path>>(path: P) -> LoamSpineResult<Self> {
         let path = path.as_ref();
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| LoamSpineError::Storage(format!("create dir: {e}")))?;
+            std::fs::create_dir_all(parent).storage_ctx("create dir")?;
         }
-        let db = Database::create(path).map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let db = Database::create(path).storage_err()?;
         ensure_table(&db, CERTIFICATES)?;
         Ok(Self { db: Arc::new(db) })
     }
@@ -454,21 +378,13 @@ impl CertificateStorage for RedbCertificateStorage {
         id: CertificateId,
     ) -> LoamSpineResult<Option<(Certificate, SpineId)>> {
         let key = id.as_bytes();
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let table = read_txn
-            .open_table(CERTIFICATES)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let value = table
-            .get(key.as_ref())
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(CERTIFICATES).storage_err()?;
+        let value = table.get(key.as_ref()).storage_err()?;
         match value {
             Some(guard) => {
-                let bytes = guard.value();
-                let pair: (Certificate, SpineId) = bincode::deserialize(bytes)
-                    .map_err(|e| LoamSpineError::Storage(format!("deserialize: {e}")))?;
+                let pair: (Certificate, SpineId) =
+                    bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
                 Ok(Some(pair))
             }
             None => Ok(None),
@@ -481,60 +397,34 @@ impl CertificateStorage for RedbCertificateStorage {
         spine_id: SpineId,
     ) -> LoamSpineResult<()> {
         let key = certificate.id.as_bytes();
-        let bytes = bincode::serialize(&(certificate, spine_id))
-            .map_err(|e| LoamSpineError::Storage(format!("serialize: {e}")))?;
-        let write_txn = self
-            .db
-            .begin_write()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let bytes = bincode::serialize(&(certificate, spine_id)).storage_ctx("serialize")?;
+        let write_txn = self.db.begin_write().storage_err()?;
         {
-            let mut table = write_txn
-                .open_table(CERTIFICATES)
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-            table
-                .insert(key.as_ref(), bytes.as_slice())
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let mut table = write_txn.open_table(CERTIFICATES).storage_err()?;
+            table.insert(key.as_ref(), bytes.as_slice()).storage_err()?;
         }
-        write_txn
-            .commit()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        write_txn.commit().storage_err()?;
         Ok(())
     }
 
     async fn delete_certificate(&self, id: CertificateId) -> LoamSpineResult<()> {
         let key = id.as_bytes();
-        let write_txn = self
-            .db
-            .begin_write()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let write_txn = self.db.begin_write().storage_err()?;
         {
-            let mut table = write_txn
-                .open_table(CERTIFICATES)
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-            table
-                .remove(key.as_ref())
-                .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let mut table = write_txn.open_table(CERTIFICATES).storage_err()?;
+            table.remove(key.as_ref()).storage_err()?;
         }
-        write_txn
-            .commit()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        write_txn.commit().storage_err()?;
         Ok(())
     }
 
     async fn list_certificates(&self) -> LoamSpineResult<Vec<CertificateId>> {
         let mut ids = Vec::new();
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let table = read_txn
-            .open_table(CERTIFICATES)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
-        let range = table
-            .iter()
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(CERTIFICATES).storage_err()?;
+        let range = table.iter().storage_err()?;
         for item in range {
-            let (key_guard, _) = item.map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+            let (key_guard, _) = item.storage_err()?;
             let key = key_guard.value();
             if key.len() == 16 {
                 let mut bytes = [0u8; 16];
@@ -613,16 +503,10 @@ impl RedbStorage {
 
 /// Ensure a table exists (redb creates on first write; we need for reads).
 fn ensure_table(db: &Database, table: TableDefinition<&[u8], &[u8]>) -> LoamSpineResult<()> {
-    let write_txn = db
-        .begin_write()
-        .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+    let write_txn = db.begin_write().storage_err()?;
     {
-        let _ = write_txn
-            .open_table(table)
-            .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+        let _ = write_txn.open_table(table).storage_err()?;
     }
-    write_txn
-        .commit()
-        .map_err(|e| LoamSpineError::Storage(e.to_string()))?;
+    write_txn.commit().storage_err()?;
     Ok(())
 }

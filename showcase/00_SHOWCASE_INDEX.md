@@ -1,6 +1,6 @@
 # 🦴 LoamSpine Showcase Index
 
-**Version**: 0.9.15  
+**Version**: 0.9.16  
 **Last Updated**: March 24, 2026  
 **Status**: ✅ Production Ready (matches Squirrel's excellence!)
 

@@ -17,6 +17,7 @@
 //! signing/verification capabilities, rather than hardcoding dependencies.
 //! Other primals are discovered at runtime, not compile time.
 
+pub mod anchor;
 mod certificate;
 mod certificate_escrow;
 mod certificate_loan;
@@ -27,7 +28,8 @@ mod lifecycle;
 pub mod signals;
 mod waypoint;
 
-// Re-export lifecycle manager, service state, infant discovery, and expiry sweeper
+// Re-export lifecycle manager, service state, infant discovery, expiry sweeper, and anchor types
+pub use anchor::{AnchorReceipt, AnchorVerification};
 pub use expiry_sweeper::{ExpirySweeper, ExpirySweeperConfig, ExpirySweeperHandle};
 pub use infant_discovery::InfantDiscovery;
 pub use lifecycle::{LifecycleManager, ServiceState};

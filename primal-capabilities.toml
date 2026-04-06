@@ -66,6 +66,9 @@ capabilities = [
     "slice-return",
     "braid-commit",
     
+    # Public chain anchoring
+    "public-anchoring",
+    
     # Query capabilities
     "spine-query",
     "entry-query",
@@ -104,6 +107,7 @@ optional = [
     "storage",                    # External storage (capability-discovered)
     "session-management",         # Session management (capability-discovered)
     "semantic-attribution",       # Semantic braids (capability-discovered)
+    "chain-anchor",               # Chain anchor submission for public provenance (capability-discovered)
 ]
 
 # Required capabilities (must be available for full functionality)
