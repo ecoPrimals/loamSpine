@@ -21,7 +21,7 @@ pub const PRIMAL_NAME: &str = crate::primal_names::SELF_ID;
 /// These map to biomeOS's `capability_domains.rs` for NeuralAPI routing.
 pub const CAPABILITIES: &[&str] = &[
     "permanence",
-    "commit.session",
+    "session.commit",
     "spine.create",
     "spine.query",
     "certificate.issue",

@@ -359,7 +359,7 @@ pub struct ParsedCapabilities {
     pub primal: Option<String>,
     /// Primal version.
     pub version: Option<String>,
-    /// Flat capability strings (e.g. `["permanence", "commit.session"]`).
+    /// Flat capability strings (e.g. `["permanence", "session.commit"]`).
     pub capabilities: Vec<String>,
     /// Structured method descriptors (if `methods` array is present).
     pub methods: Vec<CapabilityMethod>,
