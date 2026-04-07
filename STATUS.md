@@ -66,7 +66,7 @@ This document tracks implementation progress against the specification suite in 
 | Standard | Status | Notes |
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
-| ecoBin | PASS | Zero C deps in default features; blake3 `pure` mode; musl cross-compile CI |
+| ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
 | AGPL-3.0-or-later | PASS | SPDX headers on all 129 source files |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
@@ -77,6 +77,16 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All 129 files under 1000 lines (max: 899 in `discovery/tests.rs`). |
 
 ---
+
+## v0.9.16 musl-static Deployment (April 7, 2026)
+
+- **ecoBin deployment debt resolved**: `.cargo/config.toml` now defines `[target.x86_64-unknown-linux-musl]` and `[target.aarch64-unknown-linux-musl]` with `musl-gcc` linker, `+crt-static`, `-static`, `relocation-model=static` (prevents musl ≤1.2.2 static-PIE segfault). Matches nestgate/biomeOS reference pattern.
+- **Dockerfile converted to musl-static**: Builder stage installs `musl-tools`, builds with `--target x86_64-unknown-linux-musl`. Runtime stage: `alpine:3.20` (was `debian:bookworm-slim`). Binary is fully statically linked, stripped, 4.3M.
+- **Release profile added**: `[profile.release]` with `lto = true`, `codegen-units = 1`, `panic = "abort"`, `strip = true` — aligns with rhizoCrypt.
+- **Convenience aliases**: `cargo build-x64` and `cargo build-arm64` for one-command musl builds.
+- **Verified**: `file` confirms `ELF 64-bit LSB executable, x86-64, statically linked, stripped`; `ldd` confirms `not a dynamic executable`.
+- **Showcase cleanup**: `03-songbird-discovery/` and songbird helper scripts archived to `fossilRecord/loamspine/showcase-songbird-apr2026/` — deprecated since v0.9.15 API removal.
+- **Unblocks**: benchScale container deployment and plasmidBin musl-first harvest for loamSpine.
 
 ## v0.9.16 Storage Error Evolution & Smart Refactoring (April 6, 2026)
 

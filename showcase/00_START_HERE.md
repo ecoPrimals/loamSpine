@@ -84,21 +84,7 @@ This showcase is organized into **4 progressive levels**:
 
 ---
 
-### Level 3: Songbird Discovery (20-30 min)
-**Goal**: See runtime service discovery
-
-**What you'll see**:
-- Capability registration with Songbird
-- Runtime discovery (zero hardcoding)
-- Heartbeat and health checks
-- Automatic failover
-
-**Path**: `03-songbird-discovery/`  
-**Status**: ✅ 4/4 demos complete
-
----
-
-### Level 4: Inter-Primal Integration (45-60 min) 🌟
+### Level 3: Inter-Primal Integration (45-60 min) 🌟
 **Goal**: Complete ecosystem working together
 
 **What you'll see**:
@@ -108,7 +94,7 @@ This showcase is organized into **4 progressive levels**:
 - ToadStool compute → LoamSpine proofs
 - **Full Ecosystem** - All primals coordinated!
 
-**Path**: `04-inter-primal/`  
+**Path**: `03-inter-primal/`  
 **Status**: ✅ 5/5 demos complete (using real binaries from `../bins/`)
 
 ---
@@ -121,8 +107,7 @@ Perfect if you've never used LoamSpine or the ecoPrimals
 ```
 Step 1: Level 1 (60 min) → Understand LoamSpine standalone
 Step 2: Level 2 (30 min) → See RPC API
-Step 3: Level 3 (20 min) → See service discovery
-Step 4: Level 4 (10 min) → Experience ecosystem integration
+Step 3: Level 3 (45 min) → Experience ecosystem integration
 ```
 
 **Start**: `01-local-primal/README.md`
@@ -135,7 +120,7 @@ You want to understand the architecture
 ```
 Step 1: Level 1 - Demos 1-3 (30 min)
 Step 2: Level 2 - RPC API (30 min)
-Step 3: Level 4 - Inter-primal (10 min)
+Step 3: Level 3 - Inter-primal (10 min)
 ```
 
 **Start**: `01-local-primal/01-hello-loamspine/`
@@ -148,8 +133,7 @@ You want to see integration patterns
 ```
 Step 1: Level 1 - Demo 3 (certificates) (10 min)
 Step 2: Level 2 - RPC basics (10 min)
-Step 3: Level 3 - Discovery (20 min)
-Step 4: Level 4 - Complete ecosystem (20 min)
+Step 3: Level 3 - Complete ecosystem (20 min)
 ```
 
 **Start**: `01-local-primal/03-certificate-lifecycle/`
@@ -187,13 +171,7 @@ Step 6: Contribute improvements
 - ✅ How to handle concurrent RPC operations
 - ✅ Why Pure Rust RPC beats gRPC/protobuf
 
-### After Level 3: Songbird Discovery
-- ✅ How to register capabilities with Songbird
-- ✅ How to discover services at runtime
-- ✅ How to handle service failures gracefully
-- ✅ Why zero-hardcoding matters
-
-### After Level 4: Inter-Primal
+### After Level 3: Inter-Primal
 - ✅ How to anchor Squirrel sessions permanently
 - ✅ How to store NestGate data with provenance
 - ✅ How to use BearDog signing for certificates
@@ -321,8 +299,7 @@ cd showcase
 ### Level Guides
 - `01-local-primal/README.md` - Level 1 guide
 - `02-rpc-api/README.md` - Level 2 guide
-- `03-songbird-discovery/README.md` - Level 3 guide
-- `04-inter-primal/README.md` - Level 4 guide
+- `03-inter-primal/README.md` - Level 3 guide
 
 ### Project Documentation
 - `../README.md` - Project overview and documentation
@@ -348,11 +325,8 @@ cd 01-local-primal && ./RUN_ALL.sh
 # Level 2 (30 min)
 cd ../02-rpc-api && ./RUN_ALL.sh
 
-# Level 3 (20 min)
-cd ../03-songbird-discovery && ./RUN_ALL.sh
-
-# Level 4 (45 min)
-cd ../04-inter-primal && ./RUN_ALL.sh
+# Level 3 (45 min)
+cd ../03-inter-primal && ./RUN_ALL.sh
 ```
 
 ### Specific Demo
@@ -434,11 +408,6 @@ Start here: `00_SHOWCASE_INDEX.md` - it's a complete navigation guide.
 - [ ] I understand RPC performance benefits
 
 ### After Level 3
-- [ ] I understand runtime service discovery
-- [ ] I see zero-hardcoding in action
-- [ ] I understand capability-based integration
-
-### After Level 4
 - [ ] I understand complete ecosystem integration
 - [ ] I can anchor ephemeral operations permanently
 - [ ] I see sovereign permanence value

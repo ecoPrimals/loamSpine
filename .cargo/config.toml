@@ -8,3 +8,30 @@
 # Or uncomment and edit the line below for a persistent local override:
 # [build]
 # target-dir = "/home/youruser/.cargo-build/loamSpine/target"
+
+# ecoBin musl-static targets — fully static binaries for plasmidBin / benchScale.
+# Prerequisites:
+#   rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+#   sudo apt install musl-tools gcc-aarch64-linux-gnu
+
+# relocation-model=static prevents static-PIE segfault on musl ≤1.2.2
+# (Ubuntu 22.04 ships musl 1.2.2 — _start_c/dlstart.c crash in PIE mode)
+[target.x86_64-unknown-linux-musl]
+linker = "musl-gcc"
+rustflags = [
+    "-C", "target-feature=+crt-static",
+    "-C", "link-arg=-static",
+    "-C", "relocation-model=static",
+]
+
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-gnu-gcc"
+rustflags = [
+    "-C", "target-feature=+crt-static",
+    "-C", "link-arg=-static",
+    "-C", "relocation-model=static",
+]
+
+[alias]
+build-x64 = "build --release --target x86_64-unknown-linux-musl -p loamspine-service"
+build-arm64 = "build --release --target aarch64-unknown-linux-musl -p loamspine-service"

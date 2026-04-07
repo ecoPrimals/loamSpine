@@ -73,3 +73,9 @@ must_use_candidate = "allow"       # Will add incrementally
 multiple_crate_versions = "allow"  # Dependencies may have version conflicts
 option_if_let_else = "allow"       # Pattern matching is clearer sometimes
 redundant_pub_crate = "allow"      # pub(crate) is intentional for module boundaries
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

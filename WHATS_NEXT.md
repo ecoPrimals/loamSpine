@@ -220,6 +220,11 @@
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
+## v0.9.16 musl-static Deployment (April 7, 2026)
+
+- **ecoBin deployment debt resolved** — `.cargo/config.toml` musl targets (`x86_64` + `aarch64`) with `relocation-model=static` (nestgate/biomeOS pattern). Dockerfile converted from glibc to musl-static alpine. `[profile.release]` with LTO + strip. Binary: 4.3M statically linked.
+- **Showcase cleanup** — `03-songbird-discovery/` archived to fossilRecord (deprecated since v0.9.15). Renumbered `04-inter-primal/` → `03-inter-primal/`.
+
 ## v0.9.16 Storage Error Evolution & Smart Refactoring (April 6, 2026)
 
 - **`StorageResultExt` trait** — Extension trait on `Result<T, E: Display>` providing `.storage_err()` and `.storage_ctx("context")` — eliminates ~85 verbose `.map_err(|e| LoamSpineError::Storage(e.to_string()))` closures across redb and sled backends.
@@ -288,8 +293,6 @@
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
 - **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate `mdns-sd` or `hickory-resolver` mDNS (see `specs/DEPENDENCY_EVOLUTION.md`)
 - **bincode v1 → v2** — Storage format migration for RUSTSEC-2025-0141 resolution (see `specs/DEPENDENCY_EVOLUTION.md`)
-- ~~**`OnceLock` caching**~~ — Completed in v0.9.16
-- ~~**`StorageResultExt` / storage error boilerplate**~~ — Completed in v0.9.16: trait replaces 85+ closures
 - **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)
 
 ---
@@ -299,7 +302,7 @@
 - **PostgreSQL storage backend** -- Implement per [specs/STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md)
 - **RocksDB storage backend** -- Implement per [specs/STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md)
 - **Full Universal IPC v3 compliance** -- Complete protocol alignment
-- **genomeBin readiness** -- Meet genomeBin integration requirements
+- **genomeBin readiness** -- musl-static resolved (v0.9.16); remaining: checksums.toml musl triple + PIE verification
 - **95%+ test coverage**
 - **HTTP health endpoints** -- `/health/liveness`, `/health/readiness`
 - **Prometheus metrics** -- Request counts, latencies, queue depths

@@ -62,7 +62,7 @@ cargo deny check licenses bans sources
 
 ## Architecture
 
-**Pure Rust** -- No gRPC, no protobuf, no C/C++ tooling, no OpenSSL. Zero C dependencies (ecoBin compliant). Blake3 uses pure Rust mode (no C/asm).
+**Pure Rust** -- No gRPC, no protobuf, no C/C++ tooling, no OpenSSL. Zero C dependencies (ecoBin compliant). Blake3 uses pure Rust mode (no C/asm). Builds as **musl-static** for portable container deployment via plasmidBin / benchScale.
 
 **Storage backends:** redb (default, pure Rust), memory, sqlite (feature-gated). sled is optional via `--features sled-storage`.
 
@@ -192,15 +192,25 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 ---
 
-## DevOps
+## Deployment
 
 ```bash
-# Docker
+# musl-static build (ecoBin-compliant, for plasmidBin / benchScale)
+cargo build-x64                # x86_64-unknown-linux-musl
+cargo build-arm64              # aarch64-unknown-linux-musl
+
+# Verify static linkage
+file target/x86_64-unknown-linux-musl/release/loamspine
+# → ELF 64-bit LSB executable, x86-64, statically linked, stripped
+
+# Docker (musl-static, alpine runtime)
 docker build -t loamspine .
 
 # Verify everything
 ./verify.sh
 ```
+
+Prerequisites for musl builds: `rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl` and `sudo apt install musl-tools gcc-aarch64-linux-gnu`.
 
 ---
 

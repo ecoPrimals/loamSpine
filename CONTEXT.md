@@ -23,6 +23,7 @@ to commit, verify, or query permanent records.
 
 - **Language:** 100% Rust, zero C dependencies (pure-Rust ecoBin)
 - **Architecture:** Single binary (UniBin), multiple operational modes
+- **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
 - **Tests:** 1,280 (all concurrent, ~3s)

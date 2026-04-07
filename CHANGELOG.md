@@ -7,7 +7,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.9.16] - 2026-04-06
+## [0.9.16] - 2026-04-07
+
+### Added
+- **musl-static deployment**: `.cargo/config.toml` defines `[target.x86_64-unknown-linux-musl]` and `[target.aarch64-unknown-linux-musl]` with `musl-gcc` linker, `+crt-static`, `-static`, `relocation-model=static`. `cargo build-x64` / `build-arm64` aliases. Binary: 4.3M, `ELF 64-bit, statically linked, stripped`.
+- **`[profile.release]`**: `lto = true`, `codegen-units = 1`, `panic = "abort"`, `strip = true` — matches rhizoCrypt ecoBin release profile.
+
+### Changed
+- **Dockerfile**: Converted from `rust:slim` + `debian:bookworm-slim` (glibc) to `rust:1.87-slim` + `musl-tools` builder with `alpine:3.20` runtime. Now ecoBin-compliant musl-static.
+- **Showcase**: `03-songbird-discovery/` archived to `fossilRecord/loamspine/showcase-songbird-apr2026/` (deprecated since v0.9.15). `04-inter-primal/` renumbered to `03-inter-primal/`.
 
 ### Added
 - **Public chain anchor**: `EntryType::PublicChainAnchor` + `AnchorTarget` enum for external provenance verification. Anchors spine state hashes to any append-only ledger (Bitcoin, Ethereum, federated spines, data commons). LoamSpine records receipts only — actual chain submission is capability-discovered (`"chain-anchor"` primal).

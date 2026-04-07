@@ -42,21 +42,23 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 
 ### Build Environment
 
-The workspace lives on a `noexec` mount (`/mnt/4tb-work`). Build artifacts are
-redirected to an exec-capable filesystem via `.cargo/config.toml`:
-
-```toml
-[build]
-target-dir = "/path/to/.cargo-build/loamSpine/target"
-```
-
-If your shell sets a global `CARGO_TARGET_DIR` (e.g. pointing at the noexec mount),
-it overrides this config. Either **unset** it or explicitly override per-command:
+If your workspace is on a `noexec` mount, override the target directory via
+environment variable (`.cargo/config.toml` does not set `target-dir`):
 
 ```bash
-unset CARGO_TARGET_DIR        # preferred — let .cargo/config.toml work
-# or
-export CARGO_TARGET_DIR=/path/to/.cargo-build/loamSpine/target
+CARGO_TARGET_DIR=~/.cargo-build/loamSpine/target cargo build
+```
+
+### musl-static Builds (ecoBin / plasmidBin)
+
+```bash
+# Prerequisites
+rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+sudo apt install musl-tools gcc-aarch64-linux-gnu
+
+# Build via aliases defined in .cargo/config.toml
+cargo build-x64    # x86_64-unknown-linux-musl
+cargo build-arm64  # aarch64-unknown-linux-musl
 ```
 
 ### Build and Test
@@ -327,7 +329,7 @@ Look for issues labeled `good-first-issue`:
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |
-| JSON-RPC Methods | 28 (semantic naming) |
+| JSON-RPC Methods | 30 (semantic naming) |
 | Mock isolation | All mocks cfg-gated out of production |
 | Provenance Trio | Tested (rhizoCrypt + sweetGrass) |
 

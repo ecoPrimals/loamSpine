@@ -51,14 +51,7 @@ showcase/
 │   ├── 05-error-handling/         ✅ Ready
 │   └── RUN_ALL.sh
 │
-├── 03-songbird-discovery/         # Level 3: Service Discovery (20 min)
-│   ├── 01-songbird-connect/       ✅ Ready (needs Songbird)
-│   ├── 02-capability-discovery/   ✅ Ready
-│   ├── 03-auto-advertise/         ✅ Ready
-│   ├── 04-heartbeat-monitoring/   ✅ Ready
-│   └── RUN_ALL.sh
-│
-└── 04-inter-primal/               # Level 4: Ecosystem Integration (45 min)
+└── 03-inter-primal/               # Level 3: Ecosystem Integration (45 min)
     ├── 01-beardog-signing/        ✅ Ready (NO MOCKS, uses ../bins/)
     ├── 02-nestgate-storage/       ✅ Ready (NO MOCKS)
     ├── 03-squirrel-sessions/      ✅ Ready (NO MOCKS)
@@ -97,12 +90,8 @@ cd showcase/01-local-primal
 cd showcase/02-rpc-api
 ./RUN_ALL.sh
 
-# Level 3: Songbird discovery
-cd showcase/03-songbird-discovery
-./RUN_ALL.sh
-
-# Level 4: Inter-primal integration
-cd showcase/04-inter-primal
+# Level 3: Inter-primal integration
+cd showcase/03-inter-primal
 ./RUN_ALL.sh
 ```
 
@@ -130,21 +119,21 @@ cargo run --example backup_restore
 ### For Complete Beginners (120 min)
 Perfect if you've never used LoamSpine:
 ```
-Level 1 (60 min) → Level 2 (30 min) → Level 3 (20 min) → Level 4 (10 min)
+Level 1 (60 min) → Level 2 (30 min) → Level 3 (45 min)
 ```
 **Start**: `00_START_HERE.md`
 
 ### For Developers (70 min)
 You want to understand the architecture:
 ```
-Level 1 highlights (30 min) → Level 2 (30 min) → Level 4 (10 min)
+Level 1 highlights (30 min) → Level 2 (30 min) → Level 3 (10 min)
 ```
 **Start**: `01-local-primal/01-hello-loamspine/`
 
 ### For Architects (60 min)
 You want to see integration patterns:
 ```
-Certificates (10 min) → RPC (10 min) → Discovery (20 min) → Ecosystem (20 min)
+Certificates (10 min) → RPC (10 min) → Ecosystem (20 min)
 ```
 **Start**: `01-local-primal/03-certificate-lifecycle/`
 
@@ -215,27 +204,7 @@ All levels complete + code review + contribution
 
 ---
 
-### Level 3: Songbird Discovery (20 min) ✅ 4/4 READY
-**Goal**: See runtime service discovery
-
-| Demo | Description | Time | Status |
-|------|-------------|------|--------|
-| 01-songbird-connect | Service registration | 5 min | ✅ Ready |
-| 02-capability-discovery | Runtime discovery | 5 min | ✅ Ready |
-| 03-auto-advertise | Capability advertisement | 5 min | ✅ Ready |
-| 04-heartbeat-monitoring | Health & failover | 5 min | ✅ Ready |
-
-**What you'll learn**:
-- Capability registration
-- Runtime discovery
-- Zero hardcoding
-- Automatic failover
-
-**Prerequisites**: Songbird (`../bins/songbird-orchestrator`)
-
----
-
-### Level 4: Inter-Primal (45 min) ✅ 5/5 READY (NO MOCKS!)
+### Level 3: Inter-Primal (45 min) ✅ 5/5 READY (NO MOCKS!)
 **Goal**: Complete ecosystem integration
 
 | Demo | Description | Time | Status |
@@ -275,12 +244,6 @@ All levels complete + code review + contribution
 - [ ] I can monitor service health
 
 ### After Level 3
-- [ ] I understand runtime service discovery
-- [ ] I see zero-hardcoding in action
-- [ ] I can register capabilities
-- [ ] I understand automatic failover
-
-### After Level 4
 - [ ] I can integrate with BearDog
 - [ ] I can integrate with NestGate
 - [ ] I can integrate with Squirrel
@@ -300,9 +263,6 @@ All levels complete + code review + contribution
 - `cargo build --release --bin loamspine`
 
 ### Optional (Level 3)
-- Songbird binary in `../bins/`
-
-### Optional (Level 4)
 - All Phase 1 primal binaries in `../bins/`
 - See `../bins/README.md` for details
 
@@ -384,4 +344,4 @@ LoamSpine uses capability discovery for all external services:
 
 🦴 **LoamSpine: Where memories become permanent.** 🚀
 
-*Last updated: March 15, 2026 — Showcase Evolution Complete*
+*Last updated: April 7, 2026 — Songbird discovery demos archived to fossilRecord (deprecated in v0.9.15)*
