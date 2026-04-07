@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 6, 2026
+**Last Updated**: April 7, 2026
 
 ---
 
@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,280 |
+| Tests | — | 1,298 |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`) |
 | Coverage (llvm-cov) | 90%+ | 91.96% line / 87.07% region / 93.39% function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 899 max (all 136 files under 1000) |
-| Source files | — | 136 `.rs` files |
+| Max file size | < 1000 lines | 900 max (all 148 files under 1000) |
+| Source files | — | 148 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 3 (2× `clippy::wildcard_imports` in tarpc server/service — required by macro; 1× `clippy::unused_async` in infant_discovery — feature-conditional) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -77,6 +77,16 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All 129 files under 1000 lines (max: 899 in `discovery/tests.rs`). |
 
 ---
+
+## v0.9.16 Deep Debt Module Evolution (April 7, 2026)
+
+- **Smart module refactoring (6 large files)**: `types.rs` (819→directory), `error.rs` (777→directory), `neural_api.rs` (735→directory), `infant_discovery/mod.rs` (cache extraction), `constants/network.rs` (env_resolution extraction), `sync/mod.rs` (streaming extraction). All refactored by domain semantics, not arbitrary line splits.
+- **StorageResultExt for SQLite**: `to_storage_err` standalone function eliminated; all 3 SQLite modules (`entry.rs`, `certificate.rs`, `spine.rs`) migrated to `.storage_err()` / `.storage_ctx()` trait methods.
+- **Parse helper DRY**: `integration_ops.rs` — 6 duplicated parse-and-map-err patterns extracted to `parse_uuid()` and `parse_content_hash()`.
+- **Hardcoding removal**: "Songbird" literal removed from `niche.rs` external dependency description.
+- **Deploy graph aligned**: `graphs/loamspine_deploy.toml` 0.9.15 → 0.9.16 with `anchor.publish`/`anchor.verify`.
+- **Coverage push**: 18 new tests across `DiscoveryCache`, `certificate_loan` expired paths, tarpc server delegation.
+- **Tests**: 1,280 → **1,298**. Source files: 136 → **148**. Zero clippy warnings. Zero `cc` crate in build graph.
 
 ## v0.9.16 musl-static Deployment (April 7, 2026)
 

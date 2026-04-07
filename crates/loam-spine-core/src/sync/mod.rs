@@ -52,12 +52,14 @@ pub struct SyncPeer {
     pub last_sync_ns: u64,
 }
 
+mod streaming;
+
 /// Per-spine sync state tracked by `SyncEngine`.
 #[derive(Clone, Debug, Default)]
-struct SpineSyncState {
-    local_height: u64,
-    remote_height: u64,
-    pending_push: Vec<Entry>,
+pub(super) struct SpineSyncState {
+    pub(super) local_height: u64,
+    pub(super) remote_height: u64,
+    pub(super) pending_push: Vec<Entry>,
 }
 
 /// Sync engine for spine federation over JSON-RPC.
@@ -68,7 +70,7 @@ struct SpineSyncState {
 #[derive(Clone)]
 pub struct SyncEngine {
     peers: Arc<RwLock<HashMap<PeerId, SyncPeer>>>,
-    spine_states: Arc<RwLock<HashMap<SpineId, SpineSyncState>>>,
+    pub(super) spine_states: Arc<RwLock<HashMap<SpineId, SpineSyncState>>>,
     connect_timeout: Duration,
 }
 
@@ -121,7 +123,7 @@ impl SyncEngine {
     ///
     /// Uses structured [`IpcErrorPhase`] errors for each failure point,
     /// enabling phase-aware retry and observability across federation.
-    async fn rpc_call(
+    pub(super) async fn rpc_call(
         &self,
         endpoint: &str,
         method: &str,
@@ -209,7 +211,7 @@ impl SyncEngine {
     }
 
     /// Push entries to a specific peer via JSON-RPC `sync.push`.
-    async fn push_to_peer(
+    pub(super) async fn push_to_peer(
         &self,
         endpoint: &str,
         spine_id: SpineId,
@@ -246,7 +248,7 @@ impl SyncEngine {
     }
 
     /// Pull entries from a specific peer via JSON-RPC `sync.pull`.
-    async fn pull_from_peer(
+    pub(super) async fn pull_from_peer(
         &self,
         endpoint: &str,
         spine_id: SpineId,
@@ -277,7 +279,7 @@ impl SyncEngine {
     }
 
     /// Select the best reachable peer endpoint for a sync operation.
-    async fn best_peer_endpoint(&self) -> LoamSpineResult<String> {
+    pub(super) async fn best_peer_endpoint(&self) -> LoamSpineResult<String> {
         let peers = self.peers.read().await;
         if peers.is_empty() {
             return Err(LoamSpineError::Network(
@@ -413,132 +415,6 @@ impl SyncProtocol for SyncEngine {
                 },
             })
         })
-    }
-}
-
-impl SyncEngine {
-    /// Push entries to peers with NDJSON progress streaming.
-    ///
-    /// Emits [`Progress`](crate::streaming::StreamItem::Progress) during
-    /// the push and [`End`](crate::streaming::StreamItem::End) on completion.
-    /// Used by biomeOS Pipeline coordination graphs for wiring bounded
-    /// `mpsc` channels between springs.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if no peers are registered.
-    pub async fn push_entries_streaming(
-        &self,
-        spine_id: SpineId,
-        entries: Vec<Entry>,
-        progress: &tokio::sync::mpsc::Sender<crate::streaming::StreamItem>,
-    ) -> LoamSpineResult<SyncResult> {
-        use crate::streaming::StreamItem;
-
-        let endpoint = self.best_peer_endpoint().await?;
-        let entry_count = u64::try_from(entries.len()).unwrap_or(u64::MAX);
-
-        let _ = progress
-            .send(StreamItem::progress(0, Some(entry_count)))
-            .await;
-
-        let push_result = self.push_to_peer(&endpoint, spine_id, &entries).await;
-
-        self.spine_states
-            .write()
-            .await
-            .entry(spine_id)
-            .or_default()
-            .pending_push
-            .extend(entries);
-
-        match push_result {
-            Ok(result) => {
-                debug!(
-                    "Pushed {} entries to peer {} for spine {}",
-                    result.accepted, endpoint, spine_id
-                );
-                let _ = progress
-                    .send(StreamItem::progress(result.accepted, Some(entry_count)))
-                    .await;
-                let _ = progress.send(StreamItem::end()).await;
-                Ok(result)
-            }
-            Err(e) => {
-                warn!(
-                    "Streaming push to {} failed (entries queued locally): {e}",
-                    endpoint
-                );
-                let _ = progress
-                    .send(StreamItem::error(format!("push to {endpoint}: {e}")))
-                    .await;
-                let _ = progress.send(StreamItem::end()).await;
-                Ok(SyncResult {
-                    accepted: entry_count,
-                    rejected: 0,
-                    rejection_reasons: Vec::new(),
-                })
-            }
-        }
-    }
-
-    /// Pull entries from peers with NDJSON progress streaming.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if no peers are registered.
-    pub async fn pull_entries_streaming(
-        &self,
-        spine_id: SpineId,
-        from_index: u64,
-        limit: u64,
-        progress: &tokio::sync::mpsc::Sender<crate::streaming::StreamItem>,
-    ) -> LoamSpineResult<Vec<Entry>> {
-        use crate::streaming::StreamItem;
-
-        let endpoint = self.best_peer_endpoint().await?;
-        let _ = progress.send(StreamItem::progress(0, None)).await;
-
-        match self
-            .pull_from_peer(&endpoint, spine_id, from_index, limit)
-            .await
-        {
-            Ok(entries) => {
-                let count = u64::try_from(entries.len()).unwrap_or(u64::MAX);
-                debug!(
-                    "Pulled {} entries from peer {} for spine {}",
-                    entries.len(),
-                    endpoint,
-                    spine_id
-                );
-                let _ = progress
-                    .send(StreamItem::progress(count, Some(count)))
-                    .await;
-                let _ = progress.send(StreamItem::end()).await;
-                Ok(entries)
-            }
-            Err(e) => {
-                warn!(
-                    "Streaming pull from {} failed, returning local queue: {e}",
-                    endpoint
-                );
-                let _ = progress
-                    .send(StreamItem::error(format!("pull from {endpoint}: {e}")))
-                    .await;
-                let _ = progress.send(StreamItem::end()).await;
-                let limit_usize = usize::try_from(limit).unwrap_or(usize::MAX);
-                let states = self.spine_states.read().await;
-                Ok(states.get(&spine_id).map_or_else(Vec::new, |state| {
-                    state
-                        .pending_push
-                        .iter()
-                        .filter(|e| e.index >= from_index)
-                        .take(limit_usize)
-                        .cloned()
-                        .collect()
-                }))
-            }
-        }
     }
 }
 

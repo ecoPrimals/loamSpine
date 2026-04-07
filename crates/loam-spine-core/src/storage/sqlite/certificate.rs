@@ -6,12 +6,10 @@ use std::sync::{Arc, Mutex};
 use rusqlite::Connection;
 
 use crate::certificate::Certificate;
-use crate::error::LoamSpineResult;
+use crate::error::{LoamSpineResult, StorageResultExt};
 use crate::types::{CertificateId, SpineId};
 
-use super::common::{
-    count_rows, flush_wal, lock_conn, open_connection, open_in_memory, to_storage_err,
-};
+use super::common::{count_rows, flush_wal, lock_conn, open_connection, open_in_memory};
 use crate::storage::CertificateStorage;
 
 /// SQLite-backed certificate storage.
@@ -59,7 +57,7 @@ impl SqliteCertificateStorage {
             )",
             [],
         )
-        .map_err(to_storage_err)?;
+        .storage_err()?;
         Ok(())
     }
 
@@ -97,16 +95,16 @@ impl CertificateStorage for SqliteCertificateStorage {
             let conn = lock_conn(&self.conn)?;
             let mut stmt = conn
                 .prepare("SELECT spine_id, data FROM certificates WHERE id = ?1")
-                .map_err(to_storage_err)?;
-            let mut rows = stmt.query([&id_str]).map_err(to_storage_err)?;
+                .storage_err()?;
+            let mut rows = stmt.query([&id_str]).storage_err()?;
 
-            if let Some(row) = rows.next().map_err(to_storage_err)? {
-                let spine_id_str: String = row.get(0).map_err(to_storage_err)?;
-                let data: Vec<u8> = row.get(1).map_err(to_storage_err)?;
-                let spine_id = SpineId::parse_str(&spine_id_str)
-                    .map_err(|e| to_storage_err(format!("invalid spine_id: {e}")))?;
-                let cert: Certificate = serde_json::from_slice(&data)
-                    .map_err(|e| to_storage_err(format!("deserialize: {e}")))?;
+            if let Some(row) = rows.next().storage_err()? {
+                let spine_id_str: String = row.get(0).storage_err()?;
+                let data: Vec<u8> = row.get(1).storage_err()?;
+                let spine_id =
+                    SpineId::parse_str(&spine_id_str).storage_ctx("invalid spine_id")?;
+                let cert: Certificate =
+                    serde_json::from_slice(&data).storage_ctx("deserialize")?;
                 Some((cert, spine_id))
             } else {
                 None
@@ -122,15 +120,14 @@ impl CertificateStorage for SqliteCertificateStorage {
     ) -> LoamSpineResult<()> {
         let id_str = certificate.id.to_string();
         let spine_id_str = spine_id.to_string();
-        let data = serde_json::to_vec(certificate)
-            .map_err(|e| to_storage_err(format!("serialize: {e}")))?;
+        let data = serde_json::to_vec(certificate).storage_ctx("serialize")?;
         {
             let conn = lock_conn(&self.conn)?;
             conn.execute(
                 "INSERT OR REPLACE INTO certificates (id, spine_id, data) VALUES (?1, ?2, ?3)",
                 rusqlite::params![&id_str, &spine_id_str, &data],
             )
-            .map_err(to_storage_err)?;
+            .storage_err()?;
         }
         Ok(())
     }
@@ -140,7 +137,7 @@ impl CertificateStorage for SqliteCertificateStorage {
         {
             let conn = lock_conn(&self.conn)?;
             conn.execute("DELETE FROM certificates WHERE id = ?1", [&id_str])
-                .map_err(to_storage_err)?;
+                .storage_err()?;
         }
         Ok(())
     }
@@ -150,12 +147,12 @@ impl CertificateStorage for SqliteCertificateStorage {
             let conn = lock_conn(&self.conn)?;
             let mut stmt = conn
                 .prepare("SELECT id FROM certificates")
-                .map_err(to_storage_err)?;
-            let mut rows = stmt.query([]).map_err(to_storage_err)?;
+                .storage_err()?;
+            let mut rows = stmt.query([]).storage_err()?;
 
             let mut ids = Vec::new();
-            while let Some(row) = rows.next().map_err(to_storage_err)? {
-                let id_str: String = row.get(0).map_err(to_storage_err)?;
+            while let Some(row) = rows.next().storage_err()? {
+                let id_str: String = row.get(0).storage_err()?;
                 if let Ok(uuid) = CertificateId::parse_str(&id_str) {
                     ids.push(uuid);
                 }

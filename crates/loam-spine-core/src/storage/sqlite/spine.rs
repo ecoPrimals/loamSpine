@@ -5,13 +5,11 @@ use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
 
-use crate::error::LoamSpineResult;
+use crate::error::{LoamSpineResult, StorageResultExt};
 use crate::spine::Spine;
 use crate::types::SpineId;
 
-use super::common::{
-    count_rows, flush_wal, lock_conn, open_connection, open_in_memory, to_storage_err,
-};
+use super::common::{count_rows, flush_wal, lock_conn, open_connection, open_in_memory};
 use crate::storage::SpineStorage;
 
 /// SQLite-backed spine storage.
@@ -59,7 +57,7 @@ impl SqliteSpineStorage {
             "CREATE TABLE IF NOT EXISTS spines (id TEXT PRIMARY KEY, data BLOB)",
             [],
         )
-        .map_err(to_storage_err)?;
+        .storage_err()?;
         Ok(())
     }
 
@@ -96,13 +94,13 @@ impl SpineStorage for SqliteSpineStorage {
             let conn = lock_conn(&self.conn)?;
             let mut stmt = conn
                 .prepare("SELECT data FROM spines WHERE id = ?1")
-                .map_err(to_storage_err)?;
-            let mut rows = stmt.query([&id_str]).map_err(to_storage_err)?;
+                .storage_err()?;
+            let mut rows = stmt.query([&id_str]).storage_err()?;
 
-            if let Some(row) = rows.next().map_err(to_storage_err)? {
-                let data: Vec<u8> = row.get(0).map_err(to_storage_err)?;
-                let spine: Spine = serde_json::from_slice(&data)
-                    .map_err(|e| to_storage_err(format!("deserialize: {e}")))?;
+            if let Some(row) = rows.next().storage_err()? {
+                let data: Vec<u8> = row.get(0).storage_err()?;
+                let spine: Spine =
+                    serde_json::from_slice(&data).storage_ctx("deserialize")?;
                 Some(spine)
             } else {
                 None
@@ -113,15 +111,14 @@ impl SpineStorage for SqliteSpineStorage {
 
     async fn save_spine(&self, spine: &Spine) -> LoamSpineResult<()> {
         let id_str = spine.id.to_string();
-        let data =
-            serde_json::to_vec(spine).map_err(|e| to_storage_err(format!("serialize: {e}")))?;
+        let data = serde_json::to_vec(spine).storage_ctx("serialize")?;
         {
             let conn = lock_conn(&self.conn)?;
             conn.execute(
                 "INSERT OR REPLACE INTO spines (id, data) VALUES (?1, ?2)",
                 rusqlite::params![&id_str, &data],
             )
-            .map_err(to_storage_err)?;
+            .storage_err()?;
         }
         Ok(())
     }
@@ -131,7 +128,7 @@ impl SpineStorage for SqliteSpineStorage {
         {
             let conn = lock_conn(&self.conn)?;
             conn.execute("DELETE FROM spines WHERE id = ?1", [&id_str])
-                .map_err(to_storage_err)?;
+                .storage_err()?;
         }
         Ok(())
     }
@@ -141,12 +138,12 @@ impl SpineStorage for SqliteSpineStorage {
             let conn = lock_conn(&self.conn)?;
             let mut stmt = conn
                 .prepare("SELECT id FROM spines")
-                .map_err(to_storage_err)?;
-            let mut rows = stmt.query([]).map_err(to_storage_err)?;
+                .storage_err()?;
+            let mut rows = stmt.query([]).storage_err()?;
 
             let mut ids = Vec::new();
-            while let Some(row) = rows.next().map_err(to_storage_err)? {
-                let id_str: String = row.get(0).map_err(to_storage_err)?;
+            while let Some(row) = rows.next().storage_err()? {
+                let id_str: String = row.get(0).storage_err()?;
                 if let Ok(uuid) = SpineId::parse_str(&id_str) {
                     ids.push(uuid);
                 }

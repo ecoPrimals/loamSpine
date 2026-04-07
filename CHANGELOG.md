@@ -51,10 +51,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`serial_test`** dependency — zero `#[serial]` attributes in the codebase (was 121).
 - **`temp-env`** dependency — env injection for tests uses pure functions and `env_overrides` instead.
 
+### Refactored
+- **Smart module refactoring (6 large files)**: `types.rs` → `types/` directory (anchor, certificate, permanent_storage, tests). `error.rs` → `error/` directory (ipc, dispatch, storage_ext, tests). `neural_api.rs` → `neural_api/` directory (socket, mcp, tests). `infant_discovery/` → extracted `cache.rs` (`DiscoveryCache`). `constants/network.rs` → extracted `env_resolution.rs`. `sync/mod.rs` → extracted `streaming.rs`.
+- **SQLite `StorageResultExt` migration**: All 3 SQLite modules (`entry.rs`, `certificate.rs`, `spine.rs`) evolved from `to_storage_err()` calls to `.storage_err()` / `.storage_ctx()` trait methods. Standalone `to_storage_err` function removed.
+- **Parse helper extraction**: `integration_ops.rs` — 6 duplicated parse-and-map-err patterns extracted to `parse_uuid()`, `parse_content_hash()`, `bytes_to_hex()`.
+- **Hardcoding removal**: "Songbird/Consul/etcd" literal in `niche.rs` → generic "service registry (mDNS / DNS-SRV / etcd)".
+- **Deploy graph bump**: `graphs/loamspine_deploy.toml` 0.9.15 → 0.9.16 with `anchor.publish`/`anchor.verify` capabilities.
+
+### Added
+- **18 new tests**: 8 `DiscoveryCache` unit tests, 5 `certificate_loan` expired-return path tests, 5 tarpc server delegation tests.
+- **Doc comments**: `sqlite/common.rs` functions and `serde_opt_bytes` module documented.
+
 ### Metrics
-- Tests: 1,397 → **1,280** (consolidated; trivial env-read tests removed; 10 public chain anchor tests added)
+- Tests: 1,397 → **1,298** (consolidated; trivial tests removed; 10 anchor + 18 deep-debt tests added)
 - `#[serial]`: **0** (was 121)
 - Full workspace test suite: **~3s** (all concurrent)
+- Source files: 136 → **148** (12 new modules from smart refactoring)
 - Coverage: **91.96%** line / **87.07%** region / **93.39%** function (llvm-cov)
 - Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
 - Doc warnings: **0**

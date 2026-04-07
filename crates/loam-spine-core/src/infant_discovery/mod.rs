@@ -46,10 +46,13 @@
 //! # }
 //! ```
 
+mod cache;
+
 use std::collections::HashMap;
 use std::env;
-use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+
+use cache::DiscoveryCache;
 
 #[cfg(feature = "dns-srv")]
 use hickory_resolver::{
@@ -57,7 +60,6 @@ use hickory_resolver::{
     config::{ResolverConfig, ResolverOpts},
     lookup::SrvLookup,
 };
-use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
 #[cfg(any(feature = "dns-srv", feature = "mdns", test))]
@@ -153,7 +155,7 @@ pub struct InfantDiscovery {
     own_capabilities: Vec<LoamSpineCapability>,
 
     /// Discovered services (learned at runtime)
-    discovered: Arc<RwLock<HashMap<String, Vec<DiscoveredService>>>>,
+    pub(crate) cache: DiscoveryCache,
 
     /// Discovery configuration
     config: DiscoveryConfig,
@@ -185,7 +187,7 @@ impl InfantDiscovery {
 
         Ok(Self {
             own_capabilities,
-            discovered: Arc::new(RwLock::new(HashMap::new())),
+            cache: DiscoveryCache::new(),
             config,
         })
     }
@@ -237,24 +239,8 @@ impl InfantDiscovery {
             capability
         );
 
-        // Check cache first
-        {
-            let discovered = self.discovered.read().await;
-            if let Some(services) = discovered.get(capability)
-                && !services.is_empty()
-            {
-                // Verify services are still fresh
-                let fresh: Vec<_> = services
-                    .iter()
-                    .filter(|s| Self::is_fresh(s))
-                    .cloned()
-                    .collect();
-
-                if !fresh.is_empty() {
-                    debug!("Found {} cached services for '{}'", fresh.len(), capability);
-                    return Ok(fresh);
-                }
-            }
+        if let Some(fresh) = self.cache.get_fresh(capability).await {
+            return Ok(fresh);
         }
 
         // Try each discovery method
@@ -286,17 +272,15 @@ impl InfantDiscovery {
             }
         }
 
-        // Update cache
         if all_services.is_empty() {
             warn!(
                 "No services found for capability '{}', operating in degraded mode",
                 capability
             );
         } else {
-            {
-                let mut discovered = self.discovered.write().await;
-                discovered.insert(capability.to_string(), all_services.clone());
-            }
+            self.cache
+                .insert(capability.to_string(), all_services.clone())
+                .await;
             info!(
                 "Discovered {} services for capability '{}'",
                 all_services.len(),
@@ -554,27 +538,21 @@ impl InfantDiscovery {
         }
     }
 
-    /// Check if a service is still fresh (within TTL)
-    fn is_fresh(service: &DiscoveredService) -> bool {
-        let age = SystemTime::now()
-            .duration_since(service.discovered_at)
-            .unwrap_or(Duration::from_secs(u64::MAX));
-
-        age.as_secs() < service.ttl_secs
+    /// Check if a service is still fresh (within TTL).
+    #[cfg(test)]
+    pub(crate) fn is_fresh(service: &DiscoveredService) -> bool {
+        DiscoveryCache::is_fresh(service)
     }
 
     /// Clear cached discoveries (force rediscovery)
     pub async fn clear_cache(&self) {
-        self.discovered.write().await.clear();
+        self.cache.clear().await;
         info!("Discovery cache cleared");
     }
 
     /// Get all currently discovered services
     pub async fn all_discovered(&self) -> HashMap<String, Vec<DiscoveredService>> {
-        {
-            let discovered = self.discovered.read().await;
-            discovered.clone()
-        }
+        self.cache.all().await
     }
 }
 

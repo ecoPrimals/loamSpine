@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 6, 2026
+**Last Updated**: April 7, 2026
 
 ---
 
@@ -219,6 +219,18 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 Deep Debt Module Evolution (April 7, 2026)
+
+- **Smart module refactoring (6 large files)**: `types.rs` (819 lines) → `types/` directory (`mod.rs`, `anchor.rs`, `certificate.rs`, `permanent_storage.rs`, `tests.rs`). `error.rs` (777 lines) → `error/` directory (`mod.rs`, `ipc.rs`, `dispatch.rs`, `storage_ext.rs`, `tests.rs`). `neural_api.rs` (735 lines) → `neural_api/` directory (`mod.rs`, `socket.rs`, `mcp.rs`, `tests.rs`). `infant_discovery/mod.rs` → extracted `cache.rs` with `DiscoveryCache` struct. `constants/network.rs` → extracted `env_resolution.rs` for environment-reading facades. `sync/mod.rs` → extracted `streaming.rs` for NDJSON progress reporting.
+- **StorageResultExt evolution**: SQLite storage modules (`entry.rs`, `certificate.rs`, `spine.rs`) migrated from standalone `to_storage_err` function to `StorageResultExt` trait methods (`.storage_err()`, `.storage_ctx("context")`). The old function is fully removed.
+- **Parse helper extraction**: `integration_ops.rs` — duplicated `parse::<uuid::Uuid>().map_err(...)` and `hex_to_content_hash().map_err(...)` patterns (6 call sites) extracted to `parse_uuid()` and `parse_content_hash()` helpers.
+- **Hardcoding removal**: "Songbird/Consul/etcd" literal in `niche.rs` replaced with generic "service registry (mDNS / DNS-SRV / etcd)".
+- **Documentation**: Doc comments added to `sqlite/common.rs` (5 functions) and `serde_opt_bytes` module.
+- **Dependency audit**: Verified `cc` crate does not leak into default build graph.
+- **Coverage push**: 18 new tests — 8 `DiscoveryCache` direct unit tests, 5 `certificate_loan` expired-return paths (auto_return disabled, no-expiry, expired success, chain unwind, nonexistent), 5 tarpc server tests (config, custom-config bind, commit_session, commit_braid, get_certificate_not_found).
+- **Deploy graph aligned**: `graphs/loamspine_deploy.toml` bumped from 0.9.15 to 0.9.16 with `anchor.publish`/`anchor.verify` capabilities.
+- **Tests**: 1,280 → **1,298**. Source files: 136 → **148**. All under 1000 lines. Zero clippy warnings.
 
 ## v0.9.16 musl-static Deployment (April 7, 2026)
 

@@ -144,7 +144,7 @@ pub const DEPENDENCIES: &[(&str, bool, &str)] = &[
     (
         crate::capabilities::identifiers::external::DISCOVERY,
         false,
-        "Songbird/Consul/etcd for primal discovery (env vars as fallback)",
+        "service registry (mDNS / DNS-SRV / etcd) for primal discovery (env vars as fallback)",
     ),
     (
         crate::capabilities::identifiers::external::ATTESTATION,

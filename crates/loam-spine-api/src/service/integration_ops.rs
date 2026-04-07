@@ -192,13 +192,9 @@ impl LoamSpineRpcService {
             request.session_id, request.summary.outcome
         );
 
-        let session_id = request
-            .session_id
-            .parse::<uuid::Uuid>()
-            .map_err(|e| ApiError::InvalidRequest(format!("invalid session_id UUID: {e}")))?;
+        let session_id = parse_uuid(&request.session_id, "session_id")?;
 
-        let merkle_root = hex_to_content_hash(&request.merkle_root)
-            .map_err(|e| ApiError::InvalidRequest(format!("invalid merkle_root hex: {e}")))?;
+        let merkle_root = parse_content_hash(&request.merkle_root, "merkle_root")?;
 
         let committer_str = request.committer_did.as_deref().ok_or_else(|| {
             ApiError::InvalidRequest(
@@ -250,13 +246,9 @@ impl LoamSpineRpcService {
         &self,
         request: PermanentStorageVerifyRequest,
     ) -> ApiResult<bool> {
-        let spine_id = request
-            .spine_id
-            .parse::<uuid::Uuid>()
-            .map_err(|e| ApiError::InvalidRequest(format!("invalid spine_id UUID: {e}")))?;
+        let spine_id = parse_uuid(&request.spine_id, "spine_id")?;
 
-        let entry_hash = hex_to_content_hash(&request.entry_hash)
-            .map_err(|e| ApiError::InvalidRequest(format!("invalid entry_hash hex: {e}")))?;
+        let entry_hash = parse_content_hash(&request.entry_hash, "entry_hash")?;
 
         let get_resp = self
             .get_entry(GetEntryRequest {
@@ -277,13 +269,9 @@ impl LoamSpineRpcService {
         &self,
         request: PermanentStorageGetCommitRequest,
     ) -> ApiResult<serde_json::Value> {
-        let spine_id = request
-            .spine_id
-            .parse::<uuid::Uuid>()
-            .map_err(|e| ApiError::InvalidRequest(format!("invalid spine_id UUID: {e}")))?;
+        let spine_id = parse_uuid(&request.spine_id, "spine_id")?;
 
-        let entry_hash = hex_to_content_hash(&request.entry_hash)
-            .map_err(|e| ApiError::InvalidRequest(format!("invalid entry_hash hex: {e}")))?;
+        let entry_hash = parse_content_hash(&request.entry_hash, "entry_hash")?;
 
         let get_resp = self
             .get_entry(GetEntryRequest {
@@ -311,16 +299,27 @@ impl LoamSpineRpcService {
     }
 }
 
-/// Parse a hex-encoded string into a 32-byte `ContentHash`.
-fn hex_to_content_hash(hex_str: &str) -> Result<ContentHash, String> {
+/// Parse a UUID string, returning an [`ApiError::InvalidRequest`] on failure.
+fn parse_uuid(s: &str, field: &str) -> ApiResult<uuid::Uuid> {
+    s.parse::<uuid::Uuid>()
+        .map_err(|e| ApiError::InvalidRequest(format!("invalid {field} UUID: {e}")))
+}
+
+/// Parse a hex-encoded string into a 32-byte `ContentHash`,
+/// returning an [`ApiError::InvalidRequest`] on failure.
+fn parse_content_hash(hex_str: &str, field: &str) -> ApiResult<ContentHash> {
     let hex_str = hex_str.strip_prefix("0x").unwrap_or(hex_str);
     if hex_str.len() != 64 {
-        return Err(format!("expected 64 hex chars, got {}", hex_str.len()));
+        return Err(ApiError::InvalidRequest(format!(
+            "invalid {field} hex: expected 64 hex chars, got {}",
+            hex_str.len()
+        )));
     }
     let mut hash = [0u8; 32];
     for (i, byte) in hash.iter_mut().enumerate() {
-        *byte = u8::from_str_radix(&hex_str[i * 2..i * 2 + 2], 16)
-            .map_err(|e| format!("hex parse at byte {i}: {e}"))?;
+        *byte = u8::from_str_radix(&hex_str[i * 2..i * 2 + 2], 16).map_err(|e| {
+            ApiError::InvalidRequest(format!("invalid {field} hex: parse at byte {i}: {e}"))
+        })?;
     }
     Ok(hash)
 }

@@ -6,12 +6,10 @@ use std::sync::{Arc, Mutex};
 use rusqlite::Connection;
 
 use crate::entry::Entry;
-use crate::error::LoamSpineResult;
+use crate::error::{LoamSpineResult, StorageResultExt};
 use crate::types::{EntryHash, SpineId};
 
-use super::common::{
-    count_rows, flush_wal, lock_conn, open_connection, open_in_memory, to_storage_err,
-};
+use super::common::{count_rows, flush_wal, lock_conn, open_connection, open_in_memory};
 use crate::storage::EntryStorage;
 
 /// SQLite-backed entry storage.
@@ -64,12 +62,12 @@ impl SqliteEntryStorage {
             )",
             [],
         )
-        .map_err(to_storage_err)?;
+        .storage_err()?;
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_entries_spine ON entries(spine_id, entry_index)",
             [],
         )
-        .map_err(to_storage_err)?;
+        .storage_err()?;
         Ok(())
     }
 
@@ -103,13 +101,13 @@ impl EntryStorage for SqliteEntryStorage {
             let conn = lock_conn(&self.conn)?;
             let mut stmt = conn
                 .prepare("SELECT data FROM entries WHERE hash = ?1")
-                .map_err(to_storage_err)?;
-            let mut rows = stmt.query([hash.as_slice()]).map_err(to_storage_err)?;
+                .storage_err()?;
+            let mut rows = stmt.query([hash.as_slice()]).storage_err()?;
 
-            if let Some(row) = rows.next().map_err(to_storage_err)? {
-                let data: Vec<u8> = row.get(0).map_err(to_storage_err)?;
-                let entry: Entry = serde_json::from_slice(&data)
-                    .map_err(|e| to_storage_err(format!("deserialize: {e}")))?;
+            if let Some(row) = rows.next().storage_err()? {
+                let data: Vec<u8> = row.get(0).storage_err()?;
+                let entry: Entry =
+                    serde_json::from_slice(&data).storage_ctx("deserialize")?;
                 Some(entry)
             } else {
                 None
@@ -121,8 +119,7 @@ impl EntryStorage for SqliteEntryStorage {
     async fn save_entry(&self, entry: &Entry) -> LoamSpineResult<EntryHash> {
         let hash = entry.compute_hash()?;
         let spine_id_str = entry.spine_id.to_string();
-        let data =
-            serde_json::to_vec(entry).map_err(|e| to_storage_err(format!("serialize: {e}")))?;
+        let data = serde_json::to_vec(entry).storage_ctx("serialize")?;
 
         {
             let conn = lock_conn(&self.conn)?;
@@ -135,7 +132,7 @@ impl EntryStorage for SqliteEntryStorage {
                     &data
                 ],
             )
-            .map_err(to_storage_err)?;
+            .storage_err()?;
         }
         Ok(hash)
     }
@@ -148,7 +145,7 @@ impl EntryStorage for SqliteEntryStorage {
                 [hash.as_slice()],
                 |row| row.get(0),
             )
-            .map_err(to_storage_err)?
+            .storage_err()?
         };
         Ok(count > 0)
     }
@@ -169,16 +166,16 @@ impl EntryStorage for SqliteEntryStorage {
                 .prepare(
                     "SELECT data FROM entries WHERE spine_id = ?1 AND entry_index >= ?2 ORDER BY entry_index ASC LIMIT ?3",
                 )
-                .map_err(to_storage_err)?;
+                .storage_err()?;
             let mut rows = stmt
                 .query(rusqlite::params![&spine_id_str, start_i64, limit_i64])
-                .map_err(to_storage_err)?;
+                .storage_err()?;
 
             let mut entries = Vec::new();
-            while let Some(row) = rows.next().map_err(to_storage_err)? {
-                let data: Vec<u8> = row.get(0).map_err(to_storage_err)?;
-                let entry: Entry = serde_json::from_slice(&data)
-                    .map_err(|e| to_storage_err(format!("deserialize: {e}")))?;
+            while let Some(row) = rows.next().storage_err()? {
+                let data: Vec<u8> = row.get(0).storage_err()?;
+                let entry: Entry =
+                    serde_json::from_slice(&data).storage_ctx("deserialize")?;
                 entries.push(entry);
             }
             entries

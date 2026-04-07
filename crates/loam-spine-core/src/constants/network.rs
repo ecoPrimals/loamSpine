@@ -139,65 +139,10 @@ pub fn resolve_socket_base_dir_with(runtime_dir: Option<&str>) -> std::path::Pat
     std::env::temp_dir().join("biomeos")
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Outer wrappers (read env, delegate to pure functions)
-// ──────────────────────────────────────────────────────────────────────────────
-
-/// Get JSON-RPC port from environment or default.
-///
-/// Priority: `LOAMSPINE_JSONRPC_PORT` > `JSONRPC_PORT` > default (8080).
-#[must_use]
-pub fn jsonrpc_port() -> u16 {
-    resolve_jsonrpc_port(
-        env::var("LOAMSPINE_JSONRPC_PORT").ok().as_deref(),
-        env::var("JSONRPC_PORT").ok().as_deref(),
-    )
-}
-
-/// Get tarpc port from environment or default.
-///
-/// Priority: `LOAMSPINE_TARPC_PORT` > `TARPC_PORT` > default (9001).
-#[must_use]
-pub fn tarpc_port() -> u16 {
-    resolve_tarpc_port(
-        env::var("LOAMSPINE_TARPC_PORT").ok().as_deref(),
-        env::var("TARPC_PORT").ok().as_deref(),
-    )
-}
-
-/// Get bind address from environment or default.
-///
-/// Priority: `LOAMSPINE_BIND_ADDRESS` > `BIND_ADDRESS` > `"0.0.0.0"`.
-#[must_use]
-pub fn bind_address() -> Cow<'static, str> {
-    resolve_bind_address(
-        env::var("LOAMSPINE_BIND_ADDRESS").ok().as_deref(),
-        env::var("BIND_ADDRESS").ok().as_deref(),
-    )
-}
-
-/// Check if we should use OS-assigned ports.
-///
-/// Returns `true` if `USE_OS_ASSIGNED_PORTS` or `LOAMSPINE_OS_PORTS` is truthy.
-#[must_use]
-pub fn use_os_assigned_ports() -> bool {
-    resolve_use_os_assigned_ports(
-        env::var("USE_OS_ASSIGNED_PORTS").ok().as_deref(),
-        env::var("LOAMSPINE_OS_PORTS").ok().as_deref(),
-    )
-}
-
-/// Get the actual JSON-RPC port to bind to, considering OS assignment.
-#[must_use]
-pub fn actual_jsonrpc_port() -> u16 {
-    resolve_actual_jsonrpc_port(use_os_assigned_ports(), jsonrpc_port())
-}
-
-/// Get the actual tarpc port to bind to, considering OS assignment.
-#[must_use]
-pub fn actual_tarpc_port() -> u16 {
-    resolve_actual_tarpc_port(use_os_assigned_ports(), tarpc_port())
-}
+pub use super::env_resolution::{
+    actual_jsonrpc_port, actual_tarpc_port, bind_address, jsonrpc_port,
+    resolve_primal_socket_with_env, tarpc_port, use_os_assigned_ports,
+};
 
 /// Build a complete endpoint URL from parts.
 ///
@@ -273,16 +218,6 @@ pub fn resolve_primal_socket_with(
         return std::path::PathBuf::from(path);
     }
     resolve_primal_socket(primal, family_id)
-}
-
-/// Resolve a primal's socket path using the environment override pattern.
-///
-/// Checks `{PRIMAL}_SOCKET` env var first, then falls back to the
-/// standard biomeos socket directory resolution.
-#[must_use]
-pub fn resolve_primal_socket_with_env(primal: &str, family_id: &str) -> std::path::PathBuf {
-    let env_key = socket_env_var(primal);
-    resolve_primal_socket_with(env::var(&env_key).ok().as_deref(), primal, family_id)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

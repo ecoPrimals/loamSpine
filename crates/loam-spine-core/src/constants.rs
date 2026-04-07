@@ -12,6 +12,7 @@
 //! - Using environment variables for explicit configuration
 //! - Leveraging service discovery instead of hardcoded ports
 
+pub mod env_resolution;
 pub mod network;
 
 /// Default tarpc port for primal-to-primal communication.

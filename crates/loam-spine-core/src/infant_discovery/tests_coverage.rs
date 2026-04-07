@@ -326,15 +326,13 @@ async fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
         ttl_secs: 3600,
     };
 
-    {
-        let mut discovered = discovery.all_discovered().await;
-        discovered.insert(
+    discovery
+        .cache
+        .insert(
             "cryptographic-signing".to_string(),
             vec![stale_service.clone(), fresh_service.clone()],
-        );
-        let mut write_guard = discovery.discovered.write().await;
-        *write_guard = discovered;
-    }
+        )
+        .await;
 
     let services = discovery
         .find_capability("cryptographic-signing")
@@ -457,6 +455,116 @@ async fn test_all_discovered_empty_initially() {
     let discovery = InfantDiscovery::new().unwrap();
     let all = discovery.all_discovered().await;
     assert!(all.is_empty());
+}
+
+// =========================================================================
+// DiscoveryCache direct unit tests
+// =========================================================================
+
+#[tokio::test]
+async fn test_cache_new_is_empty() {
+    let cache = cache::DiscoveryCache::new();
+    let all = cache.all().await;
+    assert!(all.is_empty());
+}
+
+#[tokio::test]
+async fn test_cache_insert_and_get() {
+    let cache = cache::DiscoveryCache::new();
+    let svc = DiscoveredService {
+        id: "cache-test".to_string(),
+        capability: "signing".to_string(),
+        endpoint: "http://localhost:1234".to_string(),
+        discovered_via: "test".to_string(),
+        metadata: HashMap::new(),
+        health: ServiceHealth::Healthy,
+        discovered_at: SystemTime::now(),
+        ttl_secs: 3600,
+    };
+    cache.insert("signing".to_string(), vec![svc]).await;
+    let fresh = cache.get_fresh("signing").await;
+    assert!(fresh.is_some());
+    assert_eq!(fresh.unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn test_cache_get_fresh_missing_key() {
+    let cache = cache::DiscoveryCache::new();
+    assert!(cache.get_fresh("nonexistent").await.is_none());
+}
+
+#[tokio::test]
+async fn test_cache_get_fresh_empty_vec() {
+    let cache = cache::DiscoveryCache::new();
+    cache.insert("empty".to_string(), vec![]).await;
+    assert!(cache.get_fresh("empty").await.is_none());
+}
+
+#[tokio::test]
+async fn test_cache_get_fresh_all_stale() {
+    let cache = cache::DiscoveryCache::new();
+    let stale = DiscoveredService {
+        id: "stale".to_string(),
+        capability: "signing".to_string(),
+        endpoint: "http://old:1234".to_string(),
+        discovered_via: "test".to_string(),
+        metadata: HashMap::new(),
+        health: ServiceHealth::Unknown,
+        discovered_at: SystemTime::now() - Duration::from_secs(7200),
+        ttl_secs: 300,
+    };
+    cache.insert("signing".to_string(), vec![stale]).await;
+    assert!(cache.get_fresh("signing").await.is_none());
+}
+
+#[tokio::test]
+async fn test_cache_clear() {
+    let cache = cache::DiscoveryCache::new();
+    let svc = DiscoveredService {
+        id: "t".to_string(),
+        capability: "test".to_string(),
+        endpoint: "http://x".to_string(),
+        discovered_via: "test".to_string(),
+        metadata: HashMap::new(),
+        health: ServiceHealth::Healthy,
+        discovered_at: SystemTime::now(),
+        ttl_secs: 3600,
+    };
+    cache.insert("test".to_string(), vec![svc]).await;
+    assert!(!cache.all().await.is_empty());
+    cache.clear().await;
+    assert!(cache.all().await.is_empty());
+}
+
+#[tokio::test]
+async fn test_cache_all_returns_snapshot() {
+    let cache = cache::DiscoveryCache::new();
+    let svc_a = DiscoveredService {
+        id: "a".to_string(),
+        capability: "cap-a".to_string(),
+        endpoint: "http://a".to_string(),
+        discovered_via: "test".to_string(),
+        metadata: HashMap::new(),
+        health: ServiceHealth::Healthy,
+        discovered_at: SystemTime::now(),
+        ttl_secs: 3600,
+    };
+    let svc_b = DiscoveredService {
+        id: "b".to_string(),
+        capability: "cap-b".to_string(),
+        endpoint: "http://b".to_string(),
+        discovered_via: "test".to_string(),
+        metadata: HashMap::new(),
+        health: ServiceHealth::Healthy,
+        discovered_at: SystemTime::now(),
+        ttl_secs: 3600,
+    };
+    cache.insert("cap-a".to_string(), vec![svc_a]).await;
+    cache.insert("cap-b".to_string(), vec![svc_b]).await;
+    let all = cache.all().await;
+    assert_eq!(all.len(), 2);
+    assert!(all.contains_key("cap-a"));
+    assert!(all.contains_key("cap-b"));
 }
 
 #[tokio::test]
