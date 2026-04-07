@@ -11,6 +11,25 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 // UDS server tests
 // =========================================================================
 
+/// Send a JSON-RPC request over a UDS stream and return the parsed response.
+#[cfg(unix)]
+async fn uds_rpc(
+    stream: &mut tokio::net::UnixStream,
+    request: &str,
+) -> serde_json::Value {
+    stream.write_all(request.as_bytes()).await.unwrap();
+    stream.write_all(b"\n").await.unwrap();
+    stream.flush().await.unwrap();
+
+    let mut buf = vec![0u8; 65536];
+    let n = tokio::time::timeout(std::time::Duration::from_secs(2), stream.read(&mut buf))
+        .await
+        .unwrap()
+        .unwrap();
+
+    serde_json::from_slice(&buf[..n]).unwrap()
+}
+
 #[cfg(unix)]
 #[tokio::test]
 async fn uds_server_starts_and_accepts_connections() {
@@ -26,20 +45,15 @@ async fn uds_server_starts_and_accepts_connections() {
     assert_eq!(handle.path(), sock_path);
 
     let mut stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
+    let response = uds_rpc(
+        &mut stream,
+        r#"{"jsonrpc":"2.0","method":"health.liveness","id":1}"#,
+    )
+    .await;
 
-    let request = r#"{"jsonrpc":"2.0","method":"health.liveness","id":1}"#;
-    stream.write_all(request.as_bytes()).await.unwrap();
-    stream.write_all(b"\n").await.unwrap();
-    stream.flush().await.unwrap();
-
-    let mut buf = vec![0u8; 4096];
-    let n = tokio::time::timeout(std::time::Duration::from_secs(2), stream.read(&mut buf))
-        .await
-        .unwrap()
-        .unwrap();
-
-    let response: serde_json::Value = serde_json::from_slice(&buf[..n]).unwrap();
-    assert!(response.get("result").is_some() || response.get("error").is_some());
+    assert_eq!(response["jsonrpc"], "2.0");
+    assert_eq!(response["id"], 1);
+    assert_eq!(response["result"]["status"], "alive");
 
     handle.stop();
 }
@@ -107,6 +121,165 @@ async fn uds_server_shutdown_via_stop() {
     handle.stop();
     let result = tokio::time::timeout(std::time::Duration::from_secs(2), handle.stopped()).await;
     assert!(result.is_ok(), "server should stop within timeout");
+}
+
+// =========================================================================
+// GAP-MATRIX-05: Neural API wire-format validation (health.liveness)
+//
+// Validates that health.liveness returns the exact wire format biomeOS
+// expects when probing primals through Neural API routing.
+// =========================================================================
+
+#[cfg(unix)]
+#[tokio::test]
+async fn uds_health_liveness_wire_format() {
+    let tmp = tempfile::tempdir().unwrap();
+    let sock_path = tmp.path().join("liveness-wire.sock");
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+        .await
+        .unwrap();
+
+    let mut stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
+    let response = uds_rpc(
+        &mut stream,
+        r#"{"jsonrpc":"2.0","method":"health.liveness","id":42}"#,
+    )
+    .await;
+
+    // JSON-RPC 2.0 envelope
+    assert_eq!(response["jsonrpc"], "2.0", "must be JSON-RPC 2.0");
+    assert_eq!(response["id"], 42, "id must echo request");
+    assert!(response.get("error").is_none(), "must not be an error");
+
+    // Semantic Method Naming Standard v2.1: {"status": "alive"}
+    let result = &response["result"];
+    assert_eq!(result["status"], "alive", "liveness status must be 'alive'");
+    assert!(result.is_object(), "liveness result must be an object");
+    assert_eq!(
+        result.as_object().unwrap().len(),
+        1,
+        "liveness result must contain only 'status'"
+    );
+
+    handle.stop();
+}
+
+// =========================================================================
+// GAP-MATRIX-05: Neural API wire-format validation (capabilities.list)
+//
+// Validates that capabilities.list returns a structure biomeOS can parse
+// via its 5-format capability parser (primalSpring ipc/discover.rs).
+// LoamSpine uses Format D: object with both `capabilities` (string array)
+// and `methods` (array of {method, domain, cost, deps}).
+// =========================================================================
+
+#[cfg(unix)]
+#[tokio::test]
+async fn uds_capabilities_list_wire_format() {
+    let tmp = tempfile::tempdir().unwrap();
+    let sock_path = tmp.path().join("caps-wire.sock");
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+        .await
+        .unwrap();
+
+    let mut stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
+
+    // Use canonical name per Semantic Method Naming Standard v2.1
+    let response = uds_rpc(
+        &mut stream,
+        r#"{"jsonrpc":"2.0","method":"capabilities.list","id":1}"#,
+    )
+    .await;
+
+    // JSON-RPC 2.0 envelope
+    assert_eq!(response["jsonrpc"], "2.0");
+    assert!(response.get("error").is_none(), "must not be an error");
+
+    let result = &response["result"];
+
+    // -- biomeOS Format D: primal identity --
+    assert_eq!(result["primal"], "loamspine", "must identify as loamspine");
+    let version = result["version"].as_str().unwrap();
+    assert!(
+        version.contains('.'),
+        "version must be semver-like: {version}"
+    );
+
+    // -- biomeOS Format A/D: capabilities as flat string array --
+    assert!(
+        result["capabilities"].is_array(),
+        "capabilities must be an array"
+    );
+    let caps = result["capabilities"].as_array().unwrap();
+    assert!(!caps.is_empty(), "capabilities must not be empty");
+    for cap in caps {
+        assert!(cap.is_string(), "each capability must be a string");
+    }
+    let cap_strings: Vec<&str> = caps.iter().filter_map(|v| v.as_str()).collect();
+    assert!(
+        cap_strings.contains(&"permanence"),
+        "must advertise 'permanence'"
+    );
+    assert!(
+        cap_strings.contains(&"session.commit"),
+        "must advertise 'session.commit'"
+    );
+
+    // -- biomeOS Format D: methods with domain/cost/deps --
+    assert!(result["methods"].is_array(), "methods must be an array");
+    let methods = result["methods"].as_array().unwrap();
+    assert!(!methods.is_empty(), "methods must not be empty");
+    for method in methods {
+        assert!(method["method"].is_string(), "method.method must be string");
+        assert!(method["domain"].is_string(), "method.domain must be string");
+        assert!(method["cost"].is_string(), "method.cost must be string");
+        assert!(method["deps"].is_array(), "method.deps must be array");
+    }
+
+    // -- operation_dependencies (DAG for Pathway Learner) --
+    assert!(
+        result["operation_dependencies"].is_object(),
+        "operation_dependencies must be an object"
+    );
+
+    // -- cost_estimates (resource hints for biomeOS scheduler) --
+    assert!(
+        result["cost_estimates"].is_object(),
+        "cost_estimates must be an object"
+    );
+    let cost = &result["cost_estimates"]["health.check"];
+    assert!(cost["latency_ms"].is_number(), "cost must have latency_ms");
+    assert!(cost["cpu"].is_string(), "cost must have cpu");
+
+    handle.stop();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn uds_capabilities_list_legacy_alias() {
+    let tmp = tempfile::tempdir().unwrap();
+    let sock_path = tmp.path().join("caps-alias.sock");
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+        .await
+        .unwrap();
+
+    let mut stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
+
+    // Legacy alias — biomeOS must also be able to call the old name
+    let response = uds_rpc(
+        &mut stream,
+        r#"{"jsonrpc":"2.0","method":"capability.list","id":1}"#,
+    )
+    .await;
+
+    assert!(response.get("error").is_none(), "alias must not error");
+    assert_eq!(response["result"]["primal"], "loamspine");
+    assert!(response["result"]["capabilities"].is_array());
+
+    handle.stop();
 }
 
 // =========================================================================

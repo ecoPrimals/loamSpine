@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,298 |
+| Tests | — | 1,301 |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`) |
 | Coverage (llvm-cov) | 90%+ | 91.96% line / 87.07% region / 93.39% function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |

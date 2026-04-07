@@ -51,6 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`serial_test`** dependency — zero `#[serial]` attributes in the codebase (was 121).
 - **`temp-env`** dependency — env injection for tests uses pure functions and `env_overrides` instead.
 
+### Added
+- **GAP-MATRIX-05 resolution**: 3 new UDS wire-format integration tests validating `health.liveness` and `capabilities.list` over Unix domain sockets — the exact path biomeOS Neural API uses to probe primals. Validates JSON-RPC 2.0 envelope, Semantic Method Naming Standard v2.1 liveness format (`{"status":"alive"}`), biomeOS-parseable capability structure (Format D: primal identity, string array, methods with domain/cost/deps, operation_dependencies DAG, cost_estimates), and legacy `capability.list` alias routing.
+
 ### Refactored
 - **Smart module refactoring (6 large files)**: `types.rs` → `types/` directory (anchor, certificate, permanent_storage, tests). `error.rs` → `error/` directory (ipc, dispatch, storage_ext, tests). `neural_api.rs` → `neural_api/` directory (socket, mcp, tests). `infant_discovery/` → extracted `cache.rs` (`DiscoveryCache`). `constants/network.rs` → extracted `env_resolution.rs`. `sync/mod.rs` → extracted `streaming.rs`.
 - **SQLite `StorageResultExt` migration**: All 3 SQLite modules (`entry.rs`, `certificate.rs`, `spine.rs`) evolved from `to_storage_err()` calls to `.storage_err()` / `.storage_ctx()` trait methods. Standalone `to_storage_err` function removed.
@@ -63,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doc comments**: `sqlite/common.rs` functions and `serde_opt_bytes` module documented.
 
 ### Metrics
-- Tests: 1,397 → **1,298** (consolidated; trivial tests removed; 10 anchor + 18 deep-debt tests added)
+- Tests: 1,397 → **1,301** (consolidated; trivial tests removed; 10 anchor + 18 deep-debt + 3 GAP-MATRIX-05 tests added)
 - `#[serial]`: **0** (was 121)
 - Full workspace test suite: **~3s** (all concurrent)
 - Source files: 136 → **148** (12 new modules from smart refactoring)
