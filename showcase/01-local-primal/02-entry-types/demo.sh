@@ -248,7 +248,7 @@ EOF
     log_info "Next steps:"
     log_info "  • Try 03-certificate-lifecycle for full certificate flow"
     log_info "  • Check out 04-proofs for inclusion and provenance proofs"
-    log_info "  • Explore 04-inter-primal for live primal integration"
+    log_info "  • Explore 03-inter-primal for live primal integration"
     echo ""
     
     # Generate receipt

@@ -115,41 +115,21 @@ main() {
     done
     
     # ========================================================================
-    # LEVEL 2: SONGBIRD DISCOVERY
+    # LEVEL 2: INTER-PRIMAL INTEGRATION
     # ========================================================================
     
-    log_header "🐦 Level 3: Songbird Discovery"
-    
-    ((total_demos++))
-    log_info "Running demo: songbird-connect..."
-    
-    if cd "${SCRIPT_DIR}/03-songbird-discovery/01-songbird-connect" && FAST_MODE=1 ./demo.sh >/dev/null 2>&1; then
-        log_success "Demo songbird-connect passed"
-        ((passed_demos++))
-    else
-        log_error "Demo songbird-connect FAILED"
-        ((failed_demos++))
-        failed_list+=("03-songbird-discovery/01-songbird-connect")
-    fi
-    
-    pause_if_interactive
-    
-    # ========================================================================
-    # LEVEL 3: INTER-PRIMAL INTEGRATION
-    # ========================================================================
-    
-    log_header "🔗 Level 4: Inter-Primal Integration"
+    log_header "🔗 Level 3: Inter-Primal Integration"
     
     ((total_demos++))
     log_info "Running demo: full-ecosystem..."
     
-    if cd "${SCRIPT_DIR}/04-inter-primal/05-full-ecosystem" && FAST_MODE=1 ./demo.sh >/dev/null 2>&1; then
+    if cd "${SCRIPT_DIR}/03-inter-primal/05-full-ecosystem" && FAST_MODE=1 ./demo.sh >/dev/null 2>&1; then
         log_success "Demo full-ecosystem passed"
         ((passed_demos++))
     else
         log_error "Demo full-ecosystem FAILED"
         ((failed_demos++))
-        failed_list+=("04-inter-primal/05-full-ecosystem")
+        failed_list+=("03-inter-primal/05-full-ecosystem")
     fi
     
     # ========================================================================

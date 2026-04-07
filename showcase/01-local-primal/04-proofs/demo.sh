@@ -360,7 +360,7 @@ EOF
     log_info "Next steps:"
     log_info "  • Try 05-backup-restore for spine backup"
     log_info "  • Check out 06-storage-backends for persistence"
-    log_info "  • Explore 04-inter-primal for cross-primal proofs"
+    log_info "  • Explore 03-inter-primal for cross-primal proofs"
     echo ""
     
     # Generate receipt

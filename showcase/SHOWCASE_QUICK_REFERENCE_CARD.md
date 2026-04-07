@@ -116,8 +116,7 @@ showcase/
 ├── 00_SHOWCASE_INDEX.md       Navigation
 ├── 01-local-primal/           7 demos (working)
 ├── 02-rpc-api/                5 demos (ready)
-├── 03-songbird-discovery/     4 demos (ready)
-└── 04-inter-primal/           5 demos (ready, NO MOCKS!)
+└── 03-inter-primal/           5 demos (ready, NO MOCKS!)
 ```
 
 ---

@@ -52,7 +52,7 @@ cd ../bins
 ./toadstool &
 
 # Run Level 4 demos
-cd ../loamSpine/showcase/04-inter-primal
+cd ../loamSpine/showcase/03-inter-primal
 ./RUN_ALL.sh
 ```
 

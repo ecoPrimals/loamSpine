@@ -1,6 +1,6 @@
 # ⏰ Temporal Moments Demo
 
-**NEW in v0.7.0**: Universal time tracking primitives
+Universal time tracking primitives
 
 ---
 
@@ -287,7 +287,7 @@ After this demo, explore:
 - Query temporal history
 - Subscribe to moment streams
 
-**Ecosystem Integration** (`../04-inter-primal/`)
+**Ecosystem Integration** (`../03-inter-primal/`)
 - Sign moments with BearDog
 - Store moment data in NestGate
 - Discover moments via Songbird

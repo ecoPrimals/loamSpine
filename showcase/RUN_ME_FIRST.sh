@@ -297,83 +297,11 @@ EOF
 fi
 
 # ============================================================================
-# Level 3: Songbird Discovery
+# Level 3: Inter-Primal Integration
 # ============================================================================
 
 if [ "$choice" = "1" ] || [ "$choice" = "4" ]; then
-    print_level_header "Level 3: Songbird Discovery — Zero Hardcoding"
-    
-    cat << 'EOF'
-Phase 3 demonstrates runtime service discovery:
-  • Capability registration
-  • Runtime discovery
-  • Heartbeat monitoring
-  • Automatic failover
-
-No hardcoded endpoints anywhere!
-
-EOF
-    
-    pause_if_interactive
-    
-    # Check if Songbird is available
-    if [ -f "../bins/songbird-orchestrator" ] && [ -x "../bins/songbird-orchestrator" ]; then
-        # Demo 1: Songbird Connect
-        print_step "Demo 1/4: Songbird Connect — Service Registration"
-        cd 03-songbird-discovery/01-songbird-connect
-        ./demo.sh || print_warning "Demo completed with warnings"
-        cd ../..
-        pause_if_interactive
-        
-        # Demo 2: Capability Discovery
-        print_step "Demo 2/4: Capability Discovery — Runtime Discovery"
-        cd 03-songbird-discovery/02-capability-discovery
-        ./demo.sh || print_warning "Demo completed with warnings"
-        cd ../..
-        pause_if_interactive
-        
-        # Demo 3: Auto Advertise
-        print_step "Demo 3/4: Auto Advertise — Capability Advertisement"
-        cd 03-songbird-discovery/03-auto-advertise
-        ./demo.sh || print_warning "Demo completed with warnings"
-        cd ../..
-        pause_if_interactive
-        
-        # Demo 4: Heartbeat Monitoring
-        print_step "Demo 4/4: Heartbeat Monitoring — Health & Failover"
-        cd 03-songbird-discovery/04-heartbeat-monitoring
-        ./demo.sh || print_warning "Demo completed with warnings"
-        cd ../..
-        
-        print_success "Level 3 Complete! 🎉"
-        echo ""
-        echo -e "${GREEN}You've mastered:${NC}"
-        echo "  ✅ Service registration"
-        echo "  ✅ Runtime discovery"
-        echo "  ✅ Zero hardcoding"
-        echo "  ✅ Automatic failover"
-        echo ""
-    else
-        print_warning "Songbird not available at ../bins/songbird-orchestrator"
-        print_info "Level 3 demos require Songbird for service discovery"
-        echo ""
-    fi
-    
-    if [ "$choice" = "4" ]; then
-        echo -e "${YELLOW}Continue to Level 4? (y/N)${NC}"
-        read -r response
-        [[ ! "$response" =~ ^[Yy]$ ]] && exit 0
-    else
-        pause_if_interactive
-    fi
-fi
-
-# ============================================================================
-# Level 4: Inter-Primal Integration
-# ============================================================================
-
-if [ "$choice" = "1" ] || [ "$choice" = "5" ]; then
-    print_level_header "Level 4: Inter-Primal — Complete Ecosystem"
+    print_level_header "Level 3: Inter-Primal — Complete Ecosystem"
     
     cat << 'EOF'
 Phase 4 demonstrates ecosystem integration:
@@ -401,35 +329,35 @@ EOF
     if [ "$BINS_AVAILABLE" = true ]; then
         # Demo 1: BearDog Signing
         print_step "Demo 1/5: BearDog Signing — Cryptographic Trust"
-        cd 04-inter-primal/01-beardog-signing
+        cd 03-inter-primal/01-beardog-signing
         ./demo.sh || print_warning "Demo completed with warnings"
         cd ../..
         pause_if_interactive
         
         # Demo 2: NestGate Storage
         print_step "Demo 2/5: NestGate Storage — Sovereign Storage Integration"
-        cd 04-inter-primal/02-nestgate-storage
+        cd 03-inter-primal/02-nestgate-storage
         ./demo.sh || print_warning "Demo completed with warnings"
         cd ../..
         pause_if_interactive
         
         # Demo 3: Squirrel Sessions
         print_step "Demo 3/5: Squirrel Sessions — AI Session Permanence"
-        cd 04-inter-primal/03-squirrel-sessions
+        cd 03-inter-primal/03-squirrel-sessions
         ./demo.sh || print_warning "Demo completed with warnings"
         cd ../..
         pause_if_interactive
         
         # Demo 4: ToadStool Compute
         print_step "Demo 4/5: ToadStool Compute — Verifiable Compute Results"
-        cd 04-inter-primal/04-toadstool-compute
+        cd 03-inter-primal/04-toadstool-compute
         ./demo.sh || print_warning "Demo completed with warnings"
         cd ../..
         pause_if_interactive
         
         # Demo 5: Full Ecosystem
         print_step "Demo 5/5: Full Ecosystem — All Primals Together!"
-        cd 04-inter-primal/05-full-ecosystem
+        cd 03-inter-primal/05-full-ecosystem
         ./demo.sh || print_warning "Demo completed with warnings"
         cd ../..
         

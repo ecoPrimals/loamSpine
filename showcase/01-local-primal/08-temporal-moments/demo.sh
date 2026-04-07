@@ -2,7 +2,7 @@
 set -e
 
 # Demo: Temporal Moments - Universal Time Tracking
-# Demonstrates LoamSpine's unique temporal primitives (NEW in v0.7.0)
+# Demonstrates LoamSpine's unique temporal primitives
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEMO_NAME="08-temporal-moments"
@@ -17,7 +17,7 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${GREEN}🦴 LoamSpine Demo: Temporal Moments${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo "⏰ NEW in v0.7.0: Universal Time Tracking"
+echo "⏰ Universal Time Tracking"
 echo ""
 echo "Temporal moments allow you to track time across ANY domain:"
 echo "  • Code commits (version control)"

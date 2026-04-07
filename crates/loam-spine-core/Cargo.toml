@@ -39,8 +39,7 @@ serde_bytes = "0.11"
 url = "2.5"
 
 # HTTP client for service discovery — OPTIONAL, pure Rust (no TLS = no ring).
-# Production path: Songbird via Tower Atomic (Pure Rust).
-# For HTTPS, route through BearDog/Songbird TLS stack.
+# For HTTPS, route through BearDog TLS capability.
 ureq = { version = "2.12", default-features = false, optional = true }
 
 # DNS resolution for service discovery (optional: reduces binary size when unused)
@@ -61,9 +60,9 @@ sled-storage = ["dep:sled"]
 # Enable testing utilities (MockSigner, MockVerifier) for use in downstream crates
 testing = []
 # Enable direct HTTP via ureq (pure Rust, no TLS, no ring/C).
-# For HTTPS, route through BearDog/Songbird TLS stack.
+# For HTTPS, route through BearDog TLS capability.
 discovery-http = ["dep:ureq"]
-# Enable Tower Atomic transport (Songbird/NeuralAPI via Unix socket JSON-RPC).
+# Enable Tower Atomic transport (NeuralAPI via Unix socket JSON-RPC).
 # This is the ecoBin-compliant production transport — zero C dependencies.
 tower-atomic = []
 # Enable DNS SRV discovery (RFC 2782) for production service discovery
@@ -76,7 +75,6 @@ sqlite = ["dep:rusqlite"]
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread"] }
 criterion = { version = "0.5", features = ["html_reports"] }
-chrono = "0.4"
 tempfile = { workspace = true }
 proptest = "1.10.0"
 

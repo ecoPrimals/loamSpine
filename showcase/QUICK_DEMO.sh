@@ -228,7 +228,7 @@ echo -e "${YELLOW}What's Next:${NC}"
 echo "  • Full showcase: ./RUN_ME_FIRST.sh"
 echo "  • Deep dive: cd 01-local-primal && cat README.md"
 echo "  • Documentation: cat 00_START_HERE.md"
-echo "  • Inter-primal: cd 04-inter-primal && ./RUN_ALL.sh"
+echo "  • Inter-primal: cd 03-inter-primal && ./RUN_ALL.sh"
 echo ""
 
 echo -e "${MAGENTA}The ecoPrimals Promise:${NC}"

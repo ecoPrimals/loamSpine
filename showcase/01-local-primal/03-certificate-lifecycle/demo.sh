@@ -359,7 +359,7 @@ EOF
     log_info "Next steps:"
     log_info "  • Try 04-proofs for inclusion and provenance proofs"
     log_info "  • Check out 05-backup-restore for certificate backup"
-    log_info "  • Explore 04-inter-primal for cross-primal certificates"
+    log_info "  • Explore 03-inter-primal for cross-primal certificates"
     echo ""
     
     # Generate receipt

@@ -33,7 +33,7 @@ DEMOS=(
     # "05-backup-restore"  # Rust example complete
     # "06-storage-backends"  # Rust example complete
     # "07-concurrent-ops"  # Rust example complete
-    "08-temporal-moments"  # NEW v0.7.0 - Universal time tracking
+    "08-temporal-moments"  # Universal time tracking
     "09-waypoint-anchoring"  # NEW - Slice lending patterns
     "10-recursive-spines"  # NEW - Spine composition
 )
@@ -89,7 +89,6 @@ else
     log_info ""
     log_info "Next steps:"
     log_info "  • Try Level 2: RPC API (cd ../02-rpc-api)"
-    log_info "  • Try Level 3: Songbird Discovery (cd ../03-songbird-discovery)"
-    log_info "  • Try Level 4: Inter-Primal (cd ../04-inter-primal)"
+    log_info "  • Try Level 3: Inter-Primal (cd ../03-inter-primal)"
 fi
 

@@ -236,7 +236,7 @@ cd 02-rpc-api/01-tarpc-basics
 **Why it matters**: All primals working together
 
 ```bash
-cd 04-inter-primal/05-full-ecosystem
+cd 03-inter-primal/05-full-ecosystem
 ./demo.sh
 ```
 

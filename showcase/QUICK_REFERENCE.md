@@ -51,28 +51,13 @@ cd showcase/02-rpc-api/
 05-error-handling/         # 5 min  — Error patterns
 ```
 
-### Level 3: Discovery & Orchestration (4 demos)
-**Time**: ~25 minutes  
-**Focus**: Service discovery via Songbird
-
-```bash
-cd showcase/03-songbird-discovery/
-
-01-songbird-connect/       # 5 min  — Basic discovery
-02-capability-discovery/   # 5 min  — Query capabilities
-03-auto-advertise/         # 10 min — Automated registration
-04-heartbeat-monitoring/   # 5 min  — Health & lifecycle
-```
-
-**Note**: These demos require Songbird binary at `../../bins/songbird-orchestrator`
-
-### Level 4: Inter-Primal Integration (5 demos) 🆕
+### Level 3: Inter-Primal Integration (5 demos)
 **Time**: ~90 minutes  
 **Focus**: Real integration with Phase 1 primals  
 **Philosophy**: **NO MOCKS** — Real binaries reveal real gaps
 
 ```bash
-cd showcase/04-inter-primal/
+cd showcase/03-inter-primal/
 
 01-beardog-signing/        # 15 min — Cryptographic signing
 02-nestgate-storage/       # 15 min — Sovereign storage
@@ -103,14 +88,12 @@ cd showcase/04-inter-primal/
 ### Path 2: Integration Developer (90 minutes)
 1. `02-rpc-api/01-tarpc-basics/` — RPC basics
 2. `02-rpc-api/03-health-monitoring/` — Health patterns
-3. `03-songbird-discovery/01-songbird-connect/` — Discovery
-4. `04-inter-primal/01-beardog-signing/` — Real integration
+3. `03-inter-primal/01-beardog-signing/` — Real integration
 
 **Outcome**: Understand how to integrate with LoamSpine
 
 ### Path 3: Ecosystem Architect (120 minutes)
-1. `03-songbird-discovery/` — All 4 demos
-2. `04-inter-primal/` — All 5 demos
+1. `03-inter-primal/` — All 5 demos
 3. Read: `INTEGRATION_GAPS.md`
 4. Read: `showcase/SESSION_SUMMARY_DEC_26_2025.md`
 
