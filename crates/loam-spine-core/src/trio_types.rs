@@ -62,9 +62,9 @@ pub struct WireDehydrationSummary {
     /// Agent participation summaries.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub agent_summaries: Vec<WireAgentRef>,
-    /// Cryptographic attestations from participating agents.
+    /// Session witnesses (signatures, hash observations, checkpoints, markers).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub attestations: Vec<WireAttestationRef>,
+    pub witnesses: Vec<WireWitnessRef>,
     /// Operations performed during the session.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub operations: Vec<WireSessionOperationRef>,
@@ -98,16 +98,63 @@ pub struct WireAgentRef {
     pub role: String,
 }
 
-/// Cryptographic attestation reference in a dehydration.
+/// Witness reference in a dehydration — an agent's record that something
+/// occurred.
+///
+/// The trio is agnostic to what a witness contains. A witness may be a
+/// cryptographic signature, a hash observation, a game-state checkpoint,
+/// a conversation marker, or a bare timestamp. The `kind` field
+/// discriminates; the `evidence` field carries the payload (opaque string,
+/// empty when the witness needs no payload).
+///
+/// When the witness is cryptographic (`kind: "signature"`), verification
+/// is delegated to `BearDog` (`crypto.verify`) or an external verifier.
+/// `loamSpine` never decodes or validates evidence — it stores and commits.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WireAttestationRef {
-    /// Attesting agent DID.
+pub struct WireWitnessRef {
+    /// Agent or system that produced this witness.
     pub agent: String,
-    /// Base64-encoded signature.
-    pub signature: String,
-    /// When the attestation was created (nanoseconds since epoch).
+    /// What this witness represents.
+    /// `"signature"` = cryptographic signature,
+    /// `"hash"` = hash observation, `"checkpoint"` = state snapshot,
+    /// `"marker"` = boundary/event marker, `"timestamp"` = bare time witness.
+    #[serde(default = "default_witness_kind")]
+    pub kind: String,
+    /// Evidence payload (opaque). For signatures this is the encoded
+    /// signature bytes; for non-crypto witnesses this may be empty or
+    /// carry a hash, checkpoint token, or other payload.
     #[serde(default)]
-    pub attested_at: u64,
+    pub evidence: String,
+    /// When the witness was created (nanoseconds since epoch).
+    #[serde(default)]
+    pub witnessed_at: u64,
+    /// How the evidence payload is encoded. Only meaningful when `evidence`
+    /// is non-empty. Values: `"hex"`, `"base64"`, `"base64url"`, `"multibase"`,
+    /// `"utf8"` (plain text), `"none"` (no encoding / empty payload).
+    #[serde(default = "default_witness_encoding")]
+    pub encoding: String,
+    /// Cryptographic algorithm (when `kind` = `"signature"`).
+    /// `None` for non-crypto witnesses.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    /// Provenance tier.
+    /// `"local"` = same gate, `"gateway"` = remote gate,
+    /// `"anchor"` = public chain, `"external"` = third-party,
+    /// `"open"` = unsigned / no cryptographic backing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tier: Option<String>,
+    /// Freeform context for the witness.
+    /// `"game:tick:42"`, `"conversation:thread:abc"`, `"experiment:run:7"`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<String>,
+}
+
+fn default_witness_kind() -> String {
+    "signature".to_string()
+}
+
+fn default_witness_encoding() -> String {
+    "hex".to_string()
 }
 
 /// A high-level operation recorded during a dehydrated session.
