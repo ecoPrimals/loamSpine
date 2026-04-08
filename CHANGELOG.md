@@ -59,7 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GAP-MATRIX-05 resolution**: 3 new UDS wire-format integration tests validating `health.liveness` and `capabilities.list` over Unix domain sockets — the exact path biomeOS Neural API uses to probe primals. Validates JSON-RPC 2.0 envelope, Semantic Method Naming Standard v2.1 liveness format (`{"status":"alive"}`), biomeOS-parseable capability structure (Format D: primal identity, string array, methods with domain/cost/deps, operation_dependencies DAG, cost_estimates), and legacy `capability.list` alias routing.
 
 ### Refactored
-- **Smart module refactoring (6 large files)**: `types.rs` → `types/` directory (anchor, certificate, permanent_storage, tests). `error.rs` → `error/` directory (ipc, dispatch, storage_ext, tests). `neural_api.rs` → `neural_api/` directory (socket, mcp, tests). `infant_discovery/` → extracted `cache.rs` (`DiscoveryCache`). `constants/network.rs` → extracted `env_resolution.rs`. `sync/mod.rs` → extracted `streaming.rs`.
+- **Smart module refactoring (8 large files)**: `types.rs` → `types/` directory (anchor, certificate, permanent_storage, tests). `error.rs` → `error/` directory (ipc, dispatch, storage_ext, tests). `neural_api.rs` → `neural_api/` directory (socket, mcp, tests). `infant_discovery/` → extracted `cache.rs` (`DiscoveryCache`). `constants/network.rs` → extracted `env_resolution.rs`. `sync/mod.rs` → extracted `streaming.rs`. `jsonrpc/mod.rs` (773 lines) → `wire.rs` (types/codes) + `server.rs` (TCP/UDS transport) + `mod.rs` (dispatch only). `capabilities.rs` (587 lines) → `capabilities/` directory (`mod.rs` identifiers, `types.rs` enums/impls, `parser.rs` response parser, `tests.rs`).
+- **mDNS service discovery stub evolved**: `try_mdns_discovery()` evolved from synchronous stub (always returned `None`) to async implementation using `spawn_blocking` + `mdns::discover::all`. Queries `_discovery._tcp.local` on LAN, parses SRV records for endpoint resolution. Feature-gated under `mdns`.
 - **SQLite `StorageResultExt` migration**: All 3 SQLite modules (`entry.rs`, `certificate.rs`, `spine.rs`) evolved from `to_storage_err()` calls to `.storage_err()` / `.storage_ctx()` trait methods. Standalone `to_storage_err` function removed.
 - **Parse helper extraction**: `integration_ops.rs` — 6 duplicated parse-and-map-err patterns extracted to `parse_uuid()`, `parse_content_hash()`, `bytes_to_hex()`.
 - **Hardcoding removal**: "Songbird/Consul/etcd" literal in `niche.rs` → generic "service registry (mDNS / DNS-SRV / etcd)".
@@ -73,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests: 1,397 → **1,304** (consolidated; trivial tests removed; 10 anchor + 18 deep-debt + 3 GAP-MATRIX-05 + 3 Wire Standard L2 tests added)
 - `#[serial]`: **0** (was 121)
 - Full workspace test suite: **~3s** (all concurrent)
-- Source files: 136 → **148** (12 new modules from smart refactoring)
+- Source files: 136 → **152** (16 new modules from smart refactoring)
 - Coverage: **91.96%** line / **87.07%** region / **93.39%** function (llvm-cov)
 - Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
 - Doc warnings: **0**

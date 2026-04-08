@@ -55,8 +55,7 @@ fn test_jsonrpc_creation() {
 #[test]
 fn test_jsonrpc_with_service() {
     let service = LoamSpineRpcService::default_service();
-    let server = LoamSpineJsonRpc::new(service);
-    assert!(Arc::strong_count(&server.service) >= 1);
+    let _server = LoamSpineJsonRpc::new(service);
 }
 
 #[tokio::test]

@@ -182,7 +182,7 @@ impl InfantDiscovery {
         }
 
         // Method 3: mDNS (local network)
-        if let Some(endpoint) = self.try_mdns_discovery() {
+        if let Some(endpoint) = self.try_mdns_discovery().await {
             tracing::info!("✅ Discovery service found via mDNS: {}", endpoint);
             return DiscoveryClient::connect(&endpoint).await;
         }
@@ -296,48 +296,40 @@ impl InfantDiscovery {
 
     /// Try to discover via mDNS (multicast DNS).
     ///
-    /// Broadcasts on local network to find discovery service.
-    /// Useful for local development and LAN deployments.
+    /// Broadcasts `_discovery._tcp.local` on the local network to find the
+    /// discovery service. Uses `spawn_blocking` to run the mDNS query in
+    /// a blocking thread (the `mdns` crate uses `async-std` internally).
     ///
-    /// Note: This is currently experimental. The mDNS crate's API has some
-    /// complexity with async streams, so we use a simple thread-based polling
-    /// approach for now. Future versions may improve this implementation.
-    /// For production use, prefer DNS SRV discovery or environment variables.
-    #[expect(
-        clippy::unused_self,
-        reason = "method on self for consistent discovery chain API"
+    /// For production, prefer DNS SRV or environment variables.
+    #[allow(
+        clippy::unused_async,
+        reason = "async required for mdns feature builds; lint fires only in no-feature builds"
     )]
-    fn try_mdns_discovery(&self) -> Option<String> {
+    async fn try_mdns_discovery(&self) -> Option<String> {
         tracing::debug!("🔍 Attempting mDNS discovery (local network)...");
 
         #[cfg(feature = "mdns")]
         {
-            // mDNS discovery using the mdns crate
-            // NOTE: The mdns crate's Discovery API doesn't provide direct synchronous
-            // iteration over responses. The stream-based API requires careful handling
-            // of async traits that are complex to integrate with both tokio and sync code.
-            //
-            // This is marked as experimental and currently returns None.
-            // Future versions may provide a more robust implementation using async streams
-            // or an alternative mDNS library with better sync APIs.
-            //
-            // For production use, prefer:
-            // 1. Environment variables (DISCOVERY_ENDPOINT)
-            // 2. DNS SRV records (_discovery._tcp.local)
-            // 3. Configuration files
+            let result = tokio::task::spawn_blocking(|| {
+                mdns_discover_service_impl(DISCOVERY_SRV_QUERY)
+            })
+            .await;
 
-            tracing::debug!("🔍 mDNS discovery experimental - API integration pending");
-            tracing::debug!(
-                "🔍 For local development, use DISCOVERY_ENDPOINT environment variable"
-            );
+            match result {
+                Ok(Some(endpoint)) => return Some(endpoint),
+                Ok(None) => {
+                    tracing::debug!("🔍 mDNS: no discovery service found on LAN");
+                }
+                Err(e) => {
+                    tracing::debug!("🔍 mDNS spawn_blocking error: {e}");
+                }
+            }
         }
 
         #[cfg(not(feature = "mdns"))]
-        {
-            tracing::debug!(
-                "🔍 mDNS discovery not enabled (requires 'mdns' feature), trying next method"
-            );
-        }
+        tracing::debug!(
+            "🔍 mDNS discovery not enabled (requires 'mdns' feature), trying next method"
+        );
 
         None
     }
@@ -381,6 +373,73 @@ impl Default for InfantDiscovery {
     fn default() -> Self {
         Self::from_advertised()
     }
+}
+
+/// mDNS discovery for finding the discovery service on the local network.
+///
+/// Queries for `service_query` (e.g. `_discovery._tcp.local`) via multicast DNS.
+/// Returns the first responding endpoint, or `None` after a 2-second timeout.
+/// Runs synchronously (called from `spawn_blocking`).
+#[cfg(feature = "mdns")]
+fn mdns_discover_service_impl(service_query: &str) -> Option<String> {
+    use std::time::{Duration, Instant};
+
+    let discovery = match mdns::discover::all(service_query, Duration::from_secs(2)) {
+        Ok(d) => d,
+        Err(e) => {
+            tracing::debug!("mDNS discovery failed for {service_query}: {e}");
+            return None;
+        }
+    };
+
+    let stream = discovery.listen();
+
+    async_std::task::block_on(async {
+        use futures_util::{pin_mut, stream::StreamExt};
+        pin_mut!(stream);
+
+        let deadline = Instant::now() + Duration::from_secs(2);
+
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                break None;
+            }
+
+            match async_std::future::timeout(remaining, stream.next()).await {
+                Ok(Some(Ok(response))) => {
+                    if let Some(endpoint) = parse_discovery_mdns_response(&response) {
+                        break Some(endpoint);
+                    }
+                }
+                Ok(Some(Err(e))) => {
+                    tracing::debug!("mDNS response error: {e}");
+                }
+                Ok(None) | Err(_) => break None,
+            }
+        }
+    })
+}
+
+/// Extract the discovery service endpoint from an mDNS response.
+///
+/// Looks for SRV records with a host/port, falls back to A/AAAA records.
+#[cfg(feature = "mdns")]
+fn parse_discovery_mdns_response(response: &mdns::Response) -> Option<String> {
+    let port = response.port()?;
+    let addr = response.ip_addr().map_or_else(
+        || {
+            response.records().find_map(|r| match &r.kind {
+                mdns::RecordKind::SRV { target, .. } => {
+                    Some(target.trim_end_matches('.').to_string())
+                }
+                _ => None,
+            })
+        },
+        |a| Some(a.to_string()),
+    )?;
+
+    Some(format!("http://{addr}:{port}"))
 }
 
 #[cfg(test)]
@@ -445,7 +504,7 @@ mod tests {
     #[tokio::test]
     async fn mdns_discovery_not_configured() {
         let infant = InfantDiscovery::new(vec!["test".to_string()]);
-        let result = infant.try_mdns_discovery();
+        let result = infant.try_mdns_discovery().await;
 
         // Currently returns None (experimental/not fully implemented)
         assert!(result.is_none());

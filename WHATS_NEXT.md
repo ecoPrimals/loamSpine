@@ -220,6 +220,14 @@
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
+## v0.9.16 Deep Debt Module Evolution Sprint 2 (April 8, 2026)
+
+- **Smart refactor `jsonrpc/mod.rs`** (773 lines) → 3 focused modules: `wire.rs` (82 lines — wire types & error codes), `server.rs` (428 lines — TCP/UDS transport infrastructure), `mod.rs` (285 lines — dispatch logic only). Each module has a single responsibility.
+- **Smart refactor `capabilities.rs`** (587 lines) → `capabilities/` directory: `mod.rs` (107 lines — identifier constants & re-exports), `types.rs` (235 lines — enum definitions & impls), `parser.rs` (129 lines — response parser), `tests.rs` (116 lines).
+- **mDNS service discovery stub evolved**: `try_mdns_discovery()` from always-`None` stub to real async implementation using `spawn_blocking` + `mdns::discover::all`. Queries `_discovery._tcp.local` on LAN, parses SRV records. Feature-gated under `mdns`.
+- **Lint audit**: All 2 `#[allow(` suppressions verified as correctly feature-conditional. All `#[expect(` suppressions have documented reasons.
+- **Tests**: 1,304 pass. Source files: **152**. Zero clippy warnings.
+
 ## v0.9.16 Capability Wire Standard L2/L3 (April 8, 2026)
 
 - **Wire Standard L2 compliance**: `capabilities.list` response reshaped per Capability Wire Standard v1.0. `methods` promoted from array of objects to flat string array (primary biomeOS routing signal). All 32 callable methods now advertised (previously 24, missing health/permanence/tools/identity).

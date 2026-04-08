@@ -52,10 +52,10 @@ This document tracks implementation progress against the specification suite in 
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 900 max (all 148 files under 1000) |
-| Source files | — | 148 `.rs` files |
+| Max file size | < 1000 lines | 900 max (all 152 files under 1000) |
+| Source files | — | 152 `.rs` files |
 | Edition | 2024 | 2024 |
-| `#[allow]` in production | 0 | 3 (2× `clippy::wildcard_imports` in tarpc server/service — required by macro; 1× `clippy::unused_async` in infant_discovery — feature-conditional) |
+| `#[allow]` in production | 0 | 4 (2× `clippy::wildcard_imports` in tarpc server/service — required by macro; 2× `clippy::unused_async` in infant_discovery — feature-conditional for dns-srv/mdns) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
 | `cargo deny check` | pass | advisories ok, bans ok, licenses ok, sources ok |
 
