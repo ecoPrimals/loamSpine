@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C304%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C316%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
@@ -173,6 +173,16 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 5. **mDNS** -- RFC 6762 (experimental, feature-gated)
 6. **Development Fallback** (`localhost`, debug builds only)
 
+### Socket Naming (PRIMAL_SELF_KNOWLEDGE_STANDARD §3)
+
+| Mode | Socket Path |
+|------|------------|
+| **Development** (`BIOMEOS_INSECURE=1`) | `$XDG_RUNTIME_DIR/biomeos/permanence.sock` |
+| **Production** (`BIOMEOS_FAMILY_ID=<fid>`) | `$XDG_RUNTIME_DIR/biomeos/permanence-<fid>.sock` |
+| **Legacy symlink** | `loamspine.sock → permanence.sock` |
+
+Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to start.
+
 ---
 
 ## Quality
@@ -181,7 +191,7 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,304 passing (all concurrent, ~3s) |
+| **Tests** | 1,316 passing (all concurrent, ~3s) |
 | **Coverage** | 92% line / 87% region / 93% function (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |

@@ -36,7 +36,7 @@ use loam_spine_core::config::LoamSpineConfig;
 use loam_spine_core::constants::network;
 use loam_spine_core::error::OrExit;
 use loam_spine_core::service::LifecycleManager;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 /// `LoamSpine` — permanent ledger for the `ecoPrimals` ecosystem.
 #[derive(Parser)]
@@ -131,6 +131,10 @@ async fn run_server(
     let resolved_bind: Cow<'static, str> =
         bind_address_override.map_or_else(network::bind_address, Cow::Owned);
 
+    // PRIMAL_SELF_KNOWLEDGE_STANDARD §3: refuse to start if FAMILY_ID + INSECURE
+    loam_spine_core::neural_api::validate_security_config_from_env()
+        .or_exit("Security configuration conflict");
+
     info!("LoamSpine Standalone Service");
     info!("  version: {}", env!("CARGO_PKG_VERSION"));
     info!("  tarpc port: {resolved_tarpc_port}");
@@ -188,6 +192,32 @@ async fn run_server(
         }
     };
 
+    // Legacy backward-compat symlink: loamspine.sock → permanence.sock
+    // per PRIMAL_SELF_KNOWLEDGE_STANDARD §3 "Legacy compatibility"
+    #[cfg(unix)]
+    let legacy_symlink = {
+        let family_id = std::env::var("BIOMEOS_FAMILY_ID").ok();
+        let link_path = loam_spine_core::neural_api::resolve_legacy_symlink_path(
+            &socket_path,
+            family_id.as_deref(),
+        );
+        if link_path != socket_path {
+            let _ = std::fs::remove_file(&link_path);
+            match std::os::unix::fs::symlink(&socket_path, &link_path) {
+                Ok(()) => {
+                    info!("Legacy symlink: {} → {}", link_path.display(), socket_path.display());
+                    Some(link_path)
+                }
+                Err(e) => {
+                    warn!("Could not create legacy symlink {}: {e}", link_path.display());
+                    None
+                }
+            }
+        } else {
+            None
+        }
+    };
+
     info!("LoamSpine service started successfully");
     info!("  tarpc:    tarpc://{resolved_bind}:{resolved_tarpc_port}");
     info!("  JSON-RPC: http://{resolved_bind}:{resolved_jsonrpc_port}");
@@ -211,6 +241,17 @@ async fn run_server(
     }
 
     lifecycle.stop().await?;
+
+    // Clean up sockets and symlinks on graceful shutdown
+    // per PRIMAL_SELF_KNOWLEDGE_STANDARD §3 requirement
+    #[cfg(unix)]
+    {
+        if let Some(link) = legacy_symlink {
+            let _ = std::fs::remove_file(&link);
+        }
+        let _ = std::fs::remove_file(&socket_path);
+    }
+
     info!("LoamSpine service stopped");
 
     Ok(())

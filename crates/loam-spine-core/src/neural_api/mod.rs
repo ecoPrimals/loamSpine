@@ -16,7 +16,9 @@ mod socket;
 
 pub use mcp::{mcp_tool_to_rpc, mcp_tools_list};
 pub use socket::{
+    domain_socket_name, legacy_socket_name, resolve_legacy_symlink_path,
     resolve_neural_api_socket_with, resolve_socket_path, resolve_socket_path_with,
+    validate_security_config, validate_security_config_from_env,
 };
 
 /// LoamSpine's primal identity for NeuralAPI registration.

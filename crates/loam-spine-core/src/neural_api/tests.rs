@@ -8,7 +8,7 @@ use super::*;
 fn resolve_socket_path_returns_valid_path() {
     let path = resolve_socket_path_with(None, None, None);
     assert!(!path.as_os_str().is_empty());
-    assert!(path.to_string_lossy().contains("loamspine"));
+    assert!(path.to_string_lossy().contains("permanence"));
 }
 
 #[test]
@@ -22,7 +22,7 @@ fn resolve_socket_path_uses_xdg_runtime_dir() {
     let path = resolve_socket_path_with(None, None, Some("/run/user/1000"));
     assert_eq!(
         path.to_string_lossy(),
-        "/run/user/1000/biomeos/loamspine.sock"
+        "/run/user/1000/biomeos/permanence.sock"
     );
 }
 
@@ -31,7 +31,7 @@ fn resolve_socket_path_uses_xdg_runtime_dir_with_family() {
     let path = resolve_socket_path_with(None, Some("myfamily"), Some("/run/user/1000"));
     assert_eq!(
         path.to_string_lossy(),
-        "/run/user/1000/biomeos/loamspine-myfamily.sock"
+        "/run/user/1000/biomeos/permanence-myfamily.sock"
     );
 }
 
@@ -39,7 +39,7 @@ fn resolve_socket_path_uses_xdg_runtime_dir_with_family() {
 fn resolve_socket_path_fallback_when_xdg_unset() {
     let path = resolve_socket_path_with(None, None, None);
     assert!(
-        path.to_string_lossy().ends_with("biomeos/loamspine.sock"),
+        path.to_string_lossy().ends_with("biomeos/permanence.sock"),
         "got: {}",
         path.display()
     );
@@ -50,7 +50,7 @@ fn resolve_socket_path_with_custom_family_id() {
     let path = resolve_socket_path_with(None, Some("custom-family"), None);
     assert!(
         path.to_string_lossy()
-            .ends_with("biomeos/loamspine-custom-family.sock"),
+            .ends_with("biomeos/permanence-custom-family.sock"),
         "got: {}",
         path.display()
     );
@@ -71,9 +71,81 @@ fn resolve_socket_path_empty_family_id_treated_as_unset() {
     let path = resolve_socket_path_with(None, Some(""), Some("/run/user/1000"));
     assert_eq!(
         path.to_string_lossy(),
-        "/run/user/1000/biomeos/loamspine.sock",
+        "/run/user/1000/biomeos/permanence.sock",
         "empty BIOMEOS_FAMILY_ID should be treated as unset"
     );
+}
+
+#[test]
+fn resolve_socket_path_default_family_id_treated_as_unset() {
+    let path = resolve_socket_path_with(None, Some("default"), Some("/run/user/1000"));
+    assert_eq!(
+        path.to_string_lossy(),
+        "/run/user/1000/biomeos/permanence.sock",
+        "BIOMEOS_FAMILY_ID=default should produce domain-only socket"
+    );
+}
+
+// ── Domain socket naming ────────────────────────────────────────────
+
+#[test]
+fn domain_socket_name_without_family() {
+    assert_eq!(domain_socket_name(None), "permanence.sock");
+    assert_eq!(domain_socket_name(Some("")), "permanence.sock");
+    assert_eq!(domain_socket_name(Some("default")), "permanence.sock");
+}
+
+#[test]
+fn domain_socket_name_with_family() {
+    assert_eq!(domain_socket_name(Some("prod")), "permanence-prod.sock");
+}
+
+#[test]
+fn legacy_socket_name_without_family() {
+    assert_eq!(legacy_socket_name(None), "loamspine.sock");
+}
+
+#[test]
+fn legacy_socket_name_with_family() {
+    assert_eq!(legacy_socket_name(Some("prod")), "loamspine-prod.sock");
+}
+
+#[test]
+fn legacy_symlink_path_matches_parent() {
+    let primary = std::path::Path::new("/run/user/1000/biomeos/permanence.sock");
+    let legacy = resolve_legacy_symlink_path(primary, None);
+    assert_eq!(
+        legacy.to_string_lossy(),
+        "/run/user/1000/biomeos/loamspine.sock"
+    );
+}
+
+// ── Security config validation ──────────────────────────────────────
+
+#[test]
+fn validate_security_config_ok_no_family() {
+    assert!(validate_security_config(None, None).is_ok());
+    assert!(validate_security_config(None, Some("1")).is_ok());
+}
+
+#[test]
+fn validate_security_config_ok_family_no_insecure() {
+    assert!(validate_security_config(Some("prod"), None).is_ok());
+    assert!(validate_security_config(Some("prod"), Some("0")).is_ok());
+}
+
+#[test]
+fn validate_security_config_ok_default_family_insecure() {
+    assert!(validate_security_config(Some("default"), Some("1")).is_ok());
+    assert!(validate_security_config(Some(""), Some("1")).is_ok());
+}
+
+#[test]
+fn validate_security_config_rejects_family_plus_insecure() {
+    let err = validate_security_config(Some("prod"), Some("1"));
+    assert!(err.is_err(), "family + insecure must be rejected");
+    let msg = err.unwrap_err().to_string();
+    assert!(msg.contains("BIOMEOS_INSECURE"));
 }
 
 // ── NeuralAPI socket resolution (pure inner function) ────────────────────

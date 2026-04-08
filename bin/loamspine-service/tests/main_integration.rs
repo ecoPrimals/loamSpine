@@ -105,8 +105,8 @@ fn socket_outputs_path() {
 
     assert!(!path.is_empty(), "socket path must not be empty");
     assert!(
-        path.contains("loamspine"),
-        "socket path must contain 'loamspine', got: {path}"
+        path.contains("permanence"),
+        "socket path must use domain-based naming ('permanence'), got: {path}"
     );
 }
 

@@ -9,6 +9,10 @@
 /// This primal's canonical identifier.
 pub const SELF_ID: &str = "loamspine";
 
+/// Primary capability domain — used for socket naming per
+/// `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 Socket Naming Convention.
+pub const DOMAIN: &str = "permanence";
+
 /// biomeOS orchestrator identifier (used for socket/IPC paths).
 pub const BIOMEOS: &str = "biomeos";
 
@@ -27,6 +31,16 @@ mod tests {
     #[test]
     fn biomeos_is_lowercase() {
         assert!(BIOMEOS.chars().all(|c| c.is_ascii_lowercase()));
+    }
+
+    #[test]
+    fn domain_is_lowercase() {
+        assert!(DOMAIN.chars().all(|c| c.is_ascii_lowercase()));
+    }
+
+    #[test]
+    fn domain_is_permanence() {
+        assert_eq!(DOMAIN, "permanence");
     }
 
     #[test]

@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,304 |
+| Tests | — | 1,316 |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`) |
 | Coverage (llvm-cov) | 90%+ | 91.96% line / 87.07% region / 93.39% function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -74,6 +74,7 @@ This document tracks implementation progress against the specification suite in 
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow`, `capability_list()`/`mcp_tools_list()` → `OnceLock<Value>`, `HealthStatus` version/caps cached via `OnceLock`, `Bytes` for payloads, `[u8; 24]` stack keys, `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
+| Socket Naming | PASS | Domain-based `permanence.sock` per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3. `BIOMEOS_INSECURE` guard. Legacy `loamspine.sock` symlink. Cleanup on shutdown. |
 | File size limit | PASS | All 129 files under 1000 lines (max: 899 in `discovery/tests.rs`). |
 
 ---
