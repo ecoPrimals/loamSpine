@@ -138,10 +138,16 @@ capabilities = [
     "entry.append", "entry.get", "entry.get_tip",
     "certificate.mint", "certificate.transfer", "certificate.loan",
     "certificate.return", "certificate.get", "certificate.verify",
+    "certificate.lifecycle",
+    "slice.anchor", "slice.checkout", "slice.record_operation", "slice.depart",
     "proof.generate_inclusion", "proof.verify_inclusion",
     "anchor.publish", "anchor.verify",
     "session.commit", "braid.commit",
-    "health.check", "capability.list",
+    "permanence.commit_session", "permanence.verify_commit",
+    "permanence.get_commit", "permanence.health_check",
+    "health.check", "health.liveness", "health.readiness",
+    "capabilities.list", "identity.get",
+    "tools.list", "tools.call",
 ]
 family_id = "${FAMILY_ID}"
 

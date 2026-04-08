@@ -233,6 +233,11 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 "properties": {},
                 "required": []
             })),
+            mcp_tool("identity_get", "Get LoamSpine primal identity (name, version, domain, license)", &serde_json::json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            })),
         ]
     })
 }
@@ -279,7 +284,8 @@ pub fn mcp_tool_to_rpc(
         "anchor_publish" => "anchor.publish",
         "anchor_verify" => "anchor.verify",
         "health_check" => "health.check",
-        "capability_list" => "capability.list",
+        "capability_list" => "capabilities.list",
+        "identity_get" => "identity.get",
         _ => return None,
     };
     Some((method, arguments))

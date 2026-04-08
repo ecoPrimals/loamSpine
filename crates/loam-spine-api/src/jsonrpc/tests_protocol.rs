@@ -227,16 +227,32 @@ async fn uds_capabilities_list_wire_format() {
         "must advertise 'session.commit'"
     );
 
-    // -- biomeOS Format D: methods with domain/cost/deps --
+    // -- Wire Standard L2: methods as flat string array --
     assert!(result["methods"].is_array(), "methods must be an array");
     let methods = result["methods"].as_array().unwrap();
     assert!(!methods.is_empty(), "methods must not be empty");
-    for method in methods {
-        assert!(method["method"].is_string(), "method.method must be string");
-        assert!(method["domain"].is_string(), "method.domain must be string");
-        assert!(method["cost"].is_string(), "method.cost must be string");
-        assert!(method["deps"].is_array(), "method.deps must be array");
+    for m in methods {
+        assert!(m.is_string(), "each method must be a string");
+        let s = m.as_str().unwrap();
+        assert!(s.contains('.'), "method must be dotted: {s}");
     }
+    let method_strs: Vec<&str> = methods.iter().filter_map(|v| v.as_str()).collect();
+    assert!(method_strs.contains(&"spine.create"), "must list spine.create");
+    assert!(method_strs.contains(&"health.liveness"), "must list health.liveness");
+    assert!(method_strs.contains(&"identity.get"), "must list identity.get");
+    assert!(method_strs.contains(&"capabilities.list"), "must list capabilities.list");
+
+    // -- Wire Standard L3: provided_capabilities grouping --
+    assert!(result["provided_capabilities"].is_array(), "provided_capabilities must be an array");
+    let groups = result["provided_capabilities"].as_array().unwrap();
+    assert!(!groups.is_empty());
+    for g in groups {
+        assert!(g["type"].is_string(), "group type must be string");
+        assert!(g["methods"].is_array(), "group methods must be array");
+    }
+
+    // -- Wire Standard L3: consumed_capabilities --
+    assert!(result["consumed_capabilities"].is_array(), "consumed_capabilities must be an array");
 
     // -- operation_dependencies (DAG for Pathway Learner) --
     assert!(
@@ -278,6 +294,41 @@ async fn uds_capabilities_list_legacy_alias() {
     assert!(response.get("error").is_none(), "alias must not error");
     assert_eq!(response["result"]["primal"], "loamspine");
     assert!(response["result"]["capabilities"].is_array());
+
+    handle.stop();
+}
+
+// =========================================================================
+// identity.get Wire Standard L2
+// =========================================================================
+
+#[cfg(unix)]
+#[tokio::test]
+async fn uds_identity_get_wire_format() {
+    let tmp = tempfile::tempdir().unwrap();
+    let sock_path = tmp.path().join("identity.sock");
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+        .await
+        .unwrap();
+
+    let mut stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
+
+    let response = uds_rpc(
+        &mut stream,
+        r#"{"jsonrpc":"2.0","method":"identity.get","id":7}"#,
+    )
+    .await;
+
+    assert_eq!(response["jsonrpc"], "2.0");
+    assert_eq!(response["id"], 7);
+    assert!(response.get("error").is_none(), "must not be an error");
+
+    let result = &response["result"];
+    assert_eq!(result["primal"], "loamspine");
+    assert!(result["version"].as_str().unwrap().contains('.'));
+    assert_eq!(result["domain"], "permanence");
+    assert_eq!(result["license"], "AGPL-3.0-or-later");
 
     handle.stop();
 }

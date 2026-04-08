@@ -220,6 +220,15 @@
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
+## v0.9.16 Capability Wire Standard L2/L3 (April 8, 2026)
+
+- **Wire Standard L2 compliance**: `capabilities.list` response reshaped per Capability Wire Standard v1.0. `methods` promoted from array of objects to flat string array (primary biomeOS routing signal). All 32 callable methods now advertised (previously 24, missing health/permanence/tools/identity).
+- **Wire Standard L3 (composable)**: `provided_capabilities` grouping (9 domain groups), `consumed_capabilities` declaration, `cost_estimates` and `operation_dependencies` (already present, retained).
+- **`identity.get` method**: New JSON-RPC method returning `{primal, version, domain, license}`. Cached via `OnceLock`. MCP tool `identity_get` added.
+- **Niche evolution**: `METHODS` uses canonical `capabilities.list` (was `capability.list`). `identity.get` and `permanence.*` methods added.
+- **Deploy graph aligned**: All 32 methods registered in `loamspine_deploy.toml`.
+- **Tests**: 1,301 → **1,304**. Zero clippy warnings.
+
 ## v0.9.16 Deep Debt Module Evolution (April 7, 2026)
 
 - **Smart module refactoring (6 large files)**: `types.rs` (819 lines) → `types/` directory (`mod.rs`, `anchor.rs`, `certificate.rs`, `permanent_storage.rs`, `tests.rs`). `error.rs` (777 lines) → `error/` directory (`mod.rs`, `ipc.rs`, `dispatch.rs`, `storage_ext.rs`, `tests.rs`). `neural_api.rs` (735 lines) → `neural_api/` directory (`mod.rs`, `socket.rs`, `mcp.rs`, `tests.rs`). `infant_discovery/mod.rs` → extracted `cache.rs` with `DiscoveryCache` struct. `constants/network.rs` → extracted `env_resolution.rs` for environment-reading facades. `sync/mod.rs` → extracted `streaming.rs` for NDJSON progress reporting.

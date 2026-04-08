@@ -7,9 +7,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.9.16] - 2026-04-07
+## [0.9.16] - 2026-04-08
 
 ### Added
+- **Capability Wire Standard L2/L3**: `capabilities.list` response reshaped per Capability Wire Standard v1.0. `methods` promoted from array of objects to flat string array (primary biomeOS routing signal). `provided_capabilities` grouping added for structured routing (9 domain groups). `consumed_capabilities` declared for composition completeness validation. All 32 callable methods now advertised in `methods` (previously 24, missing health/permanence/tools/identity).
+- **`identity.get` JSON-RPC method**: Returns `{primal, version, domain, license}` per Wire Standard L2. Cached via `OnceLock`.
+- **`identity_get` MCP tool**: AI agents can query primal identity via MCP `tools/call`.
+- **3 new tests**: `identity_response_fields`, `identity_get_method`, `uds_identity_get_wire_format`.
 - **musl-static deployment**: `.cargo/config.toml` defines `[target.x86_64-unknown-linux-musl]` and `[target.aarch64-unknown-linux-musl]` with `musl-gcc` linker, `+crt-static`, `-static`, `relocation-model=static`. `cargo build-x64` / `build-arm64` aliases. Binary: 4.3M, `ELF 64-bit, statically linked, stripped`.
 - **`[profile.release]`**: `lto = true`, `codegen-units = 1`, `panic = "abort"`, `strip = true` — matches rhizoCrypt ecoBin release profile.
 
@@ -66,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doc comments**: `sqlite/common.rs` functions and `serde_opt_bytes` module documented.
 
 ### Metrics
-- Tests: 1,397 → **1,301** (consolidated; trivial tests removed; 10 anchor + 18 deep-debt + 3 GAP-MATRIX-05 tests added)
+- Tests: 1,397 → **1,304** (consolidated; trivial tests removed; 10 anchor + 18 deep-debt + 3 GAP-MATRIX-05 + 3 Wire Standard L2 tests added)
 - `#[serial]`: **0** (was 121)
 - Full workspace test suite: **~3s** (all concurrent)
 - Source files: 136 → **148** (12 new modules from smart refactoring)

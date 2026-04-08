@@ -71,9 +71,14 @@ pub const METHODS: &[&str] = &[
     "health.check",
     "health.liveness",
     "health.readiness",
-    "capability.list",
+    "capabilities.list",
     "tools.list",
     "tools.call",
+    "identity.get",
+    "permanence.commit_session",
+    "permanence.verify_commit",
+    "permanence.get_commit",
+    "permanence.health_check",
 ];
 
 /// Semantic mappings: short operation name → fully qualified method.
@@ -106,7 +111,8 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
     ("publish_anchor", "anchor.publish"),
     ("verify_anchor", "anchor.verify"),
     ("health_check", "health.check"),
-    ("capability_list", "capability.list"),
+    ("capability_list", "capabilities.list"),
+    ("identity_get", "identity.get"),
     ("tools_list", "tools.list"),
     ("tools_call", "tools.call"),
 ];
@@ -184,7 +190,8 @@ pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
     ("anchor.publish", 2, false),
     ("anchor.verify", 2, false),
     ("health.check", 1, false),
-    ("capability.list", 1, false),
+    ("capabilities.list", 1, false),
+    ("identity.get", 1, false),
     ("tools.list", 1, false),
     ("tools.call", 5, false),
 ];

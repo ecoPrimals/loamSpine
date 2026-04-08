@@ -285,53 +285,45 @@ pub fn capability_list() -> &'static serde_json::Value {
     CAPABILITY_LIST_CACHE.get_or_init(capability_list_inner)
 }
 
+/// Cached identity response — initialized once.
+static IDENTITY_CACHE: OnceLock<serde_json::Value> = OnceLock::new();
+
+/// Return the `identity.get` response payload per Capability Wire Standard v1.0.
+#[must_use]
+pub fn identity_response() -> &'static serde_json::Value {
+    IDENTITY_CACHE.get_or_init(|| {
+        serde_json::json!({
+            "primal": PRIMAL_NAME,
+            "version": env!("CARGO_PKG_VERSION"),
+            "domain": "permanence",
+            "license": env!("CARGO_PKG_LICENSE"),
+        })
+    })
+}
+
 fn capability_list_inner() -> serde_json::Value {
     serde_json::json!({
         "primal": PRIMAL_NAME,
         "version": env!("CARGO_PKG_VERSION"),
-        "capabilities": CAPABILITIES,
-        "methods": [
-            { "method": "spine.create", "domain": "spine", "cost": "low", "deps": [] },
-            { "method": "spine.get", "domain": "spine", "cost": "low", "deps": [] },
-            { "method": "spine.seal", "domain": "spine", "cost": "low", "deps": [] },
-            { "method": "entry.append", "domain": "entry", "cost": "low", "deps": ["spine.create"] },
-            { "method": "entry.get", "domain": "entry", "cost": "low", "deps": [] },
-            { "method": "entry.get_tip", "domain": "entry", "cost": "low", "deps": [] },
-            { "method": "certificate.mint", "domain": "certificate", "cost": "low", "deps": ["spine.create"] },
-            { "method": "certificate.transfer", "domain": "certificate", "cost": "low", "deps": ["certificate.mint"] },
-            { "method": "certificate.loan", "domain": "certificate", "cost": "low", "deps": ["certificate.mint"] },
-            { "method": "certificate.return", "domain": "certificate", "cost": "low", "deps": ["certificate.loan"] },
-            { "method": "certificate.get", "domain": "certificate", "cost": "low", "deps": [] },
-            { "method": "certificate.verify", "domain": "certificate", "cost": "medium", "deps": [] },
-            { "method": "certificate.lifecycle", "domain": "certificate", "cost": "medium", "deps": [] },
-            { "method": "slice.anchor", "domain": "waypoint", "cost": "low", "deps": ["spine.create"] },
-            { "method": "slice.checkout", "domain": "waypoint", "cost": "low", "deps": [] },
-            { "method": "slice.record_operation", "domain": "waypoint", "cost": "low", "deps": ["slice.anchor"] },
-            { "method": "slice.depart", "domain": "waypoint", "cost": "low", "deps": ["slice.anchor"] },
-            { "method": "proof.generate_inclusion", "domain": "proof", "cost": "medium", "deps": ["entry.append"] },
-            { "method": "proof.verify_inclusion", "domain": "proof", "cost": "medium", "deps": [] },
-            { "method": "session.commit", "domain": "integration", "cost": "medium", "deps": ["spine.create"] },
-            { "method": "braid.commit", "domain": "integration", "cost": "medium", "deps": ["spine.create"] },
-            { "method": "anchor.publish", "domain": "anchor", "cost": "low", "deps": ["spine.create"] },
-            { "method": "anchor.verify", "domain": "anchor", "cost": "low", "deps": ["anchor.publish"] },
-            { "method": "health.check", "domain": "health", "cost": "low", "deps": [] },
-            { "method": "capability.list", "domain": "meta", "cost": "low", "deps": [] },
+        // Wire Standard L2: flat string array of all callable methods (primary biomeOS routing signal)
+        "methods": crate::niche::METHODS,
+        // Wire Standard L3: capability groupings for structured routing
+        "provided_capabilities": [
+            { "type": "spine", "methods": ["create", "get", "seal"], "version": env!("CARGO_PKG_VERSION"), "description": "Append-only spine lifecycle" },
+            { "type": "entry", "methods": ["append", "get", "get_tip"], "version": env!("CARGO_PKG_VERSION"), "description": "Content-addressed entry management" },
+            { "type": "certificate", "methods": ["mint", "transfer", "loan", "return", "get", "verify", "lifecycle"], "version": env!("CARGO_PKG_VERSION"), "description": "Certificate lifecycle and provenance" },
+            { "type": "proof", "methods": ["generate_inclusion", "verify_inclusion"], "version": env!("CARGO_PKG_VERSION"), "description": "Merkle inclusion proofs" },
+            { "type": "anchor", "methods": ["publish", "verify"], "version": env!("CARGO_PKG_VERSION"), "description": "Public chain anchoring" },
+            { "type": "session", "methods": ["commit"], "version": env!("CARGO_PKG_VERSION"), "description": "Provenance trio session commit" },
+            { "type": "braid", "methods": ["commit"], "version": env!("CARGO_PKG_VERSION"), "description": "Provenance trio braid commit" },
+            { "type": "slice", "methods": ["anchor", "checkout", "record_operation", "depart"], "version": env!("CARGO_PKG_VERSION"), "description": "Waypoint slice operations" },
+            { "type": "health", "methods": ["check", "liveness", "readiness"], "version": env!("CARGO_PKG_VERSION"), "description": "Health probes" },
         ],
-        "operation_dependencies": {
-            "entry.append": ["spine.create"],
-            "certificate.mint": ["spine.create"],
-            "certificate.transfer": ["certificate.mint"],
-            "certificate.loan": ["certificate.mint"],
-            "certificate.return": ["certificate.loan"],
-            "slice.anchor": ["spine.create"],
-            "slice.record_operation": ["slice.anchor"],
-            "slice.depart": ["slice.anchor"],
-            "proof.generate_inclusion": ["entry.append"],
-            "session.commit": ["spine.create"],
-            "braid.commit": ["spine.create"],
-            "anchor.publish": ["spine.create"],
-            "anchor.verify": ["anchor.publish"],
-        },
+        // Wire Standard L3: consumed capabilities for composition completeness validation
+        "consumed_capabilities": crate::niche::CONSUMED_CAPABILITIES,
+        // Backward-compatible: semantic capability labels for biomeOS domain registration
+        "capabilities": CAPABILITIES,
+        // Wire Standard L3: per-method cost hints for AI advisors and scheduler
         "cost_estimates": {
             "spine.create":              { "latency_ms": 1, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
             "spine.get":                 { "latency_ms": 1, "cpu": "low", "memory_bytes": 2048, "gpu_eligible": false },
@@ -353,6 +345,23 @@ fn capability_list_inner() -> serde_json::Value {
             "anchor.publish":            { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
             "anchor.verify":             { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
             "capability.list":           { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
+            "identity.get":              { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
+        },
+        // Wire Standard L3: method dependency DAG for execution planners
+        "operation_dependencies": {
+            "entry.append": ["spine.create"],
+            "certificate.mint": ["spine.create"],
+            "certificate.transfer": ["certificate.mint"],
+            "certificate.loan": ["certificate.mint"],
+            "certificate.return": ["certificate.loan"],
+            "slice.anchor": ["spine.create"],
+            "slice.record_operation": ["slice.anchor"],
+            "slice.depart": ["slice.anchor"],
+            "proof.generate_inclusion": ["entry.append"],
+            "session.commit": ["spine.create"],
+            "braid.commit": ["spine.create"],
+            "anchor.publish": ["spine.create"],
+            "anchor.verify": ["anchor.publish"],
         },
     })
 }

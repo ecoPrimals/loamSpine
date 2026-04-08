@@ -250,6 +250,7 @@ impl LoamSpineJsonRpc {
             "permanence.health_check" => ser(self.service.permanence_healthy().await),
 
             "capabilities.list" => Ok(loam_spine_core::neural_api::capability_list().clone()),
+            "identity.get" => Ok(loam_spine_core::neural_api::identity_response().clone()),
 
             "tools.list" => Ok(loam_spine_core::neural_api::mcp_tools_list().clone()),
 

@@ -131,8 +131,30 @@ fn capability_list_includes_all_expected() {
     assert!(caps.contains(&serde_json::json!("spine.create")));
     assert!(caps.contains(&serde_json::json!("capability.list")));
     assert_eq!(caps.len(), CAPABILITIES.len());
+
     let methods = list["methods"].as_array().expect("methods array");
     assert!(!methods.is_empty());
+    assert!(
+        methods.iter().all(serde_json::Value::is_string),
+        "Wire Standard L2: methods must be a flat string array"
+    );
+    let method_strs: Vec<&str> = methods.iter().filter_map(|v| v.as_str()).collect();
+    assert!(method_strs.contains(&"spine.create"));
+    assert!(method_strs.contains(&"identity.get"));
+    assert!(method_strs.contains(&"capabilities.list"));
+    assert!(method_strs.contains(&"health.liveness"));
+
+    assert!(list.get("provided_capabilities").is_some(), "Wire Standard L3");
+    assert!(list.get("consumed_capabilities").is_some(), "Wire Standard L3");
+}
+
+#[test]
+fn identity_response_fields() {
+    let id = identity_response();
+    assert_eq!(id["primal"], "loamspine");
+    assert!(id["version"].is_string());
+    assert_eq!(id["domain"], "permanence");
+    assert_eq!(id["license"], "AGPL-3.0-or-later");
 }
 
 #[test]
@@ -175,7 +197,7 @@ fn capability_list_pretty_contains_primal_and_capabilities() {
     let pretty = capability_list_pretty();
     assert!(pretty.contains(PRIMAL_NAME));
     assert!(pretty.contains("permanence"));
-    assert!(pretty.contains("capability.list"));
+    assert!(pretty.contains("capabilities.list"));
 }
 
 #[test]
@@ -360,12 +382,12 @@ async fn deregister_handles_malformed_response() {
 #[test]
 fn mcp_tools_cover_all_methods_in_capability_list() {
     let list = capability_list();
-    let methods = list["methods"]
+    let methods: Vec<&str> = list["methods"]
         .as_array()
         .expect("methods array")
         .iter()
-        .filter_map(|m| m["method"].as_str())
-        .collect::<Vec<_>>();
+        .filter_map(|m| m.as_str())
+        .collect();
 
     let tools = mcp_tools_list();
     let tool_names: Vec<&str> = tools["tools"]
@@ -375,7 +397,23 @@ fn mcp_tools_cover_all_methods_in_capability_list() {
         .filter_map(|t| t["name"].as_str())
         .collect();
 
+    let meta_methods = [
+        "health.liveness",
+        "health.readiness",
+        "capabilities.list",
+        "tools.list",
+        "tools.call",
+        "identity.get",
+        "permanence.commit_session",
+        "permanence.verify_commit",
+        "permanence.get_commit",
+        "permanence.health_check",
+    ];
+
     for method in &methods {
+        if meta_methods.contains(method) {
+            continue;
+        }
         let tool_name = method.replace('.', "_");
         let has_mcp = tool_names.contains(&tool_name.as_str())
             || mcp_tool_to_rpc(&tool_name, serde_json::json!({})).is_some();
@@ -393,7 +431,8 @@ fn mcp_tool_to_rpc_returns_canonical_method_names() {
         ("entry_append", "entry.append"),
         ("certificate_mint", "certificate.mint"),
         ("health_check", "health.check"),
-        ("capability_list", "capability.list"),
+        ("capability_list", "capabilities.list"),
+        ("identity_get", "identity.get"),
     ];
     for (tool, expected_method) in cases {
         let result = mcp_tool_to_rpc(tool, serde_json::json!({}));
@@ -439,7 +478,10 @@ fn mcp_tool_to_rpc_covers_all_known_tools() {
         ("session_commit", "session.commit"),
         ("braid_commit", "braid.commit"),
         ("health_check", "health.check"),
-        ("capability_list", "capability.list"),
+        ("capability_list", "capabilities.list"),
+        ("anchor_publish", "anchor.publish"),
+        ("anchor_verify", "anchor.verify"),
+        ("identity_get", "identity.get"),
     ];
     for (tool, expected) in all_tools {
         let result = mcp_tool_to_rpc(tool, serde_json::json!({"test": true}));

@@ -404,11 +404,31 @@ async fn capability_list_method() {
     let value: serde_json::Value = rpc_call_no_params(&server, "capability.list")
         .await
         .unwrap();
-    assert!(value.get("capabilities").is_some());
-    assert!(value.get("primal").is_some());
-    assert!(value.get("version").is_some());
-    assert!(value.get("methods").is_some());
     assert_eq!(value["primal"], "loamspine");
+    assert!(value["version"].is_string());
+    assert!(value["capabilities"].is_array());
+    assert!(value["methods"].is_array(), "methods must be flat string array per Wire Standard L2");
+    let methods = value["methods"].as_array().unwrap();
+    assert!(methods.iter().all(serde_json::Value::is_string), "all methods must be strings");
+    let method_strs: Vec<&str> = methods.iter().filter_map(|v| v.as_str()).collect();
+    assert!(method_strs.contains(&"spine.create"));
+    assert!(method_strs.contains(&"identity.get"));
+    assert!(value["provided_capabilities"].is_array());
+    assert!(value["consumed_capabilities"].is_array());
+    assert!(value["cost_estimates"].is_object());
+    assert!(value["operation_dependencies"].is_object());
+}
+
+#[tokio::test]
+async fn identity_get_method() {
+    let server = LoamSpineJsonRpc::default_server();
+    let value: serde_json::Value = rpc_call_no_params(&server, "identity.get")
+        .await
+        .unwrap();
+    assert_eq!(value["primal"], "loamspine");
+    assert!(value["version"].is_string());
+    assert_eq!(value["domain"], "permanence");
+    assert_eq!(value["license"], "AGPL-3.0-or-later");
 }
 
 #[tokio::test]
