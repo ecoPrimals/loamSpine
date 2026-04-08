@@ -17,7 +17,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![forbid(unsafe_code)]` workspace-wide; test modules use inner/outer function pattern for env injection
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ function coverage (current: 92% line / 87% region / 93% function, 1,280 tests)
+- **High Coverage**: Aim for 90%+ function coverage (current: 92% line / 87% region / 93% function, 1,316 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -66,7 +66,7 @@ cargo build-arm64  # aarch64-unknown-linux-musl
 # Build
 cargo build
 
-# Test (1,280 tests, all concurrent)
+# Test (1,316 tests, all concurrent)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -318,18 +318,18 @@ Look for issues labeled `good-first-issue`:
 |--------|-------|
 | Version | 0.9.16 |
 | Edition | 2024 |
-| Tests | 1,280 (all concurrent, ~3s) |
+| Tests | 1,316 (all concurrent, ~3s) |
 | Coverage | 92% line / 87% region / 93% function (llvm-cov) |
-| Max File Size | 899 lines (all 136 files < 1000) |
+| Max File Size | 916 lines (all 163 files < 1000); 711 max production |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
-| Lint Exceptions | 3 `#[allow]` in production (2× tarpc macro, 1× feature-conditional async), tests all `#[expect(reason)]` |
+| Lint Exceptions | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async), tests all `#[expect(reason)]` |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
-| SPDX Headers | All 136 source files |
+| SPDX Headers | All 163 source files |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |
-| JSON-RPC Methods | 30 (semantic naming) |
+| JSON-RPC Methods | 32 (semantic naming) |
 | Mock isolation | All mocks cfg-gated out of production |
 | Provenance Trio | Tested (rhizoCrypt + sweetGrass) |
 

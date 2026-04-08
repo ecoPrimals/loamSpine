@@ -1,7 +1,7 @@
 # 🦴 LoamSpine Showcase — Quick Reference Card
 
-**Updated**: March 16, 2026  
-**Total Demos**: 21 complete showcase demos  
+**Updated**: April 8, 2026  
+**Total Demos**: 24 complete showcase demos  
 **Philosophy**: Real capabilities, real integrations, real value
 
 ---
@@ -21,8 +21,8 @@ SKIP_PAUSES=true ./RUN_ME_FIRST.sh
 
 ## 📚 Showcase Structure
 
-### Level 1: Local Primal Capabilities (7 demos)
-**Time**: ~45 minutes  
+### Level 1: Local Primal Capabilities (10 demos)
+**Time**: ~90 minutes  
 **Focus**: What LoamSpine can do locally
 
 ```bash
@@ -35,6 +35,9 @@ cd showcase/01-local-primal/
 05-backup-restore/         # 5 min  — Data durability
 06-storage-backends/       # 5 min  — Different backends
 07-concurrent-ops/         # 5 min  — Performance & concurrency
+08-temporal-moments/       # 10 min — Temporal moment recording
+09-waypoint-anchoring/     # 10 min — Waypoint slice anchoring
+10-recursive-spines/       # 10 min — Recursive spine operations
 ```
 
 ### Level 2: RPC/API Capabilities (5 demos)

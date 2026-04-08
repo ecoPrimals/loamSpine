@@ -31,13 +31,18 @@ showcase/
 │   ├── 03-certificate-lifecycle/# Mint → Transfer → Loan → Return
 │   ├── 04-proofs/              # Inclusion and provenance proofs
 │   ├── 05-backup-restore/      # Binary + JSON backup
-│   └── 06-storage-backends/    # InMemory + redb + Sled
+│   ├── 06-storage-backends/    # InMemory + redb + Sled
+│   ├── 07-concurrent-ops/      # Thread-safe operations
+│   ├── 08-temporal-moments/    # Temporal moment recording
+│   ├── 09-waypoint-anchoring/  # Waypoint slice anchoring
+│   └── 10-recursive-spines/    # Recursive spine operations
 │
 ├── 02-rpc-api/                 # Pure Rust RPC Demos
 │   ├── 01-tarpc-basics/        # Binary RPC (primal-to-primal)
 │   ├── 02-jsonrpc-basics/      # JSON-RPC 2.0 (external clients)
 │   ├── 03-health-monitoring/   # Health checks and metrics
-│   └── 04-concurrent-ops/      # Parallel operations
+│   ├── 04-concurrent-ops/      # Parallel operations
+│   └── 05-error-handling/      # Graceful degradation
 │
 ├── 03-inter-primal/            # Cross-Primal Integration
 │   ├── 01-beardog-signing/     # BearDog signing → LoamSpine certs
@@ -46,13 +51,11 @@ showcase/
 │   ├── 04-toadstool-compute/   # Toadstool uses LoamSpine storage
 │   └── 05-full-ecosystem/      # Complete integration demo
 │
-├── scripts/                    # External Service Integration
-│   ├── start_primals.sh        # Start external services
-│   ├── stop_primals.sh         # Stop external services
-│   ├── demo_signing_service.sh # Signing service integration (agnostic)
-│   └── demo_storage_service.sh # Storage service integration (agnostic)
-│
-└── logs/                       # Runtime logs
+└── scripts/                    # External Service Integration
+    ├── start_primals.sh        # Start external services
+    ├── stop_primals.sh         # Stop external services
+    ├── demo_signing_service.sh # Signing service integration (agnostic)
+    └── demo_storage_service.sh # Storage service integration (agnostic)
 ```
 
 ---
@@ -207,12 +210,12 @@ cd showcase
 
 | Metric | Value |
 |--------|-------|
-| **Tests** | 247 passing |
-| **Coverage** | 90%+ function |
-| **RPC Methods** | 18/18 |
+| **Tests** | 1,316 passing (all concurrent, ~3s) |
+| **Coverage** | 92% line / 87% region / 93% function |
+| **JSON-RPC Methods** | 32 (semantic naming) |
 | **Entry Types** | 15+ |
 | **Clippy** | pedantic + nursery (0 warnings) |
-| **Unsafe** | 0 (forbidden) |
+| **Unsafe** | 0 (`#![forbid(unsafe_code)]`) |
 
 ---
 

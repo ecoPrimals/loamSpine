@@ -112,7 +112,7 @@ loamSpine/
 │           ├── health.rs      # Health checks
 │           └── error.rs       # API errors
 ├── specs/                     # 13 specification documents
-├── showcase/                  # Interactive demos (71 files)
+├── showcase/                  # Interactive demos (55 files)
 └── fuzz/                      # Fuzz testing targets
 ```
 
@@ -196,7 +196,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
-| **Max File Size** | 711 lines (all 163 files < 1000) |
+| **Max File Size** | 916 lines (all 163 files < 1000); 711 max production |
 | **Source Files** | 163 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |

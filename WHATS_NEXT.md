@@ -59,7 +59,6 @@
 - **5-tier socket discovery**: `/run/user/{uid}/biomeos/` tier via `/proc/self/status`
 - **`temp-env` migration**: Thread-safe env var mutation, 38 `unsafe` blocks eliminated from tests
 - **Deploy graph**: `graphs/loamspine_deploy.toml` for biomeOS deployment
-- **Coverage**: 89.64% line, 91.71% region (1,132 tests)
 - **Zero-copy `append` refactor**: `entry.clone()` eliminated across 16 service call sites via `tip_entry()` pattern
 - **Attestation runtime enforcement**: `check_attestation_requirement()` wired into waypoint operations
 - **Capability string constants**: All hardcoded strings → `capabilities::identifiers::*`; `ADVERTISED` set; `from_advertised()`

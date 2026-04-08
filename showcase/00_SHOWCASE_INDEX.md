@@ -1,7 +1,7 @@
 # 🦴 LoamSpine Showcase Index
 
 **Version**: 0.9.16  
-**Last Updated**: March 24, 2026  
+**Last Updated**: April 8, 2026  
 **Status**: ✅ Production Ready (matches Squirrel's excellence!)
 
 ---
@@ -33,7 +33,7 @@ showcase/
 ├── SHOWCASE_PRINCIPLES.md         # No mocks philosophy
 ├── SHOWCASE_QUICK_REFERENCE_CARD.md  # Quick reference
 │
-├── 01-local-primal/               # Level 1: LoamSpine BY ITSELF (60 min)
+├── 01-local-primal/               # Level 1: LoamSpine BY ITSELF (90 min)
 │   ├── 01-hello-loamspine/        ✅ Complete
 │   ├── 02-entry-types/            ✅ Complete
 │   ├── 03-certificate-lifecycle/  ✅ Complete
@@ -41,6 +41,9 @@ showcase/
 │   ├── 05-backup-restore/         ✅ Complete
 │   ├── 06-storage-backends/       ✅ Complete
 │   ├── 07-concurrent-ops/         ✅ Complete
+│   ├── 08-temporal-moments/       ✅ Complete
+│   ├── 09-waypoint-anchoring/     ✅ Complete
+│   ├── 10-recursive-spines/       ✅ Complete
 │   └── RUN_ALL.sh
 │
 ├── 02-rpc-api/                    # Level 2: Pure Rust RPC (30 min)
@@ -161,7 +164,7 @@ All levels complete + code review + contribution
 
 ## 📋 Level Details
 
-### Level 1: Local Primal (60 min) ✅ 7/7 COMPLETE
+### Level 1: Local Primal (90 min) ✅ 10/10 COMPLETE
 **Goal**: Understand LoamSpine standalone
 
 | Demo | Description | Time | Status |
@@ -173,6 +176,9 @@ All levels complete + code review + contribution
 | 05-backup-restore | Export & import | 10 min | ✅ Complete |
 | 06-storage-backends | InMemory vs redb vs Sled | 10 min | ✅ Complete |
 | 07-concurrent-ops | Thread-safe operations | 10 min | ✅ Complete |
+| 08-temporal-moments | Temporal moment recording | 10 min | ✅ Complete |
+| 09-waypoint-anchoring | Waypoint slice anchoring | 10 min | ✅ Complete |
+| 10-recursive-spines | Recursive spine operations | 10 min | ✅ Complete |
 
 **What you'll learn**:
 - Sovereign spine creation
@@ -344,4 +350,4 @@ LoamSpine uses capability discovery for all external services:
 
 🦴 **LoamSpine: Where memories become permanent.** 🚀
 
-*Last updated: April 7, 2026 — Songbird discovery demos archived to fossilRecord (deprecated in v0.9.15)*
+*Last updated: April 8, 2026 — Songbird discovery demos archived to fossilRecord (deprecated in v0.9.15). Demos 08–10 added.*

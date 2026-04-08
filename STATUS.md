@@ -52,7 +52,7 @@ This document tracks implementation progress against the specification suite in 
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 711 max (all 163 files under 1000) |
+| Max file size | < 1000 lines | 916 max (all 163 files under 1000); 711 max production |
 | Source files | — | 163 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 4 (2× `clippy::wildcard_imports` in tarpc server/service — required by macro; 2× `clippy::unused_async` in infant_discovery — feature-conditional for dns-srv/mdns) |
@@ -67,7 +67,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 129 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 163 source files |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -75,7 +75,7 @@ This document tracks implementation progress against the specification suite in 
 | Zero-copy | PASS | `Did` → `Arc<str>`, `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow`, `capability_list()`/`mcp_tools_list()` → `OnceLock<Value>`, `HealthStatus` version/caps cached via `OnceLock`, `Bytes` for payloads, `[u8; 24]` stack keys, `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | Socket Naming | PASS | Domain-based `permanence.sock` per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3. `BIOMEOS_INSECURE` guard. Legacy `loamspine.sock` symlink. Cleanup on shutdown. |
-| File size limit | PASS | All 129 files under 1000 lines (max: 899 in `discovery/tests.rs`). |
+| File size limit | PASS | All 163 files under 1000 lines (max: 916 in `tarpc_server_tests.rs`). |
 
 ---
 

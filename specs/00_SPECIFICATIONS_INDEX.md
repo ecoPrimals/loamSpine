@@ -2,8 +2,8 @@
 
 # 🦴 LoamSpine — Specifications Index
 
-**Last Updated**: March 16, 2026  
-**Version**: 1.1.0  
+**Last Updated**: April 8, 2026  
+**Version**: 1.2.0  
 **Status**: Active
 
 ---
@@ -39,6 +39,13 @@ This directory contains the complete specification suite for LoamSpine, the perm
 |----------|---------|--------|
 | [INTEGRATION_SPECIFICATION.md](./INTEGRATION_SPECIFICATION.md) | RhizoCrypt, BearDog, SweetGrass | ✅ Complete |
 | [STORAGE_BACKENDS.md](./STORAGE_BACKENDS.md) | redb (default), sled (optional), SQLite, PostgreSQL, RocksDB | ✅ Complete |
+| [SERVICE_LIFECYCLE.md](./SERVICE_LIFECYCLE.md) | Service startup, shutdown, state machine | ✅ Complete |
+
+### Evolution Tracking
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [DEPENDENCY_EVOLUTION.md](./DEPENDENCY_EVOLUTION.md) | Dependency migration tracking (bincode, mdns, sled) | 📋 Active |
 
 ### Research Specifications
 
