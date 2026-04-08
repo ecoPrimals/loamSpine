@@ -35,7 +35,7 @@ pub struct LoamSpineConfig {
 /// everything else at runtime through the universal adapter (service registry).
 ///
 /// The service registry can be any RFC 2782 compliant system:
-/// - Songbird (reference implementation for ecoPrimals)
+/// - mDNS / DNS SRV (zero-config and production)
 /// - Consul
 /// - etcd
 /// - Custom implementations following the protocol

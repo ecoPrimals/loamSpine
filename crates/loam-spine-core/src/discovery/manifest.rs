@@ -7,7 +7,7 @@
 //! socket path, capabilities, and PID.
 //!
 //! Aligns with rhizoCrypt S16's manifest discovery pattern — a local,
-//! zero-network fallback when Songbird or mDNS is unavailable.
+//! zero-network fallback when mDNS or DNS SRV is unavailable.
 
 use std::path::{Path, PathBuf};
 

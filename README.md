@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C280%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C304%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
@@ -73,7 +73,7 @@ loamSpine/
 │   ├── loam-spine-core/       # Core library
 │   │   └── src/
 │   │       ├── backup/            # Backup/restore
-│   │       ├── capabilities.rs    # Capability definitions
+│   │       ├── capabilities/       # Capability definitions (identifiers, types, parser)
 │   │       ├── certificate/       # Loam Certificates (types, lifecycle, metadata, provenance, escrow, usage)
 │   │       ├── config.rs          # Configuration
 │   │       ├── discovery/         # Capability registry + DynSigner/DynVerifier
@@ -83,7 +83,7 @@ loamSpine/
 │   │       ├── manager/           # Certificate manager
 │   │       ├── niche.rs            # Primal self-knowledge (capabilities, deps, costs)
 │   │       ├── primal_names.rs    # Centralized primal identifier constants
-│   │       ├── neural_api.rs      # NeuralAPI / biomeOS integration
+│   │       ├── neural_api/         # NeuralAPI / biomeOS integration (socket, MCP, identity)
 │   │       ├── proof.rs           # Inclusion + ownership proofs (Merkle/Blake3)
 │   │       ├── resilience.rs      # Circuit breaker + retry policy (lock-free)
 │   │       ├── service/           # Modular service layer
@@ -153,7 +153,12 @@ loamSpine/
 | **Anchor** | `anchor.publish` | Record public chain anchor receipt |
 | **Anchor** | `anchor.verify` | Verify anchor against spine state |
 | **Health** | `health.check` | Service status |
-| **Meta** | `capability.list` | List primal capabilities |
+| **Health** | `health.liveness` | Liveness probe (`{"status":"alive"}`) |
+| **Health** | `health.readiness` | Readiness probe |
+| **Meta** | `capabilities.list` | List primal capabilities (Wire Standard L3) |
+| **Meta** | `identity.get` | Primal identity (name, version, domain, license) |
+| **MCP** | `tools.list` | MCP tool discovery |
+| **MCP** | `tools.call` | MCP tool invocation |
 
 ---
 
@@ -176,13 +181,13 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,280 passing (all concurrent, ~3s) |
+| **Tests** | 1,304 passing (all concurrent, ~3s) |
 | **Coverage** | 92% line / 87% region / 93% function (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Lint Exceptions** | 3 `#[allow]` in production (2× tarpc macro, 1× feature-conditional async); tests all `#[expect(reason)]` |
-| **Max File Size** | 899 lines (all 136 files < 1000) |
-| **Source Files** | 136 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
+| **Max File Size** | 900 lines (all 152 files < 1000) |
+| **Source Files** | 152 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

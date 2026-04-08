@@ -26,12 +26,12 @@ to commit, verify, or query permanent records.
 - **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,280 (all concurrent, ~3s)
+- **Tests:** 1,304 (all concurrent, ~3s)
 - **Coverage:** 92% line / 87% region / 93% function
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
 - **Version:** 0.9.16
-- **Source files:** 136 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Source files:** 152 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 
 ## Key Capabilities (JSON-RPC methods)
 
@@ -43,8 +43,10 @@ to commit, verify, or query permanent records.
 - `anchor.publish`, `anchor.verify` — Public chain anchoring for external provenance
 - `proof.generate_inclusion` — Merkle inclusion proofs
 - `permanent-storage.commitSession`, `permanent-storage.verifyCommit`, `permanent-storage.getCommit` — Compat layer
-- `health.check` — Health probes
-- `capability.list` — Capability-based discovery
+- `health.check`, `health.liveness`, `health.readiness` — Health probes
+- `capabilities.list` — Capability-based discovery (Wire Standard L3)
+- `identity.get` — Primal identity
+- `tools.list`, `tools.call` — MCP tool discovery and invocation
 
 ## What This Does NOT Do
 
@@ -52,7 +54,7 @@ to commit, verify, or query permanent records.
 - Does not manage attribution braids (that's sweetGrass)
 - Does not provide cryptographic primitives (that's BearDog)
 - Does not discover hardware (that's toadStool)
-- Does not manage networking or TLS (that's Songbird)
+- Does not manage networking or TLS (that's Songbird / BearDog via Tower Atomic)
 - Does not orchestrate processes (that's biomeOS)
 
 ## Related Repositories
