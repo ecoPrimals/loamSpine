@@ -3,6 +3,8 @@
 //! Tests for entry types.
 
 use super::*;
+use crate::types::Did;
+use proptest::prelude::*;
 
 #[test]
 fn entry_creation() {
@@ -548,3 +550,85 @@ fn public_chain_anchor_not_allowed_in_waypoint() {
     };
     assert!(!ty.allowed_in_waypoint());
 }
+
+fn arb_did() -> impl Strategy<Value = Did> {
+    "[a-z]{3,8}".prop_map(|s| Did::new(format!("did:key:z6Mk{s}")))
+}
+
+fn arb_entry_type() -> impl Strategy<Value = EntryType> {
+    prop_oneof![
+        arb_did().prop_map(|owner| EntryType::Genesis {
+            spine_id: SpineId::now_v7(),
+            owner,
+            config: SpineConfig::default(),
+        }),
+        (".*{0,40}", ".*{0,40}")
+            .prop_map(|(f, v)| EntryType::MetadataUpdate { field: f, value: v }),
+        Just(EntryType::SpineSealed { reason: None }),
+        any::<u64>().prop_map(|vc| EntryType::SessionCommit {
+            session_id: SessionId::now_v7(),
+            merkle_root: ContentHash::default(),
+            vertex_count: vc,
+            committer: Did::new("did:key:z6MkTest"),
+        }),
+        Just(EntryType::DataAnchor {
+            data_hash: ContentHash::default(),
+            mime_type: Some("application/octet-stream".into()),
+            size: 1024,
+        }),
+    ]
+}
+
+proptest! {
+    #[test]
+    fn entry_hash_is_deterministic(idx in 0u64..1000) {
+        let entry = Entry::new(
+            idx,
+            None,
+            Did::new("did:key:z6MkTest"),
+            EntryType::DataAnchor {
+                data_hash: ContentHash::default(),
+                mime_type: None,
+                size: idx,
+            },
+        );
+        let h1 = entry.compute_hash().unwrap();
+        let h2 = entry.compute_hash().unwrap();
+        prop_assert_eq!(h1, h2, "same entry must always hash identically");
+    }
+
+    #[test]
+    fn entry_hash_changes_with_index(a in 0u64..500, b in 500u64..1000) {
+        let base_type = EntryType::DataAnchor {
+            data_hash: ContentHash::default(),
+            mime_type: None,
+            size: 42,
+        };
+        let e1 = Entry::new(a, None, Did::new("did:key:z6MkA"), base_type.clone());
+        let e2 = Entry::new(b, None, Did::new("did:key:z6MkA"), base_type);
+        let h1 = e1.compute_hash().unwrap();
+        let h2 = e2.compute_hash().unwrap();
+        prop_assert_ne!(h1, h2, "different indices must produce different hashes");
+    }
+
+    #[test]
+    fn genesis_entry_is_always_index_zero(did in arb_did()) {
+        let entry = Entry::genesis(did, SpineId::now_v7(), SpineConfig::default());
+        prop_assert_eq!(entry.index, 0);
+        prop_assert!(entry.is_genesis());
+        prop_assert!(entry.previous.is_none());
+    }
+
+    #[test]
+    fn entry_canonical_bytes_never_panics(et in arb_entry_type()) {
+        let entry = Entry::new(0, None, Did::new("did:key:z6MkTest"), et);
+        let result = entry.to_canonical_bytes();
+        prop_assert!(result.is_ok());
+    }
+
+    #[test]
+    fn entry_domain_never_empty(et in arb_entry_type()) {
+        prop_assert!(!et.domain().is_empty());
+    }
+}
+

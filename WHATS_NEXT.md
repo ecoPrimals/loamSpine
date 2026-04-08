@@ -245,6 +245,19 @@
 - **Socket cleanup on shutdown**: Both primary socket and legacy symlink removed on graceful exit per spec requirement.
 - **Tests**: 1,304 → **1,316** (+12 new: domain naming, legacy symlink, security config validation). Zero clippy warnings.
 
+## v0.9.16 Deep Debt Smart Refactoring Sprint 3 (April 8, 2026)
+
+- **`certificate_tests.rs` split** (1,060 → 535 + 525): Only file over 1,000 lines split by domain — core CRUD/provenance tests vs escrow/expiry/return edge cases.
+- **6 production file test extractions**: Inline `mod tests {}` blocks extracted to dedicated `*_tests.rs` files via `#[path]`:
+  - `service/waypoint.rs` (627 → 250 production)
+  - `service/infant_discovery.rs` (662 → 448 production)
+  - `constants/network.rs` (585 → 325 production)
+  - `trio_types.rs` (591 → 442 production)
+  - `types.rs` (568 → 380 production)
+  - `entry/mod.rs` (617 → 530 production, proptests merged into single test file)
+- **Max production file**: 711 lines (infant_discovery/mod.rs — tests already external).
+- **Source files**: 152 → **163**. **Tests**: 1,316 (unchanged). Zero clippy warnings.
+
 ## v0.9.16 Deep Debt Module Evolution (April 7, 2026)
 
 - **Smart module refactoring (6 large files)**: `types.rs` (819 lines) → `types/` directory (`mod.rs`, `anchor.rs`, `certificate.rs`, `permanent_storage.rs`, `tests.rs`). `error.rs` (777 lines) → `error/` directory (`mod.rs`, `ipc.rs`, `dispatch.rs`, `storage_ext.rs`, `tests.rs`). `neural_api.rs` (735 lines) → `neural_api/` directory (`mod.rs`, `socket.rs`, `mcp.rs`, `tests.rs`). `infant_discovery/mod.rs` → extracted `cache.rs` with `DiscoveryCache` struct. `constants/network.rs` → extracted `env_resolution.rs` for environment-reading facades. `sync/mod.rs` → extracted `streaming.rs` for NDJSON progress reporting.

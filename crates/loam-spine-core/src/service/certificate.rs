@@ -377,3 +377,7 @@ impl LoamSpineService {
 #[cfg(test)]
 #[path = "certificate_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "certificate_tests_escrow.rs"]
+mod tests_escrow;
