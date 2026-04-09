@@ -826,4 +826,42 @@ esac
     fn env_bins_dir_constant_defined() {
         assert_eq!(ENV_BINS_DIR, "LOAMSPINE_BINS_DIR");
     }
+
+    /// Directory exists but is not an executable file — `Command::output` should fail or return error.
+    #[test]
+    fn signer_creation_rejects_directory_path() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let result = CliSigner::new(tmp.path(), "any-key");
+        assert!(result.is_err());
+    }
+
+    /// `discover_binary_from` scans `signer` before `signing-service` when both exist.
+    #[cfg(unix)]
+    #[test]
+    fn discover_binary_prefers_signer_over_signing_service_in_bins_dir() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let signer_path = tmp.path().join("signer");
+        let svc_path = tmp.path().join("signing-service");
+        std::fs::write(&signer_path, "#!/bin/sh\nexit 0").expect("write signer");
+        std::fs::write(&svc_path, "#!/bin/sh\nexit 0").expect("write signing-service");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&signer_path, std::fs::Permissions::from_mode(0o755))
+                .expect("chmod signer");
+            std::fs::set_permissions(&svc_path, std::fs::Permissions::from_mode(0o755))
+                .expect("chmod signing-service");
+        }
+
+        let result =
+            CliSigner::discover_binary_from(None, Some(tmp.path().to_str().expect("utf8")));
+        assert_eq!(result.as_ref().expect("discovered").as_path(), signer_path);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn signer_creation_dev_null_is_not_a_valid_signing_cli() {
+        let result = CliSigner::new("/dev/null", "any-key-id");
+        assert!(result.is_err());
+    }
 }

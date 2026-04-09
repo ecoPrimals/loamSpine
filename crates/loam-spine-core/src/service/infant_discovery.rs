@@ -310,10 +310,9 @@ impl InfantDiscovery {
 
         #[cfg(feature = "mdns")]
         {
-            let result = tokio::task::spawn_blocking(|| {
-                mdns_discover_service_impl(DISCOVERY_SRV_QUERY)
-            })
-            .await;
+            let result =
+                tokio::task::spawn_blocking(|| mdns_discover_service_impl(DISCOVERY_SRV_QUERY))
+                    .await;
 
             match result {
                 Ok(Some(endpoint)) => return Some(endpoint),

@@ -185,14 +185,17 @@ async fn test_is_fresh_with_expired_service() {
 #[test]
 fn test_capability_to_srv_name() {
     assert_eq!(
-        capability_to_srv_name("cryptographic-signing"),
+        backends::capability_to_srv_name("cryptographic-signing"),
         "_signing._tcp.local"
     );
     assert_eq!(
-        capability_to_srv_name("content-storage"),
+        backends::capability_to_srv_name("content-storage"),
         "_storage._tcp.local"
     );
-    assert_eq!(capability_to_srv_name("simple"), "_simple._tcp.local");
+    assert_eq!(
+        backends::capability_to_srv_name("simple"),
+        "_simple._tcp.local"
+    );
 }
 
 #[test]
@@ -246,15 +249,15 @@ fn test_discovery_config_from_env_invalid_ttl_uses_default() {
 #[test]
 fn test_capability_to_srv_name_all_known_capabilities() {
     assert_eq!(
-        capability_to_srv_name("session-management"),
+        backends::capability_to_srv_name("session-management"),
         "_session._tcp.local"
     );
     assert_eq!(
-        capability_to_srv_name("compute-orchestration"),
+        backends::capability_to_srv_name("compute-orchestration"),
         "_compute._tcp.local"
     );
     assert_eq!(
-        capability_to_srv_name("service-discovery"),
+        backends::capability_to_srv_name("service-discovery"),
         "_discovery._tcp.local"
     );
 }
@@ -262,10 +265,13 @@ fn test_capability_to_srv_name_all_known_capabilities() {
 #[test]
 fn test_capability_to_srv_name_unknown_uses_last_segment() {
     assert_eq!(
-        capability_to_srv_name("custom-capability"),
+        backends::capability_to_srv_name("custom-capability"),
         "_capability._tcp.local"
     );
-    assert_eq!(capability_to_srv_name("single"), "_single._tcp.local");
+    assert_eq!(
+        backends::capability_to_srv_name("single"),
+        "_single._tcp.local"
+    );
 }
 
 #[tokio::test]

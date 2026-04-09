@@ -64,6 +64,19 @@ if its maintenance situation does not improve.
 
 ---
 
+## tarpc 0.37 / opentelemetry advisory
+
+| Field | Detail |
+|-------|--------|
+| **Current** | `tarpc = "0.37"` → transitive `tracing-opentelemetry` → `opentelemetry_sdk` |
+| **Advisory** | RUSTSEC-2026-0007 (`opentelemetry_sdk`). tarpc 0.37 unconditionally pulls `tracing-opentelemetry` which depends on the affected `opentelemetry_sdk` version. |
+| **Blocker** | Upstream tarpc must bump `tracing-opentelemetry` to a version that depends on a patched `opentelemetry_sdk`. No tarpc release yet addresses this. |
+| **Risk** | Low for loamSpine — we do not enable OpenTelemetry export. The SDK is a transitive dependency, not actively invoked. Advisory is ignored in `deny.toml`. |
+| **Mitigation** | Monitor tarpc releases. When tarpc 0.38+ ships with an updated `opentelemetry` stack, bump and remove the `deny.toml` ignore. |
+| **Priority** | Low — waiting on upstream. |
+
+---
+
 ## Dependency Audit Checklist
 
 Run periodically:

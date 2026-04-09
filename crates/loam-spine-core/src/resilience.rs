@@ -385,11 +385,9 @@ impl ResilientAdapter {
                     let transient = is_transient(&e);
                     self.circuit_breaker.record_failure();
 
-                    let spine_err = LoamSpineError::Network(err_msg.clone());
-                    last_err = Some(spine_err);
-
                     if !transient {
                         tracing::debug!("permanent failure (no retry): {err_msg}");
+                        last_err = Some(LoamSpineError::Network(err_msg));
                         break;
                     }
 
@@ -401,8 +399,10 @@ impl ResilientAdapter {
                             delay_ms = delay.as_millis(),
                             "retrying after transient failure: {err_msg}"
                         );
+                        last_err = Some(LoamSpineError::Network(err_msg));
                         tokio::time::sleep(delay).await;
                     } else {
+                        last_err = Some(LoamSpineError::Network(err_msg));
                         break;
                     }
                 }

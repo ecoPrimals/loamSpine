@@ -1281,6 +1281,7 @@ dependencies = [
  "blake3",
  "futures",
  "loam-spine-core",
+ "portpicker",
  "serde",
  "serde_json",
  "tarpc",

@@ -11,9 +11,9 @@
 mod server;
 mod wire;
 
-pub use server::{run_jsonrpc_server, ServerHandle};
+pub use server::{ServerHandle, run_jsonrpc_server};
 #[cfg(unix)]
-pub use server::{run_jsonrpc_uds_server, UdsServerHandle};
+pub use server::{UdsServerHandle, run_jsonrpc_uds_server};
 pub use wire::{JsonRpcError, JsonRpcRequest, JsonRpcResponse};
 
 // Re-exports for internal use by sibling test modules
@@ -117,7 +117,11 @@ impl LoamSpineJsonRpc {
         method: &'a str,
         params: serde_json::Value,
     ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<serde_json::Value, wire::JsonRpcError>> + Send + 'a>,
+        Box<
+            dyn std::future::Future<Output = Result<serde_json::Value, wire::JsonRpcError>>
+                + Send
+                + 'a,
+        >,
     > {
         Box::pin(self.dispatch_inner(method, params))
     }
@@ -224,7 +228,9 @@ fn app_err(e: impl std::fmt::Display) -> wire::JsonRpcError {
     }
 }
 
-fn deser<T: serde::de::DeserializeOwned>(params: serde_json::Value) -> Result<T, wire::JsonRpcError> {
+fn deser<T: serde::de::DeserializeOwned>(
+    params: serde_json::Value,
+) -> Result<T, wire::JsonRpcError> {
     serde_json::from_value(params).map_err(|e| wire::JsonRpcError {
         code: INVALID_PARAMS,
         message: format!("invalid params: {e}"),

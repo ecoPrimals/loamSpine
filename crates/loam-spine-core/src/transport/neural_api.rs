@@ -345,6 +345,10 @@ fn urlencoding_encode(input: &str) -> String {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "tests use unwrap/expect for conciseness"
+)]
 #[path = "neural_api_tests.rs"]
 mod tests;

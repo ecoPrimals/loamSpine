@@ -406,9 +406,15 @@ async fn capability_list_method() {
     assert_eq!(value["primal"], "loamspine");
     assert!(value["version"].is_string());
     assert!(value["capabilities"].is_array());
-    assert!(value["methods"].is_array(), "methods must be flat string array per Wire Standard L2");
+    assert!(
+        value["methods"].is_array(),
+        "methods must be flat string array per Wire Standard L2"
+    );
     let methods = value["methods"].as_array().unwrap();
-    assert!(methods.iter().all(serde_json::Value::is_string), "all methods must be strings");
+    assert!(
+        methods.iter().all(serde_json::Value::is_string),
+        "all methods must be strings"
+    );
     let method_strs: Vec<&str> = methods.iter().filter_map(|v| v.as_str()).collect();
     assert!(method_strs.contains(&"spine.create"));
     assert!(method_strs.contains(&"identity.get"));
@@ -421,9 +427,7 @@ async fn capability_list_method() {
 #[tokio::test]
 async fn identity_get_method() {
     let server = LoamSpineJsonRpc::default_server();
-    let value: serde_json::Value = rpc_call_no_params(&server, "identity.get")
-        .await
-        .unwrap();
+    let value: serde_json::Value = rpc_call_no_params(&server, "identity.get").await.unwrap();
     assert_eq!(value["primal"], "loamspine");
     assert!(value["version"].is_string());
     assert_eq!(value["domain"], "permanence");

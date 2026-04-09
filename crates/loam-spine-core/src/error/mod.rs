@@ -279,7 +279,7 @@ pub fn extract_rpc_result_typed<T: serde::de::DeserializeOwned>(
     response: &serde_json::Value,
 ) -> LoamSpineResult<T> {
     let result = extract_rpc_result(response)?;
-    serde_json::from_value(result.clone()).map_err(|e| {
+    T::deserialize(result).map_err(|e| {
         LoamSpineError::ipc(
             IpcErrorPhase::InvalidJson,
             format!("result deserialization failed: {e}"),

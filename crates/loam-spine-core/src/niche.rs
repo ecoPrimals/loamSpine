@@ -122,6 +122,7 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
 /// LoamSpine discovers these at runtime via capability-based discovery;
 /// it never hardcodes which primal provides them.
 pub const CONSUMED_CAPABILITIES: &[&str] = &[
+    crate::capabilities::identifiers::external::BTSP,
     crate::capabilities::identifiers::external::SIGNING,
     crate::capabilities::identifiers::external::STORAGE,
     crate::capabilities::identifiers::external::DISCOVERY,
@@ -137,6 +138,11 @@ pub const CONSUMED_CAPABILITIES: &[&str] = &[
 /// `required = true` means LoamSpine cannot function without it.
 /// `required = false` means graceful degradation is supported.
 pub const DEPENDENCIES: &[(&str, bool, &str)] = &[
+    (
+        crate::capabilities::identifiers::external::BTSP,
+        false,
+        "BTSP handshake-as-a-service (required when FAMILY_ID is set; development mode skips)",
+    ),
     (
         crate::capabilities::identifiers::external::SIGNING,
         false,

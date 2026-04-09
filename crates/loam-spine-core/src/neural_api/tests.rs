@@ -216,8 +216,14 @@ fn capability_list_includes_all_expected() {
     assert!(method_strs.contains(&"capabilities.list"));
     assert!(method_strs.contains(&"health.liveness"));
 
-    assert!(list.get("provided_capabilities").is_some(), "Wire Standard L3");
-    assert!(list.get("consumed_capabilities").is_some(), "Wire Standard L3");
+    assert!(
+        list.get("provided_capabilities").is_some(),
+        "Wire Standard L3"
+    );
+    assert!(
+        list.get("consumed_capabilities").is_some(),
+        "Wire Standard L3"
+    );
 }
 
 #[test]
@@ -446,6 +452,31 @@ async fn deregister_handles_malformed_response() {
     assert!(
         result.is_ok(),
         "deregister should succeed even on malformed response"
+    );
+}
+
+/// Peer hangs up after reading the request but before sending the 4-byte response length.
+#[tokio::test]
+async fn deregister_handles_peer_close_before_response_length() {
+    let tmp = tempfile::tempdir().unwrap();
+    let sock = tmp.path().join("neural-api-dereg-hangup.sock");
+    let listener = tokio::net::UnixListener::bind(&sock).unwrap();
+    let handle = tokio::spawn(async move {
+        if let Ok((stream, _)) = listener.accept().await {
+            let mut stream = stream;
+            let mut len_buf = [0u8; 4];
+            let _ = stream.read_exact(&mut len_buf).await;
+            let req_len = u32::from_be_bytes(len_buf) as usize;
+            let mut req_buf = vec![0u8; req_len];
+            let _ = stream.read_exact(&mut req_buf).await;
+            drop(stream);
+        }
+    });
+    let result = deregister_at_socket(&sock).await;
+    handle.abort();
+    assert!(
+        result.is_ok(),
+        "deregister should tolerate hang-up before response length"
     );
 }
 

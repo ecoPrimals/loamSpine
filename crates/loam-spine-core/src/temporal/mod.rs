@@ -62,3 +62,90 @@ pub struct Attestation {
     /// When this agent signed
     pub timestamp: std::time::SystemTime,
 }
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "temporal mod tests use unwrap for assertion clarity"
+)]
+mod tests {
+    use super::*;
+    use crate::types::Signature;
+    use std::time::SystemTime;
+
+    fn sample_attestation() -> Attestation {
+        Attestation {
+            agent: "did:example:agent123".into(),
+            signature: Signature::from_vec(vec![0xAB; 64]),
+            timestamp: SystemTime::UNIX_EPOCH,
+        }
+    }
+
+    fn sample_provenance() -> EphemeralProvenance {
+        EphemeralProvenance {
+            session_id: "ses_abc".into(),
+            merkle_root: [0x42; 32],
+            attestations: vec![sample_attestation()],
+            dehydration_timestamp: SystemTime::UNIX_EPOCH,
+        }
+    }
+
+    #[test]
+    fn attestation_serde_roundtrip() {
+        let att = sample_attestation();
+        let json = serde_json::to_string(&att).unwrap();
+        let back: Attestation = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.agent, att.agent);
+        assert_eq!(back.timestamp, att.timestamp);
+    }
+
+    #[test]
+    fn ephemeral_provenance_serde_roundtrip() {
+        let prov = sample_provenance();
+        let json = serde_json::to_string(&prov).unwrap();
+        let back: EphemeralProvenance = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.session_id, prov.session_id);
+        assert_eq!(back.merkle_root, prov.merkle_root);
+        assert_eq!(back.attestations.len(), 1);
+    }
+
+    #[test]
+    fn ephemeral_provenance_clone() {
+        let prov = sample_provenance();
+        let clone = prov.clone();
+        assert_eq!(clone.session_id, prov.session_id);
+        assert_eq!(clone.merkle_root, prov.merkle_root);
+    }
+
+    #[test]
+    fn ephemeral_provenance_debug() {
+        let prov = sample_provenance();
+        let debug = format!("{prov:?}");
+        assert!(debug.contains("ses_abc"));
+    }
+
+    #[test]
+    fn attestation_empty_signature() {
+        let att = Attestation {
+            agent: "did:example:none".into(),
+            signature: Signature::empty(),
+            timestamp: SystemTime::UNIX_EPOCH,
+        };
+        let json = serde_json::to_string(&att).unwrap();
+        let back: Attestation = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.agent, "did:example:none");
+    }
+
+    #[test]
+    fn provenance_multiple_attestations() {
+        let prov = EphemeralProvenance {
+            session_id: "multi".into(),
+            merkle_root: [0xFF; 32],
+            attestations: vec![sample_attestation(), sample_attestation()],
+            dehydration_timestamp: SystemTime::UNIX_EPOCH,
+        };
+        let json = serde_json::to_string(&prov).unwrap();
+        let back: EphemeralProvenance = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.attestations.len(), 2);
+    }
+}

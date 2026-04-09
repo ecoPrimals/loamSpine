@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::collections::HashMap;
+
 use super::*;
 
 #[test]
@@ -14,9 +16,9 @@ fn infant_discovery_default() {
     let infant = InfantDiscovery::default();
     assert!(infant.capabilities().len() >= 3);
     assert!(
-        infant.capabilities().contains(
-            &crate::capabilities::identifiers::loamspine::PERMANENT_LEDGER.to_string()
-        )
+        infant
+            .capabilities()
+            .contains(&crate::capabilities::identifiers::loamspine::PERMANENT_LEDGER.to_string())
     );
 }
 
@@ -99,9 +101,7 @@ async fn discover_discovery_service_unreachable_endpoint_returns_error() {
     let err = result.unwrap_err();
     let err_str = err.to_string();
     assert!(
-        err_str.contains("unavailable")
-            || err_str.contains("registry")
-            || err_str.contains("127"),
+        err_str.contains("unavailable") || err_str.contains("registry") || err_str.contains("127"),
         "Expected connection error: {err_str}",
     );
 }
@@ -213,4 +213,41 @@ fn environment_discovery_empty_string_skipped() {
     let infant = InfantDiscovery::new(vec!["test".to_string()]);
     let result = infant.try_environment_discovery_with(Some(""));
     assert!(result.is_none());
+}
+
+#[tokio::test]
+async fn discover_discovery_service_uses_env_overrides_map() {
+    let infant = InfantDiscovery::new(vec!["test".to_string()]);
+    let mut env = HashMap::new();
+    env.insert(
+        "DISCOVERY_ENDPOINT".to_string(),
+        "http://127.0.0.1:1".to_string(),
+    );
+    let result = infant.discover_discovery_service_with_env(None, &env).await;
+    assert!(result.is_err());
+    let err_str = result.unwrap_err().to_string();
+    assert!(
+        err_str.contains("127.0.0.1") || err_str.contains(":1"),
+        "expected injected endpoint in error: {err_str}"
+    );
+}
+
+/// `Some("")` skips the env step entirely — `DISCOVERY_ENDPOINT` from `env_overrides` is not merged.
+#[tokio::test]
+async fn discover_discovery_service_empty_override_skips_injected_map() {
+    let infant = InfantDiscovery::new(vec!["test".to_string()]);
+    let mut env = HashMap::new();
+    env.insert(
+        "DISCOVERY_ENDPOINT".to_string(),
+        "http://127.0.0.1:1".to_string(),
+    );
+    let result = infant
+        .discover_discovery_service_with_env(Some(""), &env)
+        .await;
+    assert!(result.is_err());
+    let err_str = result.unwrap_err().to_string();
+    assert!(
+        !err_str.contains("127.0.0.1:1"),
+        "injected :1 endpoint must not be used when override is empty: {err_str}"
+    );
 }

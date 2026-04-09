@@ -46,6 +46,7 @@
 //! # }
 //! ```
 
+mod backends;
 mod cache;
 
 use std::collections::HashMap;
@@ -62,8 +63,6 @@ use hickory_resolver::{
 };
 use tracing::{debug, info, warn};
 
-#[cfg(any(feature = "dns-srv", feature = "mdns", test))]
-use crate::capabilities::identifiers::external;
 #[cfg(any(feature = "dns-srv", feature = "mdns"))]
 use crate::constants::HTTPS_DEFAULT_PORT;
 
@@ -366,7 +365,7 @@ impl InfantDiscovery {
 
         // Convert capability to DNS SRV service name
         // "cryptographic-signing" -> "_signing._tcp.local"
-        let service_name = capability_to_srv_name(capability);
+        let service_name = backends::capability_to_srv_name(capability);
 
         debug!("Querying DNS SRV for: {}", service_name);
 
@@ -511,12 +510,12 @@ impl InfantDiscovery {
 
         #[cfg(feature = "mdns")]
         {
-            let service_name = capability_to_srv_name(capability);
+            let service_name = backends::capability_to_srv_name(capability);
             let capability = capability.to_string();
             let cache_ttl_secs = self.config.cache_ttl_secs;
 
             let services = tokio::task::spawn_blocking(move || {
-                mdns_discover_impl(&service_name, &capability, cache_ttl_secs)
+                backends::mdns_discover_impl(&service_name, &capability, cache_ttl_secs)
             })
             .await;
 
@@ -554,146 +553,6 @@ impl InfantDiscovery {
     pub async fn all_discovered(&self) -> HashMap<String, Vec<DiscoveredService>> {
         self.cache.all().await
     }
-}
-
-/// Real mDNS discovery implementation (runs in spawn_blocking).
-///
-/// Uses the mdns crate to query for DNS-SD services, parses SRV records,
-/// and converts results to DiscoveredService. All errors are handled
-/// gracefully (returns empty vec, logs warnings).
-#[cfg(feature = "mdns")]
-fn mdns_discover_impl(
-    service_type: &str,
-    capability: &str,
-    cache_ttl_secs: u64,
-) -> Vec<DiscoveredService> {
-    use std::time::Instant;
-
-    let discovery = match mdns::discover::all(service_type, Duration::from_secs(2)) {
-        Ok(d) => d,
-        Err(e) => {
-            warn!("mDNS discovery failed for {service_type}: {e}");
-            return vec![];
-        }
-    };
-
-    let stream = discovery.listen();
-
-    let services = async_std::task::block_on(async move {
-        use futures_util::{pin_mut, stream::StreamExt};
-
-        let mut services = Vec::new();
-        pin_mut!(stream);
-
-        let deadline = Instant::now() + Duration::from_secs(2);
-
-        loop {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                break;
-            }
-
-            let next = stream.next();
-            match async_std::future::timeout(remaining, next).await {
-                Ok(Some(Ok(response))) => {
-                    if let Some(service) =
-                        parse_mdns_response(&response, capability, cache_ttl_secs)
-                    {
-                        services.push(service);
-                    }
-                }
-                Ok(Some(Err(e))) => {
-                    warn!("mDNS response error: {e}");
-                }
-                Ok(None) | Err(_) => break,
-            }
-        }
-
-        services
-    });
-
-    if services.is_empty() {
-        debug!("No mDNS services found for {service_type}");
-    } else {
-        info!(
-            "Found {} services via mDNS for '{capability}'",
-            services.len()
-        );
-    }
-
-    services
-}
-
-/// Parse a single mDNS response into a DiscoveredService.
-///
-/// Extracts SRV records for host/port and A/AAAA for address resolution.
-/// Returns None if the response cannot be parsed into a valid service.
-#[cfg(feature = "mdns")]
-fn parse_mdns_response(
-    response: &mdns::Response,
-    capability: &str,
-    cache_ttl_secs: u64,
-) -> Option<DiscoveredService> {
-    use mdns::RecordKind;
-
-    let port = response.port()?;
-    let endpoint = if let Some(addr) = response.ip_addr() {
-        if port == HTTPS_DEFAULT_PORT {
-            format!("https://{addr}")
-        } else {
-            format!("https://{addr}:{port}")
-        }
-    } else {
-        let target = response.records().find_map(|r| match &r.kind {
-            RecordKind::SRV { target, .. } => Some(target.clone()),
-            _ => None,
-        })?;
-        if port == HTTPS_DEFAULT_PORT {
-            format!("https://{target}")
-        } else {
-            format!("https://{target}:{port}")
-        }
-    };
-
-    let id = response.ip_addr().map_or_else(
-        || format!("mdns-{capability}-{port}"),
-        |a| format!("mdns-{a}:{port}"),
-    );
-
-    Some(DiscoveredService {
-        id,
-        capability: capability.to_string(),
-        endpoint,
-        discovered_via: "mdns".to_string(),
-        metadata: HashMap::new(),
-        health: ServiceHealth::Unknown,
-        discovered_at: SystemTime::now(),
-        ttl_secs: cache_ttl_secs,
-    })
-}
-
-/// Convert capability to DNS SRV service name (RFC 2782)
-///
-/// Maps capability identifiers from [`crate::capabilities::identifiers::external`]
-/// to their corresponding SRV record names.
-///
-/// Examples:
-/// - "cryptographic-signing" -> "_signing._tcp.local"
-/// - "content-storage" -> "_storage._tcp.local"
-/// - "service-discovery" -> "_discovery._tcp.local"
-#[cfg(any(feature = "dns-srv", feature = "mdns", test))]
-fn capability_to_srv_name(capability: &str) -> String {
-    let service_part = match capability {
-        external::SIGNING => "signing",
-        external::STORAGE => "storage",
-        external::DISCOVERY => "discovery",
-        external::SESSION_MANAGEMENT => "session",
-        external::COMPUTE => "compute",
-        external::ATTESTATION => "attestation",
-        other => other.split('-').next_back().unwrap_or("service"),
-    };
-
-    format!("_{service_part}._tcp.local")
 }
 
 #[cfg(test)]

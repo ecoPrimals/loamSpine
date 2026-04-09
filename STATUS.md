@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 8, 2026
+**Last Updated**: April 9, 2026
 
 ---
 
@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,316 |
+| Tests | — | 1,373 |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`) |
-| Coverage (llvm-cov) | 90%+ | 91.96% line / 87.07% region / 93.39% function |
+| Coverage (llvm-cov) | 90%+ | 92.00% line / 89.33% region / 93.32% function |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 1000 lines | 916 max (all 163 files under 1000); 711 max production |
-| Source files | — | 163 `.rs` files |
+| Max file size | < 1000 lines | 899 max (all 167 files under 1000) |
+| Source files | — | 167 `.rs` files |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | 4 (2× `clippy::wildcard_imports` in tarpc server/service — required by macro; 2× `clippy::unused_async` in infant_discovery — feature-conditional for dns-srv/mdns) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -67,7 +67,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 163 source files |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 166 source files |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -75,9 +75,30 @@ This document tracks implementation progress against the specification suite in 
 | Zero-copy | PASS | `Did` → `Arc<str>`, `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow`, `capability_list()`/`mcp_tools_list()` → `OnceLock<Value>`, `HealthStatus` version/caps cached via `OnceLock`, `Bytes` for payloads, `[u8; 24]` stack keys, `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | Socket Naming | PASS | Domain-based `permanence.sock` per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3. `BIOMEOS_INSECURE` guard. Legacy `loamspine.sock` symlink. Cleanup on shutdown. |
-| File size limit | PASS | All 163 files under 1000 lines (max: 916 in `tarpc_server_tests.rs`). |
+| BTSP Phase 1 | PASS | Family-scoped socket naming (`permanence-{family_id}.sock`), `BIOMEOS_INSECURE` guard. |
+| BTSP Phase 2 | PASS | Handshake-as-a-service via BearDog JSON-RPC. UDS listener gates on BTSP when `FAMILY_ID` is set. 4-step handshake (ClientHello/ServerHello/ChallengeResponse/HandshakeComplete). `BTSP_NULL` cipher only (Phase 3 encryption pending BearDog session key propagation). |
+| File size limit | PASS | All source files under 1000 lines. |
 
 ---
+
+## v0.9.16 Deep Debt Cleanup & Evolution Pass (April 9, 2026)
+
+- **Smart refactor `infant_discovery/mod.rs`**: Extracted mDNS backend functions (`mdns_discover_impl`, `parse_mdns_response`, `capability_to_srv_name`) into `backends.rs` (158 lines). Module reduced 711→570 lines. All production files now under 700 lines.
+- **Zero-copy JSON-RPC extraction**: Eliminated `.clone()` in `extract_rpc_result_typed` and `parse_beardog_response` — replaced `serde_json::from_value(result.clone())` with borrowing `T::deserialize(result)`. Zero allocation on hot JSON-RPC deserialization path.
+- **Resilience retry path**: Removed `err_msg.clone()` from retry loop — log then move instead of clone-for-log.
+- **tarpc/opentelemetry advisory documented**: Added `RUSTSEC-2026-0007` tracking to `DEPENDENCY_EVOLUTION.md` with upstream blocker and mitigation plan.
+- **Coverage expansion**: 10 new tests — 6 for `EphemeralProvenance`/`Attestation` serde roundtrips (temporal module previously uncovered), 4 for `StorageResultExt` trait (error module previously untested directly).
+- **Tests**: 1,363 → **1,373**. Source files: 166 → **167**. Zero clippy warnings. Zero doc warnings. All files under 1000 lines.
+
+## v0.9.16 BTSP Phase 2 Handshake Integration (April 9, 2026)
+
+- **BTSP handshake-as-a-service**: New `btsp` module in `loam-spine-core` implements the consumer side of BTSP Phase 2. LoamSpine delegates all cryptographic operations to BearDog via JSON-RPC (`btsp.session.create`, `btsp.session.verify`, `btsp.negotiate`). Zero crypto dependencies added.
+- **UDS listener gated**: `run_jsonrpc_uds_server` accepts `Option<BtspHandshakeConfig>`. When `BIOMEOS_FAMILY_ID` is set (non-default), every incoming UDS connection must complete the 4-step BTSP handshake before JSON-RPC methods are exposed. Without `FAMILY_ID`, behavior is identical to pre-BTSP (raw newline-delimited JSON-RPC).
+- **Wire format**: 4-byte big-endian length-prefixed frames per `BTSP_PROTOCOL_STANDARD.md`. Wire types: `ClientHello`, `ServerHello`, `ChallengeResponse`, `HandshakeComplete`, `HandshakeError`.
+- **Capability-discovered BearDog**: Socket path resolved via `BEARDOG_SOCKET` env, `$BIOMEOS_SOCKET_DIR/beardog-{family_id}.sock`, or platform fallback. No primal names hardcoded.
+- **Consumed capability registered**: `"btsp"` added to `CONSUMED_CAPABILITIES`, `DEPENDENCIES`, `capabilities::identifiers::external`, and `primal-capabilities.toml`.
+- **28 new tests**: Pure function tests (config derivation, socket resolution, frame I/O), wire type serde roundtrips, mock BearDog integration tests (success, verify rejection, cipher rejection, BearDog unavailable, version mismatch).
+- **Resolves**: primalSpring audit BTSP debt ("BTSP handshake stub always returns Err — wired as a function but not connected to BearDog IPC yet").
 
 ## v0.9.16 Deep Debt Module Evolution (April 7, 2026)
 

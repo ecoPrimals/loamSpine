@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C316%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C373%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
@@ -73,6 +73,7 @@ loamSpine/
 │   ├── loam-spine-core/       # Core library
 │   │   └── src/
 │   │       ├── backup/            # Backup/restore
+│   │       ├── btsp.rs            # BTSP Phase 2 handshake (BearDog IPC, 4-step auth)
 │   │       ├── capabilities/       # Capability definitions (identifiers, types, parser)
 │   │       ├── certificate/       # Loam Certificates (types, lifecycle, metadata, provenance, escrow, usage)
 │   │       ├── config.rs          # Configuration
@@ -191,13 +192,13 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,316 passing (all concurrent, ~3s) |
-| **Coverage** | 92% line / 87% region / 93% function (llvm-cov) |
+| **Tests** | 1,373 passing (all concurrent, ~3s) |
+| **Coverage** | 92% line / 89% region / 93% function (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
-| **Max File Size** | 916 lines (all 163 files < 1000); 711 max production |
-| **Source Files** | 163 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Max File Size** | 899 lines (all 167 files < 1000); 696 max production |
+| **Source Files** | 167 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

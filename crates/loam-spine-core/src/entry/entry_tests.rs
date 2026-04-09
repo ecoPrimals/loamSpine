@@ -631,4 +631,3 @@ proptest! {
         prop_assert!(!et.domain().is_empty());
     }
 }
-

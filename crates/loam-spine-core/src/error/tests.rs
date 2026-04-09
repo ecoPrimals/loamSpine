@@ -61,9 +61,7 @@ fn is_recoverable_ipc_phases() {
     assert!(LoamSpineError::ipc(IpcErrorPhase::HttpStatus(503), "unavail").is_recoverable());
     assert!(!LoamSpineError::ipc(IpcErrorPhase::HttpStatus(404), "not found").is_recoverable());
     assert!(!LoamSpineError::ipc(IpcErrorPhase::NoResult, "missing").is_recoverable());
-    assert!(
-        !LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32601), "method").is_recoverable()
-    );
+    assert!(!LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32601), "method").is_recoverable());
     assert!(!LoamSpineError::ipc(IpcErrorPhase::InvalidJson, "parse").is_recoverable());
 }
 
@@ -78,12 +76,10 @@ fn is_recoverable_other_variants() {
 #[test]
 fn is_method_not_found() {
     assert!(
-        LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32601), "not found")
-            .is_method_not_found()
+        LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32601), "not found").is_method_not_found()
     );
     assert!(
-        !LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32600), "other")
-            .is_method_not_found()
+        !LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32600), "other").is_method_not_found()
     );
     assert!(!LoamSpineError::ipc(IpcErrorPhase::Connect, "timeout").is_method_not_found());
     assert!(!LoamSpineError::Network("err".into()).is_method_not_found());
@@ -168,8 +164,7 @@ fn is_application_error_phases() {
             .is_application_error()
     );
     assert!(
-        LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32000), "app err")
-            .is_application_error()
+        LoamSpineError::ipc(IpcErrorPhase::JsonRpcError(-32000), "app err").is_application_error()
     );
     assert!(!LoamSpineError::ipc(IpcErrorPhase::Connect, "refused").is_application_error());
     assert!(!LoamSpineError::ipc(IpcErrorPhase::InvalidJson, "parse").is_application_error());
@@ -299,5 +294,38 @@ mod proptests {
             let err = outcome.into_result().unwrap_err();
             prop_assert!(err.is_application_error());
         }
+    }
+}
+
+mod storage_ext_tests {
+    use super::*;
+    use crate::error::StorageResultExt;
+
+    #[test]
+    fn storage_err_converts_ok() {
+        let r: Result<i32, String> = Ok(42);
+        assert_eq!(r.storage_err().unwrap(), 42);
+    }
+
+    #[test]
+    fn storage_err_converts_error() {
+        let r: Result<i32, String> = Err("disk full".into());
+        let err = r.storage_err().unwrap_err();
+        assert!(matches!(err, LoamSpineError::Storage(msg) if msg == "disk full"));
+    }
+
+    #[test]
+    fn storage_ctx_adds_context() {
+        let r: Result<(), &str> = Err("permission denied");
+        let err = r.storage_ctx("write entry").unwrap_err();
+        assert!(
+            matches!(err, LoamSpineError::Storage(msg) if msg == "write entry: permission denied")
+        );
+    }
+
+    #[test]
+    fn storage_ctx_ok_passes_through() {
+        let r: Result<&str, String> = Ok("data");
+        assert_eq!(r.storage_ctx("ctx").unwrap(), "data");
     }
 }

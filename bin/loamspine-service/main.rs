@@ -174,10 +174,22 @@ async fn run_server(
 
     let socket_path = loam_spine_core::neural_api::resolve_socket_path();
 
+    // BTSP Phase 2: resolve handshake config from environment.
+    // When BIOMEOS_FAMILY_ID is set (non-default), BTSP handshake is mandatory
+    // on UDS connections — all crypto delegated to BearDog via JSON-RPC.
+    let btsp_config = loam_spine_core::btsp::BtspHandshakeConfig::from_env();
+    if let Some(ref cfg) = btsp_config {
+        info!(
+            "BTSP Phase 2 active: family={}, beardog={}",
+            cfg.family_id,
+            cfg.beardog_socket.display()
+        );
+    }
+
     // Start UDS JSON-RPC server (IPC_COMPLIANCE_MATRIX requirement)
     #[cfg(unix)]
     let _uds_handle = {
-        match loam_spine_api::run_jsonrpc_uds_server(&socket_path, rpc_service).await {
+        match loam_spine_api::run_jsonrpc_uds_server(&socket_path, rpc_service, btsp_config).await {
             Ok(handle) => {
                 info!("UDS JSON-RPC server listening on {}", socket_path.display());
                 Some(handle)
@@ -205,11 +217,18 @@ async fn run_server(
             let _ = std::fs::remove_file(&link_path);
             match std::os::unix::fs::symlink(&socket_path, &link_path) {
                 Ok(()) => {
-                    info!("Legacy symlink: {} → {}", link_path.display(), socket_path.display());
+                    info!(
+                        "Legacy symlink: {} → {}",
+                        link_path.display(),
+                        socket_path.display()
+                    );
                     Some(link_path)
                 }
                 Err(e) => {
-                    warn!("Could not create legacy symlink {}: {e}", link_path.display());
+                    warn!(
+                        "Could not create legacy symlink {}: {e}",
+                        link_path.display()
+                    );
                     None
                 }
             }

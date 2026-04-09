@@ -79,7 +79,9 @@ pub fn legacy_socket_name(family_id: Option<&str>) -> String {
 /// Resolve the legacy symlink path (same directory as the primary socket).
 #[must_use]
 pub fn resolve_legacy_symlink_path(primary: &std::path::Path, family_id: Option<&str>) -> PathBuf {
-    let parent = primary.parent().unwrap_or_else(|| std::path::Path::new("."));
+    let parent = primary
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
     parent.join(legacy_socket_name(family_id))
 }
 
@@ -95,8 +97,7 @@ pub fn validate_security_config(
     family_id: Option<&str>,
     insecure: Option<&str>,
 ) -> Result<(), LoamSpineError> {
-    let has_family = family_id
-        .is_some_and(|fid| !fid.is_empty() && fid != "default");
+    let has_family = family_id.is_some_and(|fid| !fid.is_empty() && fid != "default");
     let is_insecure = insecure.is_some_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
 
     if has_family && is_insecure {

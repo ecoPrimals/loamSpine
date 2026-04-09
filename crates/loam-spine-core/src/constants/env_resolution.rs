@@ -76,3 +76,48 @@ pub fn resolve_primal_socket_with_env(primal: &str, family_id: &str) -> std::pat
     let env_key = network::socket_env_var(primal);
     network::resolve_primal_socket_with(env::var(&env_key).ok().as_deref(), primal, family_id)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn jsonrpc_port_default_without_env() {
+        assert_eq!(jsonrpc_port(), 8080);
+    }
+
+    #[test]
+    fn tarpc_port_default_without_env() {
+        assert_eq!(tarpc_port(), 9001);
+    }
+
+    #[test]
+    fn bind_address_default_without_env() {
+        assert_eq!(bind_address().as_ref(), "0.0.0.0");
+    }
+
+    #[test]
+    fn use_os_assigned_ports_default_without_env() {
+        assert!(!use_os_assigned_ports());
+    }
+
+    #[test]
+    fn actual_jsonrpc_port_default_without_env() {
+        assert_eq!(actual_jsonrpc_port(), 8080);
+    }
+
+    #[test]
+    fn actual_tarpc_port_default_without_env() {
+        assert_eq!(actual_tarpc_port(), 9001);
+    }
+
+    #[test]
+    fn resolve_primal_socket_with_env_default_path_suffix() {
+        let path = resolve_primal_socket_with_env("loamspine", "default");
+        let s = path.to_string_lossy();
+        assert!(
+            s.ends_with("loamspine-default.sock"),
+            "expected path ending with loamspine-default.sock, got {path:?}"
+        );
+    }
+}

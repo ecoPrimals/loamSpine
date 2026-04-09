@@ -1,5 +1,7 @@
 use super::*;
 
+use loam_spine_core::trio_types::WireDehydrationSummary;
+
 #[test]
 fn create_spine_request_roundtrip() {
     let req = CreateSpineRequest {
@@ -120,8 +122,7 @@ fn permanent_storage_commit_request_roundtrip() {
         },
     };
     let json = serde_json::to_string(&req).expect("serialize");
-    let parsed: PermanentStorageCommitRequest =
-        serde_json::from_str(&json).expect("deserialize");
+    let parsed: PermanentStorageCommitRequest = serde_json::from_str(&json).expect("deserialize");
     assert_eq!(parsed.summary.vertex_count, 10);
 }
 
@@ -136,8 +137,7 @@ fn permanent_storage_commit_response_roundtrip() {
         error: None,
     };
     let json = serde_json::to_string(&resp).expect("serialize");
-    let parsed: PermanentStorageCommitResponse =
-        serde_json::from_str(&json).expect("deserialize");
+    let parsed: PermanentStorageCommitResponse = serde_json::from_str(&json).expect("deserialize");
     assert!(parsed.accepted);
     assert_eq!(parsed.entry_index, Some(5));
 }
@@ -216,7 +216,100 @@ fn permanent_storage_verify_request_roundtrip() {
         index: 7,
     };
     let json = serde_json::to_string(&req).expect("serialize");
-    let parsed: PermanentStorageVerifyRequest =
-        serde_json::from_str(&json).expect("deserialize");
+    let parsed: PermanentStorageVerifyRequest = serde_json::from_str(&json).expect("deserialize");
     assert_eq!(parsed.index, 7);
+}
+
+#[test]
+fn permanent_storage_dehydration_summary_from_wire() {
+    let wire = WireDehydrationSummary {
+        source_primal: "rhizoCrypt".into(),
+        session_id: "sess-1".into(),
+        merkle_root: "c".repeat(64),
+        vertex_count: 10,
+        branch_count: 3,
+        payload_bytes: 0,
+        agents: vec!["did:key:agent".into()],
+        session_start: 100,
+        dehydrated_at: 200,
+        session_type: "experiment".into(),
+        outcome: "Success".into(),
+        agent_summaries: vec![],
+        witnesses: vec![],
+        operations: vec![],
+        frontier: vec![],
+        niche: None,
+        compression_ratio: None,
+    };
+    let summary = PermanentStorageDehydrationSummary::from(&wire);
+    assert_eq!(summary.session_type, "experiment");
+    assert_eq!(summary.vertex_count, 10);
+    assert_eq!(summary.leaf_count, 3);
+    assert_eq!(summary.started_at, 100);
+    assert_eq!(summary.ended_at, 200);
+    assert_eq!(summary.outcome, "Success");
+}
+
+#[test]
+fn permanent_storage_commit_request_from_wire() {
+    let wire = WireDehydrationSummary {
+        source_primal: "rhizoCrypt".into(),
+        session_id: "550e8400-e29b-41d4-a716-446655440000".into(),
+        merkle_root: "d".repeat(64),
+        vertex_count: 5,
+        branch_count: 2,
+        payload_bytes: 0,
+        agents: vec!["did:key:first".into(), "did:key:second".into()],
+        session_start: 1,
+        dehydrated_at: 2,
+        session_type: "game".into(),
+        outcome: "Failure { reason: test }".into(),
+        agent_summaries: vec![],
+        witnesses: vec![],
+        operations: vec![],
+        frontier: vec![],
+        niche: None,
+        compression_ratio: None,
+    };
+    let req = PermanentStorageCommitRequest::from(&wire);
+    assert_eq!(req.session_id, wire.session_id);
+    assert_eq!(req.merkle_root, wire.merkle_root);
+    assert_eq!(req.committer_did.as_deref(), Some("did:key:first"));
+    assert_eq!(req.summary.leaf_count, wire.branch_count);
+    assert_eq!(req.summary.outcome, wire.outcome);
+}
+
+#[test]
+fn permanent_storage_get_commit_request_roundtrip() {
+    let req = PermanentStorageGetCommitRequest {
+        spine_id: uuid::Uuid::now_v7().to_string(),
+        entry_hash: "e".repeat(64),
+        index: 42,
+    };
+    let json = serde_json::to_string(&req).expect("serialize");
+    let parsed: PermanentStorageGetCommitRequest =
+        serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(parsed.spine_id, req.spine_id);
+    assert_eq!(parsed.entry_hash, req.entry_hash);
+    assert_eq!(parsed.index, 42);
+}
+
+#[test]
+fn permanent_storage_commit_response_rejected_roundtrip() {
+    let resp = PermanentStorageCommitResponse {
+        accepted: false,
+        commit_id: None,
+        spine_entry_hash: None,
+        entry_index: None,
+        spine_id: None,
+        error: Some("commit rejected: bad merkle root".into()),
+    };
+    let json = serde_json::to_string(&resp).expect("serialize");
+    let parsed: PermanentStorageCommitResponse = serde_json::from_str(&json).expect("deserialize");
+    assert!(!parsed.accepted);
+    assert_eq!(
+        parsed.error.as_deref(),
+        Some("commit rejected: bad merkle root")
+    );
+    assert!(parsed.commit_id.is_none());
 }

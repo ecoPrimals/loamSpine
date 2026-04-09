@@ -13,10 +13,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 /// Send a JSON-RPC request over a UDS stream and return the parsed response.
 #[cfg(unix)]
-async fn uds_rpc(
-    stream: &mut tokio::net::UnixStream,
-    request: &str,
-) -> serde_json::Value {
+async fn uds_rpc(stream: &mut tokio::net::UnixStream, request: &str) -> serde_json::Value {
     stream.write_all(request.as_bytes()).await.unwrap();
     stream.write_all(b"\n").await.unwrap();
     stream.flush().await.unwrap();
@@ -37,7 +34,7 @@ async fn uds_server_starts_and_accepts_connections() {
     let sock_path = tmp.path().join("test-jsonrpc.sock");
     let service = crate::service::LoamSpineRpcService::default_service();
 
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 
@@ -68,7 +65,7 @@ async fn uds_server_removes_stale_socket() {
     assert!(sock_path.exists());
 
     let service = crate::service::LoamSpineRpcService::default_service();
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 
@@ -83,7 +80,7 @@ async fn uds_server_creates_parent_directory() {
     let sock_path = tmp.path().join("nested").join("dir").join("test.sock");
 
     let service = crate::service::LoamSpineRpcService::default_service();
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 
@@ -98,7 +95,7 @@ async fn uds_server_drop_removes_socket() {
     let sock_path = tmp.path().join("drop-test.sock");
 
     let service = crate::service::LoamSpineRpcService::default_service();
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 
@@ -114,7 +111,7 @@ async fn uds_server_shutdown_via_stop() {
     let sock_path = tmp.path().join("shutdown-test.sock");
 
     let service = crate::service::LoamSpineRpcService::default_service();
-    let mut handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let mut handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 
@@ -136,7 +133,7 @@ async fn uds_health_liveness_wire_format() {
     let tmp = tempfile::tempdir().unwrap();
     let sock_path = tmp.path().join("liveness-wire.sock");
     let service = crate::service::LoamSpineRpcService::default_service();
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 
@@ -180,7 +177,7 @@ async fn uds_capabilities_list_wire_format() {
     let tmp = tempfile::tempdir().unwrap();
     let sock_path = tmp.path().join("caps-wire.sock");
     let service = crate::service::LoamSpineRpcService::default_service();
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 
@@ -237,13 +234,28 @@ async fn uds_capabilities_list_wire_format() {
         assert!(s.contains('.'), "method must be dotted: {s}");
     }
     let method_strs: Vec<&str> = methods.iter().filter_map(|v| v.as_str()).collect();
-    assert!(method_strs.contains(&"spine.create"), "must list spine.create");
-    assert!(method_strs.contains(&"health.liveness"), "must list health.liveness");
-    assert!(method_strs.contains(&"identity.get"), "must list identity.get");
-    assert!(method_strs.contains(&"capabilities.list"), "must list capabilities.list");
+    assert!(
+        method_strs.contains(&"spine.create"),
+        "must list spine.create"
+    );
+    assert!(
+        method_strs.contains(&"health.liveness"),
+        "must list health.liveness"
+    );
+    assert!(
+        method_strs.contains(&"identity.get"),
+        "must list identity.get"
+    );
+    assert!(
+        method_strs.contains(&"capabilities.list"),
+        "must list capabilities.list"
+    );
 
     // -- Wire Standard L3: provided_capabilities grouping --
-    assert!(result["provided_capabilities"].is_array(), "provided_capabilities must be an array");
+    assert!(
+        result["provided_capabilities"].is_array(),
+        "provided_capabilities must be an array"
+    );
     let groups = result["provided_capabilities"].as_array().unwrap();
     assert!(!groups.is_empty());
     for g in groups {
@@ -252,7 +264,10 @@ async fn uds_capabilities_list_wire_format() {
     }
 
     // -- Wire Standard L3: consumed_capabilities --
-    assert!(result["consumed_capabilities"].is_array(), "consumed_capabilities must be an array");
+    assert!(
+        result["consumed_capabilities"].is_array(),
+        "consumed_capabilities must be an array"
+    );
 
     // -- operation_dependencies (DAG for Pathway Learner) --
     assert!(
@@ -278,7 +293,7 @@ async fn uds_capabilities_list_legacy_alias() {
     let tmp = tempfile::tempdir().unwrap();
     let sock_path = tmp.path().join("caps-alias.sock");
     let service = crate::service::LoamSpineRpcService::default_service();
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 
@@ -308,7 +323,7 @@ async fn uds_identity_get_wire_format() {
     let tmp = tempfile::tempdir().unwrap();
     let sock_path = tmp.path().join("identity.sock");
     let service = crate::service::LoamSpineRpcService::default_service();
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service)
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
         .await
         .unwrap();
 

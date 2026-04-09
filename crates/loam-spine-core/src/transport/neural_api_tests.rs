@@ -167,6 +167,60 @@ fn neural_api_transport_from_env_fallback() {
     let _ = transport;
 }
 
+/// `NeuralApiTransport::new(None)` errors only when neither explicit socket nor env-based path exists.
+#[test]
+fn neural_api_transport_new_none_errors_without_runtime_or_explicit_socket() {
+    let has_socket = std::env::var("BIOMEOS_NEURAL_API_SOCKET")
+        .map(|s| !s.is_empty())
+        .unwrap_or(false);
+    let has_runtime = std::env::var("XDG_RUNTIME_DIR").is_ok();
+    if has_socket || has_runtime {
+        return;
+    }
+    let err =
+        NeuralApiTransport::new(None).expect_err("expected connect error from missing socket path");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("NeuralAPI") && msg.contains("socket"),
+        "unexpected error: {msg}"
+    );
+}
+
+#[test]
+fn urlencoding_encode_non_ascii_and_reserved() {
+    assert_eq!(urlencoding_encode("a/b"), "a%2Fb");
+    assert_eq!(urlencoding_encode("café"), "caf%C3%A9");
+    assert_eq!(urlencoding_encode("100%"), "100%25");
+}
+
+#[test]
+fn parse_http_result_status_must_be_json_number() {
+    let result = serde_json::json!({
+        "status": "200",
+        "body": "dGVzdA==",
+    });
+    let err = NeuralApiTransport::parse_http_result(&result).expect_err("string status is invalid");
+    assert!(err.to_string().contains("status") || err.to_string().contains("Missing"));
+}
+
+#[test]
+fn parse_http_result_empty_object_body() {
+    let result = serde_json::json!({ "status": 200 });
+    let resp = NeuralApiTransport::parse_http_result(&result).expect("parse");
+    assert_eq!(resp.status, 200);
+    assert!(resp.body.is_empty());
+}
+
+#[test]
+fn parse_http_result_status_exceeds_u16_max_maps_to_500() {
+    let result = serde_json::json!({
+        "status": u64::from(u16::MAX) + 1,
+        "body": null,
+    });
+    let resp = NeuralApiTransport::parse_http_result(&result).expect("parse");
+    assert_eq!(resp.status, 500);
+}
+
 /// Helper: spawn a mock NeuralAPI socket that responds to `http.request`
 fn spawn_mock_transport_server(
     socket_path: &std::path::Path,

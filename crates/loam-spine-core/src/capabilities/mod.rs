@@ -44,10 +44,8 @@
 mod parser;
 mod types;
 
-pub use parser::{extract_capabilities, CapabilityMethod, ParsedCapabilities};
-pub use types::{
-    DiscoveredService, ExternalCapability, LoamSpineCapability, ServiceHealth,
-};
+pub use parser::{CapabilityMethod, ParsedCapabilities, extract_capabilities};
+pub use types::{DiscoveredService, ExternalCapability, LoamSpineCapability, ServiceHealth};
 
 /// Capability identifier constants
 pub mod identifiers {
@@ -82,6 +80,8 @@ pub mod identifiers {
 
     /// External capabilities we discover and consume
     pub mod external {
+        /// BearDog Secure Tunnel Protocol (BTSP) handshake-as-a-service
+        pub const BTSP: &str = "btsp";
         /// Cryptographic signing service
         pub const SIGNING: &str = "cryptographic-signing";
         /// Content-addressable storage

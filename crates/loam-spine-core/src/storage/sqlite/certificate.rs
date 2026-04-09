@@ -101,10 +101,8 @@ impl CertificateStorage for SqliteCertificateStorage {
             if let Some(row) = rows.next().storage_err()? {
                 let spine_id_str: String = row.get(0).storage_err()?;
                 let data: Vec<u8> = row.get(1).storage_err()?;
-                let spine_id =
-                    SpineId::parse_str(&spine_id_str).storage_ctx("invalid spine_id")?;
-                let cert: Certificate =
-                    serde_json::from_slice(&data).storage_ctx("deserialize")?;
+                let spine_id = SpineId::parse_str(&spine_id_str).storage_ctx("invalid spine_id")?;
+                let cert: Certificate = serde_json::from_slice(&data).storage_ctx("deserialize")?;
                 Some((cert, spine_id))
             } else {
                 None
@@ -145,9 +143,7 @@ impl CertificateStorage for SqliteCertificateStorage {
     async fn list_certificates(&self) -> LoamSpineResult<Vec<CertificateId>> {
         let ids = {
             let conn = lock_conn(&self.conn)?;
-            let mut stmt = conn
-                .prepare("SELECT id FROM certificates")
-                .storage_err()?;
+            let mut stmt = conn.prepare("SELECT id FROM certificates").storage_err()?;
             let mut rows = stmt.query([]).storage_err()?;
 
             let mut ids = Vec::new();

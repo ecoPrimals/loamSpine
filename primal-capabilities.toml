@@ -101,6 +101,7 @@ unsafe_code = false  # Forbids unsafe code
 [dependencies]
 # Optional capabilities that enhance functionality
 optional = [
+    "btsp",                       # BTSP handshake-as-a-service (required when FAMILY_ID is set; dev mode skips)
     "signing",                    # Signing service (capability-discovered)
     "verification",               # Signature verification (capability-discovered)
     "attestation",                # Operation attestation for waypoint operations (capability-discovered)

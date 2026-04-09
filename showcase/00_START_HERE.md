@@ -5,7 +5,7 @@
 **Version**: 0.9.16  
 **Status**: Production Ready  
 **Date**: April 8, 2026  
-**Latest**: GAP-MATRIX-12 socket naming, Wire Standard L2/L3, 3 deep debt refactoring sprints — 1,316 tests, 92% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
+**Latest**: BTSP Phase 2 handshake, deep debt cleanup, zero-copy evolution — 1,373 tests, 92% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
 
 ---
 

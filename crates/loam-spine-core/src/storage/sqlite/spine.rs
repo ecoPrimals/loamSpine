@@ -99,8 +99,7 @@ impl SpineStorage for SqliteSpineStorage {
 
             if let Some(row) = rows.next().storage_err()? {
                 let data: Vec<u8> = row.get(0).storage_err()?;
-                let spine: Spine =
-                    serde_json::from_slice(&data).storage_ctx("deserialize")?;
+                let spine: Spine = serde_json::from_slice(&data).storage_ctx("deserialize")?;
                 Some(spine)
             } else {
                 None
@@ -136,9 +135,7 @@ impl SpineStorage for SqliteSpineStorage {
     async fn list_spines(&self) -> LoamSpineResult<Vec<SpineId>> {
         let ids = {
             let conn = lock_conn(&self.conn)?;
-            let mut stmt = conn
-                .prepare("SELECT id FROM spines")
-                .storage_err()?;
+            let mut stmt = conn.prepare("SELECT id FROM spines").storage_err()?;
             let mut rows = stmt.query([]).storage_err()?;
 
             let mut ids = Vec::new();

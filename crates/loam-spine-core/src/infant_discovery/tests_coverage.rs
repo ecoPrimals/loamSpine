@@ -100,17 +100,17 @@ async fn test_is_fresh_with_clock_skew_returns_stale() {
 
 #[test]
 fn test_capability_to_srv_name_empty_string() {
-    assert_eq!(capability_to_srv_name(""), "_._tcp.local");
+    assert_eq!(backends::capability_to_srv_name(""), "_._tcp.local");
 }
 
 #[test]
 fn test_capability_to_srv_name_hyphen_only() {
-    assert_eq!(capability_to_srv_name("---"), "_._tcp.local");
+    assert_eq!(backends::capability_to_srv_name("---"), "_._tcp.local");
 }
 
 #[test]
 fn test_capability_to_srv_name_single_hyphen() {
-    assert_eq!(capability_to_srv_name("-"), "_._tcp.local");
+    assert_eq!(backends::capability_to_srv_name("-"), "_._tcp.local");
 }
 
 #[tokio::test]

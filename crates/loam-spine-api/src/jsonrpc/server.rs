@@ -5,10 +5,8 @@
 //! Accepts both raw newline-delimited JSON and HTTP POST requests over TCP.
 //! UDS transport uses newline-delimited JSON only (per `IPC_COMPLIANCE_MATRIX`).
 
-use super::wire::{
-    JsonRpcRequest, JsonRpcResponse, INVALID_REQUEST, PARSE_ERROR,
-};
 use super::LoamSpineJsonRpc;
+use super::wire::{INVALID_REQUEST, JsonRpcRequest, JsonRpcResponse, PARSE_ERROR};
 use crate::error::ServerError;
 use crate::service::LoamSpineRpcService;
 use std::net::SocketAddr;
@@ -358,6 +356,10 @@ impl Drop for UdsServerHandle {
 /// Creates the parent directory if it does not exist and removes any stale
 /// socket file from a previous run.
 ///
+/// When `btsp_config` is `Some`, every incoming connection must complete
+/// the BTSP handshake (delegated to `BearDog`) before JSON-RPC is exposed.
+/// When `None`, raw newline-delimited JSON-RPC is accepted (development mode).
+///
 /// # Errors
 ///
 /// Returns error if the socket cannot be bound.
@@ -365,6 +367,7 @@ impl Drop for UdsServerHandle {
 pub async fn run_jsonrpc_uds_server(
     path: impl Into<std::path::PathBuf>,
     service: LoamSpineRpcService,
+    btsp_config: Option<loam_spine_core::btsp::BtspHandshakeConfig>,
 ) -> Result<UdsServerHandle, ServerError> {
     let path = path.into();
 
@@ -384,10 +387,16 @@ pub async fn run_jsonrpc_uds_server(
     let handler = Arc::new(LoamSpineJsonRpc::new(service));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let (done_tx, done_rx) = tokio::sync::watch::channel(false);
+    let btsp_config = btsp_config.map(Arc::new);
 
     info!(
-        "LoamSpine JSON-RPC UDS server listening on {}",
-        path.display()
+        "LoamSpine JSON-RPC UDS server listening on {} (BTSP {})",
+        path.display(),
+        if btsp_config.is_some() {
+            "required"
+        } else {
+            "off"
+        }
     );
 
     tokio::spawn(async move {
@@ -399,9 +408,9 @@ pub async fn run_jsonrpc_uds_server(
                         Ok((stream, _peer)) => {
                             debug!("JSON-RPC UDS connection accepted");
                             let h = Arc::clone(&handler);
+                            let btsp = btsp_config.clone();
                             tokio::spawn(async move {
-                                let (reader, writer) = stream.into_split();
-                                if let Err(e) = handle_stream(h, reader, writer).await {
+                                if let Err(e) = handle_uds_connection(h, stream, btsp).await {
                                     warn!("UDS connection error: {e}");
                                 }
                             });
@@ -425,4 +434,32 @@ pub async fn run_jsonrpc_uds_server(
         done: done_rx,
         path,
     })
+}
+
+/// Handle a single UDS connection: BTSP handshake (if configured), then JSON-RPC.
+#[cfg(unix)]
+async fn handle_uds_connection(
+    handler: Arc<LoamSpineJsonRpc>,
+    mut stream: tokio::net::UnixStream,
+    btsp_config: Option<Arc<loam_spine_core::btsp::BtspHandshakeConfig>>,
+) -> Result<(), std::io::Error> {
+    if let Some(ref btsp) = btsp_config {
+        match loam_spine_core::btsp::perform_server_handshake(&mut stream, &btsp.beardog_socket)
+            .await
+        {
+            Ok(session) => {
+                debug!(
+                    "BTSP authenticated: session={}, cipher={}",
+                    session.session_id, session.cipher
+                );
+            }
+            Err(e) => {
+                warn!("BTSP handshake failed, refusing connection: {e}");
+                return Ok(());
+            }
+        }
+    }
+
+    let (reader, writer) = stream.into_split();
+    handle_stream(handler, reader, writer).await
 }

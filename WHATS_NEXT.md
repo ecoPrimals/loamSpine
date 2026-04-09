@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 8, 2026
+**Last Updated**: April 9, 2026
 
 ---
 
@@ -218,6 +218,25 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 Deep Debt Cleanup & Evolution Pass (April 9, 2026)
+
+- **Smart refactor `infant_discovery/mod.rs`**: Extracted mDNS backend functions (`mdns_discover_impl`, `parse_mdns_response`, `capability_to_srv_name`) into `backends.rs` (158 lines). Module reduced 711→570 lines. All production files now under 700 lines.
+- **Zero-copy JSON-RPC extraction**: Eliminated `.clone()` in `extract_rpc_result_typed` and `parse_beardog_response` — replaced `serde_json::from_value(result.clone())` with borrowing `T::deserialize(result)`.
+- **Resilience retry path**: Removed `err_msg.clone()` from retry loop — log then move.
+- **tarpc/opentelemetry advisory documented**: Added `RUSTSEC-2026-0007` to `DEPENDENCY_EVOLUTION.md`.
+- **Coverage expansion**: 10 new tests (temporal types, StorageResultExt trait).
+- **Tests**: 1,363 → **1,373**. Source files: 166 → **167**. Zero clippy warnings.
+
+## v0.9.16 BTSP Phase 2 Handshake Integration (April 9, 2026)
+
+- **BTSP handshake-as-a-service**: New `btsp` module in `loam-spine-core` implements the consumer side of BTSP Phase 2. LoamSpine delegates all crypto to BearDog via JSON-RPC (`btsp.session.create`, `btsp.session.verify`, `btsp.negotiate`). Zero crypto dependencies added.
+- **UDS listener gated**: `run_jsonrpc_uds_server` accepts `Option<BtspHandshakeConfig>`. When `BIOMEOS_FAMILY_ID` is set, every UDS connection must complete the 4-step BTSP handshake before JSON-RPC methods are exposed.
+- **Wire format**: 4-byte big-endian length-prefixed frames per `BTSP_PROTOCOL_STANDARD.md`. Wire types: `ClientHello`, `ServerHello`, `ChallengeResponse`, `HandshakeComplete`, `HandshakeError`.
+- **Capability-discovered BearDog**: Socket path resolved via env → family fallback → platform default. No primal names hardcoded.
+- **Consumed capability registered**: `"btsp"` in capabilities, niche, and `primal-capabilities.toml`.
+- **28 new tests**: Config derivation, socket resolution, frame I/O, wire serde roundtrips, mock BearDog integration (success, verify rejection, cipher rejection, BearDog unavailable, version mismatch).
+- **Tests**: 1,316 → **1,363**. Source files: 163 → **166**. Zero clippy warnings.
 
 ## v0.9.16 Deep Debt Module Evolution Sprint 2 (April 8, 2026)
 

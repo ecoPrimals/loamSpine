@@ -106,8 +106,7 @@ impl EntryStorage for SqliteEntryStorage {
 
             if let Some(row) = rows.next().storage_err()? {
                 let data: Vec<u8> = row.get(0).storage_err()?;
-                let entry: Entry =
-                    serde_json::from_slice(&data).storage_ctx("deserialize")?;
+                let entry: Entry = serde_json::from_slice(&data).storage_ctx("deserialize")?;
                 Some(entry)
             } else {
                 None
@@ -174,8 +173,7 @@ impl EntryStorage for SqliteEntryStorage {
             let mut entries = Vec::new();
             while let Some(row) = rows.next().storage_err()? {
                 let data: Vec<u8> = row.get(0).storage_err()?;
-                let entry: Entry =
-                    serde_json::from_slice(&data).storage_ctx("deserialize")?;
+                let entry: Entry = serde_json::from_slice(&data).storage_ctx("deserialize")?;
                 entries.push(entry);
             }
             entries
