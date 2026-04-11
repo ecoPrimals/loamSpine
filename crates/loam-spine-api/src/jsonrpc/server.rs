@@ -88,6 +88,9 @@ pub async fn run_jsonrpc_server(
                 result = listener.accept() => {
                     match result {
                         Ok((stream, peer)) => {
+                            if let Err(e) = stream.set_nodelay(true) {
+                                warn!("TCP_NODELAY failed for {peer}: {e}");
+                            }
                             debug!("JSON-RPC connection from {peer}");
                             let h = Arc::clone(&handler);
                             tokio::spawn(async move {

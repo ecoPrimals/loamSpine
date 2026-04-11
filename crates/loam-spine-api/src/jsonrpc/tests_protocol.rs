@@ -781,3 +781,79 @@ fn is_notification_with_id() {
     let val = serde_json::json!({"jsonrpc": "2.0", "method": "test", "id": 1});
     assert!(!is_notification(&val));
 }
+
+// =========================================================================
+// Trio IPC stability: concurrent UDS load test (8 clients × 5 requests)
+//
+// Matches sweetGrass v0.7.27 pattern. Verifies that the UDS server handles
+// concurrent persistent connections without dropped responses, buffering
+// stalls, or semaphore starvation.
+// =========================================================================
+
+#[cfg(unix)]
+#[tokio::test]
+#[expect(clippy::panic, reason = "spawned tasks need contextual panic messages for debugging concurrent failures")]
+async fn uds_concurrent_load_8x5() {
+    const CLIENTS: usize = 8;
+    const REQUESTS_PER_CLIENT: usize = 5;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let sock_path = tmp.path().join("load-test.sock");
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, None)
+        .await
+        .unwrap();
+
+    let mut handles = Vec::with_capacity(CLIENTS);
+    for client_id in 0..CLIENTS {
+        let path = sock_path.clone();
+        handles.push(tokio::spawn(async move {
+            let mut stream = tokio::net::UnixStream::connect(&path)
+                .await
+                .unwrap_or_else(|e| panic!("client {client_id} connect: {e}"));
+
+            for req_id in 0..REQUESTS_PER_CLIENT {
+                let id = client_id * REQUESTS_PER_CLIENT + req_id;
+                let request =
+                    format!(r#"{{"jsonrpc":"2.0","method":"health.liveness","id":{id}}}"#,);
+                stream.write_all(request.as_bytes()).await.unwrap();
+                stream.write_all(b"\n").await.unwrap();
+                stream.flush().await.unwrap();
+
+                let mut buf = vec![0u8; 4096];
+                let n =
+                    tokio::time::timeout(std::time::Duration::from_secs(5), stream.read(&mut buf))
+                        .await
+                        .unwrap_or_else(|_| panic!("client {client_id} req {req_id} timed out"))
+                        .unwrap_or_else(|e| panic!("client {client_id} req {req_id} read: {e}"));
+
+                assert!(n > 0, "client {client_id} req {req_id}: empty response");
+                let resp: serde_json::Value =
+                    serde_json::from_slice(&buf[..n]).unwrap_or_else(|e| {
+                        panic!(
+                            "client {client_id} req {req_id} parse: {e} — raw: {}",
+                            String::from_utf8_lossy(&buf[..n])
+                        )
+                    });
+                assert_eq!(resp["id"], id, "response id mismatch");
+                assert_eq!(
+                    resp["result"]["status"], "alive",
+                    "client {client_id} req {req_id}: unexpected result"
+                );
+            }
+        }));
+    }
+
+    let mut failures = Vec::new();
+    for (i, h) in handles.into_iter().enumerate() {
+        if let Err(e) = h.await {
+            failures.push(format!("client {i}: {e}"));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "concurrent UDS load test failures: {failures:?}"
+    );
+
+    handle.stop();
+}

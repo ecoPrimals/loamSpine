@@ -145,7 +145,10 @@ impl SyncEngine {
 
         let mut stream =
             match tokio::time::timeout(self.connect_timeout, TcpStream::connect(endpoint)).await {
-                Ok(Ok(s)) => s,
+                Ok(Ok(s)) => {
+                    let _ = s.set_nodelay(true);
+                    s
+                }
                 Ok(Err(e)) => {
                     return Err(LoamSpineError::ipc(
                         IpcErrorPhase::Connect,
