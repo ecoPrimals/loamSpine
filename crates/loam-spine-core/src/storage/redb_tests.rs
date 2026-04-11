@@ -176,13 +176,13 @@ async fn redb_combined_storage() {
 
 #[tokio::test]
 async fn redb_storage_persistence() {
-    let temp_dir =
-        std::env::temp_dir().join(format!("loamspine-redb-test-{}", uuid::Uuid::now_v7()));
+    let temp_dir = tempfile::tempdir().unwrap_or_else(|e| unreachable!("tempdir failed: {e}"));
 
-    {
-        let storage =
-            RedbStorage::open(&temp_dir).unwrap_or_else(|e| unreachable!("redb open failed: {e}"));
+    let spine_id = {
+        let storage = RedbStorage::open(temp_dir.path())
+            .unwrap_or_else(|e| unreachable!("redb open failed: {e}"));
         let spine = create_test_spine();
+        let id = spine.id;
         storage
             .spines
             .save_spine(&spine)
@@ -191,15 +191,24 @@ async fn redb_storage_persistence() {
         storage
             .flush()
             .unwrap_or_else(|e| unreachable!("flush failed: {e}"));
-    }
+        drop(storage);
+        id
+    };
 
     {
-        let storage = RedbStorage::open(&temp_dir)
+        let storage = RedbStorage::open(temp_dir.path())
             .unwrap_or_else(|e| unreachable!("redb reopen failed: {e}"));
         assert_eq!(storage.spines.spine_count(), 1);
+        let retrieved = storage
+            .spines
+            .get_spine(spine_id)
+            .await
+            .unwrap_or_else(|e| unreachable!("get spine failed: {e}"));
+        assert!(
+            retrieved.is_some(),
+            "persisted spine should be retrievable after reopen"
+        );
     }
-
-    let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
 #[tokio::test]
@@ -340,51 +349,45 @@ async fn redb_spine_delete() {
 
 #[tokio::test]
 async fn redb_open_with_new_directory() {
-    let temp_dir =
-        std::env::temp_dir().join(format!("loamspine-redb-newdir-{}", uuid::Uuid::now_v7()));
-    let storage = RedbSpineStorage::open(temp_dir.join("spines.redb")).unwrap();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let storage = RedbSpineStorage::open(temp_dir.path().join("spines.redb")).unwrap();
     assert_eq!(storage.spine_count(), 0);
-    let _ = std::fs::remove_dir_all(temp_dir.parent().unwrap());
 }
 
 #[tokio::test]
 async fn redb_open_with_nested_path() {
-    let base = std::env::temp_dir().join(format!("loamspine-redb-nested-{}", uuid::Uuid::now_v7()));
-    let temp_dir = base.join("a/b");
-    let storage = RedbSpineStorage::open(temp_dir.join("spines.redb")).unwrap();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let nested = temp_dir.path().join("a/b");
+    let storage = RedbSpineStorage::open(nested.join("spines.redb")).unwrap();
     assert_eq!(storage.spine_count(), 0);
-    let _ = std::fs::remove_dir_all(&base);
 }
 
 #[tokio::test]
 async fn redb_storage_open_with_base_path() {
-    let temp_dir =
-        std::env::temp_dir().join(format!("loamspine-redb-base-{}", uuid::Uuid::now_v7()));
-    let storage = RedbStorage::open(&temp_dir).unwrap();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let storage = RedbStorage::open(temp_dir.path()).unwrap();
     assert_eq!(storage.spines.spine_count(), 0);
     assert_eq!(storage.entries.entry_count(), 0);
     assert_eq!(storage.certificates.certificate_count(), 0);
-    let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
 #[tokio::test]
 async fn redb_open_existing_dir_preserves_data() {
-    let temp_dir =
-        std::env::temp_dir().join(format!("loamspine-redb-existing-{}", uuid::Uuid::now_v7()));
+    let temp_dir = tempfile::tempdir().unwrap();
+    let db_path = temp_dir.path().join("spines.redb");
 
     {
-        let storage = RedbSpineStorage::open(temp_dir.join("spines.redb")).unwrap();
+        let storage = RedbSpineStorage::open(&db_path).unwrap();
         let spine = create_redb_test_spine();
         storage.save_spine(&spine).await.unwrap();
         storage.flush().unwrap();
+        drop(storage);
     }
 
     {
-        let storage = RedbSpineStorage::open(temp_dir.join("spines.redb")).unwrap();
+        let storage = RedbSpineStorage::open(&db_path).unwrap();
         assert_eq!(storage.spine_count(), 1);
     }
-
-    let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
 // ========================================================================

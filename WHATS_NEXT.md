@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 9, 2026
+**Last Updated**: April 11, 2026
 
 ---
 
@@ -218,6 +218,15 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)
+
+- **BTSP challenge evolved**: `generate_challenge_placeholder()` (timestamp-derived) replaced with `generate_challenge()` using `blake3` + `uuid::Uuid::now_v7()` — 148+ bits OS-sourced entropy. Zero new dependencies.
+- **Smart refactor `btsp.rs`** (696 lines) → `btsp/` module directory with 5 submodules: `wire.rs` (types), `config.rs` (BearDog socket resolution), `frame.rs` (length-prefixed I/O), `beardog_client.rs` (JSON-RPC delegation), `handshake.rs` (4-step protocol). All production modules now under 581 lines.
+- **Dependency cleanup**: `serde_bytes` removed (unused). `bytes`, `url`, `bincode`, `tarpc`, `futures`, `clap`, `loam-spine-core`, `loam-spine-api` centralized to `[workspace.dependencies]`.
+- **Storage test isolation fixed**: Sled `from_db` constructors eliminate lock contention (10 tests). SQLite WAL mode + busy timeout. redb `tempfile::tempdir()` + explicit `drop` (5 tests). Zero flaky storage tests.
+- **`#[allow]` audit**: `#[expect]` attributes that caused `unfulfilled-lint-expectations` in `--all-features` builds reverted to `#[allow]` with documented reasons.
+- **Tests**: 1,373 → **1,504** (+131). Source files: 167 → **169**. Zero clippy warnings. Full pipeline clean (fmt, clippy, doc, deny).
 
 ## v0.9.16 Deep Debt Cleanup & Evolution Pass (April 9, 2026)
 

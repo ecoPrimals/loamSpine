@@ -73,6 +73,20 @@ impl SledSpineStorage {
         Ok(Self { db, tree })
     }
 
+    /// Wrap a pre-opened sled `Db` handle.
+    ///
+    /// Avoids the close-reopen lock contention that can occur in parallel tests
+    /// when the same database path is opened by raw `sled::open` and then by
+    /// this constructor.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the tree cannot be opened.
+    pub fn from_db(db: sled::Db) -> LoamSpineResult<Self> {
+        let tree = db.open_tree("spines").storage_err()?;
+        Ok(Self { db, tree })
+    }
+
     /// Get the number of stored spines.
     ///
     /// This is an O(1) operation.
@@ -175,6 +189,21 @@ impl SledEntryStorage {
     pub fn temporary() -> LoamSpineResult<Self> {
         let config = sled::Config::new().temporary(true);
         let db = config.open().storage_err()?;
+        let entries_tree = db.open_tree("entries").storage_err()?;
+        let index_tree = db.open_tree("entry_index").storage_err()?;
+        Ok(Self {
+            db,
+            entries_tree,
+            index_tree,
+        })
+    }
+
+    /// Wrap a pre-opened sled `Db` handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the trees cannot be opened.
+    pub fn from_db(db: sled::Db) -> LoamSpineResult<Self> {
         let entries_tree = db.open_tree("entries").storage_err()?;
         let index_tree = db.open_tree("entry_index").storage_err()?;
         Ok(Self {
@@ -304,6 +333,16 @@ impl SledCertificateStorage {
     pub fn temporary() -> LoamSpineResult<Self> {
         let config = sled::Config::new().temporary(true);
         let db = config.open().storage_err()?;
+        let tree = db.open_tree("certificates").storage_err()?;
+        Ok(Self { db, tree })
+    }
+
+    /// Wrap a pre-opened sled `Db` handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the tree cannot be opened.
+    pub fn from_db(db: sled::Db) -> LoamSpineResult<Self> {
         let tree = db.open_tree("certificates").storage_err()?;
         Ok(Self { db, tree })
     }

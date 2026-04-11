@@ -16,6 +16,9 @@ use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{UnixListener, UnixStream};
 
+use super::config::beardog_socket_name;
+use super::frame::MAX_FRAME_SIZE;
+use super::handshake::generate_challenge;
 use super::*;
 
 // ---------------------------------------------------------------------------
@@ -494,7 +497,14 @@ async fn handshake_version_mismatch() {
 
 #[test]
 fn generate_challenge_is_not_empty() {
-    let challenge = generate_challenge_placeholder();
+    let challenge = generate_challenge();
     assert!(!challenge.is_empty());
-    assert!(challenge.len() >= 32);
+    assert_eq!(challenge.len(), 64, "blake3 hash hex = 64 chars");
+}
+
+#[test]
+fn generate_challenge_is_unique() {
+    let a = generate_challenge();
+    let b = generate_challenge();
+    assert_ne!(a, b, "two challenges must differ (OS entropy)");
 }

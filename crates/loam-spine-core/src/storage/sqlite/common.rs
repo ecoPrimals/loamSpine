@@ -31,8 +31,14 @@ pub fn count_rows(conn: &Connection, query: &str) -> usize {
 }
 
 /// Open a persistent SQLite connection at the given path.
+///
+/// Enables WAL journal mode and sets a busy timeout for concurrent access
+/// resilience (parallel tests, multi-process deployments).
 pub fn open_connection<P: AsRef<Path>>(path: P) -> LoamSpineResult<Connection> {
-    Connection::open(path).storage_err()
+    let conn = Connection::open(path).storage_err()?;
+    conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;")
+        .storage_err()?;
+    Ok(conn)
 }
 
 /// Open an ephemeral in-memory SQLite connection (useful for tests).

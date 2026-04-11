@@ -9,22 +9,8 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
-# Core crate
-loam-spine-core = { path = "../loam-spine-core" }
-
-# Pure Rust RPC - tarpc (no protobuf, no gRPC, no C++ tooling)
-# Explicit features instead of "full" — drops serde-transport-bincode
-# to avoid pulling bincode v1 via tokio-serde (RUSTSEC-2025-0141)
-tarpc = { version = "0.37", features = [
-    "serde1",
-    "tokio1",
-    "serde-transport",
-    "serde-transport-json",
-    "tcp",
-    "unix",
-] }
-
-# Workspace dependencies
+loam-spine-core = { workspace = true }
+tarpc = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -32,9 +18,7 @@ uuid = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
-
-# Additional utilities
-futures = "0.3"
+futures = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

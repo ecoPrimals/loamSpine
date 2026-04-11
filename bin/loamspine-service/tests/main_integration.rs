@@ -50,7 +50,8 @@ fn server_subcommand_help_succeeds() {
         .success()
         .stdout(predicate::str::contains("tarpc-port"))
         .stdout(predicate::str::contains("jsonrpc-port"))
-        .stdout(predicate::str::contains("bind-address"));
+        .stdout(predicate::str::contains("bind-address"))
+        .stdout(predicate::str::contains("--socket"));
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

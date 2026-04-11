@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: April 9, 2026
+**Last Updated**: April 11, 2026
 
 ---
 
@@ -41,7 +41,7 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 | PostgreSQL / RocksDB backends | Specified in `STORAGE_BACKENDS.md` but not yet implemented. | v1.0.0 target. Memory, redb (default), sled, and SQLite backends are complete. |
 | blake3 SIMD performance | Switched to `pure` Rust mode (no C/asm) for ecoBin compliance. Performance impact is ~2-3x slower hashing vs. SIMD, acceptable for LoamSpine's workload. | Can be feature-gated back to SIMD if performance-critical deployment needs it. |
 | BTSP Phase 2 — `BTSP_NULL` cipher only | BTSP handshake authenticates connections but `BTSP_NULL` is the only functional cipher. Encrypted framing (ChaCha20-Poly1305, HMAC-Plain) requires BearDog's session key propagation, which is Phase 3. | Authentication is complete. Encryption is BearDog's responsibility — LoamSpine will adopt encrypted framing when BearDog exposes `btsp.encrypt`/`btsp.decrypt` over session keys. |
-| BTSP challenge generation | Challenge bytes use a timestamp-derived placeholder, not cryptographic randomness. BearDog's `btsp.session.create` is the true RNG source and may replace or augment this value. | Acceptable for Phase 2 — the challenge is validated by BearDog regardless of its source. |
+| BTSP challenge generation | **RESOLVED (v0.9.16)** — `generate_challenge()` now uses `blake3(uuid_v7_a \|\| uuid_v7_b)` with 148+ bits of OS-sourced entropy. BearDog's `btsp.session.create` remains the authority for session key material. |
 
 ---
 

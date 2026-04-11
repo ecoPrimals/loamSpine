@@ -7,7 +7,7 @@
 
 #![allow(
     clippy::wildcard_imports,
-    reason = "tarpc service macro requires wildcard imports; allow not expect: lint absent in test target"
+    reason = "tarpc service macro requires wildcard imports from crate::types::*; allow not expect: unfulfilled in test target"
 )]
 
 use crate::error::{ApiError, ServerError};

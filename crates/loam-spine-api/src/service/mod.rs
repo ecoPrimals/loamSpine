@@ -9,10 +9,9 @@
     clippy::unused_async,
     reason = "async trait methods required by interface even when impl is sync"
 )]
-// Allow wildcard imports for re-exported types
 #![allow(
     clippy::wildcard_imports,
-    reason = "tarpc service macro requires wildcard imports; allow not expect: lint absent in test target"
+    reason = "tarpc service macro requires wildcard imports from crate::types::*; allow not expect: unfulfilled in test target"
 )]
 
 mod anchor_ops;

@@ -73,6 +73,14 @@ enum Command {
         /// Bind address (env: `LOAMSPINE_BIND_ADDRESS`, `BIND_ADDRESS`).
         #[arg(long)]
         bind_address: Option<String>,
+
+        /// UDS socket path override (env: `LOAMSPINE_SOCKET`).
+        ///
+        /// Explicit socket path for launcher/orchestrator wiring.
+        /// When omitted, resolved from `LOAMSPINE_SOCKET` env, then
+        /// `$XDG_RUNTIME_DIR/biomeos/permanence.sock`, then platform default.
+        #[arg(long)]
+        socket: Option<String>,
     },
 
     /// List capabilities provided by this primal (`UniBin` standard).
@@ -92,8 +100,9 @@ async fn main() -> anyhow::Result<()> {
             port,
             jsonrpc_port,
             bind_address,
+            socket,
         } => {
-            run_server(tarpc_port, port.or(jsonrpc_port), bind_address).await?;
+            run_server(tarpc_port, port.or(jsonrpc_port), bind_address, socket).await?;
         }
         Command::Capabilities => {
             writeln!(
@@ -118,6 +127,7 @@ async fn run_server(
     tarpc_port_override: Option<u16>,
     jsonrpc_port_override: Option<u16>,
     bind_address_override: Option<String>,
+    socket_override: Option<String>,
 ) -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -172,7 +182,11 @@ async fn run_server(
         }
     });
 
-    let socket_path = loam_spine_core::neural_api::resolve_socket_path();
+    // --socket flag takes priority, then env-based resolution
+    let socket_path = socket_override.map_or_else(
+        loam_spine_core::neural_api::resolve_socket_path,
+        std::path::PathBuf::from,
+    );
 
     // BTSP Phase 2: resolve handshake config from environment.
     // When BIOMEOS_FAMILY_ID is set (non-default), BTSP handshake is mandatory
@@ -188,7 +202,7 @@ async fn run_server(
 
     // Start UDS JSON-RPC server (IPC_COMPLIANCE_MATRIX requirement)
     #[cfg(unix)]
-    let _uds_handle = {
+    let uds_handle = {
         match loam_spine_api::run_jsonrpc_uds_server(&socket_path, rpc_service, btsp_config).await {
             Ok(handle) => {
                 info!("UDS JSON-RPC server listening on {}", socket_path.display());
@@ -242,10 +256,17 @@ async fn run_server(
     info!("  JSON-RPC: http://{resolved_bind}:{resolved_jsonrpc_port}");
     info!("  socket:   {}", socket_path.display());
 
-    // Cooperative shutdown: select between server futures and ctrl-c
+    // SIGTERM + SIGINT: production deployments send SIGTERM, not just Ctrl+C.
+    let signal_handler = loam_spine_core::service::signals::SignalHandler::new();
+
+    // Cooperative shutdown: select between server tasks, UDS server, and signals.
+    // UDS handle is monitored so a UDS bind failure under composition load
+    // triggers orderly teardown instead of silent degradation.
     tokio::select! {
-        _ = tokio::signal::ctrl_c() => {
-            info!("Shutdown signal received, stopping gracefully...");
+        result = signal_handler.wait_for_shutdown() => {
+            if let Err(e) = result {
+                error!("Signal handler error: {e}");
+            }
         }
         result = tarpc_handle => {
             if let Err(e) = result {
@@ -259,16 +280,23 @@ async fn run_server(
         }
     }
 
+    // Graceful UDS server drain before lifecycle teardown
+    #[cfg(unix)]
+    if let Some(ref handle) = uds_handle {
+        handle.stop();
+    }
+
     lifecycle.stop().await?;
 
     // Clean up sockets and symlinks on graceful shutdown
     // per PRIMAL_SELF_KNOWLEDGE_STANDARD §3 requirement
     #[cfg(unix)]
     {
+        // Drop the handle (removes socket file via Drop impl)
+        drop(uds_handle);
         if let Some(link) = legacy_symlink {
             let _ = std::fs::remove_file(&link);
         }
-        let _ = std::fs::remove_file(&socket_path);
     }
 
     info!("LoamSpine service stopped");
@@ -305,12 +333,14 @@ mod tests {
             port,
             jsonrpc_port,
             bind_address,
+            socket,
         } = cli.command
         {
             assert!(tarpc_port.is_none());
             assert!(port.is_none());
             assert!(jsonrpc_port.is_none());
             assert!(bind_address.is_none());
+            assert!(socket.is_none());
         } else {
             panic!("expected Server variant");
         }
@@ -333,12 +363,14 @@ mod tests {
             port,
             jsonrpc_port,
             bind_address,
+            socket,
         } = cli.command
         {
             assert_eq!(tarpc_port, Some(9002));
             assert!(port.is_none());
             assert_eq!(jsonrpc_port, Some(8081));
             assert_eq!(bind_address.as_deref(), Some("127.0.0.1"));
+            assert!(socket.is_none());
         } else {
             panic!("expected Server variant");
         }
@@ -353,6 +385,21 @@ mod tests {
         {
             assert_eq!(port, Some(7070));
             assert!(jsonrpc_port.is_none());
+        } else {
+            panic!("expected Server variant");
+        }
+    }
+
+    #[test]
+    fn cli_parse_server_socket_flag() {
+        let cli = Cli::parse_from([
+            "loamspine",
+            "server",
+            "--socket",
+            "/run/custom/permanence.sock",
+        ]);
+        if let Command::Server { socket, .. } = cli.command {
+            assert_eq!(socket.as_deref(), Some("/run/custom/permanence.sock"));
         } else {
             panic!("expected Server variant");
         }

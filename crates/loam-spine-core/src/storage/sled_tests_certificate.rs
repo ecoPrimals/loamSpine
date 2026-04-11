@@ -141,14 +141,12 @@ async fn sled_get_certificate_corrupted_data_returns_error() {
     let path = temp_dir.path().join("certs-corrupt");
 
     let bad_id = CertificateId::now_v7();
-    {
-        let db = sled::open(&path).unwrap();
-        let tree = db.open_tree("certificates").unwrap();
-        tree.insert(bad_id.as_bytes(), b"garbage").unwrap();
-        db.flush().unwrap();
-    }
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("certificates").unwrap();
+    tree.insert(bad_id.as_bytes(), b"garbage").unwrap();
+    db.flush().unwrap();
 
-    let storage = SledCertificateStorage::open(&path).unwrap();
+    let storage = SledCertificateStorage::from_db(db).unwrap();
     let result = storage.get_certificate(bad_id).await;
     assert!(result.is_err());
 }
@@ -159,15 +157,13 @@ async fn sled_get_certificate_corrupted_bincode_returns_deserialize_error() {
     let path = temp_dir.path().join("cert-corrupt-bc");
 
     let cert_id = CertificateId::now_v7();
-    {
-        let db = sled::open(&path).unwrap();
-        let tree = db.open_tree("certificates").unwrap();
-        tree.insert(cert_id.as_bytes().as_slice(), b"corrupt-data" as &[u8])
-            .unwrap();
-        db.flush().unwrap();
-    }
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("certificates").unwrap();
+    tree.insert(cert_id.as_bytes().as_slice(), b"corrupt-data" as &[u8])
+        .unwrap();
+    db.flush().unwrap();
 
-    let storage = SledCertificateStorage::open(&path).unwrap();
+    let storage = SledCertificateStorage::from_db(db).unwrap();
     let result = storage.get_certificate(cert_id).await;
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("deserialize"));
@@ -179,24 +175,22 @@ async fn sled_list_certificates_with_malformed_keys_skips_invalid() {
     let path = temp_dir.path().join("certs-malformed");
 
     let cert_id = CertificateId::now_v7();
-    {
-        let db = sled::open(&path).unwrap();
-        let tree = db.open_tree("certificates").unwrap();
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("certificates").unwrap();
 
-        let owner = Did::new("did:key:z6MkOwner");
-        let spine_id = SpineId::now_v7();
-        let mint_info = test_mint_info(&owner, spine_id);
-        let cert = test_certificate(cert_id, &owner, &mint_info);
-        let bytes = bincode::serialize(&(&cert, spine_id)).unwrap();
-        tree.insert(cert_id.as_bytes().as_slice(), bytes).unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let spine_id = SpineId::now_v7();
+    let mint_info = test_mint_info(&owner, spine_id);
+    let cert = test_certificate(cert_id, &owner, &mint_info);
+    let bytes = bincode::serialize(&(&cert, spine_id)).unwrap();
+    tree.insert(cert_id.as_bytes().as_slice(), bytes).unwrap();
 
-        tree.insert(b"short", b"val").unwrap();
-        tree.insert(b"this-key-is-too-long-for-uuid", b"val")
-            .unwrap();
-        db.flush().unwrap();
-    }
+    tree.insert(b"short", b"val").unwrap();
+    tree.insert(b"this-key-is-too-long-for-uuid", b"val")
+        .unwrap();
+    db.flush().unwrap();
 
-    let storage = SledCertificateStorage::open(&path).unwrap();
+    let storage = SledCertificateStorage::from_db(db).unwrap();
     let ids = storage.list_certificates().await.unwrap();
     assert_eq!(ids.len(), 1, "should skip malformed keys (len != 16)");
 }

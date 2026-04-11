@@ -344,14 +344,12 @@ async fn sled_get_spine_corrupted_data_returns_error() {
     let path = temp_dir.path().join("spines");
 
     let bad_id = SpineId::now_v7();
-    {
-        let db = sled::open(&path).unwrap();
-        let tree = db.open_tree("spines").unwrap();
-        tree.insert(bad_id.as_bytes(), b"invalid-bincode").unwrap();
-        db.flush().unwrap();
-    }
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("spines").unwrap();
+    tree.insert(bad_id.as_bytes(), b"invalid-bincode").unwrap();
+    db.flush().unwrap();
 
-    let storage = SledSpineStorage::open(&path).unwrap();
+    let storage = SledSpineStorage::from_db(db).unwrap();
     let result = storage.get_spine(bad_id).await;
     assert!(result.is_err());
 }
@@ -362,16 +360,14 @@ async fn sled_get_entry_corrupted_data_returns_error() {
     let path = temp_dir.path().join("entries");
 
     let bad_hash = [0u8; 32];
-    {
-        let db = sled::open(&path).unwrap();
-        let entries = db.open_tree("entries").unwrap();
-        let index = db.open_tree("entry_index").unwrap();
-        entries.insert(&bad_hash[..], b"corrupt").unwrap();
-        index.insert(&[0u8; 24][..], &bad_hash[..]).unwrap();
-        db.flush().unwrap();
-    }
+    let db = sled::open(&path).unwrap();
+    let entries = db.open_tree("entries").unwrap();
+    let index = db.open_tree("entry_index").unwrap();
+    entries.insert(&bad_hash[..], b"corrupt").unwrap();
+    index.insert(&[0u8; 24][..], &bad_hash[..]).unwrap();
+    db.flush().unwrap();
 
-    let storage = SledEntryStorage::open(&path).unwrap();
+    let storage = SledEntryStorage::from_db(db).unwrap();
     let result = storage.get_entry(bad_hash).await;
     assert!(result.is_err());
 }
@@ -513,22 +509,20 @@ async fn sled_list_spines_with_malformed_keys_skips_invalid() {
     let temp_dir = tempfile::tempdir().unwrap();
     let path = temp_dir.path().join("spines-malformed");
 
-    {
-        let db = sled::open(&path).unwrap();
-        let tree = db.open_tree("spines").unwrap();
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("spines").unwrap();
 
-        let valid_id = SpineId::now_v7();
-        let valid_spine = create_test_spine();
-        let bytes = bincode::serialize(&valid_spine).unwrap();
-        tree.insert(valid_id.as_bytes(), bytes).unwrap();
+    let valid_id = SpineId::now_v7();
+    let valid_spine = create_test_spine();
+    let bytes = bincode::serialize(&valid_spine).unwrap();
+    tree.insert(valid_id.as_bytes(), bytes).unwrap();
 
-        tree.insert(b"short", b"val").unwrap();
-        tree.insert(b"this-key-is-too-long-for-uuid", b"val")
-            .unwrap();
-        db.flush().unwrap();
-    }
+    tree.insert(b"short", b"val").unwrap();
+    tree.insert(b"this-key-is-too-long-for-uuid", b"val")
+        .unwrap();
+    db.flush().unwrap();
 
-    let storage = SledSpineStorage::open(&path).unwrap();
+    let storage = SledSpineStorage::from_db(db).unwrap();
     let ids = storage.list_spines().await.unwrap();
     assert_eq!(ids.len(), 1, "should skip malformed keys (len != 16)");
 }
@@ -539,38 +533,35 @@ async fn sled_entry_index_missing_entry_skipped() {
     let path = temp_dir.path().join("entries-orphan");
 
     let spine_id = SpineId::now_v7();
-    {
-        let db = sled::open(&path).unwrap();
-        let entries = db.open_tree("entries").unwrap();
-        let index = db.open_tree("entry_index").unwrap();
+    let db = sled::open(&path).unwrap();
+    let entries = db.open_tree("entries").unwrap();
+    let index = db.open_tree("entry_index").unwrap();
 
-        let owner = Did::new("did:key:z6MkOwner");
-        let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
-        let hash = entry.compute_hash().unwrap();
-        let bytes = bincode::serialize(&entry).unwrap();
-        entries.insert(&hash[..], bytes).unwrap();
+    let owner = Did::new("did:key:z6MkOwner");
+    let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
+    let hash = entry.compute_hash().unwrap();
+    let bytes = bincode::serialize(&entry).unwrap();
+    entries.insert(&hash[..], bytes).unwrap();
 
-        let mut key = [0u8; 24];
-        key[..16].copy_from_slice(spine_id.as_bytes());
-        key[16..].copy_from_slice(&0u64.to_be_bytes());
-        index.insert(&key[..], &hash[..]).unwrap();
+    let mut key = [0u8; 24];
+    key[..16].copy_from_slice(spine_id.as_bytes());
+    key[16..].copy_from_slice(&0u64.to_be_bytes());
+    index.insert(&key[..], &hash[..]).unwrap();
 
-        // Orphan: index points to non-existent hash
-        let orphan_hash = [0xFFu8; 32];
-        let mut orphan_key = [0u8; 24];
-        orphan_key[..16].copy_from_slice(spine_id.as_bytes());
-        orphan_key[16..].copy_from_slice(&99u64.to_be_bytes());
-        index.insert(&orphan_key[..], &orphan_hash[..]).unwrap();
+    let orphan_hash = [0xFFu8; 32];
+    let mut orphan_key = [0u8; 24];
+    orphan_key[..16].copy_from_slice(spine_id.as_bytes());
+    orphan_key[16..].copy_from_slice(&99u64.to_be_bytes());
+    index.insert(&orphan_key[..], &orphan_hash[..]).unwrap();
 
-        db.flush().unwrap();
-    }
+    db.flush().unwrap();
 
-    let storage = SledEntryStorage::open(&path).unwrap();
-    let entries = storage
+    let storage = SledEntryStorage::from_db(db).unwrap();
+    let all_entries = storage
         .get_entries_for_spine(spine_id, 0, 100)
         .await
         .unwrap();
-    assert_eq!(entries.len(), 1, "orphan index entry should be skipped");
+    assert_eq!(all_entries.len(), 1, "orphan index entry should be skipped");
 }
 
 #[tokio::test]
@@ -579,22 +570,20 @@ async fn sled_get_entries_for_spine_corrupted_entry_in_index() {
     let path = temp_dir.path().join("entries-corrupt");
 
     let spine_id = SpineId::now_v7();
-    {
-        let db = sled::open(&path).unwrap();
-        let entries = db.open_tree("entries").unwrap();
-        let index = db.open_tree("entry_index").unwrap();
+    let db = sled::open(&path).unwrap();
+    let entries = db.open_tree("entries").unwrap();
+    let index = db.open_tree("entry_index").unwrap();
 
-        let corrupt_hash = [0xABu8; 32];
-        let mut index_key = [0u8; 24];
-        index_key[..16].copy_from_slice(spine_id.as_bytes());
-        index_key[16..].copy_from_slice(&0u64.to_be_bytes());
-        index.insert(&index_key[..], &corrupt_hash[..]).unwrap();
-        entries.insert(&corrupt_hash[..], b"corrupt").unwrap();
+    let corrupt_hash = [0xABu8; 32];
+    let mut index_key = [0u8; 24];
+    index_key[..16].copy_from_slice(spine_id.as_bytes());
+    index_key[16..].copy_from_slice(&0u64.to_be_bytes());
+    index.insert(&index_key[..], &corrupt_hash[..]).unwrap();
+    entries.insert(&corrupt_hash[..], b"corrupt").unwrap();
 
-        db.flush().unwrap();
-    }
+    db.flush().unwrap();
 
-    let storage = SledEntryStorage::open(&path).unwrap();
+    let storage = SledEntryStorage::from_db(db).unwrap();
     let result = storage.get_entries_for_spine(spine_id, 0, 10).await;
     assert!(result.is_err(), "corrupted entry bytes should return error");
     assert!(
@@ -613,15 +602,13 @@ async fn sled_get_spine_corrupted_bincode_returns_deserialize_error() {
     let path = temp_dir.path().join("spine-corrupt-bc");
 
     let spine_id = SpineId::now_v7();
-    {
-        let db = sled::open(&path).unwrap();
-        let tree = db.open_tree("spines").unwrap();
-        tree.insert(spine_id.as_bytes().as_slice(), b"not-bincode" as &[u8])
-            .unwrap();
-        db.flush().unwrap();
-    }
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("spines").unwrap();
+    tree.insert(spine_id.as_bytes().as_slice(), b"not-bincode" as &[u8])
+        .unwrap();
+    db.flush().unwrap();
 
-    let storage = SledSpineStorage::open(&path).unwrap();
+    let storage = SledSpineStorage::from_db(db).unwrap();
     let result = storage.get_spine(spine_id).await;
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("deserialize"));
@@ -633,14 +620,12 @@ async fn sled_get_entry_corrupted_bincode_returns_deserialize_error() {
     let path = temp_dir.path().join("entry-corrupt-bc");
 
     let bad_hash = [0xDEu8; 32];
-    {
-        let db = sled::open(&path).unwrap();
-        let tree = db.open_tree("entries").unwrap();
-        tree.insert(&bad_hash[..], b"garbage" as &[u8]).unwrap();
-        db.flush().unwrap();
-    }
+    let db = sled::open(&path).unwrap();
+    let tree = db.open_tree("entries").unwrap();
+    tree.insert(&bad_hash[..], b"garbage" as &[u8]).unwrap();
+    db.flush().unwrap();
 
-    let storage = SledEntryStorage::open(&path).unwrap();
+    let storage = SledEntryStorage::from_db(db).unwrap();
     let result = storage.get_entry(bad_hash).await;
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("deserialize"));
@@ -658,39 +643,37 @@ async fn sled_get_entries_for_spine_different_spine_stops_iteration() {
     let spine_a = SpineId::now_v7();
     let spine_b = SpineId::now_v7();
 
-    {
-        let db = sled::open(&path).unwrap();
-        let entries = db.open_tree("entries").unwrap();
-        let index = db.open_tree("entry_index").unwrap();
+    let db = sled::open(&path).unwrap();
+    let entries = db.open_tree("entries").unwrap();
+    let index = db.open_tree("entry_index").unwrap();
 
-        let owner = Did::new("did:key:z6MkOwner");
+    let owner = Did::new("did:key:z6MkOwner");
 
-        for (i, sid) in [spine_a, spine_b].iter().enumerate() {
-            let entry = if i == 0 {
-                Entry::genesis(owner.clone(), *sid, SpineConfig::default())
-            } else {
-                Entry::new(
-                    0,
-                    None,
-                    owner.clone(),
-                    EntryType::SpineSealed { reason: None },
-                )
-                .with_spine_id(*sid)
-            };
-            let hash = entry.compute_hash().unwrap();
-            let bytes = bincode::serialize(&entry).unwrap();
-            entries.insert(&hash[..], bytes).unwrap();
+    for (i, sid) in [spine_a, spine_b].iter().enumerate() {
+        let entry = if i == 0 {
+            Entry::genesis(owner.clone(), *sid, SpineConfig::default())
+        } else {
+            Entry::new(
+                0,
+                None,
+                owner.clone(),
+                EntryType::SpineSealed { reason: None },
+            )
+            .with_spine_id(*sid)
+        };
+        let hash = entry.compute_hash().unwrap();
+        let bytes = bincode::serialize(&entry).unwrap();
+        entries.insert(&hash[..], bytes).unwrap();
 
-            let mut key = [0u8; 24];
-            key[..16].copy_from_slice(sid.as_bytes());
-            key[16..].copy_from_slice(&0u64.to_be_bytes());
-            index.insert(&key[..], &hash[..]).unwrap();
-        }
-
-        db.flush().unwrap();
+        let mut key = [0u8; 24];
+        key[..16].copy_from_slice(sid.as_bytes());
+        key[16..].copy_from_slice(&0u64.to_be_bytes());
+        index.insert(&key[..], &hash[..]).unwrap();
     }
 
-    let storage = SledEntryStorage::open(&path).unwrap();
+    db.flush().unwrap();
+
+    let storage = SledEntryStorage::from_db(db).unwrap();
 
     let a_entries = storage
         .get_entries_for_spine(spine_a, 0, 100)
