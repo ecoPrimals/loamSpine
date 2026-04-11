@@ -7,6 +7,13 @@
 
 use std::path::PathBuf;
 
+/// BTSP handshake provider socket prefix per `BTSP_PROTOCOL_STANDARD.md`.
+///
+/// This is a protocol-level naming convention, not a hardcoded primal dependency.
+/// BearDog is the handshake-as-a-service provider in the BTSP architecture;
+/// the socket name is part of the protocol standard, not runtime discovery.
+const BTSP_PROVIDER_PREFIX: &str = "beardog";
+
 /// BTSP handshake configuration, derived from environment.
 ///
 /// When `required` is `true`, every incoming UDS connection must complete the
@@ -92,8 +99,10 @@ pub fn resolve_beardog_socket_with(family_id: Option<&str>, socket_dir: Option<&
 #[must_use]
 pub(crate) fn beardog_socket_name(family_id: Option<&str>) -> String {
     match family_id {
-        Some(fid) if !fid.is_empty() && fid != "default" => format!("beardog-{fid}.sock"),
-        _ => "beardog.sock".to_string(),
+        Some(fid) if !fid.is_empty() && fid != "default" => {
+            format!("{BTSP_PROVIDER_PREFIX}-{fid}.sock")
+        }
+        _ => format!("{BTSP_PROVIDER_PREFIX}.sock"),
     }
 }
 

@@ -157,6 +157,21 @@ pub mod protocol {
     pub const HEALTH_PATH: &str = "/health";
 }
 
+/// Service registry HTTP endpoint paths.
+///
+/// Used by `DiscoveryClient` to interact with HTTP-based registries
+/// (Songbird, Consul adapter, etcd adapter, etc.).
+pub mod registry {
+    /// Capability discovery endpoint.
+    pub const DISCOVER_PATH: &str = "/discover";
+    /// Service registration endpoint.
+    pub const REGISTER_PATH: &str = "/register";
+    /// Heartbeat / keep-alive endpoint.
+    pub const HEARTBEAT_PATH: &str = "/heartbeat";
+    /// Service deregistration endpoint.
+    pub const DEREGISTER_PATH: &str = "/deregister";
+}
+
 /// Metadata keys and values for service advertisement.
 pub mod metadata {
     /// Implementation language.
@@ -214,5 +229,30 @@ mod tests {
 
         // Bind all should be valid
         assert!(BIND_ALL_IPV4.chars().all(|c| c.is_numeric() || c == '.'));
+    }
+
+    #[test]
+    fn registry_paths_start_with_slash() {
+        assert!(registry::DISCOVER_PATH.starts_with('/'));
+        assert!(registry::REGISTER_PATH.starts_with('/'));
+        assert!(registry::HEARTBEAT_PATH.starts_with('/'));
+        assert!(registry::DEREGISTER_PATH.starts_with('/'));
+        assert!(protocol::HEALTH_PATH.starts_with('/'));
+    }
+
+    #[test]
+    fn registry_paths_are_distinct() {
+        let paths = [
+            registry::DISCOVER_PATH,
+            registry::REGISTER_PATH,
+            registry::HEARTBEAT_PATH,
+            registry::DEREGISTER_PATH,
+            protocol::HEALTH_PATH,
+        ];
+        for (i, a) in paths.iter().enumerate() {
+            for b in &paths[i + 1..] {
+                assert_ne!(a, b, "registry paths must be distinct");
+            }
+        }
     }
 }

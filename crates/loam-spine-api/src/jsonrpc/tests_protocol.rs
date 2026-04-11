@@ -792,7 +792,10 @@ fn is_notification_with_id() {
 
 #[cfg(unix)]
 #[tokio::test]
-#[expect(clippy::panic, reason = "spawned tasks need contextual panic messages for debugging concurrent failures")]
+#[expect(
+    clippy::panic,
+    reason = "spawned tasks need contextual panic messages for debugging concurrent failures"
+)]
 async fn uds_concurrent_load_8x5() {
     const CLIENTS: usize = 8;
     const REQUESTS_PER_CLIENT: usize = 5;

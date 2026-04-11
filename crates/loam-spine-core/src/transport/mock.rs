@@ -108,7 +108,7 @@ impl DiscoveryTransport for SuccessTransport {
         url: &'a str,
     ) -> Pin<Box<dyn Future<Output = Result<TransportResponse, LoamSpineError>> + Send + 'a>> {
         // /discover returns array, /health returns object (body unused)
-        let body = if url.contains("/discover") {
+        let body = if url.contains(crate::constants::registry::DISCOVER_PATH) {
             b"[]"
         } else {
             b"{}"

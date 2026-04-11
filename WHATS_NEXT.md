@@ -219,6 +219,13 @@
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
+## v0.9.16 Hardcoding Evolution & Transport Refactor (April 11, 2026)
+
+- **Registry path centralization**: `/health`, `/discover`, `/register`, `/heartbeat`, `/deregister` string fragments extracted from `discovery_client/mod.rs` into `constants::registry` module. Single source of truth for all registry HTTP paths.
+- **BTSP provider socket naming**: Hardcoded `"beardog"` string literals in `btsp/config.rs` replaced with `BTSP_PROVIDER_PREFIX` constant. Protocol-level naming convention documented.
+- **Smart refactor `jsonrpc/server.rs`** (529 lines) → TCP transport stays in `server.rs` (362 lines), UDS transport extracted to `uds.rs` (172 lines). Clean domain boundary: TCP/HTTP vs UDS+BTSP gating.
+- **Tests**: 1,505 → **1,507** (+2 new: registry path validation, registry path distinctness). Source files: 169 → **170**. Full pipeline clean.
+
 ## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)
 
 - **BTSP challenge evolved**: `generate_challenge_placeholder()` (timestamp-derived) replaced with `generate_challenge()` using `blake3` + `uuid::Uuid::now_v7()` — 148+ bits OS-sourced entropy. Zero new dependencies.
@@ -226,7 +233,7 @@
 - **Dependency cleanup**: `serde_bytes` removed (unused). `bytes`, `url`, `bincode`, `tarpc`, `futures`, `clap`, `loam-spine-core`, `loam-spine-api` centralized to `[workspace.dependencies]`.
 - **Storage test isolation fixed**: Sled `from_db` constructors eliminate lock contention (10 tests). SQLite WAL mode + busy timeout. redb `tempfile::tempdir()` + explicit `drop` (5 tests). Zero flaky storage tests.
 - **`#[allow]` audit**: `#[expect]` attributes that caused `unfulfilled-lint-expectations` in `--all-features` builds reverted to `#[allow]` with documented reasons.
-- **Tests**: 1,373 → **1,504** (+131). Source files: 167 → **169**. Zero clippy warnings. Full pipeline clean (fmt, clippy, doc, deny).
+- **Tests**: 1,373 → **1,507** (+134). Source files: 167 → **170**. Zero clippy warnings. Full pipeline clean (fmt, clippy, doc, deny).
 
 ## v0.9.16 Deep Debt Cleanup & Evolution Pass (April 9, 2026)
 

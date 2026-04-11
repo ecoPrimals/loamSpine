@@ -211,7 +211,11 @@ impl DiscoveryClient {
 
     /// Verify the registry is reachable.
     pub(crate) async fn health_check(&self) -> LoamSpineResult<()> {
-        let health_url = format!("{}/health", self.endpoint);
+        let health_url = format!(
+            "{}{}",
+            self.endpoint,
+            crate::constants::protocol::HEALTH_PATH
+        );
         self.transport.get(&health_url).await.map_err(|e| {
             LoamSpineError::CapabilityUnavailable(format!(
                 "Service registry unavailable at {}: {e}",
@@ -230,7 +234,11 @@ impl DiscoveryClient {
         &self,
         capability: &str,
     ) -> LoamSpineResult<Vec<DiscoveredService>> {
-        let url = format!("{}/discover", self.endpoint);
+        let url = format!(
+            "{}{}",
+            self.endpoint,
+            crate::constants::registry::DISCOVER_PATH
+        );
         let response = self
             .transport
             .get_with_query(&url, &[("capability", capability)])
@@ -258,7 +266,11 @@ impl DiscoveryClient {
     ///
     /// Returns an error if the discovery request fails.
     pub async fn discover_all(&self) -> LoamSpineResult<Vec<DiscoveredService>> {
-        let url = format!("{}/discover", self.endpoint);
+        let url = format!(
+            "{}{}",
+            self.endpoint,
+            crate::constants::registry::DISCOVER_PATH
+        );
         let response = self.transport.get(&url).await.map_err(|e| {
             LoamSpineError::ipc(
                 IpcErrorPhase::Connect,
@@ -335,7 +347,11 @@ impl DiscoveryClient {
             )
         })?;
 
-        let url = format!("{}/register", self.endpoint);
+        let url = format!(
+            "{}{}",
+            self.endpoint,
+            crate::constants::registry::REGISTER_PATH
+        );
         let response = self.transport.post_json(&url, &body).await.map_err(|e| {
             LoamSpineError::ipc(IpcErrorPhase::Connect, format!("Advertisement failed: {e}"))
         })?;
@@ -356,7 +372,11 @@ impl DiscoveryClient {
     ///
     /// Returns an error if the heartbeat fails.
     pub async fn heartbeat(&self) -> LoamSpineResult<()> {
-        let url = format!("{}/heartbeat", self.endpoint);
+        let url = format!(
+            "{}{}",
+            self.endpoint,
+            crate::constants::registry::HEARTBEAT_PATH
+        );
         let body = serde_json::json!({ "name": crate::neural_api::PRIMAL_NAME });
         let response = self.transport.post_json(&url, &body).await.map_err(|e| {
             LoamSpineError::ipc(IpcErrorPhase::Connect, format!("Heartbeat failed: {e}"))
@@ -378,7 +398,11 @@ impl DiscoveryClient {
     ///
     /// Returns an error if the deregistration fails.
     pub async fn deregister(&self) -> LoamSpineResult<()> {
-        let url = format!("{}/deregister", self.endpoint);
+        let url = format!(
+            "{}{}",
+            self.endpoint,
+            crate::constants::registry::DEREGISTER_PATH
+        );
         let body = serde_json::json!({ "name": crate::neural_api::PRIMAL_NAME });
         let response = self.transport.post_json(&url, &body).await.map_err(|e| {
             LoamSpineError::ipc(IpcErrorPhase::Connect, format!("Deregister failed: {e}"))

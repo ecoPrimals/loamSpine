@@ -97,10 +97,10 @@ cd showcase/03-inter-primal/
 
 ### Path 3: Ecosystem Architect (120 minutes)
 1. `03-inter-primal/` — All 5 demos
-3. Read: `INTEGRATION_GAPS.md`
-4. Read: `showcase/SESSION_SUMMARY_DEC_26_2025.md`
+3. Read: `KNOWN_ISSUES.md`
+4. Read: `WHATS_NEXT.md`
 
-**Outcome**: Understand complete ecosystem vision & gaps
+**Outcome**: Understand complete ecosystem vision & roadmap
 
 ### Path 4: Deep Dive (3+ hours)
 Complete all 21 demos in order:
@@ -157,16 +157,7 @@ Complete all 21 demos in order:
 
 All Level 4 demos document real integration gaps discovered through actual binary usage.
 
-**See**: `INTEGRATION_GAPS.md` for complete analysis
-
-**Breakdown**:
-- 🐕 BearDog: 4 gaps
-- 🏰 NestGate: 6 gaps
-- 🐿️ Squirrel: 8 gaps
-- 🍄 ToadStool: 10 gaps
-- 🌐 Ecosystem: 7 cross-cutting gaps
-
-**Total**: 35 gaps → 8-10 week evolution roadmap
+**See**: `KNOWN_ISSUES.md` and `WHATS_NEXT.md` for current status
 
 ---
 
@@ -175,14 +166,13 @@ All Level 4 demos document real integration gaps discovered through actual binar
 ### Root Level
 - `README.md` — Project overview and documentation
 - `STATUS.md` — Current status dashboard
-- `START_HERE.md` — Developer quick start
-- `INTEGRATION_GAPS.md` — All gaps tracked
+- `CONTRIBUTING.md` — Developer quick start
+- `KNOWN_ISSUES.md` — Known issues and workarounds
+- `WHATS_NEXT.md` — Development roadmap
 
 ### Showcase
-- `RUN_ME_FIRST.sh` — **START HERE**
+- `00_START_HERE.md` — **START HERE**
 - `SHOWCASE_PRINCIPLES.md` — Design principles
-- `REAL_INTEGRATION_PROGRESS_DEC_26_2025.md` — Progress
-- `SESSION_SUMMARY_DEC_26_2025.md` — Complete summary
 - `QUICK_REFERENCE.md` — **THIS DOCUMENT**
 
 ---
@@ -244,8 +234,8 @@ Ephemeral operations (fast & efficient)
 
 ### For Developers
 1. Complete Path 2 (Integration Developer)
-2. Read `INTEGRATION_GAPS.md`
-3. Pick a gap to work on
+2. Read `KNOWN_ISSUES.md` and `WHATS_NEXT.md`
+3. Pick a roadmap item to work on
 4. Join the evolution!
 
 ### For Contributors
@@ -271,11 +261,11 @@ find showcase -name "demo.sh" -type f | sort
 # Check demo count
 find showcase -name "demo.sh" -type f | wc -l
 
-# See all gaps
-grep -r "Gap #" INTEGRATION_GAPS.md | head -20
+# See known issues
+cat KNOWN_ISSUES.md
 
-# Read session summary
-cat showcase/SESSION_SUMMARY_DEC_26_2025.md
+# See roadmap
+cat WHATS_NEXT.md | head -50
 
 # Check Phase 1 binaries
 ls -lh ../bins/
@@ -301,7 +291,7 @@ Total: 21 demos, 35 gaps discovered, 8-10 weeks to production!
 **Start Here**: `./RUN_ME_FIRST.sh`  
 **Learn More**: `README.md`  
 **Get Status**: `STATUS.md`  
-**Understand Gaps**: `INTEGRATION_GAPS.md`  
+**Understand Roadmap**: `WHATS_NEXT.md`  
 **This Card**: `showcase/QUICK_REFERENCE.md`
 
 **Philosophy**: Sovereign • Permanent • Verifiable • Unstoppable

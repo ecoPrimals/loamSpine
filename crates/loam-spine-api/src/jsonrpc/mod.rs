@@ -9,11 +9,13 @@
 //! with a hand-rolled JSON-RPC dispatcher over raw HTTP/TCP.
 
 mod server;
+#[cfg(unix)]
+mod uds;
 mod wire;
 
 pub use server::{ServerHandle, run_jsonrpc_server};
 #[cfg(unix)]
-pub use server::{UdsServerHandle, run_jsonrpc_uds_server};
+pub use uds::{UdsServerHandle, run_jsonrpc_uds_server};
 pub use wire::{JsonRpcError, JsonRpcRequest, JsonRpcResponse};
 
 // Re-exports for internal use by sibling test modules

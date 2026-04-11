@@ -4,8 +4,8 @@
 
 **Version**: 0.9.16  
 **Status**: Production Ready  
-**Date**: April 8, 2026  
-**Latest**: BTSP Phase 2 handshake, deep debt overhaul, dependency evolution — 1,504 tests, 92% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
+**Date**: April 11, 2026  
+**Latest**: BTSP Phase 2 handshake, deep debt overhaul, dependency evolution — 1,507 tests, 92% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
 
 ---
 
@@ -376,7 +376,7 @@ cargo build --release
 1. Read the error message carefully
 2. Check prerequisites for that demo
 3. Verify services are running (if needed)
-4. Check `showcase/logs/` for details
+4. Check terminal output for details
 
 ### "Service not found"
 ```bash
@@ -444,7 +444,7 @@ cat 00_SHOWCASE_INDEX.md
 - 🔐 **Provable**: Cryptographic proofs of everything
 - 🚀 **Fast**: Pure Rust, zero-copy, optimized
 - 🤝 **Composable**: Seamlessly integrates with ecosystem
-- 🏆 **World-Class**: A+ grade, 1,312 tests passing, 90%+ line coverage
+- 🏆 **World-Class**: A+ grade, 1,507 tests passing, 92% line coverage
 - 🌍 **Universal**: tarpc + JSON-RPC for any client
 
 ---
@@ -463,11 +463,11 @@ cat 00_SHOWCASE_INDEX.md
 - `../specs/` - Complete specifications
 
 ### Ecosystem Showcases
-- `../../phase1/squirrel/showcase/` - AI orchestration
-- `../../phase1/songbird/showcase/` - Service mesh (if exists)
-- `../../phase1/toadstool/showcase/` - Universal compute (if exists)
-- `../../phase1/nestgate/showcase/` - Storage infrastructure (if exists)
-- `../../phase1/beardog/showcase/` - Sovereign security (if exists)
+- `../../squirrel/showcase/` - AI orchestration (if exists)
+- `../../songBird/showcase/` - Service mesh (if exists)
+- `../../toadStool/showcase/` - Universal compute (if exists)
+- `../../nestGate/showcase/` - Storage infrastructure (if exists)
+- `../../bearDog/showcase/` - Sovereign security (if exists)
 
 ---
 
@@ -491,5 +491,5 @@ cat 00_SHOWCASE_INDEX.md
 ---
 
 *LoamSpine v0.9.16 - ecoPrimals Ecosystem*  
-*March 24, 2026*
+*April 11, 2026*
 
