@@ -140,7 +140,7 @@ pub fn resolve_socket_base_dir_with(runtime_dir: Option<&str>) -> std::path::Pat
 }
 
 pub use super::env_resolution::{
-    actual_jsonrpc_port, actual_tarpc_port, bind_address, jsonrpc_port,
+    actual_jsonrpc_port, actual_tarpc_port, bind_address, has_explicit_tcp_config, jsonrpc_port,
     resolve_primal_socket_with_env, tarpc_port, use_os_assigned_ports,
 };
 

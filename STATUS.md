@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,382 |
+| Tests | — | 1,383 |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -104,7 +104,9 @@ This document tracks implementation progress against the specification suite in 
 - **Smart test extraction (5 files)**: Inline `#[cfg(test)] mod tests` extracted to sibling `#[path]` modules: `streaming.rs` (354→203), `health.rs` (482→347), `service/mod.rs` (438→277), `config.rs` (370→285), `lib.rs` (532→374). Production code cohesion preserved.
 - **Stale Songbird references removed**: All production doc comments referencing deprecated Songbird discovery primal evolved to generic capability-based language. Only test examples of `address_env_var("songbird")` remain (demonstrating the function works with any primal name).
 - **Doc warning fixed**: Broken `read_ndjson_stream_with` intra-doc link → `read_ndjson_stream_bounded`.
-- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,382 tests, 0 failures), `cargo deny check` PASS.
+- **LD-09 TCP opt-in (port 8080 crash fix)**: `loamspine server` no longer unconditionally binds `0.0.0.0:8080` for HTTP JSON-RPC. TCP transports (tarpc + JSON-RPC TCP) are now opt-in via `--port`/`--tarpc-port` CLI flags or `LOAMSPINE_JSONRPC_PORT`/`LOAMSPINE_TARPC_PORT`/`USE_OS_ASSIGNED_PORTS` env vars. UDS socket is always the primary transport. Follows ToadStool/barraCuda pattern. Resolves primalSpring audit item LD-09.
+- **Root docs reconciled**: README, CONTEXT, CONTRIBUTING metrics aligned with STATUS.md truth (1,383 tests, 175 source files). Stale Songbird references removed from deploy graph and CONTEXT. Coverage badges updated.
+- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,383 tests, 0 failures), `cargo deny check` PASS.
 
 ## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)
 

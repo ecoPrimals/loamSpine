@@ -9,17 +9,20 @@
 //! # Usage
 //!
 //! ```bash
-//! # Run with defaults (discovered from environment)
+//! # Run with UDS only (default — no TCP, no port conflicts)
 //! loamspine server
 //!
-//! # Custom ports via CLI
-//! loamspine server --tarpc-port 9001 --jsonrpc-port 8080
+//! # Enable TCP with explicit ports
+//! loamspine server --port 8080 --tarpc-port 9001
 //!
-//! # Custom ports via environment
-//! LOAMSPINE_TARPC_PORT=9001 LOAMSPINE_JSONRPC_PORT=8080 loamspine server
+//! # Enable TCP via environment
+//! LOAMSPINE_JSONRPC_PORT=8080 LOAMSPINE_TARPC_PORT=9001 loamspine server
+//!
+//! # OS-assigned ports (avoids conflicts)
+//! USE_OS_ASSIGNED_PORTS=true loamspine server
 //!
 //! # Discovery registration
-//! DISCOVERY_ENDPOINT=http://registry:8082 loamspine server
+//! DISCOVERY_ENDPOINT=http://registry:8082 loamspine server --port 8080
 //! ```
 
 #![forbid(unsafe_code)]
@@ -152,8 +155,13 @@ async fn run_server(
         )
         .init();
 
-    let resolved_tarpc_port = tarpc_port_override.unwrap_or_else(network::actual_tarpc_port);
-    let resolved_jsonrpc_port = jsonrpc_port_override.unwrap_or_else(network::actual_jsonrpc_port);
+    // TCP is opt-in (ToadStool/barraCuda pattern): only start TCP servers
+    // when explicitly requested via CLI flags or environment variables.
+    // UDS socket is always started as the primary transport.
+    let tcp_requested = tarpc_port_override.is_some()
+        || jsonrpc_port_override.is_some()
+        || network::has_explicit_tcp_config();
+
     let resolved_bind: Cow<'static, str> =
         bind_address_override.map_or_else(network::bind_address, Cow::Owned);
 
@@ -163,17 +171,31 @@ async fn run_server(
 
     info!("LoamSpine Standalone Service");
     info!("  version: {}", env!("CARGO_PKG_VERSION"));
-    info!("  tarpc port: {resolved_tarpc_port}");
-    info!("  JSON-RPC port: {resolved_jsonrpc_port}");
-    info!("  bind address: {resolved_bind}");
+    if tcp_requested {
+        let resolved_tarpc_port = tarpc_port_override.unwrap_or_else(network::actual_tarpc_port);
+        let resolved_jsonrpc_port =
+            jsonrpc_port_override.unwrap_or_else(network::actual_jsonrpc_port);
+        info!("  tarpc port: {resolved_tarpc_port}");
+        info!("  JSON-RPC port: {resolved_jsonrpc_port}");
+        info!("  bind address: {resolved_bind}");
+    } else {
+        info!("  TCP transports: disabled (use --port/--tarpc-port to enable)");
+    }
     if abstract_socket {
         info!("  UDS namespace: abstract (Linux)");
     }
 
     let service = LoamSpineService::new();
     let mut config = LoamSpineConfig::default();
-    config.discovery.tarpc_endpoint = format!("http://{resolved_bind}:{resolved_tarpc_port}");
-    config.discovery.jsonrpc_endpoint = format!("http://{resolved_bind}:{resolved_jsonrpc_port}");
+
+    // Merge TCP endpoints into config before lifecycle starts.
+    if tcp_requested {
+        let rtp = tarpc_port_override.unwrap_or_else(network::actual_tarpc_port);
+        let rjp = jsonrpc_port_override.unwrap_or_else(network::actual_jsonrpc_port);
+        config.discovery.tarpc_endpoint = format!("http://{resolved_bind}:{rtp}");
+        config.discovery.jsonrpc_endpoint = format!("http://{resolved_bind}:{rjp}");
+    }
+
     let mut lifecycle = LifecycleManager::new(service.clone(), config);
     lifecycle
         .start()
@@ -182,26 +204,40 @@ async fn run_server(
 
     let rpc_service = LoamSpineRpcService::new(service);
 
-    let ip: IpAddr = resolved_bind.parse().or_exit("Invalid bind address");
-    let tarpc_addr = SocketAddr::new(ip, resolved_tarpc_port);
-    let jsonrpc_addr = SocketAddr::new(ip, resolved_jsonrpc_port);
+    // Only start TCP servers when explicitly requested.
+    let tarpc_handle = if tcp_requested {
+        let resolved_tarpc_port = tarpc_port_override.unwrap_or_else(network::actual_tarpc_port);
+        let resolved_jsonrpc_port =
+            jsonrpc_port_override.unwrap_or_else(network::actual_jsonrpc_port);
 
-    let rpc_service_tarpc = rpc_service.clone();
-    let rpc_service_jsonrpc = rpc_service.clone();
-    let tarpc_handle = tokio::spawn(async move {
-        info!("Starting tarpc server on {tarpc_addr}");
-        if let Err(e) = run_tarpc_server(tarpc_addr, rpc_service_tarpc).await {
-            error!("tarpc server error: {e}");
-        }
-    });
+        let ip: IpAddr = resolved_bind.parse().or_exit("Invalid bind address");
+        let tarpc_addr = SocketAddr::new(ip, resolved_tarpc_port);
+        let jsonrpc_addr = SocketAddr::new(ip, resolved_jsonrpc_port);
 
-    let jsonrpc_handle = tokio::spawn(async move {
-        info!("Starting JSON-RPC server on {jsonrpc_addr}");
-        match run_jsonrpc_server(jsonrpc_addr, rpc_service_jsonrpc).await {
-            Ok(mut handle) => handle.stopped().await,
-            Err(e) => error!("JSON-RPC server error: {e}"),
-        }
-    });
+        let rpc_service_tarpc = rpc_service.clone();
+        let rpc_service_jsonrpc = rpc_service.clone();
+        let tarpc_task = tokio::spawn(async move {
+            info!("Starting tarpc server on {tarpc_addr}");
+            if let Err(e) = run_tarpc_server(tarpc_addr, rpc_service_tarpc).await {
+                error!("tarpc server error: {e}");
+            }
+        });
+        let jsonrpc_task = tokio::spawn(async move {
+            info!("Starting JSON-RPC server on {jsonrpc_addr}");
+            match run_jsonrpc_server(jsonrpc_addr, rpc_service_jsonrpc).await {
+                Ok(mut handle) => handle.stopped().await,
+                Err(e) => error!("JSON-RPC server error: {e}"),
+            }
+        });
+        Some((
+            tarpc_task,
+            jsonrpc_task,
+            resolved_tarpc_port,
+            resolved_jsonrpc_port,
+        ))
+    } else {
+        None
+    };
 
     // --socket flag takes priority, then env-based resolution
     let socket_path = socket_override.map_or_else(
@@ -273,8 +309,10 @@ async fn run_server(
     };
 
     info!("LoamSpine service started successfully");
-    info!("  tarpc:    tarpc://{resolved_bind}:{resolved_tarpc_port}");
-    info!("  JSON-RPC: http://{resolved_bind}:{resolved_jsonrpc_port}");
+    if let Some((_, _, tp, jp)) = &tarpc_handle {
+        info!("  tarpc:    tarpc://{resolved_bind}:{tp}");
+        info!("  JSON-RPC: http://{resolved_bind}:{jp}");
+    }
     info!("  socket:   {}", socket_path.display());
 
     let signal_handler = loam_spine_core::service::signals::SignalHandler::new();
@@ -282,20 +320,30 @@ async fn run_server(
     // Cooperative shutdown: all server tasks are monitored symmetrically.
     // A failure in any transport (tarpc, JSON-RPC TCP, or UDS) triggers
     // orderly teardown rather than silent degradation.
-    tokio::select! {
-        result = signal_handler.wait_for_shutdown() => {
-            if let Err(e) = result {
+    match tarpc_handle {
+        Some((tarpc_task, jsonrpc_task, ..)) => {
+            tokio::select! {
+                result = signal_handler.wait_for_shutdown() => {
+                    if let Err(e) = result {
+                        error!("Signal handler error: {e}");
+                    }
+                }
+                result = tarpc_task => {
+                    if let Err(e) = result {
+                        error!("tarpc task failed: {e}");
+                    }
+                }
+                result = jsonrpc_task => {
+                    if let Err(e) = result {
+                        error!("JSON-RPC task failed: {e}");
+                    }
+                }
+            }
+        }
+        None => {
+            // UDS-only mode: wait for signal or UDS server failure.
+            if let Err(e) = signal_handler.wait_for_shutdown().await {
                 error!("Signal handler error: {e}");
-            }
-        }
-        result = tarpc_handle => {
-            if let Err(e) = result {
-                error!("tarpc task failed: {e}");
-            }
-        }
-        result = jsonrpc_handle => {
-            if let Err(e) = result {
-                error!("JSON-RPC task failed: {e}");
             }
         }
     }

@@ -67,6 +67,20 @@ pub fn actual_tarpc_port() -> u16 {
     network::resolve_actual_tarpc_port(use_os_assigned_ports(), tarpc_port())
 }
 
+/// Check whether TCP transports were explicitly requested via environment.
+///
+/// Returns `true` when any TCP-related env var is set (port or OS-assigned).
+/// Used by the binary entrypoint to implement opt-in TCP: when no CLI flag
+/// and no env var requests TCP, only the UDS socket is started.
+#[must_use]
+pub fn has_explicit_tcp_config() -> bool {
+    env::var("LOAMSPINE_JSONRPC_PORT").is_ok()
+        || env::var("JSONRPC_PORT").is_ok()
+        || env::var("LOAMSPINE_TARPC_PORT").is_ok()
+        || env::var("TARPC_PORT").is_ok()
+        || use_os_assigned_ports()
+}
+
 /// Resolve a primal's socket path using the environment override pattern.
 ///
 /// Checks `{PRIMAL}_SOCKET` env var first, then falls back to the
@@ -109,6 +123,11 @@ mod tests {
     #[test]
     fn actual_tarpc_port_default_without_env() {
         assert_eq!(actual_tarpc_port(), 9001);
+    }
+
+    #[test]
+    fn has_explicit_tcp_config_default_without_env() {
+        assert!(!has_explicit_tcp_config());
     }
 
     #[test]

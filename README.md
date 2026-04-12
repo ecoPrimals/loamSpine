@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C382%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C383%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
@@ -38,10 +38,10 @@ LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Na
 cargo build --release
 cargo test --workspace
 
-# Run the service (UniBin)
+# Run the service — UDS only (default, no port conflicts)
 cargo run --release --bin loamspine -- server
 
-# With explicit ports (--port is an alias for --jsonrpc-port per UniBin standard)
+# With explicit TCP ports (opt-in, --port aliases --jsonrpc-port per UniBin)
 cargo run --release --bin loamspine -- server --port 8080 --tarpc-port 9001
 
 # UniBin introspection
@@ -192,7 +192,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,382 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,383 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
