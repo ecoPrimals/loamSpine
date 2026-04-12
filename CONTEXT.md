@@ -31,7 +31,7 @@ to commit, verify, or query permanent records.
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
 - **Version:** 0.9.16
-- **Source files:** 175 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Source files:** 176 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 
 ## Key Capabilities (JSON-RPC methods)
 

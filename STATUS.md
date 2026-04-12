@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,383 |
+| Tests | — | 1,383 (176 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -69,7 +69,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 175 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 176 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -105,7 +105,10 @@ This document tracks implementation progress against the specification suite in 
 - **Stale Songbird references removed**: All production doc comments referencing deprecated Songbird discovery primal evolved to generic capability-based language. Only test examples of `address_env_var("songbird")` remain (demonstrating the function works with any primal name).
 - **Doc warning fixed**: Broken `read_ndjson_stream_with` intra-doc link → `read_ndjson_stream_bounded`.
 - **LD-09 TCP opt-in (port 8080 crash fix)**: `loamspine server` no longer unconditionally binds `0.0.0.0:8080` for HTTP JSON-RPC. TCP transports (tarpc + JSON-RPC TCP) are now opt-in via `--port`/`--tarpc-port` CLI flags or `LOAMSPINE_JSONRPC_PORT`/`LOAMSPINE_TARPC_PORT`/`USE_OS_ASSIGNED_PORTS` env vars. UDS socket is always the primary transport. Follows ToadStool/barraCuda pattern. Resolves primalSpring audit item LD-09.
-- **Root docs reconciled**: README, CONTEXT, CONTRIBUTING metrics aligned with STATUS.md truth (1,383 tests, 175 source files). Stale Songbird references removed from deploy graph and CONTEXT. Coverage badges updated.
+- **Root docs reconciled**: README, CONTEXT, CONTRIBUTING metrics aligned with STATUS.md truth (1,383 tests, 176 source files). Stale Songbird references removed from deploy graph and CONTEXT. Coverage badges updated.
+- **traits/mod.rs test extraction**: Inline `#[cfg(test)] mod tests` (167 lines) extracted to `traits/mod_tests.rs`. Production module: 446→279 lines.
+- **Magic number timeouts named**: `transport/http.rs` (`CONNECT_TIMEOUT`, `READ_TIMEOUT`), `infant_discovery/mod.rs` (`DNS_SRV_TIMEOUT`), `infant_discovery/backends.rs` (`MDNS_TIMEOUT`). All bare Duration literals in production code replaced with named constants.
+- **Clone audit clean**: All production `.clone()` calls verified as Arc-based O(1) or structurally necessary. No unnecessary allocations in hot paths.
 - **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,383 tests, 0 failures), `cargo deny check` PASS.
 
 ## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)

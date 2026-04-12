@@ -66,6 +66,10 @@ use tracing::{debug, info, warn};
 #[cfg(any(feature = "dns-srv", feature = "mdns"))]
 use crate::constants::HTTPS_DEFAULT_PORT;
 
+/// DNS SRV lookup timeout — short to avoid blocking the discovery pipeline.
+#[cfg(feature = "dns-srv")]
+const DNS_SRV_TIMEOUT: Duration = Duration::from_secs(2);
+
 use crate::capabilities::{DiscoveredService, LoamSpineCapability, ServiceHealth};
 use crate::error::LoamSpineResult;
 
@@ -374,22 +378,20 @@ impl InfantDiscovery {
             TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
 
         // Query SRV records with timeout
-        let lookup: SrvLookup = match tokio::time::timeout(
-            Duration::from_secs(2),
-            resolver.srv_lookup(service_name.as_str()),
-        )
-        .await
-        {
-            Ok(Ok(l)) => l,
-            Ok(Err(e)) => {
-                debug!("DNS SRV lookup failed for {}: {}", service_name, e);
-                return vec![];
-            }
-            Err(_) => {
-                debug!("DNS SRV lookup timeout for {}", service_name);
-                return vec![];
-            }
-        };
+        let lookup: SrvLookup =
+            match tokio::time::timeout(DNS_SRV_TIMEOUT, resolver.srv_lookup(service_name.as_str()))
+                .await
+            {
+                Ok(Ok(l)) => l,
+                Ok(Err(e)) => {
+                    debug!("DNS SRV lookup failed for {}: {}", service_name, e);
+                    return vec![];
+                }
+                Err(_) => {
+                    debug!("DNS SRV lookup timeout for {}", service_name);
+                    return vec![];
+                }
+            };
 
         // Collect records with their properties
         let mut records_data: Vec<(u16, u16, String, u16)> = Vec::new();

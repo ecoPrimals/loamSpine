@@ -11,6 +11,10 @@ use std::collections::HashMap;
 #[cfg(feature = "mdns")]
 use std::time::{Duration, SystemTime};
 
+/// How long to wait for mDNS responses before giving up.
+#[cfg(feature = "mdns")]
+const MDNS_TIMEOUT: Duration = Duration::from_secs(2);
+
 #[cfg(any(feature = "dns-srv", feature = "mdns", test))]
 use crate::capabilities::identifiers::external;
 #[cfg(feature = "mdns")]
@@ -34,7 +38,7 @@ pub(super) fn mdns_discover_impl(
 ) -> Vec<DiscoveredService> {
     use std::time::Instant;
 
-    let discovery = match mdns::discover::all(service_type, Duration::from_secs(2)) {
+    let discovery = match mdns::discover::all(service_type, MDNS_TIMEOUT) {
         Ok(d) => d,
         Err(e) => {
             warn!("mDNS discovery failed for {service_type}: {e}");
@@ -50,7 +54,7 @@ pub(super) fn mdns_discover_impl(
         let mut services = Vec::new();
         pin_mut!(stream);
 
-        let deadline = Instant::now() + Duration::from_secs(2);
+        let deadline = Instant::now() + MDNS_TIMEOUT;
 
         loop {
             let remaining = deadline.saturating_duration_since(Instant::now());

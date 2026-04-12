@@ -14,6 +14,12 @@ use crate::error::{IpcErrorPhase, LoamSpineError};
 
 use super::{DiscoveryTransport, TransportResponse};
 
+/// TCP connect timeout for ureq HTTP client.
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// Read timeout for ureq HTTP client (covers full response body).
+const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// Direct HTTP transport using `ureq` (pure Rust, synchronous under the hood).
 ///
 /// Wraps [`ureq::Agent`] behind the [`DiscoveryTransport`] trait so that
@@ -27,15 +33,15 @@ pub struct HttpTransport {
 }
 
 impl HttpTransport {
-    /// Create a new HTTP transport with default settings (30 s timeout).
+    /// Create a new HTTP transport with default settings (30 s read timeout).
     ///
     /// # Errors
     ///
     /// Returns an error if the underlying HTTP client cannot be constructed.
     pub fn new() -> Result<Self, LoamSpineError> {
         let agent = ureq::AgentBuilder::new()
-            .timeout_connect(std::time::Duration::from_secs(5))
-            .timeout_read(std::time::Duration::from_secs(30))
+            .timeout_connect(CONNECT_TIMEOUT)
+            .timeout_read(READ_TIMEOUT)
             .build();
         Ok(Self { agent })
     }
