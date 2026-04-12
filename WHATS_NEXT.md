@@ -226,6 +226,16 @@
 - **Smart refactor `jsonrpc/server.rs`** (529 lines) → TCP transport stays in `server.rs` (362 lines), UDS transport extracted to `uds.rs` (172 lines). Clean domain boundary: TCP/HTTP vs UDS+BTSP gating.
 - **Tests**: 1,505 → **1,507** (+2 new: registry path validation, registry path distinctness). Source files: 169 → **170**. Full pipeline clean.
 
+## v0.9.16 Deep Debt & Evolution Pass 3 (April 12, 2026)
+
+- **traits/mod.rs test extraction**: Inline `#[cfg(test)] mod tests` (167 lines, 12 tests) extracted to `traits/mod_tests.rs`. Production module: 446→279 lines.
+- **Magic number timeouts named**: `CONNECT_TIMEOUT`/`READ_TIMEOUT` (http.rs), `DNS_SRV_TIMEOUT` (infant_discovery), `MDNS_TIMEOUT` (backends.rs). All bare `Duration` literals in production code replaced with named constants.
+- **Clone audit clean**: All production `.clone()` confirmed Arc-based O(1) or structurally necessary. No unnecessary allocations in hot paths.
+- **LD-09 TCP opt-in**: `loamspine server` no longer binds `0.0.0.0:8080` unconditionally. TCP transports opt-in via `--port`/`--tarpc-port` or env vars. UDS-first by default.
+- **Showcase Songbird references cleaned**: Capability table and tarpc description updated to generic language.
+- **Root docs reconciled**: All metrics aligned across README, CONTEXT, CONTRIBUTING, STATUS (1,383 tests, 176 source files).
+- **Tests**: **1,383**. Source files: **176**. Zero clippy/doc warnings. `cargo deny check` PASS.
+
 ## v0.9.16 Deep Debt & Evolution Pass 2 (April 12, 2026)
 
 - **HTTP/1.1 keep-alive**: Connection-close bug fixed — JSON-RPC TCP server now supports persistent HTTP connections (primalSpring audit item resolved).

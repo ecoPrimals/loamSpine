@@ -194,7 +194,7 @@ All levels complete + code review + contribution
 
 | Demo | Description | Time | Status |
 |------|-------------|------|--------|
-| 01-tarpc-basics | Binary RPC basics | 10 min | ✅ Ready |
+| 01-tarpc-basics | Structured RPC (JSON-over-TCP) | 10 min | ✅ Ready |
 | 02-jsonrpc-basics | JSON-RPC 2.0 API | 10 min | ✅ Ready |
 | 03-health-monitoring | Service health | 5 min | ✅ Ready |
 | 04-concurrent-ops | Parallel RPC calls | 10 min | ✅ Ready |
@@ -280,8 +280,8 @@ LoamSpine uses capability discovery for all external services:
 
 | Capability | Discovery Method | Description |
 |------------|------------------|-------------|
-| Signing | Songbird discovery | Ed25519 signing service |
-| Storage | Songbird discovery | Content-addressable storage |
+| Signing | Capability discovery | Ed25519 signing service |
+| Storage | Capability discovery | Content-addressable storage |
 | Discovery | DNS SRV + mDNS | Service mesh integration |
 
 **Philosophy**: *No primal names are hardcoded - all services discovered at runtime.*

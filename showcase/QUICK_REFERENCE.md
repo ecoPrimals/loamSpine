@@ -47,7 +47,7 @@ cd showcase/01-local-primal/
 ```bash
 cd showcase/02-rpc-api/
 
-01-tarpc-basics/           # 5 min  — Binary RPC (fast!)
+01-tarpc-basics/           # 5 min  — Structured RPC (JSON-over-TCP)
 02-jsonrpc-basics/         # 5 min  — JSON RPC (interop)
 03-health-monitoring/      # 5 min  — Health checks
 04-concurrent-ops/         # 10 min — Multi-client scenarios
@@ -126,7 +126,7 @@ Complete all 21 demos in order:
 **Value**: Sovereignty + Permanence
 
 ### Level 2: Integration Patterns
-- ✓ Binary RPC (performance)
+- ✓ Structured RPC (JSON-over-TCP, performance)
 - ✓ JSON RPC (interoperability)
 - ✓ Health monitoring (production-ready)
 - ✓ Concurrent clients (scalability)
@@ -300,7 +300,7 @@ Total: 21 demos, 35 gaps discovered, 8-10 weeks to production!
 
 ---
 
-*Last Updated: March 16, 2026*  
+*Last Updated: April 12, 2026*  
 *Session: Inter-Primal Showcase Execution Complete*  
 *Status: Ready for Evolution Phase*
 

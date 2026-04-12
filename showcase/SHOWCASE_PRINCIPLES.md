@@ -1,7 +1,7 @@
 # 🎯 Showcase Principles
 ## No Mocks, Real Capabilities Only
 
-**Last Updated**: March 23, 2026
+**Last Updated**: April 12, 2026
 
 ---
 
@@ -209,7 +209,7 @@ Features that are **designed but awaiting other primals**:
 - [ ] Real RhizoCrypt session commits (traits ready)
 - [ ] Real SweetGrass braid commits (traits ready)
 - [ ] Real BearDog signing (capability registry ready)
-- [ ] Songbird service discovery
+- [ ] Capability-based service discovery
 - [ ] NestGate payload storage
 
 ---

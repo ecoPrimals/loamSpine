@@ -241,7 +241,7 @@ cd 03-inter-primal/05-full-ecosystem
 ```
 
 **What you'll see**:
-- Songbird discovery
+- Capability-based discovery
 - BearDog signing
 - Squirrel sessions
 - ToadStool compute
@@ -260,7 +260,7 @@ cd 03-inter-primal/05-full-ecosystem
 
 ### Recommended (For Level 2+)
 - ✅ LoamSpine binary (`loamspine server`)
-- ✅ Songbird for discovery (Level 3)
+- ✅ Songbird orchestrator for discovery (Level 3)
 - ✅ Phase 1 primal binaries in `../bins/` (Level 4)
 
 ### Optional (For Level 4)
