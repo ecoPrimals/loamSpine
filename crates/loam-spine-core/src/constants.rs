@@ -160,7 +160,7 @@ pub mod protocol {
 /// Service registry HTTP endpoint paths.
 ///
 /// Used by `DiscoveryClient` to interact with HTTP-based registries
-/// (Songbird, Consul adapter, etcd adapter, etc.).
+/// (Consul adapter, etcd adapter, etc.).
 pub mod registry {
     /// Capability discovery endpoint.
     pub const DISCOVER_PATH: &str = "/discover";

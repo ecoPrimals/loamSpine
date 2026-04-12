@@ -57,10 +57,10 @@ async fn redb_certificate_storage_crud() {
     let cert = create_test_certificate(&owner, spine_id);
     let cert_id = cert.id;
 
-    assert_eq!(storage.certificate_count(), 0);
+    assert_eq!(storage.certificate_count().unwrap(), 0);
 
     storage.save_certificate(&cert, spine_id).await.unwrap();
-    assert_eq!(storage.certificate_count(), 1);
+    assert_eq!(storage.certificate_count().unwrap(), 1);
 
     let retrieved = storage.get_certificate(cert_id).await.unwrap();
     assert!(retrieved.is_some());
@@ -73,7 +73,7 @@ async fn redb_certificate_storage_crud() {
     assert!(ids.contains(&cert_id));
 
     storage.delete_certificate(cert_id).await.unwrap();
-    assert_eq!(storage.certificate_count(), 0);
+    assert_eq!(storage.certificate_count().unwrap(), 0);
     assert!(storage.get_certificate(cert_id).await.unwrap().is_none());
 }
 
@@ -114,7 +114,7 @@ async fn redb_certificate_storage_multiple() {
         storage.save_certificate(&cert, spine_id).await.unwrap();
     }
 
-    assert_eq!(storage.certificate_count(), 5);
+    assert_eq!(storage.certificate_count().unwrap(), 5);
     let ids = storage.list_certificates().await.unwrap();
     assert_eq!(ids.len(), 5);
 }
@@ -122,7 +122,7 @@ async fn redb_certificate_storage_multiple() {
 #[tokio::test]
 async fn redb_certificate_count_on_fresh_db() {
     let storage = RedbCertificateStorage::temporary().unwrap();
-    assert_eq!(storage.certificate_count(), 0);
+    assert_eq!(storage.certificate_count().unwrap(), 0);
 }
 
 // ========================================================================
@@ -178,9 +178,9 @@ async fn redb_combined_flush_all_components() {
         .unwrap();
 
     assert!(storage.flush().is_ok());
-    assert_eq!(storage.spines.spine_count(), 1);
-    assert_eq!(storage.entries.entry_count(), 1);
-    assert_eq!(storage.certificates.certificate_count(), 1);
+    assert_eq!(storage.spines.spine_count().unwrap(), 1);
+    assert_eq!(storage.entries.entry_count().unwrap(), 1);
+    assert_eq!(storage.certificates.certificate_count().unwrap(), 1);
 }
 
 // ========================================================================
@@ -380,7 +380,7 @@ async fn redb_large_entry_storage() {
         prev_hash = Some(storage.save_entry(&entry).await.unwrap());
     }
 
-    assert_eq!(storage.entry_count(), 50);
+    assert_eq!(storage.entry_count().unwrap(), 50);
     let entries = storage
         .get_entries_for_spine(spine_id, 0, 100)
         .await

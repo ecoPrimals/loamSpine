@@ -2,8 +2,11 @@
 
 //! tarpc server implementation for `LoamSpine`.
 //!
-//! High-performance binary RPC for primal-to-primal communication.
-//! Uses pure Rust tarpc - no protobuf, no gRPC, no C++ tooling.
+//! High-performance structured RPC for primal-to-primal communication.
+//! Uses pure Rust tarpc with JSON serde transport over TCP — no protobuf,
+//! no gRPC, no C++ tooling. The transport is JSON-over-TCP (not a compact
+//! binary codec); this provides interoperability with non-Rust consumers
+//! while keeping the tarpc service contract type-safe at compile time.
 
 #![allow(
     clippy::wildcard_imports,

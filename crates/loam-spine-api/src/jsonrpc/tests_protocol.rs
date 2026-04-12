@@ -689,6 +689,100 @@ async fn tcp_server_accepts_http_post() {
     handle.stop();
 }
 
+/// Regression test: HTTP/1.1 persistent connections (keep-alive).
+///
+/// Verifies that multiple HTTP POST requests can be sent on a single TCP
+/// connection without the server closing after the first response.
+/// See primalSpring audit: "loamSpine connection closes after first response".
+#[tokio::test]
+async fn tcp_http_persistent_connection_keepalive() {
+    let addr = "127.0.0.1:0".parse().unwrap();
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_server(addr, service).await.unwrap();
+    let bound_addr = handle.local_addr();
+
+    let mut stream = tokio::net::TcpStream::connect(bound_addr).await.unwrap();
+
+    for req_id in 1..=3 {
+        let body = format!(r#"{{"jsonrpc":"2.0","method":"health.liveness","id":{req_id}}}"#);
+        let http_request = format!(
+            "POST / HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            body.len(),
+            body
+        );
+
+        stream.write_all(http_request.as_bytes()).await.unwrap();
+        stream.flush().await.unwrap();
+
+        let mut buf = vec![0u8; 8192];
+        let n = tokio::time::timeout(std::time::Duration::from_secs(2), stream.read(&mut buf))
+            .await
+            .unwrap()
+            .unwrap();
+
+        let response_str = String::from_utf8_lossy(&buf[..n]);
+        assert!(
+            response_str.contains("HTTP/1.1 200 OK"),
+            "request {req_id}: missing 200 OK in: {response_str}"
+        );
+        assert!(
+            response_str.contains("keep-alive"),
+            "request {req_id}: missing keep-alive header in: {response_str}"
+        );
+        assert!(
+            response_str.contains("result"),
+            "request {req_id}: missing result in: {response_str}"
+        );
+    }
+
+    handle.stop();
+}
+
+/// Verify `Connection: close` in request headers terminates the connection
+/// after that response (server respects client close intent).
+#[tokio::test]
+async fn tcp_http_connection_close_header_respected() {
+    let addr = "127.0.0.1:0".parse().unwrap();
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_server(addr, service).await.unwrap();
+    let bound_addr = handle.local_addr();
+
+    let body = r#"{"jsonrpc":"2.0","method":"health.liveness","id":1}"#;
+    let http_request = format!(
+        "POST / HTTP/1.1\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
+        body.len(),
+        body
+    );
+
+    let mut stream = tokio::net::TcpStream::connect(bound_addr).await.unwrap();
+    stream.write_all(http_request.as_bytes()).await.unwrap();
+    stream.flush().await.unwrap();
+
+    let mut buf = vec![0u8; 8192];
+    let n = tokio::time::timeout(std::time::Duration::from_secs(2), stream.read(&mut buf))
+        .await
+        .unwrap()
+        .unwrap();
+
+    let response_str = String::from_utf8_lossy(&buf[..n]);
+    assert!(response_str.contains("Connection: close"));
+    assert!(response_str.contains("result"));
+
+    // After `Connection: close`, server should have ended the handler.
+    // A second read should return 0 (EOF) once the server task completes.
+    let mut trailing = vec![0u8; 256];
+    let eof = tokio::time::timeout(
+        std::time::Duration::from_secs(2),
+        stream.read(&mut trailing),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(eof, 0, "expected EOF after Connection: close");
+
+    handle.stop();
+}
+
 // =========================================================================
 // outcome_to_response coverage
 // =========================================================================

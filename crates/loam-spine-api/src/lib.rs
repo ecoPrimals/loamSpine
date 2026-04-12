@@ -5,7 +5,7 @@
 //! **Pure Rust, No Vendor Lock-in**
 //!
 //! This crate provides the RPC interface for `LoamSpine` using:
-//! - **tarpc**: High-performance binary RPC for primal-to-primal communication
+//! - **tarpc**: High-performance structured RPC (JSON-over-TCP) for primal-to-primal communication
 //! - **JSON-RPC 2.0**: Universal, language-agnostic RPC for external clients
 //!
 //! ## Why Not gRPC?
@@ -32,7 +32,7 @@
 //! │         LoamSpine Service Layer          │
 //! ├─────────────────────────────────────────┤
 //! │                                          │
-//! │  tarpc (Binary)    JSON-RPC (Universal) │
+//! │  tarpc (JSON/TCP)  JSON-RPC (Universal)  │
 //! │  ↓                 ↓                     │
 //! │  Primal ←→ Primal  External Clients     │
 //! │  • Ephemeral       • Python              │

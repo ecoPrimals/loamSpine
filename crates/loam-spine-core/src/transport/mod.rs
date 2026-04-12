@@ -4,7 +4,7 @@
 //!
 //! Decouples [`DiscoveryClient`](crate::discovery_client::DiscoveryClient) from
 //! any specific HTTP library, enabling both the `ureq` path and the
-//! ecoBin-compliant **Tower Atomic** path (Songbird via NeuralAPI).
+//! ecoBin-compliant **Tower Atomic** path (capability-discovered provider via NeuralAPI).
 //!
 //! ## Transport Hierarchy
 //!

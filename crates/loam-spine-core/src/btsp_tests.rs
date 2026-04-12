@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{UnixListener, UnixStream};
 
-use super::config::beardog_socket_name;
+use super::config::provider_socket_name;
 use super::frame::MAX_FRAME_SIZE;
 use super::handshake::generate_challenge;
 use super::*;
@@ -62,7 +62,7 @@ fn config_from_values_some_with_real_family() {
     assert!(cfg.required);
     assert_eq!(cfg.family_id, "fam1");
     assert_eq!(
-        cfg.beardog_socket,
+        cfg.provider_socket,
         PathBuf::from("/tmp/bio/beardog-fam1.sock")
     );
 }
@@ -71,34 +71,48 @@ fn config_from_values_some_with_real_family() {
 fn config_from_values_with_socket_override() {
     let cfg = BtspHandshakeConfig::from_values(Some("fam1"), Some("/custom/beardog.sock"), None)
         .expect("should be Some");
-    assert_eq!(cfg.beardog_socket, PathBuf::from("/custom/beardog.sock"));
+    assert_eq!(cfg.provider_socket, PathBuf::from("/custom/beardog.sock"));
 }
 
 #[test]
-fn beardog_socket_name_with_family() {
-    assert_eq!(beardog_socket_name(Some("abc")), "beardog-abc.sock");
+fn provider_socket_name_with_family() {
+    assert_eq!(provider_socket_name(Some("abc"), None), "beardog-abc.sock");
 }
 
 #[test]
-fn beardog_socket_name_without_family() {
-    assert_eq!(beardog_socket_name(None), "beardog.sock");
+fn provider_socket_name_without_family() {
+    assert_eq!(provider_socket_name(None, None), "beardog.sock");
 }
 
 #[test]
-fn beardog_socket_name_default_family() {
-    assert_eq!(beardog_socket_name(Some("default")), "beardog.sock");
+fn provider_socket_name_default_family() {
+    assert_eq!(provider_socket_name(Some("default"), None), "beardog.sock");
 }
 
 #[test]
-fn resolve_beardog_socket_with_dir() {
-    let path = resolve_beardog_socket_with(Some("fam"), Some("/run/biomeos"));
+fn provider_socket_name_custom_provider() {
+    assert_eq!(
+        provider_socket_name(Some("abc"), Some("custodian")),
+        "custodian-abc.sock"
+    );
+}
+
+#[test]
+fn resolve_provider_socket_with_dir() {
+    let path = resolve_provider_socket_with(Some("fam"), Some("/run/biomeos"), None);
     assert_eq!(path, PathBuf::from("/run/biomeos/beardog-fam.sock"));
 }
 
 #[test]
-fn resolve_beardog_socket_no_family_with_dir() {
-    let path = resolve_beardog_socket_with(None, Some("/run/biomeos"));
+fn resolve_provider_socket_no_family_with_dir() {
+    let path = resolve_provider_socket_with(None, Some("/run/biomeos"), None);
     assert_eq!(path, PathBuf::from("/run/biomeos/beardog.sock"));
+}
+
+#[test]
+fn resolve_provider_socket_custom_provider() {
+    let path = resolve_provider_socket_with(Some("fam"), Some("/run/biomeos"), Some("custodian"));
+    assert_eq!(path, PathBuf::from("/run/biomeos/custodian-fam.sock"));
 }
 
 // ---------------------------------------------------------------------------
@@ -118,7 +132,7 @@ async fn frame_roundtrip() {
 
     write_task.await.expect("write task");
     let received = read_task.await.expect("read task");
-    assert_eq!(received, payload);
+    assert_eq!(received.as_ref(), payload.as_slice());
 }
 
 #[tokio::test]
@@ -330,7 +344,7 @@ async fn handle_mock_beardog_connection(stream: UnixStream, verify_ok: bool, cip
 
 /// Simulates a BTSP client sending ClientHello, reading ServerHello,
 /// sending ChallengeResponse, and reading the final frame.
-async fn mock_client_handshake(mut stream: UnixStream) -> Vec<u8> {
+async fn mock_client_handshake(mut stream: UnixStream) -> bytes::Bytes {
     let client_hello = ClientHello {
         version: 1,
         client_ephemeral_pub: "mock_client_pub_key".to_string(),

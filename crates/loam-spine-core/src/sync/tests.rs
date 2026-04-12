@@ -10,7 +10,7 @@ use tokio::net::TcpListener;
 
 fn test_peer() -> SyncPeer {
     SyncPeer {
-        peer_id: "peer-1".to_string(),
+        peer_id: "peer-1".into(),
         name: "Test Peer".to_string(),
         endpoint: "127.0.0.1:1".to_string(),
         reachable: true,
@@ -20,7 +20,7 @@ fn test_peer() -> SyncPeer {
 
 fn test_peer_with_endpoint(endpoint: &str) -> SyncPeer {
     SyncPeer {
-        peer_id: "peer-1".to_string(),
+        peer_id: "peer-1".into(),
         name: "Test Peer".to_string(),
         endpoint: endpoint.to_string(),
         reachable: true,
@@ -30,7 +30,7 @@ fn test_peer_with_endpoint(endpoint: &str) -> SyncPeer {
 
 fn test_peer_unreachable(endpoint: &str) -> SyncPeer {
     SyncPeer {
-        peer_id: "peer-2".to_string(),
+        peer_id: "peer-2".into(),
         name: "Unreachable Peer".to_string(),
         endpoint: endpoint.to_string(),
         reachable: false,

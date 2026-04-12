@@ -350,4 +350,4 @@ LoamSpine uses capability discovery for all external services:
 
 🦴 **LoamSpine: Where memories become permanent.** 🚀
 
-*Last updated: April 8, 2026 — Songbird discovery demos archived to fossilRecord (deprecated in v0.9.15). Demos 08–10 added.*
+*Last updated: April 12, 2026 — Songbird discovery demos archived to fossilRecord (deprecated in v0.9.15). Demos 08–10 added.*

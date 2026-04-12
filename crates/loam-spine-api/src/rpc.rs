@@ -28,7 +28,7 @@ use crate::types::{
 ///
 /// ## Design Philosophy
 ///
-/// - **Pure Rust RPC**: Uses tarpc for binary protocol, pure JSON-RPC for external clients
+/// - **Pure Rust RPC**: Uses tarpc (JSON-over-TCP) for structured primal-to-primal calls, pure JSON-RPC for external clients
 /// - **No gRPC/protobuf**: Maintains Rust-native toolchain sovereignty
 /// - **Capability-based**: Methods map to primal capabilities
 ///

@@ -56,7 +56,7 @@ struct Cli {
 enum Command {
     /// Start the `LoamSpine` service (`tarpc` + JSON-RPC dual protocol).
     Server {
-        /// `tarpc` binary RPC port (env: `LOAMSPINE_TARPC_PORT`, `TARPC_PORT`).
+        /// `tarpc` structured RPC port (env: `LOAMSPINE_TARPC_PORT`, `TARPC_PORT`).
         #[arg(long)]
         tarpc_port: Option<u16>,
 
@@ -81,6 +81,13 @@ enum Command {
         /// `$XDG_RUNTIME_DIR/biomeos/permanence.sock`, then platform default.
         #[arg(long)]
         socket: Option<String>,
+
+        /// Use abstract UDS namespace (Linux only, `UniBin` standard).
+        ///
+        /// When set, the UDS socket is created in the abstract namespace
+        /// instead of the filesystem, avoiding cleanup issues on crash.
+        #[arg(long)]
+        r#abstract: bool,
     },
 
     /// List capabilities provided by this primal (`UniBin` standard).
@@ -101,8 +108,16 @@ async fn main() -> anyhow::Result<()> {
             jsonrpc_port,
             bind_address,
             socket,
+            r#abstract,
         } => {
-            run_server(tarpc_port, port.or(jsonrpc_port), bind_address, socket).await?;
+            run_server(
+                tarpc_port,
+                port.or(jsonrpc_port),
+                bind_address,
+                socket,
+                r#abstract,
+            )
+            .await?;
         }
         Command::Capabilities => {
             writeln!(
@@ -128,6 +143,7 @@ async fn run_server(
     jsonrpc_port_override: Option<u16>,
     bind_address_override: Option<String>,
     socket_override: Option<String>,
+    abstract_socket: bool,
 ) -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -150,9 +166,14 @@ async fn run_server(
     info!("  tarpc port: {resolved_tarpc_port}");
     info!("  JSON-RPC port: {resolved_jsonrpc_port}");
     info!("  bind address: {resolved_bind}");
+    if abstract_socket {
+        info!("  UDS namespace: abstract (Linux)");
+    }
 
     let service = LoamSpineService::new();
-    let config = LoamSpineConfig::default();
+    let mut config = LoamSpineConfig::default();
+    config.discovery.tarpc_endpoint = format!("http://{resolved_bind}:{resolved_tarpc_port}");
+    config.discovery.jsonrpc_endpoint = format!("http://{resolved_bind}:{resolved_jsonrpc_port}");
     let mut lifecycle = LifecycleManager::new(service.clone(), config);
     lifecycle
         .start()
@@ -194,9 +215,9 @@ async fn run_server(
     let btsp_config = loam_spine_core::btsp::BtspHandshakeConfig::from_env();
     if let Some(ref cfg) = btsp_config {
         info!(
-            "BTSP Phase 2 active: family={}, beardog={}",
+            "BTSP Phase 2 active: family={}, provider={}",
             cfg.family_id,
-            cfg.beardog_socket.display()
+            cfg.provider_socket.display()
         );
     }
 
@@ -256,12 +277,11 @@ async fn run_server(
     info!("  JSON-RPC: http://{resolved_bind}:{resolved_jsonrpc_port}");
     info!("  socket:   {}", socket_path.display());
 
-    // SIGTERM + SIGINT: production deployments send SIGTERM, not just Ctrl+C.
     let signal_handler = loam_spine_core::service::signals::SignalHandler::new();
 
-    // Cooperative shutdown: select between server tasks, UDS server, and signals.
-    // UDS handle is monitored so a UDS bind failure under composition load
-    // triggers orderly teardown instead of silent degradation.
+    // Cooperative shutdown: all server tasks are monitored symmetrically.
+    // A failure in any transport (tarpc, JSON-RPC TCP, or UDS) triggers
+    // orderly teardown rather than silent degradation.
     tokio::select! {
         result = signal_handler.wait_for_shutdown() => {
             if let Err(e) = result {
@@ -334,6 +354,7 @@ mod tests {
             jsonrpc_port,
             bind_address,
             socket,
+            r#abstract,
         } = cli.command
         {
             assert!(tarpc_port.is_none());
@@ -341,6 +362,7 @@ mod tests {
             assert!(jsonrpc_port.is_none());
             assert!(bind_address.is_none());
             assert!(socket.is_none());
+            assert!(!r#abstract);
         } else {
             panic!("expected Server variant");
         }
@@ -364,6 +386,7 @@ mod tests {
             jsonrpc_port,
             bind_address,
             socket,
+            ..
         } = cli.command
         {
             assert_eq!(tarpc_port, Some(9002));

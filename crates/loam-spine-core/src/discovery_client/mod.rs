@@ -13,7 +13,7 @@
 //!
 //! | Constructor | Transport | Feature | ecoBin? |
 //! |---|---|---|---|
-//! | [`connect`] | Tower Atomic (NeuralAPI → Songbird) | `tower-atomic` | **Yes** |
+//! | [`connect`] | Tower Atomic (NeuralAPI → HTTP provider) | `tower-atomic` | **Yes** |
 //! | `connect_http` | ureq (pure Rust HTTP) | `discovery-http` | **Yes** |
 //! | [`connect_with_transport`] | Caller-provided | — | Depends |
 //!

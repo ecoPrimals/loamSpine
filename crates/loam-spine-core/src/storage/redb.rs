@@ -84,15 +84,15 @@ impl RedbSpineStorage {
     }
 
     /// Get the number of stored spines.
-    #[must_use]
-    pub fn spine_count(&self) -> usize {
-        let Ok(read_txn) = self.db.begin_read() else {
-            return 0;
-        };
-        let Ok(table) = read_txn.open_table(SPINES) else {
-            return 0;
-        };
-        table.len().unwrap_or(0).try_into().unwrap_or(0)
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the database cannot be read.
+    pub fn spine_count(&self) -> LoamSpineResult<usize> {
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(SPINES).storage_err()?;
+        let len: u64 = table.len().storage_err()?;
+        Ok(usize::try_from(len).unwrap_or(usize::MAX))
     }
 
     /// Flush all pending writes to disk.
@@ -109,60 +109,91 @@ impl RedbSpineStorage {
     }
 }
 
+/// Bridge a blocking closure to async via `spawn_blocking`.
+///
+/// redb performs synchronous disk I/O; running it directly on an async
+/// executor thread would stall the reactor. This helper offloads the
+/// work to tokio's blocking thread-pool.
+async fn blocking<F, T>(f: F) -> LoamSpineResult<T>
+where
+    F: FnOnce() -> LoamSpineResult<T> + Send + 'static,
+    T: Send + 'static,
+{
+    tokio::task::spawn_blocking(f).await.map_err(|e| {
+        crate::error::LoamSpineError::Internal(format!("blocking task panicked: {e}"))
+    })?
+}
+
 impl SpineStorage for RedbSpineStorage {
     async fn get_spine(&self, id: SpineId) -> LoamSpineResult<Option<Spine>> {
-        let key = id.as_bytes();
-        let read_txn = self.db.begin_read().storage_err()?;
-        let table = read_txn.open_table(SPINES).storage_err()?;
-        let value = table.get(key.as_ref()).storage_err()?;
-        match value {
-            Some(guard) => {
-                let spine: Spine =
-                    bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
-                Ok(Some(spine))
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let key = id.as_bytes();
+            let read_txn = db.begin_read().storage_err()?;
+            let table = read_txn.open_table(SPINES).storage_err()?;
+            let value = table.get(key.as_ref()).storage_err()?;
+            match value {
+                Some(guard) => {
+                    let spine: Spine =
+                        bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
+                    Ok(Some(spine))
+                }
+                None => Ok(None),
             }
-            None => Ok(None),
-        }
+        })
+        .await
     }
 
     async fn save_spine(&self, spine: &Spine) -> LoamSpineResult<()> {
-        let key = spine.id.as_bytes();
+        let db = Arc::clone(&self.db);
+        let key = *spine.id.as_bytes();
         let bytes = bincode::serialize(spine).storage_ctx("serialize")?;
-        let write_txn = self.db.begin_write().storage_err()?;
-        {
-            let mut table = write_txn.open_table(SPINES).storage_err()?;
-            table.insert(key.as_ref(), bytes.as_slice()).storage_err()?;
-        }
-        write_txn.commit().storage_err()?;
-        Ok(())
+        blocking(move || {
+            let write_txn = db.begin_write().storage_err()?;
+            {
+                let mut table = write_txn.open_table(SPINES).storage_err()?;
+                table.insert(key.as_ref(), bytes.as_slice()).storage_err()?;
+            }
+            write_txn.commit().storage_err()?;
+            Ok(())
+        })
+        .await
     }
 
     async fn delete_spine(&self, id: SpineId) -> LoamSpineResult<()> {
-        let key = id.as_bytes();
-        let write_txn = self.db.begin_write().storage_err()?;
-        {
-            let mut table = write_txn.open_table(SPINES).storage_err()?;
-            table.remove(key.as_ref()).storage_err()?;
-        }
-        write_txn.commit().storage_err()?;
-        Ok(())
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let key = id.as_bytes();
+            let write_txn = db.begin_write().storage_err()?;
+            {
+                let mut table = write_txn.open_table(SPINES).storage_err()?;
+                table.remove(key.as_ref()).storage_err()?;
+            }
+            write_txn.commit().storage_err()?;
+            Ok(())
+        })
+        .await
     }
 
     async fn list_spines(&self) -> LoamSpineResult<Vec<SpineId>> {
-        let mut ids = Vec::new();
-        let read_txn = self.db.begin_read().storage_err()?;
-        let table = read_txn.open_table(SPINES).storage_err()?;
-        let range = table.iter().storage_err()?;
-        for item in range {
-            let (key_guard, _) = item.storage_err()?;
-            let key = key_guard.value();
-            if key.len() == 16 {
-                let mut bytes = [0u8; 16];
-                bytes.copy_from_slice(key);
-                ids.push(SpineId::from_bytes(bytes));
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let mut ids = Vec::new();
+            let read_txn = db.begin_read().storage_err()?;
+            let table = read_txn.open_table(SPINES).storage_err()?;
+            let range = table.iter().storage_err()?;
+            for item in range {
+                let (key_guard, _) = item.storage_err()?;
+                let key = key_guard.value();
+                if key.len() == 16 {
+                    let mut bytes = [0u8; 16];
+                    bytes.copy_from_slice(key);
+                    ids.push(SpineId::from_bytes(bytes));
+                }
             }
-        }
-        Ok(ids)
+            Ok(ids)
+        })
+        .await
     }
 }
 
@@ -207,15 +238,15 @@ impl RedbEntryStorage {
     }
 
     /// Get the number of stored entries.
-    #[must_use]
-    pub fn entry_count(&self) -> usize {
-        let Ok(read_txn) = self.db.begin_read() else {
-            return 0;
-        };
-        let Ok(table) = read_txn.open_table(ENTRIES) else {
-            return 0;
-        };
-        table.len().unwrap_or(0).try_into().unwrap_or(0)
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the database cannot be read.
+    pub fn entry_count(&self) -> LoamSpineResult<usize> {
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(ENTRIES).storage_err()?;
+        let len: u64 = table.len().storage_err()?;
+        Ok(usize::try_from(len).unwrap_or(usize::MAX))
     }
 
     /// Flush all pending writes to disk.
@@ -238,44 +269,55 @@ impl RedbEntryStorage {
 
 impl EntryStorage for RedbEntryStorage {
     async fn get_entry(&self, hash: EntryHash) -> LoamSpineResult<Option<Entry>> {
-        let read_txn = self.db.begin_read().storage_err()?;
-        let table = read_txn.open_table(ENTRIES).storage_err()?;
-        let value = table.get(&hash[..]).storage_err()?;
-        match value {
-            Some(guard) => {
-                let entry: Entry =
-                    bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
-                Ok(Some(entry))
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let read_txn = db.begin_read().storage_err()?;
+            let table = read_txn.open_table(ENTRIES).storage_err()?;
+            let value = table.get(&hash[..]).storage_err()?;
+            match value {
+                Some(guard) => {
+                    let entry: Entry =
+                        bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
+                    Ok(Some(entry))
+                }
+                None => Ok(None),
             }
-            None => Ok(None),
-        }
+        })
+        .await
     }
 
     async fn save_entry(&self, entry: &Entry) -> LoamSpineResult<EntryHash> {
+        let db = Arc::clone(&self.db);
         let hash = entry.compute_hash()?;
         let bytes = bincode::serialize(entry).storage_ctx("serialize")?;
         let index_key = Self::make_index_key(entry.spine_id, entry.index);
-
-        let write_txn = self.db.begin_write().storage_err()?;
-        {
-            let mut entries_table = write_txn.open_table(ENTRIES).storage_err()?;
-            let mut index_table = write_txn.open_table(ENTRY_INDEX).storage_err()?;
-            entries_table
-                .insert(&hash[..], bytes.as_slice())
-                .storage_err()?;
-            index_table
-                .insert(index_key.as_slice(), &hash[..])
-                .storage_err()?;
-        }
-        write_txn.commit().storage_err()?;
-        Ok(hash)
+        blocking(move || {
+            let write_txn = db.begin_write().storage_err()?;
+            {
+                let mut entries_table = write_txn.open_table(ENTRIES).storage_err()?;
+                let mut index_table = write_txn.open_table(ENTRY_INDEX).storage_err()?;
+                entries_table
+                    .insert(&hash[..], bytes.as_slice())
+                    .storage_err()?;
+                index_table
+                    .insert(index_key.as_slice(), &hash[..])
+                    .storage_err()?;
+            }
+            write_txn.commit().storage_err()?;
+            Ok(hash)
+        })
+        .await
     }
 
     async fn entry_exists(&self, hash: EntryHash) -> LoamSpineResult<bool> {
-        let read_txn = self.db.begin_read().storage_err()?;
-        let table = read_txn.open_table(ENTRIES).storage_err()?;
-        let exists = table.get(&hash[..]).storage_err()?.is_some();
-        Ok(exists)
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let read_txn = db.begin_read().storage_err()?;
+            let table = read_txn.open_table(ENTRIES).storage_err()?;
+            let exists = table.get(&hash[..]).storage_err()?.is_some();
+            Ok(exists)
+        })
+        .await
     }
 
     async fn get_entries_for_spine(
@@ -284,33 +326,37 @@ impl EntryStorage for RedbEntryStorage {
         start_index: u64,
         limit: u64,
     ) -> LoamSpineResult<Vec<Entry>> {
-        let start_key = Self::make_index_key(spine_id, start_index);
-        let limit_usize = usize::try_from(limit).unwrap_or(usize::MAX);
-        let spine_prefix = spine_id.as_bytes();
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let start_key = Self::make_index_key(spine_id, start_index);
+            let limit_usize = usize::try_from(limit).unwrap_or(usize::MAX);
+            let spine_prefix = spine_id.as_bytes();
 
-        let read_txn = self.db.begin_read().storage_err()?;
-        let index_table = read_txn.open_table(ENTRY_INDEX).storage_err()?;
-        let entries_table = read_txn.open_table(ENTRIES).storage_err()?;
+            let read_txn = db.begin_read().storage_err()?;
+            let index_table = read_txn.open_table(ENTRY_INDEX).storage_err()?;
+            let entries_table = read_txn.open_table(ENTRIES).storage_err()?;
 
-        let mut entries = Vec::new();
-        let range = index_table.range(start_key.as_slice()..).storage_err()?;
-        for item in range {
-            if entries.len() >= limit_usize {
-                break;
+            let mut entries = Vec::new();
+            let range = index_table.range(start_key.as_slice()..).storage_err()?;
+            for item in range {
+                if entries.len() >= limit_usize {
+                    break;
+                }
+                let (key_guard, hash_guard) = item.storage_err()?;
+                let key = key_guard.value();
+                if key.len() < 16 || &key[..16] != spine_prefix {
+                    break;
+                }
+                let hash_bytes = hash_guard.value();
+                if let Some(entry_guard) = entries_table.get(hash_bytes).storage_err()? {
+                    let entry: Entry =
+                        bincode::deserialize(entry_guard.value()).storage_ctx("deserialize")?;
+                    entries.push(entry);
+                }
             }
-            let (key_guard, hash_guard) = item.storage_err()?;
-            let key = key_guard.value();
-            if key.len() < 16 || &key[..16] != spine_prefix {
-                break;
-            }
-            let hash_bytes = hash_guard.value();
-            if let Some(entry_guard) = entries_table.get(hash_bytes).storage_err()? {
-                let entry: Entry =
-                    bincode::deserialize(entry_guard.value()).storage_ctx("deserialize")?;
-                entries.push(entry);
-            }
-        }
-        Ok(entries)
+            Ok(entries)
+        })
+        .await
     }
 }
 
@@ -350,15 +396,15 @@ impl RedbCertificateStorage {
     }
 
     /// Get the number of stored certificates.
-    #[must_use]
-    pub fn certificate_count(&self) -> usize {
-        let Ok(read_txn) = self.db.begin_read() else {
-            return 0;
-        };
-        let Ok(table) = read_txn.open_table(CERTIFICATES) else {
-            return 0;
-        };
-        table.len().unwrap_or(0).try_into().unwrap_or(0)
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the database cannot be read.
+    pub fn certificate_count(&self) -> LoamSpineResult<usize> {
+        let read_txn = self.db.begin_read().storage_err()?;
+        let table = read_txn.open_table(CERTIFICATES).storage_err()?;
+        let len: u64 = table.len().storage_err()?;
+        Ok(usize::try_from(len).unwrap_or(usize::MAX))
     }
 
     /// Flush all pending writes to disk.
@@ -377,18 +423,22 @@ impl CertificateStorage for RedbCertificateStorage {
         &self,
         id: CertificateId,
     ) -> LoamSpineResult<Option<(Certificate, SpineId)>> {
-        let key = id.as_bytes();
-        let read_txn = self.db.begin_read().storage_err()?;
-        let table = read_txn.open_table(CERTIFICATES).storage_err()?;
-        let value = table.get(key.as_ref()).storage_err()?;
-        match value {
-            Some(guard) => {
-                let pair: (Certificate, SpineId) =
-                    bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
-                Ok(Some(pair))
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let key = id.as_bytes();
+            let read_txn = db.begin_read().storage_err()?;
+            let table = read_txn.open_table(CERTIFICATES).storage_err()?;
+            let value = table.get(key.as_ref()).storage_err()?;
+            match value {
+                Some(guard) => {
+                    let pair: (Certificate, SpineId) =
+                        bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
+                    Ok(Some(pair))
+                }
+                None => Ok(None),
             }
-            None => Ok(None),
-        }
+        })
+        .await
     }
 
     async fn save_certificate(
@@ -396,43 +446,55 @@ impl CertificateStorage for RedbCertificateStorage {
         certificate: &Certificate,
         spine_id: SpineId,
     ) -> LoamSpineResult<()> {
-        let key = certificate.id.as_bytes();
+        let db = Arc::clone(&self.db);
+        let key = *certificate.id.as_bytes();
         let bytes = bincode::serialize(&(certificate, spine_id)).storage_ctx("serialize")?;
-        let write_txn = self.db.begin_write().storage_err()?;
-        {
-            let mut table = write_txn.open_table(CERTIFICATES).storage_err()?;
-            table.insert(key.as_ref(), bytes.as_slice()).storage_err()?;
-        }
-        write_txn.commit().storage_err()?;
-        Ok(())
+        blocking(move || {
+            let write_txn = db.begin_write().storage_err()?;
+            {
+                let mut table = write_txn.open_table(CERTIFICATES).storage_err()?;
+                table.insert(key.as_ref(), bytes.as_slice()).storage_err()?;
+            }
+            write_txn.commit().storage_err()?;
+            Ok(())
+        })
+        .await
     }
 
     async fn delete_certificate(&self, id: CertificateId) -> LoamSpineResult<()> {
-        let key = id.as_bytes();
-        let write_txn = self.db.begin_write().storage_err()?;
-        {
-            let mut table = write_txn.open_table(CERTIFICATES).storage_err()?;
-            table.remove(key.as_ref()).storage_err()?;
-        }
-        write_txn.commit().storage_err()?;
-        Ok(())
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let key = id.as_bytes();
+            let write_txn = db.begin_write().storage_err()?;
+            {
+                let mut table = write_txn.open_table(CERTIFICATES).storage_err()?;
+                table.remove(key.as_ref()).storage_err()?;
+            }
+            write_txn.commit().storage_err()?;
+            Ok(())
+        })
+        .await
     }
 
     async fn list_certificates(&self) -> LoamSpineResult<Vec<CertificateId>> {
-        let mut ids = Vec::new();
-        let read_txn = self.db.begin_read().storage_err()?;
-        let table = read_txn.open_table(CERTIFICATES).storage_err()?;
-        let range = table.iter().storage_err()?;
-        for item in range {
-            let (key_guard, _) = item.storage_err()?;
-            let key = key_guard.value();
-            if key.len() == 16 {
-                let mut bytes = [0u8; 16];
-                bytes.copy_from_slice(key);
-                ids.push(CertificateId::from_bytes(bytes));
+        let db = Arc::clone(&self.db);
+        blocking(move || {
+            let mut ids = Vec::new();
+            let read_txn = db.begin_read().storage_err()?;
+            let table = read_txn.open_table(CERTIFICATES).storage_err()?;
+            let range = table.iter().storage_err()?;
+            for item in range {
+                let (key_guard, _) = item.storage_err()?;
+                let key = key_guard.value();
+                if key.len() == 16 {
+                    let mut bytes = [0u8; 16];
+                    bytes.copy_from_slice(key);
+                    ids.push(CertificateId::from_bytes(bytes));
+                }
             }
-        }
-        Ok(ids)
+            Ok(ids)
+        })
+        .await
     }
 }
 

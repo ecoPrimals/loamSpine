@@ -1,18 +1,38 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! BTSP configuration and BearDog socket resolution.
+//! BTSP configuration and handshake provider socket resolution.
 //!
 //! Derives BTSP handshake requirements from environment variables and
-//! resolves the BearDog UDS socket path for handshake-as-a-service calls.
+//! resolves the handshake-as-a-service provider UDS socket path.
+//!
+//! The provider prefix defaults to the BTSP protocol standard naming
+//! convention but can be overridden via `BTSP_PROVIDER` environment
+//! variable for capability-based discovery in non-standard deployments.
 
 use std::path::PathBuf;
 
-/// BTSP handshake provider socket prefix per `BTSP_PROTOCOL_STANDARD.md`.
+/// Default BTSP handshake provider socket prefix per `BTSP_PROTOCOL_STANDARD.md`.
 ///
-/// This is a protocol-level naming convention, not a hardcoded primal dependency.
-/// BearDog is the handshake-as-a-service provider in the BTSP architecture;
-/// the socket name is part of the protocol standard, not runtime discovery.
-const BTSP_PROVIDER_PREFIX: &str = "beardog";
+/// Overridable via `BTSP_PROVIDER` environment variable for deployments
+/// where the handshake-as-a-service provider has a different socket name.
+const DEFAULT_BTSP_PROVIDER_PREFIX: &str = "beardog";
+
+/// Resolve the BTSP provider prefix from environment or fall back to default.
+///
+/// Checks `BTSP_PROVIDER` env var first, allowing runtime configuration
+/// of the handshake provider without compile-time primal coupling.
+fn btsp_provider_prefix() -> String {
+    std::env::var("BTSP_PROVIDER").unwrap_or_else(|_| DEFAULT_BTSP_PROVIDER_PREFIX.to_string())
+}
+
+/// Pure variant for testing and explicit configuration.
+#[must_use]
+fn btsp_provider_prefix_with(provider_override: Option<&str>) -> String {
+    provider_override.filter(|s| !s.is_empty()).map_or_else(
+        || DEFAULT_BTSP_PROVIDER_PREFIX.to_string(),
+        ToString::to_string,
+    )
+}
 
 /// BTSP handshake configuration, derived from environment.
 ///
@@ -23,8 +43,8 @@ const BTSP_PROVIDER_PREFIX: &str = "beardog";
 pub struct BtspHandshakeConfig {
     /// Whether BTSP handshake is mandatory.
     pub required: bool,
-    /// Path to the BearDog UDS socket for handshake-as-a-service calls.
-    pub beardog_socket: PathBuf,
+    /// Path to the handshake provider UDS socket.
+    pub provider_socket: PathBuf,
     /// Family ID (for logging/diagnostics).
     pub family_id: String,
 }
@@ -36,20 +56,20 @@ impl BtspHandshakeConfig {
     #[must_use]
     pub fn from_values(
         family_id: Option<&str>,
-        beardog_socket_override: Option<&str>,
+        provider_socket_override: Option<&str>,
         socket_dir: Option<&str>,
     ) -> Option<Self> {
         let fid = family_id.filter(|s| !s.is_empty() && *s != "default")?;
 
-        let beardog_socket = if let Some(s) = beardog_socket_override {
+        let provider_socket = if let Some(s) = provider_socket_override {
             PathBuf::from(s)
         } else {
-            resolve_beardog_socket_with(Some(fid), socket_dir)
+            resolve_provider_socket_with(Some(fid), socket_dir, None)
         };
 
         Some(Self {
             required: true,
-            beardog_socket,
+            provider_socket,
             family_id: fid.to_string(),
         })
     }
@@ -66,17 +86,29 @@ impl BtspHandshakeConfig {
             std::env::var("BIOMEOS_SOCKET_DIR").ok().as_deref(),
         )
     }
+
+    /// Access the provider socket path.
+    ///
+    /// Alias for backward compatibility — previously named `beardog_socket`.
+    #[must_use]
+    pub const fn beardog_socket(&self) -> &PathBuf {
+        &self.provider_socket
+    }
 }
 
-/// Resolve the BearDog UDS socket path from explicit values.
+/// Resolve the BTSP handshake provider UDS socket path from explicit values.
 ///
 /// Resolution order:
-/// 1. `$BIOMEOS_SOCKET_DIR/beardog-{family_id}.sock`
-/// 2. `/run/user/{uid}/biomeos/beardog-{family_id}.sock` (Linux)
-/// 3. `$TMPDIR/biomeos/beardog-{family_id}.sock`
+/// 1. `$BIOMEOS_SOCKET_DIR/{provider}-{family_id}.sock`
+/// 2. `/run/user/{uid}/biomeos/{provider}-{family_id}.sock` (Linux)
+/// 3. `$TMPDIR/biomeos/{provider}-{family_id}.sock`
 #[must_use]
-pub fn resolve_beardog_socket_with(family_id: Option<&str>, socket_dir: Option<&str>) -> PathBuf {
-    let sock_name = beardog_socket_name(family_id);
+pub fn resolve_provider_socket_with(
+    family_id: Option<&str>,
+    socket_dir: Option<&str>,
+    provider_override: Option<&str>,
+) -> PathBuf {
+    let sock_name = provider_socket_name(family_id, provider_override);
 
     if let Some(dir) = socket_dir {
         return PathBuf::from(dir).join(&sock_name);
@@ -92,17 +124,28 @@ pub fn resolve_beardog_socket_with(family_id: Option<&str>, socket_dir: Option<&
         .join(sock_name)
 }
 
-/// Build the BearDog socket filename.
-///
-/// - With family: `beardog-{family_id}.sock`
-/// - Without family: `beardog.sock`
+/// Resolve the provider socket using environment variables.
 #[must_use]
-pub(crate) fn beardog_socket_name(family_id: Option<&str>) -> String {
+pub fn resolve_provider_socket(family_id: Option<&str>) -> PathBuf {
+    let prefix = btsp_provider_prefix();
+    resolve_provider_socket_with(family_id, None, Some(&prefix))
+}
+
+/// Build the BTSP provider socket filename.
+///
+/// - With family: `{provider}-{family_id}.sock`
+/// - Without family: `{provider}.sock`
+#[must_use]
+pub(crate) fn provider_socket_name(
+    family_id: Option<&str>,
+    provider_override: Option<&str>,
+) -> String {
+    let prefix = btsp_provider_prefix_with(provider_override);
     match family_id {
         Some(fid) if !fid.is_empty() && fid != "default" => {
-            format!("{BTSP_PROVIDER_PREFIX}-{fid}.sock")
+            format!("{prefix}-{fid}.sock")
         }
-        _ => format!("{BTSP_PROVIDER_PREFIX}.sock"),
+        _ => format!("{prefix}.sock"),
     }
 }
 

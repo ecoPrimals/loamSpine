@@ -273,28 +273,23 @@ impl SpineBuilder {
     /// Set the spine type.
     #[must_use]
     pub fn with_type(mut self, spine_type: SpineType) -> Self {
-        self.spine_type = spine_type.clone();
-        self.config.spine_type = spine_type;
+        self.config.spine_type = spine_type.clone();
+        self.spine_type = spine_type;
         self
     }
 
     /// Create a personal spine.
     #[must_use]
-    pub fn personal(mut self) -> Self {
-        self.spine_type = SpineType::Personal;
-        self.config.spine_type = SpineType::Personal;
-        self
+    pub fn personal(self) -> Self {
+        self.with_type(SpineType::Personal)
     }
 
     /// Create a waypoint spine.
     #[must_use]
-    pub fn waypoint(mut self, max_depth: Option<u32>) -> Self {
-        let spine_type = SpineType::Waypoint {
+    pub fn waypoint(self, max_depth: Option<u32>) -> Self {
+        self.with_type(SpineType::Waypoint {
             max_anchor_depth: max_depth,
-        };
-        self.spine_type = spine_type.clone();
-        self.config.spine_type = spine_type;
-        self
+        })
     }
 
     /// Set auto-rollup threshold.

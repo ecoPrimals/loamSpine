@@ -6,8 +6,8 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C507%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-92%25%20line-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C382%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
@@ -108,7 +108,7 @@ loamSpine/
 │   └── loam-spine-api/        # RPC layer
 │       └── src/
 │           ├── jsonrpc/       # JSON-RPC 2.0 (semantic naming)
-│           ├── tarpc_server.rs # Binary RPC (primal-to-primal)
+│           ├── tarpc_server.rs # Structured RPC (JSON-over-TCP, primal-to-primal)
 │           ├── service/       # Domain-focused RPC ops
 │           ├── health.rs      # Health checks
 │           └── error.rs       # API errors
@@ -118,8 +118,8 @@ loamSpine/
 ```
 
 **Dual Protocol:**
-- **tarpc** -- High-performance binary RPC for primal-to-primal
-- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI (batch support)
+- **tarpc** -- High-performance structured RPC (JSON-over-TCP) for primal-to-primal
+- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI (batch support, HTTP/1.1 keep-alive)
 
 ---
 
@@ -169,7 +169,7 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 1. **NeuralAPI** -- biomeOS Unix socket IPC (preferred, capability-registered)
 2. **Environment Variables** (`CAPABILITY_*_ENDPOINT`, `*_SERVICE_URL`)
-3. **Service Registry** -- HTTP-based (Songbird, Consul adapter, etcd adapter)
+3. **Service Registry** -- HTTP-based (Consul adapter, etcd adapter)
 4. **DNS SRV** -- RFC 2782 (`_signing._tcp.local`)
 5. **mDNS** -- RFC 6762 (experimental, feature-gated)
 6. **Development Fallback** (`localhost`, debug builds only)
@@ -192,13 +192,13 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,507 passing (all concurrent, ~3s, zero flaky) |
-| **Coverage** | 92% line / 89% region / 93% function (llvm-cov) |
+| **Tests** | 1,382 passing (all concurrent, ~3s, zero flaky) |
+| **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 899 max test file |
-| **Source Files** | 170 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Source Files** | 175 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

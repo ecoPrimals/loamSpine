@@ -25,6 +25,13 @@ use crate::error::{IpcErrorPhase, LoamSpineError};
 /// BTSP protocol version.
 const BTSP_VERSION: u32 = 1;
 
+/// JSON-RPC request IDs for BearDog delegation calls.
+mod rpc_id {
+    pub(super) const SESSION_CREATE: u64 = 1;
+    pub(super) const SESSION_VERIFY: u64 = 2;
+    pub(super) const NEGOTIATE: u64 = 3;
+}
+
 /// Perform the BTSP server-side handshake on an accepted UDS connection.
 ///
 /// # Errors
@@ -99,7 +106,7 @@ async fn create_beardog_session(
             "client_ephemeral_pub": client_hello.client_ephemeral_pub,
             "challenge": challenge,
         }),
-        1,
+        rpc_id::SESSION_CREATE,
     )
     .await?;
     debug!("BTSP: session created: {}", result.session_id);
@@ -152,7 +159,7 @@ async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
             "server_ephemeral_pub": create_result.server_ephemeral_pub,
             "challenge": challenge,
         }),
-        2,
+        rpc_id::SESSION_VERIFY,
     )
     .await?;
 
@@ -173,7 +180,7 @@ async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
             "preferred_cipher": challenge_response.preferred_cipher,
             "bond_type": "Covalent",
         }),
-        3,
+        rpc_id::NEGOTIATE,
     )
     .await?;
 

@@ -151,7 +151,7 @@ async fn handle_uds_connection(
     btsp_config: Option<Arc<loam_spine_core::btsp::BtspHandshakeConfig>>,
 ) -> Result<(), std::io::Error> {
     if let Some(ref btsp) = btsp_config {
-        match loam_spine_core::btsp::perform_server_handshake(&mut stream, &btsp.beardog_socket)
+        match loam_spine_core::btsp::perform_server_handshake(&mut stream, &btsp.provider_socket)
             .await
         {
             Ok(session) => {

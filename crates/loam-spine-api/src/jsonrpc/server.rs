@@ -169,57 +169,105 @@ where
     Ok(())
 }
 
+/// HTTP/1.1 persistent connection handler.
+///
+/// Supports keep-alive by default (HTTP/1.1 semantics): the connection
+/// stays open for multiple request/response exchanges until the client
+/// sends `Connection: close`, the read times out, or EOF is reached.
+/// This is critical for trio IPC stability — partners hold long-lived
+/// TCP connections and send multiple JSON-RPC requests sequentially.
 async fn handle_http_request<R, W>(
     handler: &LoamSpineJsonRpc,
     buf_reader: &mut BufReader<R>,
     writer: &mut W,
-    _request_line: &str,
+    first_request_line: &str,
 ) -> Result<(), std::io::Error>
 where
     R: tokio::io::AsyncRead + Unpin,
     W: tokio::io::AsyncWrite + Unpin,
 {
-    let mut content_length: usize = 0;
-    let mut header_line = String::new();
+    let mut request_line = first_request_line.to_string();
+
     loop {
-        header_line.clear();
-        buf_reader.read_line(&mut header_line).await?;
-        if header_line.trim().is_empty() {
+        let mut content_length: usize = 0;
+        let mut client_wants_close = false;
+        let mut header_line = String::new();
+
+        loop {
+            header_line.clear();
+            buf_reader.read_line(&mut header_line).await?;
+            if header_line.trim().is_empty() {
+                break;
+            }
+            if let Some(val) = header_line
+                .strip_prefix("Content-Length:")
+                .or_else(|| header_line.strip_prefix("content-length:"))
+            {
+                content_length = match val.trim().parse() {
+                    Ok(len) => len,
+                    Err(e) => {
+                        warn!("Malformed Content-Length header {:?}: {e}", val.trim());
+                        0
+                    }
+                };
+            }
+            let lower = header_line.trim().to_ascii_lowercase();
+            if lower.starts_with("connection:") && lower.contains("close") {
+                client_wants_close = true;
+            }
+        }
+
+        let mut body = vec![0u8; content_length];
+        if content_length > 0 {
+            buf_reader.read_exact(&mut body).await?;
+        }
+
+        let _ = &request_line;
+        let response_body = process_request(handler, &body).await;
+
+        let connection_header = if client_wants_close {
+            "close"
+        } else {
+            "keep-alive"
+        };
+
+        if response_body.is_empty() {
+            let resp =
+                format!("HTTP/1.1 204 No Content\r\nConnection: {connection_header}\r\n\r\n");
+            writer.write_all(resp.as_bytes()).await?;
+        } else {
+            let resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: {connection_header}\r\n\r\n",
+                response_body.len()
+            );
+            writer.write_all(resp.as_bytes()).await?;
+            writer.write_all(&response_body).await?;
+        }
+
+        writer.flush().await?;
+
+        if client_wants_close {
             break;
         }
-        if let Some(val) = header_line
-            .strip_prefix("Content-Length:")
-            .or_else(|| header_line.strip_prefix("content-length:"))
+
+        // Read the next request line for another HTTP exchange on this connection.
+        request_line.clear();
+        let n = buf_reader.read_line(&mut request_line).await?;
+        if n == 0 {
+            break;
+        }
+        let trimmed = request_line.trim();
+        if trimmed.is_empty() {
+            break;
+        }
+        if !trimmed.starts_with("POST")
+            && !trimmed.starts_with("GET")
+            && !trimmed.starts_with("HTTP")
         {
-            content_length = match val.trim().parse() {
-                Ok(len) => len,
-                Err(e) => {
-                    warn!("Malformed Content-Length header {:?}: {e}", val.trim());
-                    0
-                }
-            };
+            break;
         }
     }
 
-    let mut body = vec![0u8; content_length];
-    buf_reader.read_exact(&mut body).await?;
-
-    let response_body = process_request(handler, &body).await;
-
-    if response_body.is_empty() {
-        writer
-            .write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
-            .await?;
-    } else {
-        let http_response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-            response_body.len()
-        );
-        writer.write_all(http_response.as_bytes()).await?;
-        writer.write_all(&response_body).await?;
-    }
-
-    writer.flush().await?;
     Ok(())
 }
 

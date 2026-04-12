@@ -124,10 +124,18 @@ impl StreamItem {
     }
 }
 
+/// Maximum items to accumulate before applying backpressure.
+///
+/// Prevents unbounded memory growth when reading large streams.
+/// Callers needing larger streams should use
+/// [`read_ndjson_stream_bounded`] with an explicit limit.
+pub const DEFAULT_NDJSON_MAX_ITEMS: usize = 10_000;
+
 /// Read `StreamItem`s from an async buffered reader (NDJSON framing).
 ///
-/// Reads lines until EOF or a fatal/end item is encountered. Blank lines
-/// are skipped. Parse errors emit a recoverable `StreamItem::Error`.
+/// Reads lines until EOF, a fatal/end item, or the default item limit
+/// ([`DEFAULT_NDJSON_MAX_ITEMS`]) is reached. Blank lines are skipped.
+/// Parse errors emit a recoverable `StreamItem::Error`.
 ///
 /// # Errors
 ///
@@ -135,12 +143,34 @@ impl StreamItem {
 pub async fn read_ndjson_stream<R: tokio::io::AsyncBufRead + Unpin>(
     reader: &mut R,
 ) -> std::io::Result<Vec<StreamItem>> {
+    read_ndjson_stream_bounded(reader, DEFAULT_NDJSON_MAX_ITEMS).await
+}
+
+/// Read `StreamItem`s with an explicit item limit for backpressure.
+///
+/// When `max_items` items have been accumulated the stream is
+/// terminated with a `StreamItem::Error` indicating the limit was hit.
+///
+/// # Errors
+///
+/// Returns an I/O error only if the underlying reader fails.
+pub async fn read_ndjson_stream_bounded<R: tokio::io::AsyncBufRead + Unpin>(
+    reader: &mut R,
+    max_items: usize,
+) -> std::io::Result<Vec<StreamItem>> {
     use tokio::io::AsyncBufReadExt;
 
     let mut items = Vec::new();
     let mut line = String::new();
 
     loop {
+        if items.len() >= max_items {
+            items.push(StreamItem::fatal(format!(
+                "NDJSON backpressure: item limit ({max_items}) reached"
+            )));
+            break;
+        }
+
         line.clear();
         let n = reader.read_line(&mut line).await?;
         if n == 0 {
@@ -169,155 +199,5 @@ pub async fn read_ndjson_stream<R: tokio::io::AsyncBufRead + Unpin>(
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn data_item_roundtrip() {
-        let item = StreamItem::data(serde_json::json!({"spine_id": "abc123"}));
-        let line = item.to_ndjson_line().unwrap();
-        assert!(line.ends_with('\n'));
-        let parsed = StreamItem::parse_ndjson_line(&line).unwrap();
-        assert_eq!(item, parsed);
-    }
-
-    #[test]
-    fn end_marker() {
-        let item = StreamItem::end();
-        assert!(item.is_end());
-        assert!(!item.is_fatal());
-        let line = item.to_ndjson_line().unwrap();
-        let parsed = StreamItem::parse_ndjson_line(&line).unwrap();
-        assert!(parsed.is_end());
-    }
-
-    #[test]
-    fn progress_with_total() {
-        let item = StreamItem::progress(42, Some(100));
-        let json = serde_json::to_value(&item).unwrap();
-        assert_eq!(json["type"], "Progress");
-        assert_eq!(json["processed"], 42);
-        assert_eq!(json["total"], 100);
-    }
-
-    #[test]
-    fn progress_without_total() {
-        let item = StreamItem::progress(7, None);
-        let json = serde_json::to_value(&item).unwrap();
-        assert!(json["total"].is_null());
-    }
-
-    #[test]
-    fn recoverable_error() {
-        let item = StreamItem::error("transient failure");
-        assert!(!item.is_fatal());
-        assert!(!item.is_end());
-        let json = serde_json::to_value(&item).unwrap();
-        assert_eq!(json["recoverable"], true);
-    }
-
-    #[test]
-    fn fatal_error() {
-        let item = StreamItem::fatal("corruption detected");
-        assert!(item.is_fatal());
-        let json = serde_json::to_value(&item).unwrap();
-        assert_eq!(json["recoverable"], false);
-    }
-
-    #[test]
-    fn parse_invalid_ndjson() {
-        assert!(StreamItem::parse_ndjson_line("not json").is_err());
-    }
-
-    #[test]
-    fn protocol_version_is_semver() {
-        assert!(NDJSON_PROTOCOL_VERSION.contains('.'));
-    }
-
-    #[tokio::test]
-    async fn read_ndjson_stream_parses_items() {
-        let input = format!(
-            "{}{}{}\n",
-            StreamItem::data(serde_json::json!({"id": 1}))
-                .to_ndjson_line()
-                .unwrap(),
-            StreamItem::progress(1, Some(2)).to_ndjson_line().unwrap(),
-            StreamItem::end().to_ndjson_line().unwrap().trim_end(),
-        );
-        let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
-        let mut reader = tokio::io::BufReader::new(&mut cursor);
-        let items = super::read_ndjson_stream(&mut reader).await.unwrap();
-        assert_eq!(items.len(), 3);
-        assert!(items[2].is_end());
-    }
-
-    #[tokio::test]
-    async fn read_ndjson_stream_stops_on_fatal() {
-        let input = format!(
-            "{}{}",
-            StreamItem::fatal("boom").to_ndjson_line().unwrap(),
-            StreamItem::data(serde_json::json!({"after_fatal": true}))
-                .to_ndjson_line()
-                .unwrap(),
-        );
-        let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
-        let mut reader = tokio::io::BufReader::new(&mut cursor);
-        let items = super::read_ndjson_stream(&mut reader).await.unwrap();
-        assert_eq!(items.len(), 1);
-        assert!(items[0].is_fatal());
-    }
-
-    #[tokio::test]
-    async fn read_ndjson_stream_handles_parse_errors() {
-        let input = "not valid json\n";
-        let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
-        let mut reader = tokio::io::BufReader::new(&mut cursor);
-        let items = super::read_ndjson_stream(&mut reader).await.unwrap();
-        assert_eq!(items.len(), 1);
-        assert!(matches!(
-            items[0],
-            StreamItem::Error {
-                recoverable: true,
-                ..
-            }
-        ));
-    }
-
-    #[test]
-    fn ndjson_multi_line_stream() {
-        let items = vec![
-            StreamItem::data(serde_json::json!({"id": 1})),
-            StreamItem::data(serde_json::json!({"id": 2})),
-            StreamItem::progress(2, Some(3)),
-            StreamItem::data(serde_json::json!({"id": 3})),
-            StreamItem::end(),
-        ];
-
-        let stream: String = items.iter().map(|i| i.to_ndjson_line().unwrap()).collect();
-
-        let parsed: Vec<StreamItem> = stream
-            .lines()
-            .map(|line| StreamItem::parse_ndjson_line(line).unwrap())
-            .collect();
-
-        assert_eq!(items, parsed);
-    }
-
-    #[tokio::test]
-    async fn read_ndjson_stream_skips_empty_lines() {
-        let input = format!(
-            "\n\n{}\n\n{}\n",
-            StreamItem::data(serde_json::json!({"ok": true}))
-                .to_ndjson_line()
-                .unwrap()
-                .trim_end(),
-            StreamItem::end().to_ndjson_line().unwrap().trim_end(),
-        );
-        let mut cursor = std::io::Cursor::new(input.as_bytes().to_vec());
-        let mut reader = tokio::io::BufReader::new(&mut cursor);
-        let items = super::read_ndjson_stream(&mut reader).await.unwrap();
-        assert_eq!(items.len(), 2);
-        assert!(matches!(items[0], StreamItem::Data { .. }));
-        assert!(items[1].is_end());
-    }
-}
+#[path = "streaming_tests.rs"]
+mod tests;

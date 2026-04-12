@@ -282,7 +282,7 @@ async fn redb_certificate_storage_crud() {
     let cert_id = cert.id;
 
     storage.save_certificate(&cert, spine_id).await.unwrap();
-    assert_eq!(storage.certificate_count(), 1);
+    assert_eq!(storage.certificate_count().unwrap(), 1);
 
     let retrieved = storage.get_certificate(cert_id).await.unwrap();
     assert!(retrieved.is_some());
@@ -295,7 +295,7 @@ async fn redb_certificate_storage_crud() {
     assert!(ids.contains(&cert_id));
 
     storage.delete_certificate(cert_id).await.unwrap();
-    assert_eq!(storage.certificate_count(), 0);
+    assert_eq!(storage.certificate_count().unwrap(), 0);
     assert!(storage.get_certificate(cert_id).await.unwrap().is_none());
 }
 
@@ -311,7 +311,7 @@ async fn redb_certificate_storage_upsert() {
 
     storage.save_certificate(&cert, spine_id).await.unwrap();
     storage.save_certificate(&cert, spine_id).await.unwrap();
-    assert_eq!(storage.certificate_count(), 1);
+    assert_eq!(storage.certificate_count().unwrap(), 1);
 }
 
 #[cfg(feature = "redb-storage")]
@@ -343,7 +343,7 @@ async fn redb_combined_storage_includes_certificates() {
         .save_certificate(&cert, spine_id)
         .await
         .unwrap();
-    assert_eq!(storage.certificates.certificate_count(), 1);
+    assert_eq!(storage.certificates.certificate_count().unwrap(), 1);
 
     let retrieved = storage.certificates.get_certificate(cert_id).await.unwrap();
     assert!(retrieved.is_some());
@@ -365,7 +365,7 @@ async fn redb_certificate_storage_multiple() {
         storage.save_certificate(&cert, spine_id).await.unwrap();
     }
 
-    assert_eq!(storage.certificate_count(), 10);
+    assert_eq!(storage.certificate_count().unwrap(), 10);
     let ids = storage.list_certificates().await.unwrap();
     assert_eq!(ids.len(), 10);
 }

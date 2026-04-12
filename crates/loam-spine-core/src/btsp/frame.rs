@@ -5,6 +5,7 @@
 //! All BTSP wire frames use a 4-byte big-endian length prefix per
 //! `BTSP_PROTOCOL_STANDARD.md` §Wire Framing.
 
+use bytes::{Bytes, BytesMut};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::error::{IpcErrorPhase, LoamSpineError};
@@ -14,13 +15,13 @@ pub(crate) const MAX_FRAME_SIZE: u32 = 0x0100_0000;
 
 /// Read a length-prefixed BTSP frame from the stream.
 ///
+/// Returns `Bytes` for zero-copy downstream processing.
+///
 /// # Errors
 ///
 /// Returns `LoamSpineError::Ipc` if the frame exceeds the maximum size or
 /// the stream is closed prematurely.
-pub async fn read_frame<R: AsyncReadExt + Unpin>(
-    reader: &mut R,
-) -> Result<Vec<u8>, LoamSpineError> {
+pub async fn read_frame<R: AsyncReadExt + Unpin>(reader: &mut R) -> Result<Bytes, LoamSpineError> {
     let len = reader.read_u32().await.map_err(|e| {
         LoamSpineError::ipc(IpcErrorPhase::Read, format!("BTSP frame length read: {e}"))
     })?;
@@ -32,12 +33,12 @@ pub async fn read_frame<R: AsyncReadExt + Unpin>(
         ));
     }
 
-    let mut buf = vec![0u8; len as usize];
+    let mut buf = BytesMut::zeroed(len as usize);
     reader.read_exact(&mut buf).await.map_err(|e| {
         LoamSpineError::ipc(IpcErrorPhase::Read, format!("BTSP frame body read: {e}"))
     })?;
 
-    Ok(buf)
+    Ok(buf.freeze())
 }
 
 /// Write a length-prefixed BTSP frame to the stream.

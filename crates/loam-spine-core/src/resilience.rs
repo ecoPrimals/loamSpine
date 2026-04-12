@@ -267,7 +267,7 @@ impl RetryPolicy {
         Self { config }
     }
 
-    /// Create with default config (3 retries, 100ms base, 5000ms max).
+    /// Create with default config (3 retries, 100ms base, 10 000ms max).
     #[must_use]
     pub fn default_policy() -> Self {
         Self::new(RetryPolicyConfig::default())
@@ -347,8 +347,9 @@ impl ResilientAdapter {
     /// Execute an async operation with retry, circuit-breaker, and error
     /// classification.
     ///
-    /// Only errors for which `is_transient` returns `true` are retried;
-    /// permanent errors fail fast without consuming remaining retries.
+    /// Only errors for which `is_transient` returns `true` are retried and
+    /// counted against the circuit breaker. Permanent errors fail fast
+    /// without consuming remaining retries or stressing the circuit.
     ///
     /// # Errors
     ///
@@ -383,13 +384,14 @@ impl ResilientAdapter {
                 Err(e) => {
                     let err_msg = e.to_string();
                     let transient = is_transient(&e);
-                    self.circuit_breaker.record_failure();
 
                     if !transient {
                         tracing::debug!("permanent failure (no retry): {err_msg}");
                         last_err = Some(LoamSpineError::Network(err_msg));
                         break;
                     }
+
+                    self.circuit_breaker.record_failure();
 
                     if attempt < max_retries {
                         let delay = self.retry_policy.exponential_backoff(attempt);

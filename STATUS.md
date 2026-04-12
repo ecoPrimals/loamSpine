@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 11, 2026
+**Last Updated**: April 12, 2026
 
 ---
 
@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,507 |
+| Tests | — | 1,382 |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
-| Coverage (llvm-cov) | 90%+ | 92.00% line / 89.33% region / 93.32% function |
+| Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
 | Max file size | < 700 lines | 605 max production (discovery_client/mod.rs); 899 max test file |
-| Source files | — | 170 `.rs` files (+ 3 fuzz targets) |
+| Source files | — | 175 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 4 | 2× `clippy::wildcard_imports` (tarpc macro requires it; `#[expect]` unfulfilled in test target), 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -69,7 +69,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 170 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 175 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -82,6 +82,29 @@ This document tracks implementation progress against the specification suite in 
 | File size limit | PASS | All source files under 1000 lines. |
 
 ---
+
+## v0.9.16 Comprehensive Audit & Evolution Pass (April 12, 2026)
+
+- **Blocking redb in async fixed**: All `RedbSpineStorage`, `RedbEntryStorage`, `RedbCertificateStorage` trait impls now use `tokio::task::spawn_blocking` to prevent reactor stalls from synchronous disk I/O.
+- **Resilience circuit-breaker semantics corrected**: `execute_classified` no longer counts permanent errors against the circuit breaker. Only transient failures increment failure count, preventing premature circuit trips on non-retryable errors.
+- **RetryPolicy doc/code mismatch fixed**: Documentation now correctly states 10,000ms max delay (was 5,000ms).
+- **Type safety evolved**: `PeerId` evolved from bare `type PeerId = String` to `PeerId(Arc<str>)` newtype with `Borrow<str>`, `From<&str>`, `From<String>`, `Display`. `LogLevel` evolved from loose `String` to validated `LogLevel` enum with serde + Display.
+- **Zero-copy BTSP frames**: `read_frame` returns `bytes::Bytes` instead of `Vec<u8>` for zero-copy downstream processing.
+- **BTSP magic numbers eliminated**: Handshake RPC IDs extracted to `rpc_id::SESSION_CREATE`, `SESSION_VERIFY`, `NEGOTIATE` constants.
+- **NDJSON backpressure**: `read_ndjson_stream` now enforces `DEFAULT_NDJSON_MAX_ITEMS` (10,000) limit. New `read_ndjson_stream_bounded` for explicit control.
+- **Owner index for O(1) lookup**: `LoamSpineService::ensure_spine` uses `owner_index: HashMap<Did, SpineId>` instead of scanning all spines.
+- **Storage count methods evolved**: Redb `spine_count`, `entry_count`, `certificate_count` return `LoamSpineResult<usize>` instead of silently returning 0 on errors.
+- **SpineBuilder clone cleanup**: `with_type`, `personal`, `waypoint` no longer produce redundant clones.
+- **UniBin `--abstract` flag**: Added `--abstract` CLI flag for Linux abstract UDS namespace support per UniBin standard.
+- **CLI config merge**: `run_server` now merges CLI-resolved ports/bind into `LoamSpineConfig.discovery` endpoints.
+- **tarpc transport docs corrected**: All references to "binary RPC" updated to "structured RPC (JSON-over-TCP)" to accurately reflect the `Json::default` serde transport.
+- **SPDX headers**: Added to 2 remaining test files (`error/tests.rs`, `types/tests.rs`). All 173 `.rs` files now have SPDX.
+- **HTTP/1.1 keep-alive (connection-close fix)**: JSON-RPC TCP server evolved from single-shot HTTP (`Connection: close` after every response) to persistent HTTP/1.1 keep-alive loop. Multiple JSON-RPC requests on a single TCP connection now work without reconnection. Closes primalSpring audit item: "loamSpine connection closes after first response". `Connection: close` is still honored when the client requests it.
+- **BTSP provider decoupled from hardcoded primal name**: `BTSP_PROVIDER_PREFIX` evolved from hardcoded `"beardog"` to env-configurable `BTSP_PROVIDER` with `"beardog"` default. `BtspHandshakeConfig.beardog_socket` → `provider_socket`. Socket name functions accept provider override parameter. All BTSP callers use capability-agnostic field names.
+- **Smart test extraction (5 files)**: Inline `#[cfg(test)] mod tests` extracted to sibling `#[path]` modules: `streaming.rs` (354→203), `health.rs` (482→347), `service/mod.rs` (438→277), `config.rs` (370→285), `lib.rs` (532→374). Production code cohesion preserved.
+- **Stale Songbird references removed**: All production doc comments referencing deprecated Songbird discovery primal evolved to generic capability-based language. Only test examples of `address_env_var("songbird")` remain (demonstrating the function works with any primal name).
+- **Doc warning fixed**: Broken `read_ndjson_stream_with` intra-doc link → `read_ndjson_stream_bounded`.
+- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,382 tests, 0 failures), `cargo deny check` PASS.
 
 ## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)
 

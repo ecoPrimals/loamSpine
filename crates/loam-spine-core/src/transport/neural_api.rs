@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Tower Atomic transport via NeuralAPI → Songbird.
+//! Tower Atomic transport via NeuralAPI HTTP capability routing.
 //!
-//! This transport delegates all HTTP operations to **Songbird** (Pure Rust
-//! TLS 1.3 + HTTP) through BiomeOS's **NeuralAPI** orchestration layer,
+//! This transport delegates all HTTP operations to a capability-discovered HTTP provider
+//! through BiomeOS's **NeuralAPI** orchestration layer,
 //! communicating over a Unix domain socket with JSON-RPC 2.0.
 //!
 //! **Zero C dependencies** — this is the ecoBin-compliant production path.
@@ -11,8 +11,8 @@
 //! ## Architecture
 //!
 //! ```text
-//! LoamSpine ──JSON-RPC──▶ NeuralAPI ──route──▶ Songbird ──HTTP/TLS──▶ Registry
-//!            (Unix sock)              (Unix sock)         (Pure Rust)
+//! LoamSpine ──JSON-RPC──▶ NeuralAPI ──route──▶ HTTP provider ──HTTP/TLS──▶ Registry
+//!            (Unix sock)              (Unix sock)         (TLS + HTTP)
 //! ```
 //!
 //! ## Socket Discovery
@@ -34,11 +34,11 @@ use crate::error::{IpcErrorPhase, LoamSpineError};
 
 use super::{DiscoveryTransport, TransportResponse};
 
-/// NeuralAPI transport for ecoBin-compliant HTTP via Songbird.
+/// NeuralAPI transport for ecoBin-compliant HTTP via capability-discovered provider.
 ///
 /// Sends JSON-RPC 2.0 requests to NeuralAPI over a Unix domain socket.
-/// NeuralAPI routes the `http.request` capability to Songbird, which
-/// handles TLS 1.3 and HTTP using pure Rust (RustCrypto + custom stack).
+/// NeuralAPI routes the `http.request` capability to a provider that
+/// handles TLS 1.3 and HTTP.
 #[derive(Debug)]
 pub struct NeuralApiTransport {
     socket_path: PathBuf,

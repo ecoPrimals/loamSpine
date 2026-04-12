@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 11, 2026
+**Last Updated**: April 12, 2026
 
 ---
 
@@ -225,6 +225,16 @@
 - **BTSP provider socket naming**: Hardcoded `"beardog"` string literals in `btsp/config.rs` replaced with `BTSP_PROVIDER_PREFIX` constant. Protocol-level naming convention documented.
 - **Smart refactor `jsonrpc/server.rs`** (529 lines) → TCP transport stays in `server.rs` (362 lines), UDS transport extracted to `uds.rs` (172 lines). Clean domain boundary: TCP/HTTP vs UDS+BTSP gating.
 - **Tests**: 1,505 → **1,507** (+2 new: registry path validation, registry path distinctness). Source files: 169 → **170**. Full pipeline clean.
+
+## v0.9.16 Deep Debt & Evolution Pass 2 (April 12, 2026)
+
+- **HTTP/1.1 keep-alive**: Connection-close bug fixed — JSON-RPC TCP server now supports persistent HTTP connections (primalSpring audit item resolved).
+- **BTSP provider decoupled**: Hardcoded `"beardog"` → env-configurable `BTSP_PROVIDER` with default. `provider_socket` replaces `beardog_socket`.
+- **Smart test extraction (5 files)**: `streaming.rs`, `health.rs`, `service/mod.rs`, `config.rs`, `lib.rs` — inline tests extracted to `#[path]` siblings.
+- **Stale Songbird references removed**: All production doc comments evolved to capability-based language.
+- **Doc warning fixed**: Broken `read_ndjson_stream_with` intra-doc link.
+- **Root docs reconciled**: README, CONTEXT, CONTRIBUTING metrics aligned with STATUS.md.
+- **Tests**: **1,382**. Source files: **175**. Zero clippy/doc warnings. `cargo deny check` PASS.
 
 ## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)
 

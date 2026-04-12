@@ -180,9 +180,13 @@ impl LoamSpineJsonRpc {
             "permanence.get_commit" => rpc!(params, permanent_storage_get_commit),
             "permanence.health_check" => ser(self.service.permanence_healthy().await),
 
+            // Static discovery responses: OnceLock-cached values require .clone()
+            // to produce the owned Value that JsonRpcResponse needs. These are
+            // cold-path methods (called once per client for capability discovery),
+            // so the clone cost is negligible vs. the complexity of a zero-copy
+            // wire type refactor.
             "capabilities.list" => Ok(loam_spine_core::neural_api::capability_list().clone()),
             "identity.get" => Ok(loam_spine_core::neural_api::identity_response().clone()),
-
             "tools.list" => Ok(loam_spine_core::neural_api::mcp_tools_list().clone()),
 
             "tools.call" => {

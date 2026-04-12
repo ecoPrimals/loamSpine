@@ -6,6 +6,35 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+/// Validated log level for tracing integration.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LogLevel {
+    /// Error-level only.
+    Error,
+    /// Warnings and errors.
+    Warn,
+    /// Informational (default).
+    #[default]
+    Info,
+    /// Debug diagnostics.
+    Debug,
+    /// Full trace output.
+    Trace,
+}
+
+impl std::fmt::Display for LogLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Error => f.write_str("error"),
+            Self::Warn => f.write_str("warn"),
+            Self::Info => f.write_str("info"),
+            Self::Debug => f.write_str("debug"),
+            Self::Trace => f.write_str("trace"),
+        }
+    }
+}
+
 /// Configuration for LoamSpine.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LoamSpineConfig {
@@ -22,7 +51,7 @@ pub struct LoamSpineConfig {
     pub replication_enabled: bool,
 
     /// Log level.
-    pub log_level: String,
+    pub log_level: LogLevel,
 
     /// Discovery configuration.
     #[serde(default)]
@@ -50,7 +79,7 @@ pub struct DiscoveryConfig {
     /// Discovery service endpoint (universal adapter).
     ///
     /// Compatible with any RFC 2782 compliant service discovery system:
-    /// - Songbird (reference implementation)
+    /// - Any RFC 2782 SRV-capable registry
     /// - Consul
     /// - etcd
     /// - Custom implementations
@@ -62,7 +91,7 @@ pub struct DiscoveryConfig {
     /// 4. Development fallback (localhost:8082, logged as warning)
     pub discovery_endpoint: Option<String>,
 
-    /// tarpc endpoint for binary RPC (primal-to-primal communication).
+    /// tarpc endpoint for structured RPC (primal-to-primal communication).
     ///
     /// Set to `0.0.0.0:0` to let the OS assign an available port.
     /// Can be overridden via `TARPC_ENDPOINT` environment variable.
@@ -129,7 +158,7 @@ pub enum DiscoveryMethod {
     /// Service registry (universal adapter).
     ///
     /// Compatible with any RFC 2782 compliant service discovery system:
-    /// - Songbird (reference implementation)
+    /// - Any RFC 2782 SRV-capable registry
     /// - Consul
     /// - etcd
     /// - Custom implementations
@@ -171,7 +200,7 @@ impl Default for DiscoveryConfig {
             heartbeat_retry: HeartbeatRetryConfig::default(),
             methods: vec![
                 DiscoveryMethod::Environment,
-                DiscoveryMethod::ServiceRegistry, // Generic service registry (Songbird, Consul, etcd, etc.)
+                DiscoveryMethod::ServiceRegistry, // Generic service registry (Consul, etcd, etc.)
                 DiscoveryMethod::LocalBinaries,
                 DiscoveryMethod::Fallback,
             ],
@@ -188,7 +217,7 @@ impl Default for LoamSpineConfig {
             storage_path: PathBuf::from("./data/loamspine"),
             auto_rollup_threshold: Some(10_000),
             replication_enabled: false,
-            log_level: "info".to_string(),
+            log_level: LogLevel::default(),
             discovery: DiscoveryConfig::default(),
         }
     }
@@ -252,90 +281,5 @@ impl LoamSpineConfig {
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn default_config() {
-        let config = LoamSpineConfig::default();
-        assert_eq!(config.name, "LoamSpine");
-        assert!(!config.replication_enabled);
-        assert_eq!(config.auto_rollup_threshold, Some(10_000));
-    }
-
-    #[test]
-    fn config_builder() {
-        let config = LoamSpineConfig::new("TestSpine")
-            .with_storage_path("/tmp/test")
-            .with_auto_rollup(5000)
-            .with_replication(true);
-
-        assert_eq!(config.name, "TestSpine");
-        assert_eq!(config.storage_path, PathBuf::from("/tmp/test"));
-        assert_eq!(config.auto_rollup_threshold, Some(5000));
-        assert!(config.replication_enabled);
-    }
-
-    #[test]
-    fn config_with_discovery() {
-        let discovery = DiscoveryConfig {
-            discovery_enabled: false,
-            ..DiscoveryConfig::default()
-        };
-        let config = LoamSpineConfig::new("Test").with_discovery(discovery);
-        assert!(!config.discovery.discovery_enabled);
-    }
-
-    #[test]
-    fn config_with_discovery_service() {
-        let config =
-            LoamSpineConfig::new("Test").with_discovery_service("http://registry.local:8082");
-        assert!(config.discovery.discovery_enabled);
-        assert_eq!(
-            config.discovery.discovery_endpoint.as_deref(),
-            Some("http://registry.local:8082")
-        );
-    }
-
-    #[test]
-    fn heartbeat_retry_config_default() {
-        let retry = HeartbeatRetryConfig::default();
-        assert_eq!(retry.backoff_seconds, vec![10, 30, 60, 120]);
-        assert_eq!(retry.max_failures_before_degraded, 3);
-        assert_eq!(retry.max_failures_total, 10);
-    }
-
-    #[test]
-    fn discovery_config_default_methods() {
-        let config = DiscoveryConfig::default();
-        assert!(config.discovery_enabled);
-        assert!(config.auto_advertise);
-        assert_eq!(config.heartbeat_interval_seconds, 60);
-        assert!(config.methods.contains(&DiscoveryMethod::Environment));
-        assert!(config.methods.contains(&DiscoveryMethod::ServiceRegistry));
-    }
-
-    #[test]
-    fn discovery_method_serde_roundtrip() {
-        let methods = vec![
-            DiscoveryMethod::Environment,
-            DiscoveryMethod::ServiceRegistry,
-            DiscoveryMethod::Mdns,
-            DiscoveryMethod::LocalBinaries,
-            DiscoveryMethod::ConfigFile,
-            DiscoveryMethod::Fallback,
-        ];
-        let json = serde_json::to_string(&methods).unwrap();
-        let parsed: Vec<DiscoveryMethod> = serde_json::from_str(&json).unwrap();
-        assert_eq!(methods, parsed);
-    }
-
-    #[test]
-    fn loamspine_config_serde_roundtrip() {
-        let config = LoamSpineConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
-        let parsed: LoamSpineConfig = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed.name, config.name);
-        assert_eq!(parsed.storage_path, config.storage_path);
-    }
-}
+#[path = "config_tests.rs"]
+mod tests;

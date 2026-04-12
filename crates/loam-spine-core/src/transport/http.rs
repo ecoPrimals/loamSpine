@@ -4,7 +4,7 @@
 //!
 //! **Feature-gated** behind `discovery-http`. This transport is fully ecoBin
 //! compliant — zero C dependencies. For HTTPS, route through the
-//! BearDog/Songbird TLS stack via Tower Atomic.
+//! capability-discovered TLS provider via Tower Atomic.
 
 use std::future::Future;
 use std::io::Read;

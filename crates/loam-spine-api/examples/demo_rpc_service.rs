@@ -96,7 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Health:      health_check");
     println!();
     println!("Dual Protocol:");
-    println!("  • tarpc - Binary, fast, primal-to-primal");
+    println!("  • tarpc - Structured JSON/TCP, fast, primal-to-primal");
     println!("  • JSON-RPC 2.0 - Language-agnostic external clients");
     println!("  (Ports configured at runtime via environment)");
     println!();

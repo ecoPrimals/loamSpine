@@ -6,3 +6,6 @@
 *.tmp
 *.log
 .DS_Store
+*.profraw
+*.profdata
+lcov.info

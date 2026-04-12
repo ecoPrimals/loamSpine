@@ -39,7 +39,8 @@ pub mod wire;
 mod beardog_client;
 
 pub use config::{
-    BtspHandshakeConfig, is_btsp_required, is_btsp_required_with, resolve_beardog_socket_with,
+    BtspHandshakeConfig, is_btsp_required, is_btsp_required_with, resolve_provider_socket,
+    resolve_provider_socket_with,
 };
 pub use frame::{read_frame, write_frame};
 pub use handshake::perform_server_handshake;

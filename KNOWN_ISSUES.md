@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: April 11, 2026
+**Last Updated**: April 12, 2026
 
 ---
 

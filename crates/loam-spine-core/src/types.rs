@@ -50,7 +50,56 @@ pub type SessionId = uuid::Uuid;
 pub type BraidId = uuid::Uuid;
 
 /// Peer identifier for replication.
-pub type PeerId = String;
+///
+/// Newtype wrapper over `Arc<str>` for O(1) cloning and type safety.
+/// Prevents accidental interchange with arbitrary strings.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct PeerId(Arc<str>);
+
+impl PeerId {
+    /// Create a new peer ID from a string.
+    #[must_use]
+    pub fn new(id: impl Into<Arc<str>>) -> Self {
+        Self(id.into())
+    }
+
+    /// Get the peer ID as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for PeerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl From<&str> for PeerId {
+    fn from(s: &str) -> Self {
+        Self::new(s)
+    }
+}
+
+impl From<String> for PeerId {
+    fn from(s: String) -> Self {
+        Self::new(s)
+    }
+}
+
+impl PartialEq<&str> for PeerId {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+impl std::borrow::Borrow<str> for PeerId {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
 
 /// Decentralized Identifier (DID).
 ///

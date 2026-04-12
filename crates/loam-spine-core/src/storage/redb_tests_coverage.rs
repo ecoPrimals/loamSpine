@@ -93,7 +93,7 @@ async fn redb_certificate_save_overwrite() {
 
     storage.save_certificate(&cert, spine_id).await.unwrap();
     storage.save_certificate(&cert, spine_id).await.unwrap();
-    assert_eq!(storage.certificate_count(), 1);
+    assert_eq!(storage.certificate_count().unwrap(), 1);
 
     let retrieved = storage.get_certificate(cert_id).await.unwrap();
     assert!(retrieved.is_some());

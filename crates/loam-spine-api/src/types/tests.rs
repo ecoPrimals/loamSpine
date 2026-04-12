@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 use super::*;
 
 use loam_spine_core::trio_types::WireDehydrationSummary;
