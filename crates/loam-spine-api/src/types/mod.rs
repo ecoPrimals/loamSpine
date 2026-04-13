@@ -273,7 +273,11 @@ pub struct VerifyInclusionProofResponse {
 /// Request for health check.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthCheckRequest {
-    /// Whether to include detailed component health
+    /// Whether to include detailed component health.
+    ///
+    /// Defaults to `false` when omitted, so consumers can call
+    /// `health.check` with `{}` or no params.
+    #[serde(default)]
     pub include_details: bool,
 }
 

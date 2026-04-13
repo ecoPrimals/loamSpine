@@ -403,6 +403,46 @@ async fn health_check_with_details() {
 }
 
 #[tokio::test]
+async fn health_check_empty_params_defaults_include_details_false() {
+    let server = LoamSpineJsonRpc::default_server();
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "health.check".to_string(),
+        params: serde_json::json!({}),
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(rpc_req).await;
+    assert!(
+        resp.error.is_none(),
+        "health.check with {{}} must not error"
+    );
+    let result = resp.result.unwrap();
+    assert!(result.get("status").is_some());
+    assert!(
+        result["report"].is_null(),
+        "report must be null when include_details defaults to false"
+    );
+}
+
+#[tokio::test]
+async fn health_check_null_params_defaults_include_details_false() {
+    let server = LoamSpineJsonRpc::default_server();
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "health.check".to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(rpc_req).await;
+    assert!(
+        resp.error.is_none(),
+        "health.check with null params must not error"
+    );
+    let result = resp.result.unwrap();
+    assert!(result.get("status").is_some());
+}
+
+#[tokio::test]
 async fn invalid_params_certificate_get_returns_error() {
     let server = LoamSpineJsonRpc::default_server();
     let rpc_req = JsonRpcRequest {

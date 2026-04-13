@@ -237,7 +237,14 @@ fn app_err(e: impl std::fmt::Display) -> wire::JsonRpcError {
 fn deser<T: serde::de::DeserializeOwned>(
     params: serde_json::Value,
 ) -> Result<T, wire::JsonRpcError> {
-    serde_json::from_value(params).map_err(|e| wire::JsonRpcError {
+    // JSON-RPC 2.0 §4.2: omitted or null params means "no arguments" — treat
+    // as empty object so struct fields with `#[serde(default)]` resolve.
+    let normalized = if params.is_null() {
+        serde_json::Value::Object(serde_json::Map::new())
+    } else {
+        params
+    };
+    serde_json::from_value(normalized).map_err(|e| wire::JsonRpcError {
         code: INVALID_PARAMS,
         message: format!("invalid params: {e}"),
         data: None,
