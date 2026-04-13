@@ -226,6 +226,31 @@
 - **Smart refactor `jsonrpc/server.rs`** (529 lines) → TCP transport stays in `server.rs` (362 lines), UDS transport extracted to `uds.rs` (172 lines). Clean domain boundary: TCP/HTTP vs UDS+BTSP gating.
 - **Tests**: 1,505 → **1,507** (+2 new: registry path validation, registry path distinctness). Source files: 169 → **170**. Full pipeline clean.
 
+## v0.9.16 Deep Debt Pass 7 — Doc Reconciliation & Debris Cleanup (April 12, 2026)
+
+- **Root doc metrics reconciled**: Source files 176→**178** (README, STATUS, CONTEXT, CONTRIBUTING). Test badge 1,383→**1,395** (README). JSON-RPC method count reconciled to **32** across all docs (was 30 in STATUS, 36 in CONTRIBUTING; truth: `niche.rs` METHODS). Showcase file count 55→**54** (README). CHANGELOG 0.9.16 metrics corrected from stale intermediate snapshot.
+- **Stale `phase1/` cross-repo links fixed**: 8 references across 5 files pointing to nonexistent `../../../phase1/<primal>/` updated to `../../<primal>/` (actual sibling layout). Primal casing corrected (songbird→songBird, toadstool→toadStool, nestgate→nestGate).
+- **Build artifacts cleaned**: `cargo clean` removed 9,847 files / 6.4 GiB.
+- **Debris scan clean**: No stale scripts, tracked build artifacts, TODO/FIXME in production, secrets, or redundant docs found.
+- **Tests**: **1,395**. Source files: **178**. All gates green.
+
+## v0.9.16 Deep Debt Pass 6 — Constants, Test Refactoring, Arc<str>, Modernization (April 12, 2026)
+
+- **Discovery string literals → named constants**: `discovery_method::ENVIRONMENT/DNS_SRV/MDNS` and `srv_metadata::PRIORITY/WEIGHT/TARGET/PORT` modules in `constants.rs`. 3 new constant validation tests. All usages in `infant_discovery/mod.rs` and `backends.rs` updated.
+- **Witness default constants**: `DEFAULT_WITNESS_KIND`/`DEFAULT_WITNESS_ENCODING` in `trio_types.rs`. 2 new tests.
+- **Test file smart-refactoring**: `tests_protocol.rs` (956L) → `tests_protocol_transport.rs` (~430L) + `tests_protocol_wire.rs` (~500L). `discovery/tests.rs` (899L) → `tests_registry.rs` (~330L) + `tests_attestation.rs` (~570L). Split by domain, not arbitrary line count.
+- **Arc<str> for retry closures**: `ResilientDiscoveryClient.discover_capability` and `advertise_self` parameters converted to `Arc<str>` — O(1) clone per retry instead of O(N) String allocation.
+- **`.into()` modernization**: String literal `.to_string()` → `.into()` in error constructors across 4 files.
+- **`health.check` empty params fix**: `HealthCheckRequest.include_details` now `#[serde(default)]`. `deser()` normalizes `null` params to `{}`.
+- **Tests**: 1,390→**1,395** (+5 new). Source files: 176→**178**. Zero clippy/doc warnings.
+
+## v0.9.16 Deep Debt Pass 5 — health.check Default & plasmidBin (April 12, 2026)
+
+- **`health.check` accepts empty params**: `HealthCheckRequest.include_details` annotated with `#[serde(default)]`, defaulting to `false` when absent. Downstream consumers can call `health.liveness` with `{}` or `null` without error.
+- **JSON-RPC `null` param normalization**: `deser()` function now normalizes `Value::Null` to empty object, preventing deserialization failures for methods expecting struct params.
+- **plasmidBin/wateringHole updated**: Handoff and compliance docs updated for health.check fix.
+- **Tests**: **1,390**. Source files: **176**. All gates green.
+
 ## v0.9.16 Deep Debt Pass 4 — Port Decoupling & Debris Cleanup (April 12, 2026)
 
 - **Hardcoded port constants decoupled**: `DiscoveryConfig::default()` evolved from raw `DEFAULT_TARPC_PORT`/`DEFAULT_JSONRPC_PORT` to `env_resolution` module (reads `LOAMSPINE_*_PORT` > `*_PORT` > default). `discovery_client::advertise_self()` fallbacks similarly evolved. Constants remain only in doc examples and cfg-gated dev fallback.

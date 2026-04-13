@@ -305,11 +305,11 @@ LoamSpine uses capability discovery for all external services:
 - [../specs/](../specs/) - Complete specifications
 
 ### Ecosystem Showcases
-- `../../phase1/squirrel/showcase/` - AI orchestration (EXCELLENT model)
-- `../../phase1/songbird/showcase/` - Service mesh (if exists)
-- `../../phase1/toadstool/showcase/` - Universal compute (if exists)
-- `../../phase1/nestgate/showcase/` - Storage infrastructure (if exists)
-- `../../phase1/beardog/showcase/` - Sovereign security (if exists)
+- `../../squirrel/showcase/` - AI orchestration (EXCELLENT model)
+- `../../songBird/showcase/` - Service mesh (if exists)
+- `../../toadStool/showcase/` - Universal compute (if exists)
+- `../../nestGate/showcase/` - Storage infrastructure (if exists)
+- `../../bearDog/showcase/` - Sovereign security (if exists)
 
 ---
 

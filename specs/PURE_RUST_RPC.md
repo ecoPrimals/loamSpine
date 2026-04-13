@@ -495,7 +495,7 @@ If you had a previous gRPC implementation:
 
 ### 9.1 Consistency with Songbird
 
-LoamSpine follows the same RPC philosophy as Songbird (see `specs/TARPC_JSON_RPC_PROTOCOL_SPEC.md`):
+LoamSpine follows the same RPC philosophy as Songbird (see `../../songBird/specs/TARPC_JSON_RPC_PROTOCOL_SPEC.md`):
 
 ```
 ✅ Pure Rust (no C/C++ dependencies)
@@ -524,7 +524,7 @@ LoamSpine follows the same RPC philosophy as Songbird (see `specs/TARPC_JSON_RPC
 
 ## 10. References
 
-- [Songbird tarpc Specification](../../../phase1/songBird/specs/TARPC_JSON_RPC_PROTOCOL_SPEC.md)
+- [Songbird tarpc Specification](../../songBird/specs/TARPC_JSON_RPC_PROTOCOL_SPEC.md)
 - [tarpc Documentation](https://docs.rs/tarpc/)
 - [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification) — Hand-rolled implementation (no jsonrpsee)
 

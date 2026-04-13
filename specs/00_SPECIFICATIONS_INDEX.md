@@ -87,13 +87,13 @@ LoamSpine is named after **loam**—the slow, anaerobic soil layer:
 - [SweetGrass Specification](../../sweetGrass/specs/)
 
 ### Phase 1 Dependencies
-- [BearDog Specification](../../../phase1/bearDog/specs/) — Identity & signing
-- [Songbird Specification](../../../phase1/songBird/specs/) — Service discovery
-- [NestGate Specification](../../../phase1/nestGate/specs/) — Payload storage
+- [BearDog Specification](../../bearDog/specs/) — Identity & signing
+- [Songbird Specification](../../songBird/specs/) — Service discovery
+- [NestGate Specification](../../nestGate/specs/) — Payload storage
 
 ### Design Philosophy
 - [Pure Rust RPC](./PURE_RUST_RPC.md) — Primal sovereignty, no gRPC/protobuf
-- [Phase 2 Architecture](../../ARCHITECTURE.md)
+- [Architecture](./ARCHITECTURE.md)
 
 ---
 

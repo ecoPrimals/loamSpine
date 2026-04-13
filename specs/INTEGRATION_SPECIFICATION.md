@@ -659,8 +659,8 @@ pub enum IntegrationError {
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture
 - [API_SPECIFICATION.md](./API_SPECIFICATION.md) — tarpc + JSON-RPC API definitions
 - [RhizoCrypt Specification](../../rhizoCrypt/specs/)
-- [BearDog Specification](../../../phase1/bearDog/specs/)
-- [Songbird Specification](../../../phase1/songBird/specs/)
+- [BearDog Specification](../../bearDog/specs/)
+- [Songbird Specification](../../songBird/specs/)
 
 ---
 

@@ -72,12 +72,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doc comments**: `sqlite/common.rs` functions and `serde_opt_bytes` module documented.
 
 ### Metrics
-- Tests: 1,397 → **1,316** (consolidated; GAP-MATRIX-05/12, Wire Standard L2, Sprint 3 test extractions)
+- Tests: **1,395** (all concurrent, ~3s, zero flaky)
 - `#[serial]`: **0** (was 121)
-- Full workspace test suite: **~3s** (all concurrent)
-- Source files: 136 → **163** (smart refactoring + test extraction across 3 sprints)
-- Max file: **916** lines (test file); **711** max production (all 163 under 1000)
-- Coverage: **91.96%** line / **87.07%** region / **93.39%** function (llvm-cov)
+- Source files: **178** `.rs` (+ 3 fuzz targets)
+- Max file: **605** lines production; all under 1000
+- Coverage: ~91% line (llvm-cov)
 - Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
 - Doc warnings: **0**
 - `cargo deny check`: all pass

@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C383%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C395%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
@@ -113,7 +113,7 @@ loamSpine/
 │           ├── health.rs      # Health checks
 │           └── error.rs       # API errors
 ├── specs/                     # 13 specification documents
-├── showcase/                  # Interactive demos (55 files)
+├── showcase/                  # Interactive demos (54 files)
 └── fuzz/                      # Fuzz testing targets
 ```
 
@@ -198,7 +198,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 899 max test file |
-| **Source Files** | 176 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Source Files** | 178 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

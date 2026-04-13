@@ -1059,7 +1059,7 @@ See [API_SPECIFICATION.md](./API_SPECIFICATION.md) for the full API reference.
 - [API_SPECIFICATION.md](./API_SPECIFICATION.md) — tarpc + JSON-RPC 2.0 API
 - [RhizoCrypt Specification](../../rhizoCrypt/specs/) — Ephemeral DAG
 - [SweetGrass Specification](../../sweetGrass/specs/) — Semantic attribution
-- [BearDog Specification](../../../phase1/bearDog/specs/) — Identity and signing
+- [BearDog Specification](../../bearDog/specs/) — Identity and signing
 
 ### External Resources
 - [Merkle Trees](https://en.wikipedia.org/wiki/Merkle_tree) — Cryptographic verification
