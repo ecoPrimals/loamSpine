@@ -294,7 +294,7 @@ cd showcase
 - **This File** (`00_START_HERE.md`) - Main entry point
 - `00_SHOWCASE_INDEX.md` - Complete navigation
 - `README.md` - Overview and capabilities
-- `SHOWCASE_QUICK_REFERENCE_CARD.md` - Quick reference card
+- `QUICK_REFERENCE.md` - Quick reference card
 
 ### Level Guides
 - `01-local-primal/README.md` - Level 1 guide
@@ -454,7 +454,6 @@ cat 00_SHOWCASE_INDEX.md
 ### In This Showcase
 - `00_SHOWCASE_INDEX.md` - Navigation
 - `SHOWCASE_PRINCIPLES.md` - No mocks philosophy
-- `SHOWCASE_QUICK_REFERENCE_CARD.md` - Quick reference
 - `QUICK_REFERENCE.md` - Quick reference card
 
 ### In Repository Root

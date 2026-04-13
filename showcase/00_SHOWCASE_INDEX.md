@@ -31,7 +31,7 @@ showcase/
 ├── 00_SHOWCASE_INDEX.md           # This file (navigation)
 ├── README.md                      # Main showcase overview
 ├── SHOWCASE_PRINCIPLES.md         # No mocks philosophy
-├── SHOWCASE_QUICK_REFERENCE_CARD.md  # Quick reference
+├── QUICK_REFERENCE.md               # Quick reference
 │
 ├── 01-local-primal/               # Level 1: LoamSpine BY ITSELF (90 min)
 │   ├── 01-hello-loamspine/        ✅ Complete
@@ -294,7 +294,6 @@ LoamSpine uses capability discovery for all external services:
 - **[00_START_HERE.md](./00_START_HERE.md)** ✨ NEW - Main entry point
 - **[QUICK_DEMO.sh](./QUICK_DEMO.sh)** ✨ NEW - 5-minute demo
 - **[RUN_ME_FIRST.sh](./RUN_ME_FIRST.sh)** ✨ NEW - Progressive walkthrough
-- **[SHOWCASE_QUICK_REFERENCE_CARD.md](./SHOWCASE_QUICK_REFERENCE_CARD.md)** - Quick reference card
 - [README.md](./README.md) - Main overview
 - [SHOWCASE_PRINCIPLES.md](./SHOWCASE_PRINCIPLES.md) - No mocks philosophy
 - [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) - Quick reference card

@@ -9,3 +9,9 @@
 *.profraw
 *.profdata
 lcov.info
+*.lcov
+coverage/
+htmlcov/
+.vscode/
+.idea/
+*.rs.bk

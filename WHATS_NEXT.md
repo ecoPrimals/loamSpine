@@ -226,6 +226,14 @@
 - **Smart refactor `jsonrpc/server.rs`** (529 lines) → TCP transport stays in `server.rs` (362 lines), UDS transport extracted to `uds.rs` (172 lines). Clean domain boundary: TCP/HTTP vs UDS+BTSP gating.
 - **Tests**: 1,505 → **1,507** (+2 new: registry path validation, registry path distinctness). Source files: 169 → **170**. Full pipeline clean.
 
+## v0.9.16 Deep Debt Pass 4 — Port Decoupling & Debris Cleanup (April 12, 2026)
+
+- **Hardcoded port constants decoupled**: `DiscoveryConfig::default()` evolved from raw `DEFAULT_TARPC_PORT`/`DEFAULT_JSONRPC_PORT` to `env_resolution` module (reads `LOAMSPINE_*_PORT` > `*_PORT` > default). `discovery_client::advertise_self()` fallbacks similarly evolved. Constants remain only in doc examples and cfg-gated dev fallback.
+- **Showcase consolidation**: Duplicate `SHOWCASE_QUICK_REFERENCE_CARD.md` (126 lines) removed — `QUICK_REFERENCE.md` (306 lines) is the canonical reference. Index and entry point updated.
+- **`.gitignore` hardened**: Added `.vscode/`, `.idea/`, `coverage/`, `htmlcov/`, `*.lcov`, `*.rs.bk` patterns.
+- **Full 11-dimension debt audit clean**: Zero unsafe, zero production unwrap/expect, zero TODO/FIXME, zero production mocks, zero hardcoded primal names, zero files over 1000 lines (Rust), zero archive directories, zero IDE debris, zero stale scripts, zero build artifacts, zero coverage artifacts.
+- **Tests**: **1,388**. Source files: **176**. All gates green.
+
 ## v0.9.16 Ecosystem Validation & Domain Symlink (April 12, 2026)
 
 - **Capability-domain symlink**: `ledger.sock → permanence.sock` created on bind, removed on shutdown. Enables biomeOS `by_capability = "ledger"` routing in deploy graphs. Socket naming now: primary `permanence.sock`, capability `ledger.sock`, legacy `loamspine.sock`. Matches BearDog/Songbird/coralReef pattern.
