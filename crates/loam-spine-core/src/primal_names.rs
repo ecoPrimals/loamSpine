@@ -13,6 +13,12 @@ pub const SELF_ID: &str = "loamspine";
 /// `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 Socket Naming Convention.
 pub const DOMAIN: &str = "permanence";
 
+/// Capability-domain stem for biomeOS socket routing.
+///
+/// Other primals discover us via `ledger.sock` in the biomeos directory,
+/// matching `by_capability = "ledger"` in ecosystem deploy graphs.
+pub const CAPABILITY_DOMAIN: &str = "ledger";
+
 /// biomeOS orchestrator identifier (used for socket/IPC paths).
 pub const BIOMEOS: &str = "biomeos";
 
@@ -41,6 +47,16 @@ mod tests {
     #[test]
     fn domain_is_permanence() {
         assert_eq!(DOMAIN, "permanence");
+    }
+
+    #[test]
+    fn capability_domain_is_lowercase() {
+        assert!(CAPABILITY_DOMAIN.chars().all(|c| c.is_ascii_lowercase()));
+    }
+
+    #[test]
+    fn capability_domain_is_ledger() {
+        assert_eq!(CAPABILITY_DOMAIN, "ledger");
     }
 
     #[test]

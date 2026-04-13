@@ -275,11 +275,45 @@ async fn run_server(
         }
     };
 
+    #[cfg(unix)]
+    let family_id = std::env::var("BIOMEOS_FAMILY_ID").ok();
+
+    // Capability-domain symlink: ledger.sock → permanence.sock
+    // Enables biomeOS `by_capability = "ledger"` routing in deploy graphs.
+    #[cfg(unix)]
+    let capability_symlink = {
+        let link_path = loam_spine_core::neural_api::resolve_capability_symlink_path(
+            &socket_path,
+            family_id.as_deref(),
+        );
+        if link_path != socket_path {
+            let _ = std::fs::remove_file(&link_path);
+            match std::os::unix::fs::symlink(&socket_path, &link_path) {
+                Ok(()) => {
+                    info!(
+                        "Domain symlink: {} → {}",
+                        link_path.display(),
+                        socket_path.display()
+                    );
+                    Some(link_path)
+                }
+                Err(e) => {
+                    warn!(
+                        "Could not create domain symlink {}: {e}",
+                        link_path.display()
+                    );
+                    None
+                }
+            }
+        } else {
+            None
+        }
+    };
+
     // Legacy backward-compat symlink: loamspine.sock → permanence.sock
     // per PRIMAL_SELF_KNOWLEDGE_STANDARD §3 "Legacy compatibility"
     #[cfg(unix)]
     let legacy_symlink = {
-        let family_id = std::env::var("BIOMEOS_FAMILY_ID").ok();
         let link_path = loam_spine_core::neural_api::resolve_legacy_symlink_path(
             &socket_path,
             family_id.as_deref(),
@@ -360,8 +394,10 @@ async fn run_server(
     // per PRIMAL_SELF_KNOWLEDGE_STANDARD §3 requirement
     #[cfg(unix)]
     {
-        // Drop the handle (removes socket file via Drop impl)
         drop(uds_handle);
+        if let Some(link) = capability_symlink {
+            let _ = std::fs::remove_file(&link);
+        }
         if let Some(link) = legacy_symlink {
             let _ = std::fs::remove_file(&link);
         }

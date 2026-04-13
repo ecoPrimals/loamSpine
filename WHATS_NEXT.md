@@ -226,6 +226,15 @@
 - **Smart refactor `jsonrpc/server.rs`** (529 lines) → TCP transport stays in `server.rs` (362 lines), UDS transport extracted to `uds.rs` (172 lines). Clean domain boundary: TCP/HTTP vs UDS+BTSP gating.
 - **Tests**: 1,505 → **1,507** (+2 new: registry path validation, registry path distinctness). Source files: 169 → **170**. Full pipeline clean.
 
+## v0.9.16 Ecosystem Validation & Domain Symlink (April 12, 2026)
+
+- **Capability-domain symlink**: `ledger.sock → permanence.sock` created on bind, removed on shutdown. Enables biomeOS `by_capability = "ledger"` routing in deploy graphs. Socket naming now: primary `permanence.sock`, capability `ledger.sock`, legacy `loamspine.sock`. Matches BearDog/Songbird/coralReef pattern.
+- **`CAPABILITY_DOMAIN` constant**: `primal_names.rs` — new `CAPABILITY_DOMAIN = "ledger"` constant. `socket.rs` — `capability_domain_socket_name()` and `resolve_capability_symlink_path()` functions. 5 new tests.
+- **Wire Standard promoted**: `CAPABILITY_WIRE_STANDARD.md` loamSpine row updated to L2 ✓ L3 ✓ (full compliance — `methods`, `identity.get`, `provided_capabilities`, `consumed_capabilities`, `cost_estimates`, `operation_dependencies`).
+- **Compliance matrix updated**: `ECOSYSTEM_COMPLIANCE_MATRIX.md` loamSpine transport and discovery entries corrected to reflect domain symlink, Wire L2+L3, TCP opt-in.
+- **plasmidBin reconciled**: `metadata.toml` version 0.9.13→0.9.16, domain `lineage`→`permanence`, capabilities reconciled to 22 live methods, TCP opt-in, socket naming. `manifest.lock` version and domain corrected.
+- **Tests**: **1,388**. Source files: **176**. Zero clippy/doc warnings.
+
 ## v0.9.16 Deep Debt & Evolution Pass 3 (April 12, 2026)
 
 - **traits/mod.rs test extraction**: Inline `#[cfg(test)] mod tests` (167 lines, 12 tests) extracted to `traits/mod_tests.rs`. Production module: 446→279 lines.

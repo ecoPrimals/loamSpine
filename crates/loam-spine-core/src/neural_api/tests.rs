@@ -120,6 +120,33 @@ fn legacy_symlink_path_matches_parent() {
     );
 }
 
+// ── Capability-domain socket naming ─────────────────────────────────
+
+#[test]
+fn capability_domain_socket_name_without_family() {
+    assert_eq!(capability_domain_socket_name(None), "ledger.sock");
+    assert_eq!(capability_domain_socket_name(Some("")), "ledger.sock");
+    assert_eq!(
+        capability_domain_socket_name(Some("default")),
+        "ledger.sock"
+    );
+}
+
+#[test]
+fn capability_domain_socket_name_with_family() {
+    assert_eq!(
+        capability_domain_socket_name(Some("prod")),
+        "ledger-prod.sock"
+    );
+}
+
+#[test]
+fn capability_symlink_path_matches_parent() {
+    let primary = std::path::Path::new("/run/user/1000/biomeos/permanence.sock");
+    let cap = resolve_capability_symlink_path(primary, None);
+    assert_eq!(cap.to_string_lossy(), "/run/user/1000/biomeos/ledger.sock");
+}
+
 // ── Security config validation ──────────────────────────────────────
 
 #[test]

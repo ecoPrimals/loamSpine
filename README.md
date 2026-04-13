@@ -192,7 +192,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,383 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,388 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |

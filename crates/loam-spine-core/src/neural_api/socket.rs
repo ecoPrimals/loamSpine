@@ -85,6 +85,35 @@ pub fn resolve_legacy_symlink_path(primary: &std::path::Path, family_id: Option<
     parent.join(legacy_socket_name(family_id))
 }
 
+/// Build the capability-domain socket filename for biomeOS capability routing.
+///
+/// Per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 Phase 2: domain-named socket
+/// is primary, capability-domain symlink enables `by_capability = "ledger"`
+/// routing in deploy graphs.
+/// - Without family: `ledger.sock`
+/// - With family: `ledger-{family_id}.sock`
+#[must_use]
+pub fn capability_domain_socket_name(family_id: Option<&str>) -> String {
+    match family_id {
+        Some(fid) if !fid.is_empty() && fid != "default" => {
+            format!("{}-{fid}.sock", crate::primal_names::CAPABILITY_DOMAIN)
+        }
+        _ => format!("{}.sock", crate::primal_names::CAPABILITY_DOMAIN),
+    }
+}
+
+/// Resolve the capability-domain symlink path (same directory as the primary socket).
+#[must_use]
+pub fn resolve_capability_symlink_path(
+    primary: &std::path::Path,
+    family_id: Option<&str>,
+) -> PathBuf {
+    let parent = primary
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    parent.join(capability_domain_socket_name(family_id))
+}
+
 /// Validate the `BIOMEOS_INSECURE` + `FAMILY_ID` invariant.
 ///
 /// Per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3: "If both FAMILY_ID (non-default)
