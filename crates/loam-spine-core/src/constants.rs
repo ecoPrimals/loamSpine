@@ -182,6 +182,28 @@ pub mod metadata {
     pub const STORAGE_BACKEND: &str = "redb";
 }
 
+/// Discovery method identifiers used in `DiscoveredService::discovered_via`.
+pub mod discovery_method {
+    /// Discovered through environment variable lookup.
+    pub const ENVIRONMENT: &str = "environment";
+    /// Discovered through DNS SRV records (RFC 2782).
+    pub const DNS_SRV: &str = "dns-srv";
+    /// Discovered through mDNS/Bonjour zero-config.
+    pub const MDNS: &str = "mdns";
+}
+
+/// Well-known metadata keys for DNS SRV service records.
+pub mod srv_metadata {
+    /// SRV record priority (lower is preferred).
+    pub const PRIORITY: &str = "priority";
+    /// SRV record weight for load distribution.
+    pub const WEIGHT: &str = "weight";
+    /// SRV record target hostname.
+    pub const TARGET: &str = "target";
+    /// SRV record port number.
+    pub const PORT: &str = "port";
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -253,6 +275,49 @@ mod tests {
             for b in &paths[i + 1..] {
                 assert_ne!(a, b, "registry paths must be distinct");
             }
+        }
+    }
+
+    #[test]
+    fn discovery_methods_are_lowercase_ascii() {
+        for m in [
+            discovery_method::ENVIRONMENT,
+            discovery_method::DNS_SRV,
+            discovery_method::MDNS,
+        ] {
+            assert!(
+                m.chars().all(|c| c.is_ascii_lowercase() || c == '-'),
+                "{m} must be lowercase-ascii-hyphen"
+            );
+        }
+    }
+
+    #[test]
+    fn discovery_methods_are_distinct() {
+        let methods = [
+            discovery_method::ENVIRONMENT,
+            discovery_method::DNS_SRV,
+            discovery_method::MDNS,
+        ];
+        for (i, a) in methods.iter().enumerate() {
+            for b in &methods[i + 1..] {
+                assert_ne!(a, b, "discovery methods must be distinct");
+            }
+        }
+    }
+
+    #[test]
+    fn srv_metadata_keys_are_lowercase() {
+        for k in [
+            srv_metadata::PRIORITY,
+            srv_metadata::WEIGHT,
+            srv_metadata::TARGET,
+            srv_metadata::PORT,
+        ] {
+            assert!(
+                k.chars().all(|c| c.is_ascii_lowercase()),
+                "{k} must be lowercase"
+            );
         }
     }
 }

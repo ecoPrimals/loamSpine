@@ -509,11 +509,11 @@ impl ResilientDiscoveryClient {
         &self,
         capability: &str,
     ) -> LoamSpineResult<Vec<DiscoveredService>> {
-        let cap = capability.to_string();
+        let cap: Arc<str> = Arc::from(capability);
         let client = self.inner.clone();
         self.adapter
             .execute(move || {
-                let c = cap.clone();
+                let c = Arc::clone(&cap);
                 let cl = client.clone();
                 async move { cl.discover_capability(&c).await }
             })
@@ -545,14 +545,14 @@ impl ResilientDiscoveryClient {
         tarpc_endpoint: &str,
         jsonrpc_endpoint: &str,
     ) -> LoamSpineResult<()> {
-        let tarpc = tarpc_endpoint.to_string();
-        let jsonrpc = jsonrpc_endpoint.to_string();
+        let tarpc: Arc<str> = Arc::from(tarpc_endpoint);
+        let jsonrpc: Arc<str> = Arc::from(jsonrpc_endpoint);
         let client = self.inner.clone();
         self.adapter
             .execute(move || {
                 let cl = client.clone();
-                let t = tarpc.clone();
-                let j = jsonrpc.clone();
+                let t = Arc::clone(&tarpc);
+                let j = Arc::clone(&jsonrpc);
                 async move { cl.advertise_self(&t, &j).await }
             })
             .await

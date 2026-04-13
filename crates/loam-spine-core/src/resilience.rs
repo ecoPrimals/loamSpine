@@ -368,7 +368,7 @@ impl ResilientAdapter {
     {
         if !self.circuit_breaker.can_execute() {
             return Err(LoamSpineError::CapabilityUnavailable(
-                "circuit breaker open".to_string(),
+                "circuit breaker open".into(),
             ));
         }
 
@@ -412,7 +412,7 @@ impl ResilientAdapter {
         }
 
         Err(last_err.unwrap_or_else(|| {
-            LoamSpineError::Internal("resilient adapter: no error captured".to_string())
+            LoamSpineError::Internal("resilient adapter: no error captured".into())
         }))
     }
 }

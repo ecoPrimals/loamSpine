@@ -66,7 +66,7 @@ impl From<loam_spine_core::error::LoamSpineError> for ApiError {
             LoamSpineError::SpineSealed(id) => Self::SpineSealed(format!("{id:?}")),
             LoamSpineError::CertificateExists(id) => Self::CertificateExists(format!("{id:?}")),
             LoamSpineError::NotCertificateOwner => {
-                Self::NotCertificateOwner("not certificate owner".to_string())
+                Self::NotCertificateOwner("not certificate owner".into())
             }
             LoamSpineError::CertificateLoaned(id) => {
                 Self::InvalidRequest(format!("certificate is loaned: {id:?}"))

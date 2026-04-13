@@ -38,7 +38,10 @@ pub mod manifest;
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests;
+mod tests_attestation;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_registry;
 
 pub use dyn_traits::{
     BoxedAttestationProvider, BoxedSigner, BoxedVerifier, DynAttestationProvider, DynSigner,

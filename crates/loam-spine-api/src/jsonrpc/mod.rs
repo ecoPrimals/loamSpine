@@ -195,7 +195,7 @@ impl LoamSpineJsonRpc {
                     .and_then(serde_json::Value::as_str)
                     .ok_or_else(|| wire::JsonRpcError {
                         code: INVALID_PARAMS,
-                        message: "tools.call requires 'name' string".to_string(),
+                        message: "tools.call requires 'name' string".into(),
                         data: None,
                     })?;
                 let arguments = params
@@ -298,7 +298,10 @@ mod tests;
 mod tests_permanence_cert;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests_protocol;
+mod tests_protocol_transport;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_protocol_wire;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_validation;

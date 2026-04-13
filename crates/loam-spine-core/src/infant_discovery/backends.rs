@@ -133,7 +133,7 @@ fn parse_mdns_response(
         id,
         capability: capability.to_string(),
         endpoint,
-        discovered_via: "mdns".to_string(),
+        discovered_via: crate::constants::discovery_method::MDNS.to_string(),
         metadata: HashMap::new(),
         health: ServiceHealth::Unknown,
         discovered_at: SystemTime::now(),

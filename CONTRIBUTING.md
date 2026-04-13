@@ -17,7 +17,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![forbid(unsafe_code)]` workspace-wide; test modules use inner/outer function pattern for env injection
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 90.92% line / 92.92% region, 1,390 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: 90.92% line / 92.92% region, 1,395 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -66,7 +66,7 @@ cargo build-arm64  # aarch64-unknown-linux-musl
 # Build
 cargo build
 
-# Test (1,390 tests, all concurrent)
+# Test (1,395 tests, all concurrent)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -318,7 +318,7 @@ Look for issues labeled `good-first-issue`:
 |--------|-------|
 | Version | 0.9.16 |
 | Edition | 2024 |
-| Tests | 1,390 (all concurrent, ~3s, zero flaky) |
+| Tests | 1,395 (all concurrent, ~3s, zero flaky) |
 | Coverage | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | Max File Size | 605 max production; 899 max test file |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |

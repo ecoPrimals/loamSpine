@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,390 (176 source files) |
+| Tests | — | 1,395 (178 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -114,7 +114,12 @@ This document tracks implementation progress against the specification suite in 
 - **Ecosystem docs aligned**: `CAPABILITY_WIRE_STANDARD.md` loamSpine row promoted to L2 ✓ L3 ✓. `ECOSYSTEM_COMPLIANCE_MATRIX.md` transport line updated. `plasmidBin/manifest.lock` version and domain corrected.
 - **Hardcoded port constants decoupled from production callers**: `DiscoveryConfig::default()` evolved to use `env_resolution` module (reads `LOAMSPINE_*_PORT` / `*_PORT` env vars) instead of raw `DEFAULT_TARPC_PORT`/`DEFAULT_JSONRPC_PORT` constants. `discovery_client::advertise_self()` port fallbacks similarly evolved. Constants remain only in doc examples and dev-mode fallback (cfg-gated to `debug_assertions`).
 - **`health.check` accepts empty/null params (primalSpring audit)**: `HealthCheckRequest.include_details` now `#[serde(default)]` — defaults to `false` when absent. JSON-RPC `deser()` normalizes `null` params to `{}` per JSON-RPC 2.0 §4.2. Consumers can call `health.check` with `{}`, `null`, or omitted params without error. 2 new tests.
-- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,390 tests, 0 failures), `cargo deny check` PASS.
+- **Discovery string literals → named constants**: `discovered_via` field values (`"environment"`, `"dns-srv"`, `"mdns"`) moved to `constants::discovery_method` module. DNS SRV metadata keys (`"priority"`, `"weight"`, `"target"`, `"port"`) moved to `constants::srv_metadata`. Eliminates scattered string literals, enables typo detection at compile time.
+- **Witness default constants**: `DEFAULT_WITNESS_KIND` ("signature") and `DEFAULT_WITNESS_ENCODING` ("hex") extracted as named constants in `trio_types`. Serde default functions now reference the constants.
+- **Test file smart-refactoring (>800L)**: `tests_protocol.rs` (956L) → `tests_protocol_transport.rs` + `tests_protocol_wire.rs`. `discovery/tests.rs` (899L) → `tests_registry.rs` + `tests_attestation.rs`. All splits by cohesive concern, not arbitrary line count.
+- **Arc<str> for async retry closures**: `ResilientDiscoveryClient::discover_capability` and `advertise_self` evolved from `String` cloning to `Arc<str>` — O(1) clone per retry iteration instead of O(n) allocation.
+- **`.into()` modernization**: Error constructors (`LoamSpineError::CapabilityUnavailable`, `::Network`, `::Internal`) and wire messages updated from `"literal".to_string()` to `"literal".into()` where the target type is `String`.
+- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,395 tests, 0 failures), `cargo deny check` PASS.
 
 ## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)
 

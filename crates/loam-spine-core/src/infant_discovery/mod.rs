@@ -318,7 +318,7 @@ impl InfantDiscovery {
                 id: format!("env-{capability}"),
                 capability: capability.to_string(),
                 endpoint,
-                discovered_via: "environment".to_string(),
+                discovered_via: crate::constants::discovery_method::ENVIRONMENT.to_string(),
                 metadata: HashMap::new(),
                 health: ServiceHealth::Unknown,
                 discovered_at: SystemTime::now(),
@@ -345,7 +345,7 @@ impl InfantDiscovery {
                 id: format!("env-{capability}"),
                 capability: capability.to_string(),
                 endpoint,
-                discovered_via: "environment".to_string(),
+                discovered_via: crate::constants::discovery_method::ENVIRONMENT.to_string(),
                 metadata: HashMap::new(),
                 health: ServiceHealth::Unknown,
                 discovered_at: SystemTime::now(),
@@ -423,13 +423,14 @@ impl InfantDiscovery {
                 id: format!("dns-srv-{target}"),
                 capability: capability.to_string(),
                 endpoint,
-                discovered_via: "dns-srv".to_string(),
+                discovered_via: crate::constants::discovery_method::DNS_SRV.to_string(),
                 metadata: {
+                    use crate::constants::srv_metadata;
                     let mut map = HashMap::new();
-                    map.insert("priority".to_string(), priority.to_string());
-                    map.insert("weight".to_string(), weight.to_string());
-                    map.insert("target".to_string(), target.clone());
-                    map.insert("port".to_string(), port.to_string());
+                    map.insert(srv_metadata::PRIORITY.to_string(), priority.to_string());
+                    map.insert(srv_metadata::WEIGHT.to_string(), weight.to_string());
+                    map.insert(srv_metadata::TARGET.to_string(), target.clone());
+                    map.insert(srv_metadata::PORT.to_string(), port.to_string());
                     map
                 },
                 health: ServiceHealth::Unknown,

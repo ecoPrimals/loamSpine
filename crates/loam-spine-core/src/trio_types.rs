@@ -149,12 +149,18 @@ pub struct WireWitnessRef {
     pub context: Option<String>,
 }
 
+/// Default witness kind when omitted from wire payload.
+pub const DEFAULT_WITNESS_KIND: &str = "signature";
+
+/// Default witness encoding when omitted from wire payload.
+pub const DEFAULT_WITNESS_ENCODING: &str = "hex";
+
 fn default_witness_kind() -> String {
-    "signature".to_string()
+    DEFAULT_WITNESS_KIND.to_string()
 }
 
 fn default_witness_encoding() -> String {
-    "hex".to_string()
+    DEFAULT_WITNESS_ENCODING.to_string()
 }
 
 /// A high-level operation recorded during a dehydrated session.

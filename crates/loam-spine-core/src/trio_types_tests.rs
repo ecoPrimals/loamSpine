@@ -149,3 +149,17 @@ fn wire_agent_contribution_default_weight() {
     let agent: WireAgentContribution = serde_json::from_str(json).unwrap();
     assert!((agent.weight - 1.0).abs() < f64::EPSILON);
 }
+
+#[test]
+fn witness_defaults_match_constants() {
+    let json = r#"{"agent":"did:key:z6MkTest"}"#;
+    let w: WireWitnessRef = serde_json::from_str(json).unwrap();
+    assert_eq!(w.kind, DEFAULT_WITNESS_KIND);
+    assert_eq!(w.encoding, DEFAULT_WITNESS_ENCODING);
+}
+
+#[test]
+fn witness_constants_are_non_empty() {
+    assert!(!DEFAULT_WITNESS_KIND.is_empty());
+    assert!(!DEFAULT_WITNESS_ENCODING.is_empty());
+}

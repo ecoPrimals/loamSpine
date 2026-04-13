@@ -286,7 +286,7 @@ impl SyncEngine {
         let peers = self.peers.read().await;
         if peers.is_empty() {
             return Err(LoamSpineError::Network(
-                "no federation peers registered".to_string(),
+                "no federation peers registered".into(),
             ));
         }
         peers
@@ -294,7 +294,7 @@ impl SyncEngine {
             .find(|p| p.reachable)
             .or_else(|| peers.values().next())
             .map(|p| p.endpoint.clone())
-            .ok_or_else(|| LoamSpineError::Network("no federation peers available".to_string()))
+            .ok_or_else(|| LoamSpineError::Network("no federation peers available".into()))
     }
 }
 
