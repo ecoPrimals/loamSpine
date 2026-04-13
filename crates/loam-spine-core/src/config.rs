@@ -175,32 +175,25 @@ pub enum DiscoveryMethod {
 
 impl Default for DiscoveryConfig {
     fn default() -> Self {
+        let bind = crate::constants::env_resolution::bind_address();
+        let tarpc = crate::constants::env_resolution::tarpc_port();
+        let jsonrpc = crate::constants::env_resolution::jsonrpc_port();
+
         Self {
             discovery_enabled: true,
             discovery_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
 
-            // Our own endpoints — prefer OS-assigned ports in production
-            tarpc_endpoint: std::env::var("TARPC_ENDPOINT").unwrap_or_else(|_| {
-                format!(
-                    "http://{}:{}",
-                    crate::constants::BIND_ALL_IPV4,
-                    crate::constants::DEFAULT_TARPC_PORT
-                )
-            }),
-            jsonrpc_endpoint: std::env::var("JSONRPC_ENDPOINT").unwrap_or_else(|_| {
-                format!(
-                    "http://{}:{}",
-                    crate::constants::BIND_ALL_IPV4,
-                    crate::constants::DEFAULT_JSONRPC_PORT
-                )
-            }),
+            tarpc_endpoint: std::env::var("TARPC_ENDPOINT")
+                .unwrap_or_else(|_| format!("http://{bind}:{tarpc}")),
+            jsonrpc_endpoint: std::env::var("JSONRPC_ENDPOINT")
+                .unwrap_or_else(|_| format!("http://{bind}:{jsonrpc}")),
 
             auto_advertise: true,
             heartbeat_interval_seconds: 60,
             heartbeat_retry: HeartbeatRetryConfig::default(),
             methods: vec![
                 DiscoveryMethod::Environment,
-                DiscoveryMethod::ServiceRegistry, // Generic service registry (Consul, etcd, etc.)
+                DiscoveryMethod::ServiceRegistry,
                 DiscoveryMethod::LocalBinaries,
                 DiscoveryMethod::Fallback,
             ],

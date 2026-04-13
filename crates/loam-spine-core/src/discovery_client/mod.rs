@@ -298,10 +298,10 @@ impl DiscoveryClient {
         tarpc_endpoint: &str,
         jsonrpc_endpoint: &str,
     ) -> LoamSpineResult<()> {
-        let tarpc_port =
-            extract_port(tarpc_endpoint).unwrap_or(crate::constants::DEFAULT_TARPC_PORT);
-        let jsonrpc_port =
-            extract_port(jsonrpc_endpoint).unwrap_or(crate::constants::DEFAULT_JSONRPC_PORT);
+        let tarpc_port = extract_port(tarpc_endpoint)
+            .unwrap_or_else(crate::constants::env_resolution::tarpc_port);
+        let jsonrpc_port = extract_port(jsonrpc_endpoint)
+            .unwrap_or_else(crate::constants::env_resolution::jsonrpc_port);
 
         let advertisement = ServiceAdvertisement {
             name: crate::neural_api::PRIMAL_NAME.to_string(),
