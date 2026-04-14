@@ -25,7 +25,7 @@ LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Na
 - **Sovereign Spines** -- Each user controls their own history
 - **Loam Certificates** -- Digital ownership with lending and provenance
 - **Infant Discovery** -- Born with zero external knowledge, discovers at runtime
-- **Capability-Based** -- "Who can sign?" not "Where is BearDog?"
+- **Capability-Based** -- "Who can sign?" not "Where is a specific primal?"
 - **NeuralAPI Integration** -- Registers with biomeOS for ecosystem orchestration
 - **Provenance Trio** -- Coordinates with rhizoCrypt (ephemeral) and sweetGrass (attribution)
 
@@ -73,7 +73,7 @@ loamSpine/
 │   ├── loam-spine-core/       # Core library
 │   │   └── src/
 │   │       ├── backup/            # Backup/restore
-│   │       ├── btsp/              # BTSP Phase 2 handshake (wire, config, frame, beardog_client, handshake)
+│   │       ├── btsp/              # BTSP Phase 2 handshake (wire, config, frame, provider_client, handshake)
 │   │       ├── capabilities/       # Capability definitions (identifiers, types, parser)
 │   │       ├── certificate/       # Loam Certificates (types, lifecycle, metadata, provenance, escrow, usage)
 │   │       ├── config.rs          # Configuration
@@ -144,8 +144,7 @@ loamSpine/
 | **Waypoint** | `slice.record_operation` | Record waypoint operation |
 | **Waypoint** | `slice.depart` | Depart from waypoint |
 | **Proof** | `proof.generate_inclusion` | Create proof |
-| **Integration** | `session.commit` | rhizoCrypt commits |
-| **Integration** | `commit.session` | Semantic alias (biomeOS routing) |
+| **Integration** | `session.commit` | Provenance session commits (aliases: `commit.session`, `provenance.commit`) |
 | **Integration** | `braid.commit` | sweetGrass commits |
 | **Compat** | `permanent-storage.commitSession` | rhizoCrypt wire format |
 | **Compat** | `permanent-storage.verifyCommit` | Verify via rhizoCrypt format |

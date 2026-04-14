@@ -252,9 +252,9 @@ if let Some(s) = signer {
     s.sign_boxed(data).await?;
 }
 
-// ❌ WRONG: Hardcoded dependency
-use beardog::Signer;
-let signer = BearDogSigner::new();
+// ❌ WRONG: Hardcoded dependency on a specific signing primal
+use some_signing_crate::Signer;
+let signer = HardcodedSigner::new();
 ```
 
 ---
