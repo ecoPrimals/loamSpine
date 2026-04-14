@@ -2,7 +2,7 @@
 
 //! Tests for the BTSP handshake module.
 //!
-//! Uses mock BearDog UDS servers to test all handshake paths without
+//! Uses mock BTSP provider UDS servers to test all handshake paths without
 //! requiring actual cryptographic operations.
 
 #![expect(
@@ -246,24 +246,24 @@ fn handshake_error_roundtrip() {
 }
 
 // ---------------------------------------------------------------------------
-// Mock BearDog server
+// Mock BTSP provider server
 // ---------------------------------------------------------------------------
 
-/// Spawn a mock BearDog that handles the three BTSP JSON-RPC methods.
+/// Spawn a mock BTSP provider that handles the three BTSP JSON-RPC methods.
 ///
 /// Returns the socket path (in a temp dir) and a join handle.
-async fn spawn_mock_beardog(
+async fn spawn_mock_provider(
     temp_dir: &std::path::Path,
     verify_ok: bool,
     cipher_allowed: bool,
 ) -> (PathBuf, tokio::task::JoinHandle<()>) {
-    let socket_path = temp_dir.join("beardog-test.sock");
+    let socket_path = temp_dir.join("btsp-provider-test.sock");
     let _ = std::fs::remove_file(&socket_path);
-    let listener = UnixListener::bind(&socket_path).expect("bind mock beardog");
+    let listener = UnixListener::bind(&socket_path).expect("bind mock BTSP provider");
 
     let path = socket_path.clone();
     let handle = tokio::spawn(async move {
-        // Handle 3 sequential connections (one per beardog_call).
+        // Handle 3 sequential connections (one per provider_call).
         for _ in 0..3 {
             let Ok((stream, _)) = listener.accept().await else {
                 break;
@@ -339,7 +339,7 @@ async fn handle_mock_beardog_connection(stream: UnixStream, verify_ok: bool, cip
 }
 
 // ---------------------------------------------------------------------------
-// Full handshake integration tests (with mock BearDog)
+// Full handshake integration tests (with mock BTSP provider)
 // ---------------------------------------------------------------------------
 
 /// Simulates a BTSP client sending ClientHello, reading ServerHello,
@@ -371,7 +371,7 @@ async fn mock_client_handshake(mut stream: UnixStream) -> bytes::Bytes {
 #[tokio::test]
 async fn handshake_success_full_sequence() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let (beardog_socket, _beardog) = spawn_mock_beardog(tmp.path(), true, true).await;
+    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, true).await;
 
     let uds_path = tmp.path().join("loam-test.sock");
     let listener = UnixListener::bind(&uds_path).expect("bind loam test");
@@ -385,7 +385,7 @@ async fn handshake_success_full_sequence() {
     });
 
     let (mut server_stream, _) = listener.accept().await.expect("accept");
-    let session = perform_server_handshake(&mut server_stream, &beardog_socket)
+    let session = perform_server_handshake(&mut server_stream, &provider_socket)
         .await
         .expect("handshake should succeed");
 
@@ -402,7 +402,7 @@ async fn handshake_success_full_sequence() {
 #[tokio::test]
 async fn handshake_failure_verify_rejected() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let (beardog_socket, _beardog) = spawn_mock_beardog(tmp.path(), false, true).await;
+    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), false, true).await;
 
     let uds_path = tmp.path().join("loam-reject.sock");
     let listener = UnixListener::bind(&uds_path).expect("bind");
@@ -416,7 +416,7 @@ async fn handshake_failure_verify_rejected() {
     });
 
     let (mut server_stream, _) = listener.accept().await.expect("accept");
-    let result = perform_server_handshake(&mut server_stream, &beardog_socket).await;
+    let result = perform_server_handshake(&mut server_stream, &provider_socket).await;
 
     assert!(result.is_err());
     let err_str = result.unwrap_err().to_string();
@@ -434,7 +434,7 @@ async fn handshake_failure_verify_rejected() {
 #[tokio::test]
 async fn handshake_failure_cipher_rejected() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let (beardog_socket, _beardog) = spawn_mock_beardog(tmp.path(), true, false).await;
+    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, false).await;
 
     let uds_path = tmp.path().join("loam-cipher.sock");
     let listener = UnixListener::bind(&uds_path).expect("bind");
@@ -448,7 +448,7 @@ async fn handshake_failure_cipher_rejected() {
     });
 
     let (mut server_stream, _) = listener.accept().await.expect("accept");
-    let result = perform_server_handshake(&mut server_stream, &beardog_socket).await;
+    let result = perform_server_handshake(&mut server_stream, &provider_socket).await;
 
     assert!(result.is_err());
     let err_str = result.unwrap_err().to_string();
@@ -460,7 +460,7 @@ async fn handshake_failure_cipher_rejected() {
 }
 
 #[tokio::test]
-async fn handshake_failure_beardog_unavailable() {
+async fn handshake_failure_provider_unavailable() {
     let nonexistent = PathBuf::from("/tmp/btsp-no-such-socket-12345.sock");
 
     let (mut client, mut server) = tokio::io::duplex(8192);

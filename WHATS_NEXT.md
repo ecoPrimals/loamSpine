@@ -226,6 +226,14 @@
 - **Smart refactor `jsonrpc/server.rs`** (529 lines) → TCP transport stays in `server.rs` (362 lines), UDS transport extracted to `uds.rs` (172 lines). Clean domain boundary: TCP/HTTP vs UDS+BTSP gating.
 - **Tests**: 1,505 → **1,507** (+2 new: registry path validation, registry path distinctness). Source files: 169 → **170**. Full pipeline clean.
 
+## v0.9.16 Deep Debt Pass 9 — BTSP Provider Decoupling & Modernization (April 14, 2026)
+
+- **BTSP provider decoupling**: `beardog_client.rs` → `provider_client.rs` (module rename). `beardog_call` → `provider_call`, `beardog_socket` → `provider_socket` throughout handshake.rs. All "BearDog" error messages and doc comments evolved to "BTSP provider" — zero compile-time coupling to any specific signing primal. `BEARDOG_SOCKET` env var → `BTSP_PROVIDER_SOCKET` (checks BTSP_PROVIDER_SOCKET first, falls back to BEARDOG_SOCKET for backward compat). Unused `beardog_socket()` accessor removed.
+- **`.into()` modernization**: `DEFAULT_BTSP_PROVIDER_PREFIX.to_string()` → `.into()`, `"LoamSpine".to_string()` → `.into()` (config default), `"Storage backend unavailable".to_string()` → `.into()` (health readiness), `fid.to_string()` → `fid.into()` (BTSP config).
+- **Test naming evolved**: `spawn_mock_beardog` → `spawn_mock_provider`, `handshake_failure_beardog_unavailable` → `handshake_failure_provider_unavailable`.
+- **Full 11-dimension audit**: Zero unsafe, zero production unwrap/expect, zero TODO/FIXME, zero production mocks, zero hardcoded primal names in production, all files under 1000 lines, zero stale `#[allow]`. `bincode v1` migration already tracked in `DEPENDENCY_EVOLUTION.md`.
+- **Tests**: **1,396**. All gates green.
+
 ## v0.9.16 Deep Debt Pass 8 — provenance.commit Alias (April 14, 2026)
 
 - **`provenance.commit` alias**: primalSpring benchScale (exp084) calls `provenance.commit` against loamSpine for replay attack validation. Method was returning `-32601 Method not found` because no such method existed in dispatch. Root cause: exp084 uses composition-level naming (`provenance.*`) while loamSpine's canonical method is `session.commit`. Fix: added `provenance.commit` to `normalize_method` alias table. 1 new integration test (`provenance_commit_alias_dispatches_to_session_commit`).

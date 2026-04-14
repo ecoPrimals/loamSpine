@@ -206,7 +206,7 @@ impl Default for DiscoveryConfig {
 impl Default for LoamSpineConfig {
     fn default() -> Self {
         Self {
-            name: "LoamSpine".to_string(),
+            name: "LoamSpine".into(),
             storage_path: PathBuf::from("./data/loamspine"),
             auto_rollup_threshold: Some(10_000),
             replication_enabled: false,

@@ -108,7 +108,7 @@ pub struct WireAgentRef {
 /// empty when the witness needs no payload).
 ///
 /// When the witness is cryptographic (`kind: "signature"`), verification
-/// is delegated to `BearDog` (`crypto.verify`) or an external verifier.
+/// is delegated to the signing capability provider (`crypto.verify`) or an external verifier.
 /// `loamSpine` never decodes or validates evidence — it stores and commits.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WireWitnessRef {
@@ -228,7 +228,7 @@ pub struct PipelineResult {
     /// sweetGrass braid identifier (if attribution was created).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub braid_ref: Option<String>,
-    /// BearDog signature over the dehydration summary (if signing was available).
+    /// Cryptographic signature over the dehydration summary (if signing was available).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signature: Option<String>,
     /// NestGate content address (if content was stored).

@@ -22,16 +22,15 @@ const DEFAULT_BTSP_PROVIDER_PREFIX: &str = "beardog";
 /// Checks `BTSP_PROVIDER` env var first, allowing runtime configuration
 /// of the handshake provider without compile-time primal coupling.
 fn btsp_provider_prefix() -> String {
-    std::env::var("BTSP_PROVIDER").unwrap_or_else(|_| DEFAULT_BTSP_PROVIDER_PREFIX.to_string())
+    std::env::var("BTSP_PROVIDER").unwrap_or_else(|_| DEFAULT_BTSP_PROVIDER_PREFIX.into())
 }
 
 /// Pure variant for testing and explicit configuration.
 #[must_use]
 fn btsp_provider_prefix_with(provider_override: Option<&str>) -> String {
-    provider_override.filter(|s| !s.is_empty()).map_or_else(
-        || DEFAULT_BTSP_PROVIDER_PREFIX.to_string(),
-        ToString::to_string,
-    )
+    provider_override
+        .filter(|s| !s.is_empty())
+        .map_or_else(|| DEFAULT_BTSP_PROVIDER_PREFIX.into(), Into::into)
 }
 
 /// BTSP handshake configuration, derived from environment.
@@ -70,7 +69,7 @@ impl BtspHandshakeConfig {
         Some(Self {
             required: true,
             provider_socket,
-            family_id: fid.to_string(),
+            family_id: fid.into(),
         })
     }
 
@@ -80,19 +79,14 @@ impl BtspHandshakeConfig {
     /// meaning BTSP is required. Returns `None` in development mode.
     #[must_use]
     pub fn from_env() -> Option<Self> {
+        let provider_socket_override = std::env::var("BTSP_PROVIDER_SOCKET")
+            .or_else(|_| std::env::var("BEARDOG_SOCKET"))
+            .ok();
         Self::from_values(
             std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref(),
-            std::env::var("BEARDOG_SOCKET").ok().as_deref(),
+            provider_socket_override.as_deref(),
             std::env::var("BIOMEOS_SOCKET_DIR").ok().as_deref(),
         )
-    }
-
-    /// Access the provider socket path.
-    ///
-    /// Alias for backward compatibility — previously named `beardog_socket`.
-    #[must_use]
-    pub const fn beardog_socket(&self) -> &PathBuf {
-        &self.provider_socket
     }
 }
 

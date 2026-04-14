@@ -275,7 +275,7 @@ impl HealthChecker {
         } else {
             Ok(ReadinessProbe {
                 ready: false,
-                reason: Some("Storage backend unavailable".to_string()),
+                reason: Some("Storage backend unavailable".into()),
             })
         }
     }

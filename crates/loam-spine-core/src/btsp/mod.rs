@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! BTSP (BearDog Secure Tunnel Protocol) handshake integration.
+//! BTSP (Bonded Tunnel Secure Protocol) handshake integration.
 //!
 //! Implements the **consumer side** of BTSP Phase 2 for LoamSpine's UDS listener.
 //! LoamSpine does NOT implement cryptographic operations directly — all crypto
-//! is delegated to BearDog via JSON-RPC ("handshake-as-a-service").
+//! is delegated to the BTSP provider via JSON-RPC ("handshake-as-a-service").
 //!
 //! ## Architecture
 //!
@@ -12,11 +12,11 @@
 //! Client ──connect──▶ LoamSpine UDS
 //!                        │
 //!                        ├─ Read ClientHello (length-prefixed frame)
-//!                        ├─ Call BearDog btsp.session.create → get server keys
+//!                        ├─ Call BTSP provider btsp.session.create → get server keys
 //!                        ├─ Send ServerHello to client
 //!                        ├─ Read ChallengeResponse from client
-//!                        ├─ Call BearDog btsp.session.verify → verify HMAC
-//!                        ├─ Call BearDog btsp.negotiate → cipher suite
+//!                        ├─ Call BTSP provider btsp.session.verify → verify HMAC
+//!                        ├─ Call BTSP provider btsp.negotiate → cipher suite
 //!                        ├─ Send HandshakeComplete / HandshakeError
 //!                        └─ Return BtspSession on success
 //! ```
@@ -28,7 +28,7 @@
 //! | [`wire`] | Serializable handshake message types |
 //! | [`config`] | Environment-driven BTSP configuration |
 //! | [`frame`] | Length-prefixed frame I/O |
-//! | `beardog_client` | JSON-RPC delegation to BearDog (internal) |
+//! | `provider_client` | JSON-RPC delegation to BTSP provider (internal) |
 //! | [`handshake`] | Server-side handshake protocol |
 
 pub mod config;
@@ -36,7 +36,7 @@ pub mod frame;
 pub mod handshake;
 pub mod wire;
 
-mod beardog_client;
+mod provider_client;
 
 pub use config::{
     BtspHandshakeConfig, is_btsp_required, is_btsp_required_with, resolve_provider_socket,

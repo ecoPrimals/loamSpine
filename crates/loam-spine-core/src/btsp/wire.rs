@@ -3,7 +3,7 @@
 //! BTSP wire types per `BTSP_PROTOCOL_STANDARD.md`.
 //!
 //! These are the JSON-serialized messages exchanged between client and server
-//! during the BTSP handshake. All crypto is delegated to BearDog — these types
+//! during the BTSP handshake. All crypto is delegated to the BTSP provider — these types
 //! carry opaque key material, not raw secrets.
 
 use serde::{Deserialize, Serialize};
@@ -55,7 +55,7 @@ pub struct HandshakeError {
     pub reason: String,
 }
 
-/// BearDog `btsp.session.create` response.
+/// BTSP provider `btsp.session.create` response.
 #[derive(Debug, Deserialize)]
 pub(crate) struct SessionCreateResult {
     pub session_id: String,
@@ -64,7 +64,7 @@ pub(crate) struct SessionCreateResult {
     pub handshake_key: String,
 }
 
-/// BearDog `btsp.session.verify` response.
+/// BTSP provider `btsp.session.verify` response.
 #[derive(Debug, Deserialize)]
 pub(crate) struct SessionVerifyResult {
     pub verified: bool,
@@ -72,7 +72,7 @@ pub(crate) struct SessionVerifyResult {
     pub session_key: Option<String>,
 }
 
-/// BearDog `btsp.negotiate` response.
+/// BTSP provider `btsp.negotiate` response.
 #[derive(Debug, Deserialize)]
 pub(crate) struct NegotiateResult {
     pub cipher: String,

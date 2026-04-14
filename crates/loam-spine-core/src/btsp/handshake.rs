@@ -5,7 +5,7 @@
 //! Implements the 4-step handshake sequence per `BTSP_PROTOCOL_STANDARD.md`:
 //!
 //! 1. Read `ClientHello` and validate version
-//! 2. Call `btsp.session.create` on BearDog → exchange keys and challenge
+//! 2. Call `btsp.session.create` on BTSP provider → exchange keys and challenge
 //! 3. Read `ChallengeResponse` and verify via `btsp.session.verify`
 //! 4. Negotiate cipher via `btsp.negotiate`, send `HandshakeComplete`
 
@@ -14,8 +14,8 @@ use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tracing::debug;
 
-use super::beardog_client::beardog_call;
 use super::frame::{deserialize_btsp_msg, read_frame, serialize_btsp_msg, write_frame};
+use super::provider_client::provider_call;
 use super::wire::{
     BtspSession, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError,
     NegotiateResult, ServerHello, SessionCreateResult, SessionVerifyResult,
@@ -25,7 +25,7 @@ use crate::error::{IpcErrorPhase, LoamSpineError};
 /// BTSP protocol version.
 const BTSP_VERSION: u32 = 1;
 
-/// JSON-RPC request IDs for BearDog delegation calls.
+/// JSON-RPC request IDs for BTSP provider delegation calls.
 mod rpc_id {
     pub(super) const SESSION_CREATE: u64 = 1;
     pub(super) const SESSION_VERIFY: u64 = 2;
@@ -40,7 +40,7 @@ mod rpc_id {
 /// should close the connection on error.
 pub async fn perform_server_handshake<S>(
     stream: &mut S,
-    beardog_socket: &Path,
+    provider_socket: &Path,
 ) -> Result<BtspSession, LoamSpineError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin,
@@ -48,7 +48,7 @@ where
     let client_hello = read_and_validate_client_hello(stream).await?;
 
     let challenge = generate_challenge();
-    let create_result = create_beardog_session(beardog_socket, &client_hello, &challenge).await?;
+    let create_result = create_provider_session(provider_socket, &client_hello, &challenge).await?;
 
     send_server_hello(stream, &create_result, &challenge).await?;
 
@@ -56,7 +56,7 @@ where
 
     verify_and_complete(
         stream,
-        beardog_socket,
+        provider_socket,
         &client_hello,
         &create_result,
         &challenge,
@@ -92,14 +92,14 @@ async fn read_and_validate_client_hello<S: AsyncReadExt + AsyncWriteExt + Unpin>
     Ok(hello)
 }
 
-/// Step 2: Create a BTSP session on BearDog.
-async fn create_beardog_session(
-    beardog_socket: &Path,
+/// Step 2: Create a BTSP session on the handshake provider.
+async fn create_provider_session(
+    provider_socket: &Path,
     client_hello: &ClientHello,
     challenge: &str,
 ) -> Result<SessionCreateResult, LoamSpineError> {
-    let result: SessionCreateResult = beardog_call(
-        beardog_socket,
+    let result: SessionCreateResult = provider_call(
+        provider_socket,
         "btsp.session.create",
         serde_json::json!({
             "family_seed_ref": "env:FAMILY_SEED",
@@ -113,7 +113,7 @@ async fn create_beardog_session(
     Ok(result)
 }
 
-/// Step 3: Send `ServerHello` with the BearDog-generated ephemeral key and challenge.
+/// Step 3: Send `ServerHello` with the provider-generated ephemeral key and challenge.
 async fn send_server_hello<S: AsyncWriteExt + Unpin>(
     stream: &mut S,
     create_result: &SessionCreateResult,
@@ -140,17 +140,17 @@ async fn read_challenge_response<S: AsyncReadExt + Unpin>(
     Ok(cr)
 }
 
-/// Steps 5–7: Verify via BearDog, negotiate cipher, send completion or error.
+/// Steps 5–7: Verify via BTSP provider, negotiate cipher, send completion or error.
 async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
     stream: &mut S,
-    beardog_socket: &Path,
+    provider_socket: &Path,
     client_hello: &ClientHello,
     create_result: &SessionCreateResult,
     challenge: &str,
     challenge_response: &ChallengeResponse,
 ) -> Result<BtspSession, LoamSpineError> {
-    let verify: SessionVerifyResult = beardog_call(
-        beardog_socket,
+    let verify: SessionVerifyResult = provider_call(
+        provider_socket,
         "btsp.session.verify",
         serde_json::json!({
             "session_id": create_result.session_id,
@@ -172,8 +172,8 @@ async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
     }
     debug!("BTSP: client verified");
 
-    let negotiate: NegotiateResult = beardog_call(
-        beardog_socket,
+    let negotiate: NegotiateResult = provider_call(
+        provider_socket,
         "btsp.negotiate",
         serde_json::json!({
             "session_id": create_result.session_id,
@@ -233,7 +233,7 @@ async fn send_handshake_error<S: AsyncWriteExt + Unpin>(
 ///
 /// Uses `blake3(uuid_v7_a || uuid_v7_b)` to produce a full 32-byte challenge
 /// from UUID v7's OS-sourced randomness (74 random bits per UUID via `getrandom`).
-/// BearDog remains the authority for session key material — this challenge seeds
+/// The BTSP provider remains the authority for session key material — this challenge seeds
 /// the `btsp.session.create` call which may augment it with its own entropy.
 pub(crate) fn generate_challenge() -> String {
     use std::fmt::Write;
