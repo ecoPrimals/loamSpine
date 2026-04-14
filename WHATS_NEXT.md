@@ -226,6 +226,11 @@
 - **Smart refactor `jsonrpc/server.rs`** (529 lines) → TCP transport stays in `server.rs` (362 lines), UDS transport extracted to `uds.rs` (172 lines). Clean domain boundary: TCP/HTTP vs UDS+BTSP gating.
 - **Tests**: 1,505 → **1,507** (+2 new: registry path validation, registry path distinctness). Source files: 169 → **170**. Full pipeline clean.
 
+## v0.9.16 Deep Debt Pass 8 — provenance.commit Alias (April 14, 2026)
+
+- **`provenance.commit` alias**: primalSpring benchScale (exp084) calls `provenance.commit` against loamSpine for replay attack validation. Method was returning `-32601 Method not found` because no such method existed in dispatch. Root cause: exp084 uses composition-level naming (`provenance.*`) while loamSpine's canonical method is `session.commit`. Fix: added `provenance.commit` to `normalize_method` alias table. 1 new integration test (`provenance_commit_alias_dispatches_to_session_commit`).
+- **Tests**: 1,395→**1,396** (+1). All gates green.
+
 ## v0.9.16 Deep Debt Pass 7 — Doc Reconciliation & Debris Cleanup (April 12, 2026)
 
 - **Root doc metrics reconciled**: Source files 176→**178** (README, STATUS, CONTEXT, CONTRIBUTING). Test badge 1,383→**1,395** (README). JSON-RPC method count reconciled to **32** across all docs (was 30 in STATUS, 36 in CONTRIBUTING; truth: `niche.rs` METHODS). Showcase file count 55→**54** (README). CHANGELOG 0.9.16 metrics corrected from stale intermediate snapshot.

@@ -262,6 +262,7 @@ async fn uds_identity_get_wire_format() {
 #[test]
 fn normalize_method_legacy_aliases() {
     assert_eq!(normalize_method("commit.session"), "session.commit");
+    assert_eq!(normalize_method("provenance.commit"), "session.commit");
     assert_eq!(
         normalize_method("permanent-storage.commitSession"),
         "permanence.commit_session"

@@ -72,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doc comments**: `sqlite/common.rs` functions and `serde_opt_bytes` module documented.
 
 ### Metrics
-- Tests: **1,395** (all concurrent, ~3s, zero flaky)
+- Tests: **1,396** (all concurrent, ~3s, zero flaky)
 - `#[serial]`: **0** (was 121)
 - Source files: **178** `.rs` (+ 3 fuzz targets)
 - Max file: **605** lines production; all under 1000

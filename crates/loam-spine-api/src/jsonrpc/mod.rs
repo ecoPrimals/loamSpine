@@ -44,7 +44,7 @@ use wire::{INVALID_PARAMS, LOAMSPINE_ERROR, METHOD_NOT_FOUND};
 #[must_use]
 pub fn normalize_method(method: &str) -> &str {
     match method {
-        "commit.session" => "session.commit",
+        "commit.session" | "provenance.commit" => "session.commit",
         "permanent-storage.commitSession" => "permanence.commit_session",
         "permanent-storage.verifyCommit" => "permanence.verify_commit",
         "permanent-storage.getCommit" => "permanence.get_commit",

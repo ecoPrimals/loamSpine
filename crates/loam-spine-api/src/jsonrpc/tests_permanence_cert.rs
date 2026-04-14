@@ -328,6 +328,36 @@ async fn semantic_commit_session_alias() {
 }
 
 #[tokio::test]
+async fn provenance_commit_alias_dispatches_to_session_commit() {
+    let server = LoamSpineJsonRpc::default_server();
+    let owner = Did::new("did:key:z6MkProvenanceAlias");
+
+    let create_request = CreateSpineRequest {
+        owner: owner.clone(),
+        name: "Provenance Alias Test".to_string(),
+        config: None,
+    };
+    let create_response: crate::types::CreateSpineResponse =
+        rpc_call(&server, "spine.create", &create_request)
+            .await
+            .unwrap();
+
+    let request = CommitSessionRequest {
+        spine_id: create_response.spine_id,
+        session_id: uuid::Uuid::now_v7(),
+        session_hash: [0u8; 32],
+        vertex_count: 5,
+        committer: owner,
+    };
+    let result: Result<crate::types::CommitSessionResponse, _> =
+        rpc_call(&server, "provenance.commit", &request).await;
+    assert!(
+        result.is_ok(),
+        "provenance.commit should dispatch to session.commit"
+    );
+}
+
+#[tokio::test]
 async fn permanence_legacy_verify_and_get_aliases() {
     use crate::types::PermanentStorageDehydrationSummary;
 
