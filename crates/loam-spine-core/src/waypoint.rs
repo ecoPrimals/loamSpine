@@ -107,7 +107,7 @@ pub enum PropagationPolicy {
 /// Whether waypoint operations require external attestation.
 ///
 /// Attestation is provided by a capability-discovered primal offering the
-/// `"attestation"` capability (e.g. a Beardog-like primal). LoamSpine never
+/// `"attestation"` capability (e.g. a crypto primal). LoamSpine never
 /// hard-codes the attesting primal's name — it discovers the provider at
 /// runtime through the service registry.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

@@ -234,6 +234,30 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
     ) -> Result<CommitBraidResponse, ApiError> {
         self.service.commit_braid(request).await
     }
+
+    async fn bond_ledger_store(
+        self,
+        _: tarpc::context::Context,
+        request: BondLedgerStoreRequest,
+    ) -> Result<BondLedgerStoreResponse, ApiError> {
+        self.service.bond_ledger_store(request).await
+    }
+
+    async fn bond_ledger_retrieve(
+        self,
+        _: tarpc::context::Context,
+        request: BondLedgerRetrieveRequest,
+    ) -> Result<BondLedgerRetrieveResponse, ApiError> {
+        self.service.bond_ledger_retrieve(request).await
+    }
+
+    async fn bond_ledger_list(
+        self,
+        _: tarpc::context::Context,
+        request: BondLedgerListRequest,
+    ) -> Result<BondLedgerListResponse, ApiError> {
+        self.service.bond_ledger_list(request).await
+    }
 }
 
 /// Run the tarpc server on the specified address with default configuration.

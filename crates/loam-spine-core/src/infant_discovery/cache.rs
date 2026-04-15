@@ -45,8 +45,11 @@ impl DiscoveryCache {
     }
 
     /// Insert or replace cached services for a capability.
-    pub async fn insert(&self, capability: String, services: Vec<DiscoveredService>) {
-        self.entries.write().await.insert(capability, services);
+    pub async fn insert(&self, capability: impl Into<String>, services: Vec<DiscoveredService>) {
+        self.entries
+            .write()
+            .await
+            .insert(capability.into(), services);
     }
 
     /// Clear all cached entries (force rediscovery).

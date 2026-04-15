@@ -595,3 +595,116 @@ async fn test_multiple_capabilities_cached_independently() {
     assert!(all.contains_key("cap-a"));
     assert!(all.contains_key("cap-b"));
 }
+
+// =========================================================================
+// Additional coverage: capability_to_srv_name catch-all arm
+// =========================================================================
+
+#[test]
+fn test_capability_to_srv_name_unknown_with_hyphen() {
+    let srv = backends::capability_to_srv_name("custom-auth-provider");
+    assert_eq!(srv, "_provider._tcp.local");
+}
+
+#[test]
+fn test_capability_to_srv_name_unknown_no_hyphen() {
+    let srv = backends::capability_to_srv_name("telemetry");
+    assert_eq!(srv, "_telemetry._tcp.local");
+}
+
+#[test]
+fn test_capability_to_srv_name_empty_string_fallback() {
+    let srv = backends::capability_to_srv_name("");
+    assert_eq!(srv, "_._tcp.local");
+}
+
+#[test]
+fn test_capability_to_srv_name_single_hyphen_fallback() {
+    let srv = backends::capability_to_srv_name("-");
+    assert_eq!(srv, "_._tcp.local");
+}
+
+// =========================================================================
+// Additional coverage: DiscoveryConfig::from_explicit branches
+// =========================================================================
+
+#[test]
+fn test_from_explicit_with_registry_and_ttl() {
+    let config = DiscoveryConfig::from_explicit(Some("http://reg.local:8082"), Some(60));
+    assert_eq!(config.cache_ttl_secs, 60);
+    assert!(
+        config
+            .methods
+            .iter()
+            .any(|m| matches!(m, DiscoveryProtocol::ServiceRegistry(_)))
+    );
+}
+
+#[test]
+fn test_from_explicit_with_registry_only() {
+    let config = DiscoveryConfig::from_explicit(Some("http://reg.local:8082"), None);
+    assert_eq!(config.cache_ttl_secs, 300);
+    assert!(
+        config
+            .methods
+            .iter()
+            .any(|m| matches!(m, DiscoveryProtocol::ServiceRegistry(_)))
+    );
+}
+
+#[test]
+fn test_from_explicit_with_neither() {
+    let config = DiscoveryConfig::from_explicit(None, None);
+    assert_eq!(config.cache_ttl_secs, 300);
+    assert!(
+        !config
+            .methods
+            .iter()
+            .any(|m| matches!(m, DiscoveryProtocol::ServiceRegistry(_)))
+    );
+}
+
+#[test]
+fn test_from_explicit_with_ttl_only() {
+    let config = DiscoveryConfig::from_explicit(None, Some(999));
+    assert_eq!(config.cache_ttl_secs, 999);
+}
+
+// =========================================================================
+// Additional coverage: InfantDiscovery env_overrides for env_lookup
+// =========================================================================
+
+#[tokio::test]
+async fn test_env_lookup_prefers_overrides_over_system() {
+    let overrides: HashMap<String, String> = HashMap::from([(
+        "TEST_SIGNING_URL".to_string(),
+        "http://override:9000".to_string(),
+    )]);
+    let config = DiscoveryConfig {
+        env_overrides: overrides,
+        ..DiscoveryConfig::default()
+    };
+    let discovery = InfantDiscovery::with_config(config).unwrap();
+
+    let result = discovery
+        .find_capability(crate::capabilities::identifiers::external::SIGNING)
+        .await;
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_discovery_config_from_env_or_default_does_not_panic() {
+    let _config = DiscoveryConfig::from_env_or_default();
+}
+
+// =========================================================================
+// Additional coverage: InfantDiscovery::new() default path
+// =========================================================================
+
+#[tokio::test]
+async fn test_infant_discovery_new_default_config() {
+    let discovery = InfantDiscovery::new().unwrap();
+    assert!(!discovery.own_capabilities().is_empty());
+    let all = discovery.all_discovered().await;
+    assert!(all.is_empty());
+}

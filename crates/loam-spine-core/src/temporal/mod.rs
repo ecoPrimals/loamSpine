@@ -17,7 +17,7 @@
 //!
 //! ## Architecture
 //!
-//! - **rhizoCrypt (DAG)**: Lives in the Present/Future (branching possibilities)
+//! - **Ephemeral DAG primal**: Lives in the Present/Future (branching possibilities)
 //! - **LoamSpine (Linear)**: Lives in the Past (what has happened)
 //! - **Dehydration**: Temporal collapse (flexible timescales)
 //! - **Anchors**: Define ordering (crypto, atomic, causal, consensus)
@@ -32,15 +32,15 @@ pub use anchor::{
 pub use moment::{Moment, MomentContext, MomentId};
 pub use time_marker::{MarkerType, TimeMarker};
 
-/// Ephemeral provenance from rhizoCrypt dehydration.
+/// Ephemeral provenance from DAG primal dehydration.
 ///
 /// Links a permanent moment back to the ephemeral session that created it.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct EphemeralProvenance {
-    /// rhizoCrypt session ID
+    /// Ephemeral session ID from the DAG primal
     pub session_id: String,
 
-    /// Merkle root from rhizoCrypt DAG
+    /// Merkle root from the ephemeral DAG
     pub merkle_root: crate::types::ContentHash,
 
     /// Attestations from all agents involved

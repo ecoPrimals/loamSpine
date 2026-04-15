@@ -15,6 +15,7 @@
 )]
 
 mod anchor_ops;
+mod bond_ops;
 mod certificate_ops;
 mod entry_ops;
 mod integration_ops;

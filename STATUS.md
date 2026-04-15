@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 12, 2026
+**Last Updated**: April 15, 2026
 
 ---
 
@@ -23,7 +23,7 @@ This document tracks implementation progress against the specification suite in 
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
 | [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | COMPLETE | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig` with `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective). `AttestationResult` for capability-discovered attestation providers. `PropagationPolicy`, `SliceTerms`, `SliceOperationType`, `WaypointSummary` types defined. `RelendingChain` with multi-hop sublend/return. `ExpirySweeper` for auto-return. |
 | [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | COMPLETE | Core CRUD + loan/return + sublend + `verify_certificate` + `generate_provenance_proof` + escrow + `UsageSummary` integrated into `CertificateReturn` and `LoanRecord`. `WaypointSummary` re-used from waypoint module. Scyborg license schema. Certificate module: types, lifecycle, metadata, provenance, escrow, usage, tests. |
-| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 32 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
+| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 37 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory, redb (default), sled (optional), SQLite (feature-gated, refactored to modular `sqlite/` directory). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,396 (178 source files) |
+| Tests | — | 1,434 (186 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
-| Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
+| Coverage (llvm-cov) | 90%+ | 90.20% line / 89.54% branch / 92.10% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 700 lines | 605 max production (discovery_client/mod.rs); 899 max test file |
-| Source files | — | 178 `.rs` files (+ 3 fuzz targets) |
+| Max file size | < 800 lines | 605 max production (discovery_client/mod.rs); 783 max test file (chaos.rs) |
+| Source files | — | 185+ `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 4 | 2× `clippy::wildcard_imports` (tarpc macro requires it; `#[expect]` unfulfilled in test target), 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -69,7 +69,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 178 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 186 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -78,10 +78,28 @@ This document tracks implementation progress against the specification suite in 
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | Socket Naming | PASS | Domain-based `permanence.sock` per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3. `BIOMEOS_INSECURE` guard. Legacy `loamspine.sock` symlink. Cleanup on shutdown. |
 | BTSP Phase 1 | PASS | Family-scoped socket naming (`permanence-{family_id}.sock`), `BIOMEOS_INSECURE` guard. |
-| BTSP Phase 2 | PASS | Handshake-as-a-service via BearDog JSON-RPC. UDS listener gates on BTSP when `FAMILY_ID` is set. 4-step handshake (ClientHello/ServerHello/ChallengeResponse/HandshakeComplete). `BTSP_NULL` cipher only (Phase 3 encryption pending BearDog session key propagation). |
+| BTSP Phase 2 | PASS | Handshake-as-a-service via BTSP provider JSON-RPC. UDS listener gates on BTSP when `FAMILY_ID` is set. 4-step handshake (ClientHello/ServerHello/ChallengeResponse/HandshakeComplete). `BTSP_NULL` cipher only (Phase 3 encryption pending BTSP provider session key propagation). |
 | File size limit | PASS | All source files under 1000 lines. |
 
 ---
+
+## v0.9.16 Deep Debt Execution Pass (April 15, 2026)
+
+- **Smart refactor large test files**: 4 test files >800 lines refactored by domain cohesion:
+  - `sync/tests.rs` (885→692) + `tests_resilient.rs` (resilient sync + wire edge cases)
+  - `tarpc_server_tests.rs` (806→306) + `tarpc_server_tests_compound.rs` (multi-step operations)
+  - `cli_signer_tests.rs` (867→320) + `cli_signer_tests_integration.rs` (sign/verify flows, DynSigner/DynVerifier)
+  - `discovery_client/tests.rs` (819→486) + `tests_transport.rs` (transport layer, status codes, resilient client)
+- **Coverage push to 90.20%**: Targeted tests for:
+  - `infant_discovery/backends.rs`: `capability_to_srv_name` catch-all arms (hyphenated, empty, single-hyphen)
+  - `infant_discovery/mod.rs`: `from_explicit` branches, `from_env_or_default`, env_overrides, `InfantDiscovery::new()`
+  - `neural_api/mod.rs`: `register_with_neural_api` (no socket), `deregister_from_neural_api`, capability/identity accessors, `validate_security_config_from_env`
+  - `service/lifecycle.rs`: All `ServiceState` display+serde variants, start→running transition, stop→stopped transition
+- **Spec doc fixes**:
+  - `LOAMSPINE_SPECIFICATION.md`: Removed orphaned `ChainType` enum (stale markdown glitch from previous extraction)
+  - `ARCHITECTURE.md`: Crate layout updated to reflect actual directory structure (module dirs, bin/ layout, fuzz/, graphs/)
+  - `PURE_RUST_RPC.md`: tarpc version `0.34` → `0.37` with actual feature flags
+- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS, `cargo deny check` PASS.
 
 ## v0.9.16 Comprehensive Audit & Evolution Pass (April 12, 2026)
 
@@ -122,7 +140,7 @@ This document tracks implementation progress against the specification suite in 
 - **`provenance.commit` alias (primalSpring benchScale audit)**: `normalize_method` now maps `provenance.commit` → `session.commit`. primalSpring exp084 replay attack scenario can now reach LoamSpine's session commit handler instead of getting `-32601 Method not found`. 1 new integration test.
 - **BTSP provider decoupling**: `beardog_client.rs` → `provider_client.rs`. `beardog_call` → `provider_call`. `beardog_socket` params → `provider_socket`. All "BearDog" error messages and doc comments evolved to "BTSP provider". `BEARDOG_SOCKET` env → `BTSP_PROVIDER_SOCKET` (backward compat preserved). `beardog_socket()` accessor removed (was unused). Zero compile-time coupling to BearDog identity.
 - **`.into()` modernization**: `DEFAULT_BTSP_PROVIDER_PREFIX.to_string()` → `.into()`. `"LoamSpine".to_string()` → `.into()` in config default. `"Storage backend unavailable".to_string()` → `.into()` in health readiness.
-- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,396 tests, 0 failures), `cargo deny check` PASS.
+- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,434 tests, 0 failures), `cargo deny check` PASS.
 
 ## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)
 

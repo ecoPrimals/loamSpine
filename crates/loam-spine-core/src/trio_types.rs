@@ -2,10 +2,10 @@
 
 //! Type bridge for the provenance trio coordination.
 //!
-//! The provenance trio consists of:
-//! - **rhizoCrypt** (ephemeral DAG): uses `String` for UUIDs and hex hashes
-//! - **LoamSpine** (permanent history): uses `uuid::Uuid` for IDs and `[u8; 32]` for hashes
-//! - **sweetGrass** (attribution): uses `BraidId` as URN strings like `"urn:braid:..."`
+//! The provenance trio consists of three capability roles:
+//! - **Ephemeral DAG primal**: uses `String` for UUIDs and hex hashes
+//! - **Permanent history primal** (LoamSpine): uses `uuid::Uuid` for IDs and `[u8; 32]` for hashes
+//! - **Attribution primal**: uses `BraidId` as URN strings like `"urn:braid:..."`
 //!
 //! This module provides conversion types and `TryFrom` implementations to bridge
 //! between these representations for trio-coordinated commits.
@@ -21,13 +21,13 @@ use crate::error::LoamSpineError;
 use crate::types::{Did, EntryHash, Signature, SpineId, Timestamp};
 
 // ─── Wire types (JSON boundary) ─────────────────────────────────────────────
-// These mirror the JSON shapes produced by rhizoCrypt and consumed by biomeOS.
+// These mirror the JSON shapes produced by the ephemeral DAG primal and consumed by biomeOS.
 // Each primal owns its own copy; the wire format (JSON) is the shared contract.
 
-/// Dehydration summary received from rhizoCrypt over JSON-RPC.
+/// Dehydration summary received from the ephemeral DAG primal over JSON-RPC.
 ///
 /// All optional fields use `#[serde(default)]` for backward-compatible
-/// deserialization — rhizoCrypt may evolve its payload over time.
+/// deserialization — the producing primal may evolve its payload over time.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WireDehydrationSummary {
     /// The primal that performed the dehydration.
@@ -183,7 +183,7 @@ pub struct WireSessionOperationRef {
 /// Request to execute the provenance pipeline (biomeOS graph input).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PipelineRequest {
-    /// rhizoCrypt session to dehydrate.
+    /// Ephemeral DAG session to dehydrate.
     pub session_id: String,
     /// DID of the agent performing the commit.
     pub agent_did: String,
@@ -221,30 +221,30 @@ const fn default_contribution_weight() -> f64 {
 /// Result of a completed provenance pipeline execution.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PipelineResult {
-    /// The dehydration merkle root from rhizoCrypt.
+    /// The dehydration merkle root from the ephemeral DAG primal.
     pub dehydration_merkle_root: String,
     /// LoamSpine commit reference (entry hash).
     pub commit_ref: String,
-    /// sweetGrass braid identifier (if attribution was created).
+    /// Attribution braid identifier (if attribution was created).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub braid_ref: Option<String>,
     /// Cryptographic signature over the dehydration summary (if signing was available).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signature: Option<String>,
-    /// NestGate content address (if content was stored).
+    /// Content-addressed storage reference (if content was stored).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_ref: Option<String>,
 }
 
-/// Ephemeral session ID from rhizoCrypt (opaque string, typically UUID v7 hex).
+/// Ephemeral session ID from the DAG primal (opaque string, typically UUID v7 hex).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EphemeralSessionId(pub String);
 
-/// Braid identifier from sweetGrass (URN format: `urn:braid:{uuid}`).
+/// Braid identifier from the attribution primal (URN format: `urn:braid:{uuid}`).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BraidRef(pub String);
 
-/// Content hash from rhizoCrypt (hex-encoded blake3 digest).
+/// Content hash from the ephemeral DAG primal (hex-encoded blake3 digest).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct EphemeralContentHash(pub String);
 
@@ -382,17 +382,17 @@ impl TryFrom<uuid::Uuid> for BraidRef {
 }
 
 /// A trio-coordinated commit request.
-/// Bridges rhizoCrypt's dehydrated session into LoamSpine's permanent record.
+/// Bridges an ephemeral dehydrated session into LoamSpine's permanent record.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[must_use]
 pub struct TrioCommitRequest {
-    /// Ephemeral session being committed (from rhizoCrypt).
+    /// Ephemeral session being committed (from the DAG primal).
     pub session_id: EphemeralSessionId,
-    /// Content hash of the dehydrated DAG (from rhizoCrypt).
+    /// Content hash of the dehydrated DAG (from the DAG primal).
     pub content_hash: EphemeralContentHash,
     /// DID of the committer.
     pub committer: Did,
-    /// Optional braid reference for attribution (from sweetGrass).
+    /// Optional braid reference for attribution (from the attribution primal).
     pub braid_ref: Option<BraidRef>,
     /// Optional signature over the content hash.
     pub signature: Option<Signature>,

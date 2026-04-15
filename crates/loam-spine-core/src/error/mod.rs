@@ -3,7 +3,7 @@
 //! LoamSpine error types.
 //!
 //! Structured IPC error phases align with the ecosystem convention
-//! established by rhizoCrypt (`IpcErrorPhase`) and healthSpring (`SendError`),
+//! established by the ecosystem (`IpcErrorPhase`, `SendError`),
 //! enabling typed retry logic and observability across primals.
 
 use std::fmt;
@@ -100,7 +100,7 @@ pub enum LoamSpineError {
     /// Capability provider error (structured, vendor-agnostic).
     ///
     /// Used when a capability (signing, storage, etc.) fails at the provider level.
-    /// Matches rhizoCrypt's `CapabilityProvider` for ecosystem consistency.
+    /// Follows the ecosystem `CapabilityProvider` convention for consistency.
     #[error("capability provider error ({capability}): {message}")]
     CapabilityProvider {
         /// The capability that failed.
@@ -111,8 +111,8 @@ pub enum LoamSpineError {
 
     /// Structured IPC error with phase information.
     ///
-    /// Aligns with rhizoCrypt's `Ipc { phase, message }` and healthSpring's
-    /// `SendError` for ecosystem-wide typed IPC error handling. Enables
+    /// Aligns with the ecosystem `Ipc { phase, message }` and `SendError`
+    /// conventions for cross-primal typed IPC error handling. Enables
     /// phase-aware retry logic and observability.
     #[error("ipc error ({phase}): {message}")]
     Ipc {
@@ -187,7 +187,7 @@ impl LoamSpineError {
 
     /// Whether this error likely indicates a timeout (Connect, Read, Write phases).
     ///
-    /// Aligns with sweetGrass's `is_timeout_likely()` for ecosystem consistency.
+    /// Follows the ecosystem `is_timeout_likely()` convention for consistency.
     #[must_use]
     pub const fn is_timeout_likely(&self) -> bool {
         matches!(
@@ -224,7 +224,7 @@ impl LoamSpineError {
 /// Centralizes the pattern used by every IPC adapter to parse the `error`
 /// field from a JSON-RPC 2.0 response. Returns `None` if no error is present.
 ///
-/// Aligns with rhizoCrypt's `extract_rpc_error` for ecosystem consistency.
+/// Follows the ecosystem `extract_rpc_error` convention for consistency.
 #[must_use]
 pub fn extract_rpc_error(response: &serde_json::Value) -> Option<(i64, String)> {
     let error = response.get("error")?;
@@ -294,7 +294,7 @@ pub fn extract_rpc_result_typed<T: serde::de::DeserializeOwned>(
 /// Extension trait for `Result<T, E>` and `Option<T>` that exits the
 /// process cleanly on error instead of panicking.
 ///
-/// Absorbed from wetSpring V123 / rhizoCrypt `OrExit` pattern. Validation
+/// Follows the ecosystem `OrExit` pattern. Validation
 /// and startup code should never panic — it should print a structured
 /// error message and exit with a non-zero status code.
 ///

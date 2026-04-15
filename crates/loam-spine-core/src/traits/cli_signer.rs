@@ -342,3 +342,13 @@ impl Verifier for CliVerifier {
 #[cfg(test)]
 #[path = "cli_signer_tests.rs"]
 mod cli_signer_tests;
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::uninlined_format_args,
+    reason = "integration tests use unwrap/expect and explicit format args"
+)]
+#[path = "cli_signer_tests_integration.rs"]
+mod cli_signer_tests_integration;

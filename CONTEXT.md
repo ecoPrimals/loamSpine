@@ -13,11 +13,11 @@ canonical source of truth for events, discoveries, and artifacts that matter.
 
 ## Role in the Ecosystem
 
-LoamSpine is the permanence layer of the **provenance trio**: rhizoCrypt
-handles ephemeral DAG storage, LoamSpine commits selected data into permanent
-history, and sweetGrass records attribution. Other primals interact with
-LoamSpine through capability-discovered JSON-RPC when they need
-to commit, verify, or query permanent records.
+LoamSpine is the permanence layer of the **provenance trio**: the ephemeral
+DAG primal handles session storage, LoamSpine commits selected data into
+permanent history, and the attribution primal records provenance braids.
+Other primals interact with LoamSpine through capability-discovered JSON-RPC
+when they need to commit, verify, or query permanent records.
 
 ## Technical Facts
 
@@ -26,12 +26,12 @@ to commit, verify, or query permanent records.
 - **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,396 (all concurrent, ~3s, zero flaky)
+- **Tests:** 1,434 (all concurrent, ~3s, zero flaky)
 - **Coverage:** 90.92% line / 89.09% branch / 92.92% region
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
 - **Version:** 0.9.16
-- **Source files:** 178 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Source files:** 186 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 
 ## Key Capabilities (JSON-RPC methods)
 
@@ -39,10 +39,11 @@ to commit, verify, or query permanent records.
 - `entry.append`, `entry.get`, `entry.get_tip` — Entry management
 - `certificate.mint`, `certificate.transfer`, `certificate.loan`, `certificate.return`, `certificate.get`, `certificate.verify`, `certificate.lifecycle` — Loam Certificates
 - `session.commit`, `braid.commit` — Provenance trio coordination
-- `slice.anchor`, `slice.record_operation`, `slice.depart` — Waypoint anchoring
+- `slice.anchor`, `slice.checkout`, `slice.record_operation`, `slice.depart` — Waypoint anchoring
 - `anchor.publish`, `anchor.verify` — Public chain anchoring for external provenance
-- `proof.generate_inclusion` — Merkle inclusion proofs
-- `permanent-storage.commitSession`, `permanent-storage.verifyCommit`, `permanent-storage.getCommit` — Compat layer
+- `proof.generate_inclusion`, `proof.verify_inclusion` — Merkle inclusion proofs
+- `bonding.ledger.store`, `bonding.ledger.retrieve`, `bonding.ledger.list` — Ionic bond persistence
+- `permanence.commit_session`, `permanence.verify_commit`, `permanence.get_commit` — Compat layer
 - `health.check`, `health.liveness`, `health.readiness` — Health probes
 - `capabilities.list` — Capability-based discovery (Wire Standard L3)
 - `identity.get` — Primal identity
@@ -50,18 +51,18 @@ to commit, verify, or query permanent records.
 
 ## What This Does NOT Do
 
-- Does not handle ephemeral/DAG storage (that's rhizoCrypt)
-- Does not manage attribution braids (that's sweetGrass)
+- Does not handle ephemeral/DAG storage (ephemeral DAG capability primal)
+- Does not manage attribution braids (attribution capability primal)
 - Does not provide cryptographic primitives (delegates to the signing capability provider)
-- Does not discover hardware (that's toadStool)
-- Does not manage networking or TLS (capability-discovered provider via Tower Atomic)
+- Does not discover hardware (hardware discovery capability primal)
+- Does not manage networking or TLS (capability-discovered provider)
 - Does not orchestrate processes (that's biomeOS)
 
 ## Related Repositories
 
 - [wateringHole](https://github.com/ecoPrimals/wateringHole) — ecosystem standards and registry
-- [rhizoCrypt](https://github.com/ecoPrimals/rhizoCrypt) — ephemeral DAG (provenance trio)
-- [sweetGrass](https://github.com/ecoPrimals/sweetGrass) — attribution (provenance trio)
+- Ephemeral DAG primal — ephemeral session storage (provenance trio)
+- Attribution primal — semantic attribution (provenance trio)
 - [biomeOS](https://github.com/ecoPrimals/biomeOS) — process orchestration and NeuralAPI
 
 ## Design Philosophy

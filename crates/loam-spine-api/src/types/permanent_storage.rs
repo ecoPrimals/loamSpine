@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Permanent storage compatibility types for the rhizoCrypt wire format.
+//! Permanent storage compatibility types for the ephemeral DAG primal wire format.
 //!
-//! rhizoCrypt's `LoamSpineHttpClient` calls `permanent-storage.*` methods
+//! The ephemeral DAG primal's `LoamSpineHttpClient` calls `permanent-storage.*` methods
 //! with its own request shapes. These types accept that wire format and
 //! translate to loamSpine's native types.
 
 use serde::{Deserialize, Serialize};
 
-/// Dehydration summary subset sent by rhizoCrypt.
+/// Dehydration summary subset sent by the ephemeral DAG primal.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermanentStorageDehydrationSummary {
     /// Session type (game, transaction, etc.)
@@ -25,7 +25,7 @@ pub struct PermanentStorageDehydrationSummary {
     pub outcome: String,
 }
 
-/// Request from rhizoCrypt's `permanent-storage.commitSession`.
+/// Request from the `permanent-storage.commitSession` wire method.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermanentStorageCommitRequest {
     /// Session UUID as string
@@ -38,7 +38,7 @@ pub struct PermanentStorageCommitRequest {
     pub committer_did: Option<String>,
 }
 
-/// Response for rhizoCrypt's `permanent-storage.commitSession`.
+/// Response for the `permanent-storage.commitSession` wire method.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermanentStorageCommitResponse {
     /// Whether the commit was accepted
@@ -49,13 +49,13 @@ pub struct PermanentStorageCommitResponse {
     pub spine_entry_hash: Option<String>,
     /// Entry index in spine
     pub entry_index: Option<u64>,
-    /// Spine ID (so rhizoCrypt can reference it later)
+    /// Spine ID (so the caller can reference it later)
     pub spine_id: Option<String>,
     /// Error message if rejected
     pub error: Option<String>,
 }
 
-/// Request for rhizoCrypt's `permanent-storage.verifyCommit`.
+/// Request for the `permanent-storage.verifyCommit` wire method.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermanentStorageVerifyRequest {
     /// Spine ID
@@ -66,7 +66,7 @@ pub struct PermanentStorageVerifyRequest {
     pub index: u64,
 }
 
-/// Request for rhizoCrypt's `permanent-storage.getCommit`.
+/// Request for the `permanent-storage.getCommit` wire method.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermanentStorageGetCommitRequest {
     /// Spine ID

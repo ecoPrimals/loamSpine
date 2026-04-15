@@ -641,3 +641,58 @@ fn mcp_tools_list_schema_structure() {
         assert_eq!(schema["type"], "object");
     }
 }
+
+// =========================================================================
+// Additional coverage: public wrapper entry points
+// =========================================================================
+
+#[tokio::test]
+async fn register_with_neural_api_returns_false_when_no_socket() {
+    let result = super::register_with_neural_api().await;
+    assert!(result.is_ok());
+    assert!(!result.unwrap(), "no NeuralAPI socket → Ok(false)");
+}
+
+#[tokio::test]
+async fn deregister_from_neural_api_succeeds_when_no_socket() {
+    let result = super::deregister_from_neural_api().await;
+    assert!(result.is_ok());
+}
+
+// =========================================================================
+// Additional coverage: capability_list and identity_response accessors
+// =========================================================================
+
+#[test]
+fn capability_list_is_object_with_methods() {
+    let list = super::capability_list();
+    assert!(list.is_object());
+    assert!(list.get("primal").is_some());
+    assert!(list.get("methods").is_some());
+}
+
+#[test]
+fn identity_response_has_primal_and_version() {
+    let id = super::identity_response();
+    assert!(id.is_object());
+    assert!(id.get("primal").is_some());
+    assert!(id.get("version").is_some());
+    assert_eq!(id["primal"], "loamspine");
+}
+
+#[test]
+fn capability_list_pretty_is_nonempty_string() {
+    let pretty = super::capability_list_pretty();
+    assert!(!pretty.is_empty());
+    assert!(pretty.contains("permanence") || pretty.contains("ledger"));
+}
+
+// =========================================================================
+// Additional coverage: validate_security_config_from_env
+// =========================================================================
+
+#[test]
+fn validate_security_config_from_env_does_not_panic() {
+    let result = super::validate_security_config_from_env();
+    let _ = result;
+}

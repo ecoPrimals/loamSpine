@@ -32,7 +32,7 @@
 //! // Create with ZERO external knowledge
 //! let discovery = InfantDiscovery::new()?;
 //!
-//! // Discover signing service (NOT "BearDog"!)
+//! // Discover signing service by capability, not primal name
 //! let signers = discovery
 //!     .find_capability("cryptographic-signing")
 //!     .await?;

@@ -38,9 +38,8 @@ use wire::{INVALID_PARAMS, LOAMSPINE_ERROR, METHOD_NOT_FOUND};
 /// `primal.capabilities`, `commit.session`) to the canonical semantic
 /// names defined in the wateringHole Semantic Method Naming Standard v2.1.
 ///
-/// Absorbed from barraCuda v0.3.7's `normalize_method()` pattern — a
-/// single normalization step before dispatch, instead of duplicated
-/// match arms.
+/// Uses the ecosystem `normalize_method()` pattern — a single
+/// normalization step before dispatch, instead of duplicated match arms.
 #[must_use]
 pub fn normalize_method(method: &str) -> &str {
     match method {
@@ -175,6 +174,10 @@ impl LoamSpineJsonRpc {
             "anchor.publish" => rpc!(params, publish_anchor),
             "anchor.verify" => rpc!(params, verify_anchor),
 
+            "bonding.ledger.store" => rpc!(params, bond_ledger_store),
+            "bonding.ledger.retrieve" => rpc!(params, bond_ledger_retrieve),
+            "bonding.ledger.list" => rpc!(params, bond_ledger_list),
+
             "permanence.commit_session" => rpc!(params, permanent_storage_commit_session),
             "permanence.verify_commit" => rpc!(params, permanent_storage_verify_commit),
             "permanence.get_commit" => rpc!(params, permanent_storage_get_commit),
@@ -293,6 +296,9 @@ pub(crate) fn outcome_to_response(
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_bond_ledger;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_permanence_cert;

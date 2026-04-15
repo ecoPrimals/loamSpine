@@ -6,7 +6,7 @@
 //! for primal manifest files. Each manifest advertises a primal's name,
 //! socket path, capabilities, and PID.
 //!
-//! Aligns with rhizoCrypt S16's manifest discovery pattern — a local,
+//! Aligns with the ecosystem manifest discovery pattern — a local,
 //! zero-network fallback when mDNS or DNS SRV is unavailable.
 
 use std::path::{Path, PathBuf};
@@ -16,7 +16,7 @@ use serde::Deserialize;
 /// A primal manifest discovered on the local filesystem.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PrimalManifest {
-    /// Primal name (e.g. `"rhizoCrypt"`, `"sweetGrass"`).
+    /// Primal name (discovered at runtime, not hardcoded).
     pub name: String,
     /// Unix socket or TCP endpoint for IPC.
     pub socket_path: Option<String>,

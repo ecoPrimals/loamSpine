@@ -7,7 +7,7 @@ use super::{IpcErrorPhase, LoamSpineError, LoamSpineResult};
 /// Outcome of a dispatched JSON-RPC call, separating protocol errors
 /// from application results.
 ///
-/// Absorbed from rhizoCrypt / airSpring / biomeOS dispatch patterns.
+/// Follows the ecosystem dispatch pattern.
 /// Protocol errors (transport failures, malformed responses) are
 /// fundamentally different from application errors (method returned an
 /// error object). Callers can pattern-match to decide retry strategy.

@@ -2,17 +2,15 @@
 
 //! IPC error phase classification.
 //!
-//! Aligns with rhizoCrypt's `IpcErrorPhase`, healthSpring's `SendError`,
-//! and primalSpring's 8-variant `IpcErrorPhase` for ecosystem-wide
-//! structured IPC error handling.
+//! Aligns with the ecosystem's `IpcErrorPhase` and `SendError` conventions
+//! for cross-primal structured IPC error handling.
 
 use std::fmt;
 
 /// Phase of an IPC call that failed.
 ///
-/// Aligns with rhizoCrypt's `IpcErrorPhase`, healthSpring's `SendError`,
-/// and primalSpring's 8-variant `IpcErrorPhase` for ecosystem-wide
-/// structured IPC error handling.
+/// Aligns with the ecosystem's `IpcErrorPhase` and `SendError` conventions
+/// for cross-primal structured IPC error handling.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum IpcErrorPhase {
@@ -36,8 +34,8 @@ pub enum IpcErrorPhase {
 
 /// Backward-compatible alias for [`IpcErrorPhase`].
 ///
-/// Ecosystem naming converged on `IpcErrorPhase` (rhizoCrypt, primalSpring,
-/// biomeOS). This alias preserves backward compatibility for downstream
+/// Ecosystem naming converged on `IpcErrorPhase` (primalSpring, biomeOS).
+/// This alias preserves backward compatibility for downstream
 /// code that imported the original name.
 pub type IpcPhase = IpcErrorPhase;
 

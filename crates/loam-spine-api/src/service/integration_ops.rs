@@ -4,7 +4,7 @@
 //!
 //! Integration points for ephemeral storage, semantic attribution,
 //! and waypoint slice management. Includes `permanent-storage.*`
-//! compatibility layer for rhizoCrypt's wire format.
+//! compatibility layer for the ephemeral DAG primal's wire format.
 
 use super::LoamSpineRpcService;
 use crate::error::{ApiError, ApiResult};
@@ -173,10 +173,10 @@ impl LoamSpineRpcService {
     }
 
     // ====================================================================
-    // permanent-storage.* compatibility (rhizoCrypt wire format)
+    // permanent-storage.* compatibility (ephemeral DAG primal wire format)
     // ====================================================================
 
-    /// Translate rhizoCrypt's `permanent-storage.commitSession` to loamSpine's
+    /// Translate the `permanent-storage.commitSession` wire call to loamSpine's
     /// native `session.commit`. Auto-creates a permanence spine for the
     /// committer if one doesn't already exist.
     ///
@@ -237,7 +237,7 @@ impl LoamSpineRpcService {
         }
     }
 
-    /// Verify a commit exists using rhizoCrypt's wire format.
+    /// Verify a commit exists using the `permanent-storage` wire format.
     ///
     /// # Errors
     ///
@@ -260,7 +260,7 @@ impl LoamSpineRpcService {
         Ok(get_resp.found)
     }
 
-    /// Get a commit using rhizoCrypt's wire format.
+    /// Get a commit using the `permanent-storage` wire format.
     ///
     /// # Errors
     ///

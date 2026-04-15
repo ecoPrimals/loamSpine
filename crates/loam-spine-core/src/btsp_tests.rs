@@ -63,30 +63,36 @@ fn config_from_values_some_with_real_family() {
     assert_eq!(cfg.family_id, "fam1");
     assert_eq!(
         cfg.provider_socket,
-        PathBuf::from("/tmp/bio/beardog-fam1.sock")
+        PathBuf::from("/tmp/bio/btsp-provider-fam1.sock")
     );
 }
 
 #[test]
 fn config_from_values_with_socket_override() {
-    let cfg = BtspHandshakeConfig::from_values(Some("fam1"), Some("/custom/beardog.sock"), None)
+    let cfg = BtspHandshakeConfig::from_values(Some("fam1"), Some("/custom/provider.sock"), None)
         .expect("should be Some");
-    assert_eq!(cfg.provider_socket, PathBuf::from("/custom/beardog.sock"));
+    assert_eq!(cfg.provider_socket, PathBuf::from("/custom/provider.sock"));
 }
 
 #[test]
 fn provider_socket_name_with_family() {
-    assert_eq!(provider_socket_name(Some("abc"), None), "beardog-abc.sock");
+    assert_eq!(
+        provider_socket_name(Some("abc"), None),
+        "btsp-provider-abc.sock"
+    );
 }
 
 #[test]
 fn provider_socket_name_without_family() {
-    assert_eq!(provider_socket_name(None, None), "beardog.sock");
+    assert_eq!(provider_socket_name(None, None), "btsp-provider.sock");
 }
 
 #[test]
 fn provider_socket_name_default_family() {
-    assert_eq!(provider_socket_name(Some("default"), None), "beardog.sock");
+    assert_eq!(
+        provider_socket_name(Some("default"), None),
+        "btsp-provider.sock"
+    );
 }
 
 #[test]
@@ -100,13 +106,13 @@ fn provider_socket_name_custom_provider() {
 #[test]
 fn resolve_provider_socket_with_dir() {
     let path = resolve_provider_socket_with(Some("fam"), Some("/run/biomeos"), None);
-    assert_eq!(path, PathBuf::from("/run/biomeos/beardog-fam.sock"));
+    assert_eq!(path, PathBuf::from("/run/biomeos/btsp-provider-fam.sock"));
 }
 
 #[test]
 fn resolve_provider_socket_no_family_with_dir() {
     let path = resolve_provider_socket_with(None, Some("/run/biomeos"), None);
-    assert_eq!(path, PathBuf::from("/run/biomeos/beardog.sock"));
+    assert_eq!(path, PathBuf::from("/run/biomeos/btsp-provider.sock"));
 }
 
 #[test]
@@ -271,7 +277,7 @@ async fn spawn_mock_provider(
             let verify_ok = verify_ok;
             let cipher_allowed = cipher_allowed;
             tokio::spawn(async move {
-                handle_mock_beardog_connection(stream, verify_ok, cipher_allowed).await;
+                handle_mock_btsp_provider(stream, verify_ok, cipher_allowed).await;
             });
         }
     });
@@ -281,7 +287,7 @@ async fn spawn_mock_provider(
     (path, handle)
 }
 
-async fn handle_mock_beardog_connection(stream: UnixStream, verify_ok: bool, cipher_allowed: bool) {
+async fn handle_mock_btsp_provider(stream: UnixStream, verify_ok: bool, cipher_allowed: bool) {
     let (reader, mut writer) = stream.into_split();
     let mut buf_reader = tokio::io::BufReader::new(reader);
     let mut line = String::new();
@@ -502,8 +508,8 @@ async fn handshake_version_mismatch() {
         assert_eq!(err.error, "unsupported_version");
     });
 
-    let beardog = PathBuf::from("/tmp/unused-beardog.sock");
-    let result = perform_server_handshake(&mut server, &beardog).await;
+    let provider = PathBuf::from("/tmp/unused-btsp-provider.sock");
+    let result = perform_server_handshake(&mut server, &provider).await;
     assert!(result.is_err());
 
     client_handle.await.expect("client task");

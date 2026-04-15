@@ -421,6 +421,23 @@ pub enum EntryType {
         anchor_timestamp: Timestamp,
     },
 
+    // === Bond Ledger ===
+    /// Ionic bond ledger record for cross-primal contract persistence.
+    ///
+    /// The crypto capability primal signs ionic bond contracts via
+    /// `crypto.sign_contract` and delegates persistence to loamSpine
+    /// via `bonding.ledger.store`. Each record captures the bond state
+    /// at a point in time; the spine's append-only model guarantees an
+    /// immutable audit trail.
+    BondLedgerRecord {
+        /// Unique bond identifier (from the signing primal's `IonicBond.bond_id`).
+        bond_id: String,
+        /// Opaque bond data (serialized `IonicBond`, contract terms, etc.).
+        /// loamSpine stores this verbatim — schema validation is the
+        /// caller's responsibility.
+        data: serde_json::Value,
+    },
+
     // === Custom ===
     /// Custom entry type with zero-copy payload.
     Custom {
@@ -457,6 +474,7 @@ impl EntryType {
             | Self::SliceDeparture { .. } => "slice",
             Self::TemporalMoment { .. } => "temporal",
             Self::PublicChainAnchor { .. } => "anchor",
+            Self::BondLedgerRecord { .. } => "bonding",
             Self::Custom { .. } => "custom",
         }
     }

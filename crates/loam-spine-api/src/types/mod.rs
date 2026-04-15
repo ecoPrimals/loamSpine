@@ -25,10 +25,12 @@ pub use loam_spine_core::types::{
 };
 
 mod anchor;
+mod bond_ledger;
 mod certificate;
 mod permanent_storage;
 
 pub use anchor::*;
+pub use bond_ledger::*;
 pub use certificate::*;
 pub use permanent_storage::*;
 

@@ -223,6 +223,26 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 },
                 "required": ["spine_id"]
             })),
+            mcp_tool("bonding_ledger_store", "Store an ionic bond record in the permanent ledger", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "bond_id": { "type": "string", "description": "Unique bond identifier" },
+                    "data": { "type": "object", "description": "Bond data to persist (opaque JSON)" }
+                },
+                "required": ["bond_id", "data"]
+            })),
+            mcp_tool("bonding_ledger_retrieve", "Retrieve a bond record by ID", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "bond_id": { "type": "string", "description": "Bond identifier to look up" }
+                },
+                "required": ["bond_id"]
+            })),
+            mcp_tool("bonding_ledger_list", "List all stored bond identifiers", &serde_json::json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            })),
             mcp_tool("health_check", "Check LoamSpine health status", &serde_json::json!({
                 "type": "object",
                 "properties": {},
@@ -283,6 +303,9 @@ pub fn mcp_tool_to_rpc(
         "braid_commit" => "braid.commit",
         "anchor_publish" => "anchor.publish",
         "anchor_verify" => "anchor.verify",
+        "bonding_ledger_store" => "bonding.ledger.store",
+        "bonding_ledger_retrieve" => "bonding.ledger.retrieve",
+        "bonding_ledger_list" => "bonding.ledger.list",
         "health_check" => "health.check",
         "capability_list" => "capabilities.list",
         "identity_get" => "identity.get",

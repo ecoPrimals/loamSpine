@@ -38,7 +38,7 @@ bytes = { workspace = true }
 url = { workspace = true }
 
 # HTTP client for service discovery — OPTIONAL, pure Rust (no TLS = no ring).
-# For HTTPS, route through BearDog TLS capability.
+# For HTTPS, route through a TLS capability provider.
 ureq = { version = "2.12", default-features = false, optional = true }
 
 # DNS resolution for service discovery (optional: reduces binary size when unused)
@@ -59,7 +59,7 @@ sled-storage = ["dep:sled"]
 # Enable testing utilities (MockSigner, MockVerifier) for use in downstream crates
 testing = []
 # Enable direct HTTP via ureq (pure Rust, no TLS, no ring/C).
-# For HTTPS, route through BearDog TLS capability.
+# For HTTPS, route through a TLS capability provider.
 discovery-http = ["dep:ureq"]
 # Enable Tower Atomic transport (NeuralAPI via Unix socket JSON-RPC).
 # This is the ecoBin-compliant production transport — zero C dependencies.

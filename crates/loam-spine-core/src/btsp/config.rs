@@ -11,11 +11,13 @@
 
 use std::path::PathBuf;
 
-/// Default BTSP handshake provider socket prefix per `BTSP_PROTOCOL_STANDARD.md`.
+/// Default BTSP handshake provider socket prefix.
 ///
-/// Overridable via `BTSP_PROVIDER` environment variable for deployments
-/// where the handshake-as-a-service provider has a different socket name.
-const DEFAULT_BTSP_PROVIDER_PREFIX: &str = "beardog";
+/// Uses the protocol name (`btsp-provider`) rather than a specific primal
+/// name, following the self-knowledge-only principle. The provider is
+/// discovered by capability, not identity. Overridable via
+/// `BTSP_PROVIDER` environment variable.
+const DEFAULT_BTSP_PROVIDER_PREFIX: &str = "btsp-provider";
 
 /// Resolve the BTSP provider prefix from environment or fall back to default.
 ///
@@ -79,9 +81,7 @@ impl BtspHandshakeConfig {
     /// meaning BTSP is required. Returns `None` in development mode.
     #[must_use]
     pub fn from_env() -> Option<Self> {
-        let provider_socket_override = std::env::var("BTSP_PROVIDER_SOCKET")
-            .or_else(|_| std::env::var("BEARDOG_SOCKET"))
-            .ok();
+        let provider_socket_override = std::env::var("BTSP_PROVIDER_SOCKET").ok();
         Self::from_values(
             std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref(),
             provider_socket_override.as_deref(),

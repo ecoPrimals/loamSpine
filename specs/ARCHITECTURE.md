@@ -312,45 +312,46 @@ loamSpine/
 │   ├── loam-spine-core/          # Core library (pure Rust)
 │   │   ├── src/
 │   │   │   ├── lib.rs            # Main entry, re-exports
-│   │   │   ├── primal.rs         # Primal lifecycle traits (inlined, no sourdough)
+│   │   │   ├── primal.rs         # Primal lifecycle traits
 │   │   │   ├── config.rs         # Configuration types
-│   │   │   ├── error.rs          # Error types
-│   │   │   ├── types.rs          # Core types (Did, Hash, etc.)
-│   │   │   ├── entry.rs          # Entry data structure
+│   │   │   ├── error/            # Error types (mod, ipc, dispatch, storage_ext)
+│   │   │   ├── types.rs          # Core types (Did, SpineId, ContentHash, etc.)
+│   │   │   ├── entry/            # Entry data structure + types
 │   │   │   ├── spine.rs          # Spine management
-│   │   │   ├── certificate.rs    # Certificate layer
+│   │   │   ├── certificate/      # Certificate layer (lifecycle, escrow, usage)
 │   │   │   ├── proof.rs          # Inclusion proofs
-│   │   │   ├── storage.rs        # Storage traits + in-memory impl
-│   │   │   ├── manager.rs        # Certificate manager
-│   │   │   └── integration.rs    # Primal integration (RhizoCrypt, SweetGrass)
+│   │   │   ├── storage/          # Storage backends (memory, redb, sled, sqlite/)
+│   │   │   ├── service/          # Service layer (lifecycle, integration, waypoint)
+│   │   │   ├── sync/             # Federation sync protocol
+│   │   │   ├── btsp/             # BTSP handshake consumer
+│   │   │   ├── discovery/        # Capability-based discovery
+│   │   │   ├── infant_discovery/ # Multi-tier infant learning discovery
+│   │   │   ├── neural_api/       # Neural API / MCP integration
+│   │   │   ├── constants/        # Network, env resolution, named constants
+│   │   │   ├── capabilities/     # Capability identifiers and wire types
+│   │   │   ├── traits/           # Signing, verification, commit traits
+│   │   │   └── resilience.rs     # Circuit breaker, retry, resilient adapter
+│   │   ├── benches/              # Criterion benchmarks
 │   │   └── Cargo.toml
 │   │
-│   ├── loam-spine-api/           # Pure Rust RPC layer (NO gRPC/protobuf)
-│   │   ├── src/
-│   │   │   ├── lib.rs
-│   │   │   ├── service.rs        # LoamSpineRpcService
-│   │   │   ├── types.rs          # Request/Response types
-│   │   │   ├── tarpc_server.rs   # tarpc server (primal-to-primal)
-│   │   │   └── jsonrpc_server.rs # JSON-RPC 2.0 server (external clients)
-│   │   └── Cargo.toml
-│   │
-│   ├── loam-spine-store/         # Storage backends (future)
-│   │   ├── src/
-│   │   │   ├── lib.rs
-│   │   │   ├── traits.rs         # EntryStore, SpineStore traits
-│   │   │   ├── sqlite.rs         # SQLite implementation
-│   │   │   ├── redb.rs           # redb embedded (default)
-│   │   │   └── sled.rs           # Sled embedded (optional, sled-storage feature)
-│   │   └── Cargo.toml
-│   │
-│   └── loam-spine-service/       # Runnable service
+│   └── loam-spine-api/           # Pure Rust RPC layer (NO gRPC/protobuf)
 │       ├── src/
-│       │   └── main.rs           # Service entry point
+│       │   ├── lib.rs
+│       │   ├── service/          # Domain operation handlers
+│       │   ├── types/            # Request/Response types
+│       │   ├── tarpc_server.rs   # tarpc server (primal-to-primal)
+│       │   ├── jsonrpc/          # JSON-RPC 2.0 server (hand-rolled)
+│       │   └── health.rs         # Health check subsystem
 │       └── Cargo.toml
 │
+├── bin/loamspine-service/        # UniBin entry point
+│   ├── main.rs                   # Service binary (clap subcommands)
+│   └── tests/                    # Binary integration tests
+│
+├── fuzz/                         # cargo-fuzz targets (separate workspace)
 ├── specs/                        # Specifications
 ├── showcase/                     # Demo applications
-└── tests/                        # Integration tests
+└── graphs/                       # Deploy graph (biomeOS TOML)
 ```
 
 ### 4.1 Why No gRPC/Protobuf?

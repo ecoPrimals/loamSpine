@@ -49,6 +49,9 @@ pub const CAPABILITIES: &[&str] = &[
     "proof.verify",
     "anchor.publish",
     "anchor.verify",
+    "bonding.ledger.store",
+    "bonding.ledger.retrieve",
+    "bonding.ledger.list",
     "health.check",
     "capability.list",
 ];
@@ -320,6 +323,7 @@ fn capability_list_inner() -> serde_json::Value {
             { "type": "session", "methods": ["commit"], "version": env!("CARGO_PKG_VERSION"), "description": "Provenance trio session commit" },
             { "type": "braid", "methods": ["commit"], "version": env!("CARGO_PKG_VERSION"), "description": "Provenance trio braid commit" },
             { "type": "slice", "methods": ["anchor", "checkout", "record_operation", "depart"], "version": env!("CARGO_PKG_VERSION"), "description": "Waypoint slice operations" },
+            { "type": "bonding", "methods": ["ledger.store", "ledger.retrieve", "ledger.list"], "version": env!("CARGO_PKG_VERSION"), "description": "Ionic bond contract ledger persistence" },
             { "type": "health", "methods": ["check", "liveness", "readiness"], "version": env!("CARGO_PKG_VERSION"), "description": "Health probes" },
         ],
         // Wire Standard L3: consumed capabilities for composition completeness validation
@@ -347,6 +351,9 @@ fn capability_list_inner() -> serde_json::Value {
             "health.check":              { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
             "anchor.publish":            { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
             "anchor.verify":             { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
+            "bonding.ledger.store":      { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
+            "bonding.ledger.retrieve":   { "latency_ms": 1, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
+            "bonding.ledger.list":       { "latency_ms": 1, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
             "capability.list":           { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
             "identity.get":              { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
         },
@@ -365,6 +372,8 @@ fn capability_list_inner() -> serde_json::Value {
             "braid.commit": ["spine.create"],
             "anchor.publish": ["spine.create"],
             "anchor.verify": ["anchor.publish"],
+            "bonding.ledger.retrieve": ["bonding.ledger.store"],
+            "bonding.ledger.list": ["bonding.ledger.store"],
         },
     })
 }

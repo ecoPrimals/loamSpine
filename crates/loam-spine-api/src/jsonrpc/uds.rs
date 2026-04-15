@@ -60,7 +60,7 @@ impl Drop for UdsServerHandle {
 /// socket file from a previous run.
 ///
 /// When `btsp_config` is `Some`, every incoming connection must complete
-/// the BTSP handshake (delegated to `BearDog`) before JSON-RPC is exposed.
+/// the BTSP handshake (delegated to the BTSP capability provider) before JSON-RPC is exposed.
 /// When `None`, raw newline-delimited JSON-RPC is accepted (development mode).
 ///
 /// # Errors

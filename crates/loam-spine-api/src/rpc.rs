@@ -9,6 +9,8 @@ use crate::error::ApiError;
 use crate::types::{
     AnchorPublishRequest, AnchorPublishResponse, AnchorSliceRequest, AnchorSliceResponse,
     AnchorVerifyRequest, AnchorVerifyResponse, AppendEntryRequest, AppendEntryResponse,
+    BondLedgerListRequest, BondLedgerListResponse, BondLedgerRetrieveRequest,
+    BondLedgerRetrieveResponse, BondLedgerStoreRequest, BondLedgerStoreResponse,
     CheckoutSliceRequest, CheckoutSliceResponse, CommitBraidRequest, CommitBraidResponse,
     CommitSessionRequest, CommitSessionResponse, CreateSpineRequest, CreateSpineResponse,
     GenerateInclusionProofRequest, GenerateInclusionProofResponse, GetCertificateRequest,
@@ -199,4 +201,27 @@ pub trait LoamSpineRpc {
     ///
     /// Permanently stores semantic attribution information.
     async fn commit_braid(request: CommitBraidRequest) -> Result<CommitBraidResponse, ApiError>;
+
+    // ========================================================================
+    // Bond Ledger Operations
+    // ========================================================================
+
+    /// Store a bond record in the ledger.
+    ///
+    /// Persists ionic bond state from the `crypto.sign_contract` flow.
+    async fn bond_ledger_store(
+        request: BondLedgerStoreRequest,
+    ) -> Result<BondLedgerStoreResponse, ApiError>;
+
+    /// Retrieve a bond record by ID.
+    ///
+    /// Returns the most recent data for the given bond identifier.
+    async fn bond_ledger_retrieve(
+        request: BondLedgerRetrieveRequest,
+    ) -> Result<BondLedgerRetrieveResponse, ApiError>;
+
+    /// List all stored bond identifiers.
+    async fn bond_ledger_list(
+        request: BondLedgerListRequest,
+    ) -> Result<BondLedgerListResponse, ApiError>;
 }

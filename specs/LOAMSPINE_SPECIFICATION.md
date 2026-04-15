@@ -355,17 +355,6 @@ JSON-RPC methods: `anchor.publish` (record receipt), `anchor.verify` (verify sta
 recorded anchor). See `crates/loam-spine-core/src/entry/mod.rs` and
 `crates/loam-spine-core/src/service/anchor.rs` for the implementation.
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ChainType {
-    /// Bitcoin (high security, slow, expensive)
-    Bitcoin,
-    /// Ethereum (programmable, moderate cost)
-    Ethereum,
-    /// Other chains as needed
-    Other { chain_name: String },
-}
-```
-
 **Philosophy**: We prefer anchoring to **data commons** (gAIa, federated spines) rather than currency chains (BTC, ETH). This provides:
 - Self-sovereign verification (no external dependency)
 - Zero transaction costs for network participants

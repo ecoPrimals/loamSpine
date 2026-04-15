@@ -28,7 +28,7 @@ pub struct Moment {
     /// Who created/witnessed this moment
     pub agent: String, // DID
 
-    /// State hash at this moment (from NestGate or rhizoCrypt)
+    /// State hash at this moment (from content-addressed or ephemeral storage)
     pub state_hash: ContentHash,
 
     /// Cryptographic signature
@@ -43,7 +43,7 @@ pub struct Moment {
     /// How is this moment anchored? (optional, defaults to atomic time)
     pub anchor: Option<Anchor>,
 
-    /// Link back to ephemeral provenance (if from rhizoCrypt)
+    /// Link back to ephemeral provenance (if from the DAG primal)
     pub ephemeral_provenance: Option<EphemeralProvenance>,
 }
 
@@ -60,7 +60,7 @@ pub enum MomentContext {
     CodeChange {
         /// Commit message describing the change
         message: String,
-        /// Tree hash from NestGate representing the code state
+        /// Tree hash representing the code state (from content-addressed storage)
         tree_hash: ContentHash,
     },
 
@@ -70,7 +70,7 @@ pub enum MomentContext {
         title: String,
         /// Medium used (oil, digital, sculpture, etc.)
         medium: String,
-        /// Content hash from NestGate
+        /// Content hash from content-addressed storage
         content_hash: ContentHash,
     },
 

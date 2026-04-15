@@ -465,7 +465,7 @@ pub struct Timestamp(u64);         // Nanoseconds since epoch
 ```toml
 [dependencies]
 # Pure Rust RPC - no protobuf, no gRPC, no C++ tooling
-tarpc = { version = "0.34", features = ["full"] }
+tarpc = { version = "0.37", features = ["tokio1", "serde1", "serde-transport"] }
 
 # JSON-RPC 2.0 for external clients (hand-rolled implementation, no jsonrpsee)
 

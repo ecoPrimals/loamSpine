@@ -166,7 +166,7 @@ pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Generic Primal Discovery Helpers (sweetGrass V0.7.17 pattern)
+// Generic Primal Discovery Helpers (ecosystem pattern)
 // ──────────────────────────────────────────────────────────────────────────────
 
 /// Build the environment variable name for a primal's socket path.
@@ -179,9 +179,8 @@ pub fn build_endpoint(scheme: &str, host: &str, port: u16, path: Option<&str>) -
 /// ```rust
 /// use loam_spine_core::constants::network::socket_env_var;
 ///
-/// assert_eq!(socket_env_var("rhizoCrypt"), "RHIZOCRYPT_SOCKET");
-/// assert_eq!(socket_env_var("sweetGrass"), "SWEETGRASS_SOCKET");
 /// assert_eq!(socket_env_var("loamSpine"), "LOAMSPINE_SOCKET");
+/// assert_eq!(socket_env_var("my-primal"), "MY_PRIMAL_SOCKET");
 /// ```
 #[must_use]
 pub fn socket_env_var(primal_name: &str) -> String {
@@ -195,8 +194,8 @@ pub fn socket_env_var(primal_name: &str) -> String {
 /// ```rust
 /// use loam_spine_core::constants::network::address_env_var;
 ///
-/// assert_eq!(address_env_var("rhizoCrypt"), "RHIZOCRYPT_ADDRESS");
-/// assert_eq!(address_env_var("songbird"), "SONGBIRD_ADDRESS");
+/// assert_eq!(address_env_var("loamSpine"), "LOAMSPINE_ADDRESS");
+/// assert_eq!(address_env_var("my-primal"), "MY_PRIMAL_ADDRESS");
 /// ```
 #[must_use]
 pub fn address_env_var(primal_name: &str) -> String {

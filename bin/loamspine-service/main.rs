@@ -155,7 +155,7 @@ async fn run_server(
         )
         .init();
 
-    // TCP is opt-in (ToadStool/barraCuda pattern): only start TCP servers
+    // TCP is opt-in (ecosystem convention): only start TCP servers
     // when explicitly requested via CLI flags or environment variables.
     // UDS socket is always started as the primary transport.
     let tcp_requested = tarpc_port_override.is_some()
@@ -247,7 +247,7 @@ async fn run_server(
 
     // BTSP Phase 2: resolve handshake config from environment.
     // When BIOMEOS_FAMILY_ID is set (non-default), BTSP handshake is mandatory
-    // on UDS connections — all crypto delegated to BearDog via JSON-RPC.
+    // on UDS connections — all crypto delegated to BTSP provider via JSON-RPC.
     let btsp_config = loam_spine_core::btsp::BtspHandshakeConfig::from_env();
     if let Some(ref cfg) = btsp_config {
         info!(

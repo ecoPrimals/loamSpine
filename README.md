@@ -6,8 +6,9 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C396%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C434%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
+[![Methods](https://img.shields.io/badge/JSON--RPC-37%20methods-blue)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
@@ -27,7 +28,7 @@ LoamSpine is the **immutable, permanent ledger** of the ecoPrimals ecosystem. Na
 - **Infant Discovery** -- Born with zero external knowledge, discovers at runtime
 - **Capability-Based** -- "Who can sign?" not "Where is a specific primal?"
 - **NeuralAPI Integration** -- Registers with biomeOS for ecosystem orchestration
-- **Provenance Trio** -- Coordinates with rhizoCrypt (ephemeral) and sweetGrass (attribution)
+- **Provenance Trio** -- Coordinates with the ephemeral DAG and attribution capability primals
 
 ---
 
@@ -141,15 +142,20 @@ loamSpine/
 | **Certificate** | `certificate.verify` | Verify integrity |
 | **Certificate** | `certificate.lifecycle` | Ownership/loan history |
 | **Waypoint** | `slice.anchor` | Anchor borrowed state |
+| **Waypoint** | `slice.checkout` | Checkout a waypoint slice |
 | **Waypoint** | `slice.record_operation` | Record waypoint operation |
 | **Waypoint** | `slice.depart` | Depart from waypoint |
-| **Proof** | `proof.generate_inclusion` | Create proof |
+| **Proof** | `proof.generate_inclusion` | Create Merkle inclusion proof |
+| **Proof** | `proof.verify_inclusion` | Verify Merkle inclusion proof |
 | **Integration** | `session.commit` | Provenance session commits (aliases: `commit.session`, `provenance.commit`) |
-| **Integration** | `braid.commit` | sweetGrass commits |
-| **Compat** | `permanent-storage.commitSession` | rhizoCrypt wire format |
-| **Compat** | `permanent-storage.verifyCommit` | Verify via rhizoCrypt format |
-| **Compat** | `permanent-storage.getCommit` | Retrieve via rhizoCrypt format |
-| **Compat** | `permanent-storage.healthCheck` | Health for rhizoCrypt clients |
+| **Integration** | `braid.commit` | Attribution braid commits |
+| **Compat** | `permanence.commit_session` | Ephemeral DAG wire compat |
+| **Compat** | `permanence.verify_commit` | Verify via compat format |
+| **Compat** | `permanence.get_commit` | Retrieve via compat format |
+| **Compat** | `permanence.health_check` | Health for compat clients |
+| **Bonding** | `bonding.ledger.store` | Store ionic bond record |
+| **Bonding** | `bonding.ledger.retrieve` | Retrieve bond by ID |
+| **Bonding** | `bonding.ledger.list` | List all bond IDs |
 | **Anchor** | `anchor.publish` | Record public chain anchor receipt |
 | **Anchor** | `anchor.verify` | Verify anchor against spine state |
 | **Health** | `health.check` | Service status |
@@ -191,13 +197,13 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,396 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,434 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 899 max test file |
-| **Source Files** | 178 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Source Files** | 186 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

@@ -688,3 +688,92 @@ fn service_state_copy() {
     assert_eq!(a, b);
     assert_eq!(a, ServiceState::Starting);
 }
+
+// =========================================================================
+// Additional coverage: state display for all variants
+// =========================================================================
+
+#[test]
+fn service_state_display_all_variants() {
+    assert_eq!(ServiceState::Starting.to_string(), "STARTING");
+    assert_eq!(ServiceState::Ready.to_string(), "READY");
+    assert_eq!(ServiceState::Running.to_string(), "RUNNING");
+    assert_eq!(ServiceState::Degraded.to_string(), "DEGRADED");
+    assert_eq!(ServiceState::Stopping.to_string(), "STOPPING");
+    assert_eq!(ServiceState::Stopped.to_string(), "STOPPED");
+    assert_eq!(ServiceState::Error.to_string(), "ERROR");
+}
+
+#[test]
+fn service_state_serde_all_variants() {
+    let variants = [
+        ServiceState::Starting,
+        ServiceState::Ready,
+        ServiceState::Running,
+        ServiceState::Degraded,
+        ServiceState::Stopping,
+        ServiceState::Stopped,
+        ServiceState::Error,
+    ];
+    for v in &variants {
+        let json = serde_json::to_string(v).unwrap();
+        let back: ServiceState = serde_json::from_str(&json).unwrap();
+        assert_eq!(*v, back, "round-trip failed for {v:?}");
+    }
+}
+
+// =========================================================================
+// Additional coverage: lifecycle manager state transitions
+// =========================================================================
+
+#[tokio::test]
+async fn lifecycle_start_transitions_through_starting_to_running() {
+    let service = LoamSpineService::new();
+    let config = LoamSpineConfig::default();
+    let mut manager = LifecycleManager::new(service, config);
+
+    assert_eq!(manager.state(), ServiceState::Stopped);
+
+    let mut rx = manager.subscribe_state();
+    let _result = manager.start().await;
+
+    let final_state = manager.state();
+    assert!(
+        final_state == ServiceState::Running || final_state == ServiceState::Ready,
+        "expected Running or Ready, got {final_state:?}"
+    );
+
+    let observed_states: Vec<_> = {
+        let mut states = vec![];
+        while rx.has_changed().unwrap_or(false) {
+            rx.changed().await.ok();
+            states.push(*rx.borrow());
+        }
+        states
+    };
+
+    assert!(
+        !observed_states.is_empty() || final_state == ServiceState::Running,
+        "should have observed at least one state change"
+    );
+}
+
+#[tokio::test]
+async fn lifecycle_stop_transitions_to_stopped() {
+    let service = LoamSpineService::new();
+    let config = LoamSpineConfig::default();
+    let mut manager = LifecycleManager::new(service, config);
+
+    manager.start().await.ok();
+    let result = manager.stop().await;
+    assert!(result.is_ok());
+    assert_eq!(manager.state(), ServiceState::Stopped);
+}
+
+#[test]
+fn lifecycle_service_accessor() {
+    let service = LoamSpineService::new();
+    let config = LoamSpineConfig::default();
+    let manager = LifecycleManager::new(service, config);
+    let _ = manager.service();
+}

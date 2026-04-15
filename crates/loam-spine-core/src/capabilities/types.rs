@@ -61,6 +61,12 @@ pub enum LoamSpineCapability {
         /// Whether verification of anchors is supported
         supports_verification: bool,
     },
+
+    /// Bond ledger persistence for cross-primal ionic bond contracts.
+    BondLedger {
+        /// Whether the ledger is append-only (immutable history).
+        append_only: bool,
+    },
 }
 
 /// External capabilities we discover and consume
@@ -160,6 +166,7 @@ impl LoamSpineCapability {
             Self::TemporalTracking { .. } => loamspine::TEMPORAL_TRACKING,
             Self::WaypointAnchoring { .. } => loamspine::WAYPOINT_ANCHORING,
             Self::PublicAnchoring { .. } => loamspine::PUBLIC_ANCHORING,
+            Self::BondLedger { .. } => loamspine::BOND_LEDGER,
         }
     }
 
@@ -216,6 +223,7 @@ impl LoamSpineCapability {
                 ],
                 supports_verification: true,
             },
+            Self::BondLedger { append_only: true },
         ]
     }
 }

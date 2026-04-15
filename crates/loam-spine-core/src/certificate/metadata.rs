@@ -99,8 +99,8 @@ impl CertificateMetadata {
 
     /// Populate metadata for a scyborg license certificate.
     ///
-    /// Sets the canonical scyborg metadata fields used by sweetGrass (attribution)
-    /// and rhizoCrypt (derivation chains) to enforce tri-license compliance.
+    /// Sets the canonical scyborg metadata fields used by attribution and
+    /// ephemeral DAG primals to enforce tri-license compliance.
     #[must_use]
     pub fn with_scyborg_license(
         self,

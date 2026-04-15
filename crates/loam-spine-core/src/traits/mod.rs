@@ -34,7 +34,7 @@ pub use signing::{SignatureVerification, Signer, Verifier};
 pub use slice::{ActiveSlice, SliceManager, SliceOrigin, SliceResolution, SliceStatus};
 
 // ============================================================================
-// Provenance Source — for attribution primals (e.g. sweetGrass)
+// Provenance Source — for attribution capability primals
 // ============================================================================
 
 /// Provenance source trait — for querying provenance data from this spine.
@@ -101,7 +101,7 @@ pub struct ProvenanceLink {
 }
 
 // ============================================================================
-// Content Addressable Storage — for content storage primals (e.g. NestGate)
+// Content Addressable Storage — for content storage capability primals
 // ============================================================================
 
 /// Content-addressable storage trait — for storing and retrieving payloads.

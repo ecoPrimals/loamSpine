@@ -5,8 +5,8 @@
 //! Used by biomeOS Pipeline coordination graphs to wire bounded `mpsc`
 //! channels between springs. Items flow through as each node produces them.
 //!
-//! Aligns with rhizoCrypt's `StreamItem` and sweetGrass's NDJSON pipeline
-//! protocol for ecosystem-wide streaming interoperability.
+//! Aligns with the ecosystem `StreamItem` and NDJSON pipeline
+//! protocol for cross-primal streaming interoperability.
 
 use serde::{Deserialize, Serialize};
 

@@ -32,7 +32,7 @@
 //! ];
 //!
 //! // LoamSpine discovers services by capability (not by name!)
-//! // "Who can sign?" not "Where is BearDog?"
+//! // "Who can sign?" not "Where is [specific primal]?"
 //! let discovery = InfantDiscovery::new()?;
 //! let signing_services = discovery
 //!     .find_capability(identifiers::external::SIGNING)
@@ -63,6 +63,8 @@ pub mod identifiers {
         pub const WAYPOINT_ANCHORING: &str = "waypoint-anchoring";
         /// Provides public chain anchoring for external provenance verification
         pub const PUBLIC_ANCHORING: &str = "public-anchoring";
+        /// Provides bond ledger persistence for cross-primal contract storage
+        pub const BOND_LEDGER: &str = "bond-ledger";
 
         /// Canonical capability set for service advertisement and discovery.
         ///
@@ -75,12 +77,13 @@ pub mod identifiers {
             PROOF_GENERATION,
             TEMPORAL_TRACKING,
             PUBLIC_ANCHORING,
+            BOND_LEDGER,
         ];
     }
 
     /// External capabilities we discover and consume
     pub mod external {
-        /// BearDog Secure Tunnel Protocol (BTSP) handshake-as-a-service
+        /// BTSP handshake-as-a-service (provided by the crypto capability primal)
         pub const BTSP: &str = "btsp";
         /// Cryptographic signing service
         pub const SIGNING: &str = "cryptographic-signing";

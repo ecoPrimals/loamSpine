@@ -18,6 +18,7 @@
 //! Other primals are discovered at runtime, not compile time.
 
 pub mod anchor;
+mod bond_ledger;
 mod certificate;
 mod certificate_escrow;
 mod certificate_loan;
@@ -96,6 +97,10 @@ pub struct LoamSpineService {
     capabilities: CapabilityRegistry,
     /// Owner → spine_id index for O(1) `ensure_spine` lookups.
     owner_index: Arc<RwLock<HashMap<Did, SpineId>>>,
+    /// Bond ledger: bond_id → latest bond data (in-memory index backed by spine entries).
+    pub(crate) bond_ledger: Arc<RwLock<HashMap<String, serde_json::Value>>>,
+    /// Spine ID dedicated to the bond ledger (lazily created on first store).
+    pub(crate) bond_ledger_spine: Arc<RwLock<Option<SpineId>>>,
 }
 
 impl Default for LoamSpineService {
@@ -116,6 +121,8 @@ impl LoamSpineService {
             escrows: Arc::new(RwLock::new(HashMap::new())),
             capabilities: CapabilityRegistry::new(),
             owner_index: Arc::new(RwLock::new(HashMap::new())),
+            bond_ledger: Arc::new(RwLock::new(HashMap::new())),
+            bond_ledger_spine: Arc::new(RwLock::new(None)),
         }
     }
 
@@ -132,6 +139,8 @@ impl LoamSpineService {
             escrows: Arc::new(RwLock::new(HashMap::new())),
             capabilities,
             owner_index: Arc::new(RwLock::new(HashMap::new())),
+            bond_ledger: Arc::new(RwLock::new(HashMap::new())),
+            bond_ledger_spine: Arc::new(RwLock::new(None)),
         }
     }
 
