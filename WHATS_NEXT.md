@@ -219,6 +219,13 @@
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
+## v0.9.16 Stadial Parity Gate (April 16, 2026)
+
+- **Storage**: Removed **sled** and **SQLite** backends; **redb** (default) + **memory** only. Source files **187 → 178** (9 backend files removed). Tests remain **1,442** (feature-gated sled/sqlite tests were never in the default count).
+- **`hickory-resolver`**: **0.24 → 0.26** (`async-trait` dropped from `hickory-proto`; `hickory-net` still has it upstream).
+- **Lockfile**: Cleared **sled**, **libsqlite3-sys**, **rusqlite**, **instant**, **fxhash**. Remaining upstream ghosts: **async-trait** (`hickory-net` 0.26), **ring** (optional features only).
+- **`cargo deny`**: Bans + advisories clean. **Dyn audit**: 72 usages, all non-blocking per stadial gate.
+
 ## v0.9.16 Crypto Wire Adapter & Deep Debt Sweep (April 16, 2026)
 
 - **`JsonRpcCryptoSigner` / `JsonRpcCryptoVerifier`**: Production signing path implementing `crypto.sign_ed25519` / `crypto.verify_ed25519` wire contract per `CRYPTO_WIRE_CONTRACT.md`. UDS NDJSON transport, base64 encoding, `const fn` constructors. `CliSigner` remains as development fallback.
@@ -226,7 +233,7 @@
 - **`#[allow(dead_code)]` evolved**: `SignResponse.algorithm` field now logged via `tracing::trace` instead of suppressed.
 - **Dependency evolution notes**: `sled` (unmaintained), `bincode` v1 (RUSTSEC), `mdns`/`async-std` (dual runtime) paths documented in `Cargo.toml`.
 - **`cargo deny check`**: advisories OK, bans OK, licenses OK, sources OK.
-- **Tests**: **1,442**. Source files: **187**. JSON-RPC methods: **37**. All gates green.
+- **Tests**: **1,442**. Source files: **178**. JSON-RPC methods: **37**. All gates green.
 
 ## v0.9.16 Bond Persistence & Self-Knowledge Evolution (April 15, 2026)
 

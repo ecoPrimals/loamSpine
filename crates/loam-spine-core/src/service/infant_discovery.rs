@@ -258,28 +258,44 @@ impl InfantDiscovery {
 
         #[cfg(all(not(test), feature = "dns-srv"))]
         {
-            use hickory_resolver::TokioAsyncResolver;
-            use hickory_resolver::config::{ResolverConfig, ResolverOpts};
+            use hickory_resolver::TokioResolver;
 
-            let resolver =
-                TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+            let resolver = match TokioResolver::builder_tokio()
+                .and_then(hickory_resolver::ResolverBuilder::build)
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::debug!("🔍 Failed to create DNS resolver: {e}, trying next method");
+                    return None;
+                }
+            };
 
             match resolver.srv_lookup(DISCOVERY_SRV_QUERY).await {
-                Ok(response) => response.iter().next().map_or_else(
-                    || {
-                        tracing::debug!(
-                            "🔍 No SRV records found for {DISCOVERY_SRV_QUERY}, trying next method",
-                        );
-                        None
-                    },
-                    |srv| {
-                        let target = srv.target().to_utf8();
-                        let port = srv.port();
-                        let endpoint = format!("http://{}:{}", target.trim_end_matches('.'), port);
-                        tracing::info!("✅ DNS SRV discovery successful: {endpoint}");
-                        Some(endpoint)
-                    },
-                ),
+                Ok(response) => {
+                    use hickory_resolver::proto::rr::rdata::SRV;
+
+                    response
+                        .answers()
+                        .iter()
+                        .find_map(hickory_resolver::proto::rr::Record::try_borrow::<SRV>)
+                        .map_or_else(
+                            || {
+                                tracing::debug!(
+                                    "🔍 No SRV records found for {DISCOVERY_SRV_QUERY}, trying next method",
+                                );
+                                None
+                            },
+                            |srv_ref| {
+                                let srv = srv_ref.data();
+                                let target = srv.target.to_utf8();
+                                let port = srv.port;
+                                let endpoint =
+                                    format!("http://{}:{}", target.trim_end_matches('.'), port);
+                                tracing::info!("✅ DNS SRV discovery successful: {endpoint}");
+                                Some(endpoint)
+                            },
+                        )
+                }
                 Err(e) => {
                     tracing::debug!("🔍 DNS SRV lookup failed: {e}, trying next method");
                     None

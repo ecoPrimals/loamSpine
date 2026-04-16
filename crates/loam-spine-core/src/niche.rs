@@ -216,12 +216,7 @@ pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
 pub const PROTOCOLS: &[&str] = &["jsonrpc", "tarpc"];
 
 /// Storage backends available.
-pub const STORAGE_BACKENDS: &[(&str, bool)] = &[
-    ("redb", true),
-    ("memory", true),
-    ("sled", true),
-    ("sqlite", false),
-];
+pub const STORAGE_BACKENDS: &[(&str, bool)] = &[("redb", true), ("memory", true)];
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]

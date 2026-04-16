@@ -2,8 +2,7 @@
 
 //! InMemory storage tests and `StorageBackend` enum coverage.
 //!
-//! Backend-specific tests live in `redb_tests.rs`, `sled_tests.rs`,
-//! `sqlite/tests.rs`, and `certificate_tests.rs`.
+//! Backend-specific tests live in `redb_tests.rs` and `certificate_tests.rs`.
 
 use std::sync::Arc;
 
@@ -308,14 +307,6 @@ fn storage_backend_availability() {
         StorageBackend::Redb.is_available(),
         cfg!(feature = "redb-storage"),
     );
-    assert_eq!(
-        StorageBackend::Sled.is_available(),
-        cfg!(feature = "sled-storage"),
-    );
-    assert_eq!(
-        StorageBackend::Sqlite.is_available(),
-        cfg!(feature = "sqlite"),
-    );
     assert!(!StorageBackend::Postgres.is_available());
     assert!(!StorageBackend::Rocksdb.is_available());
 }
@@ -326,8 +317,6 @@ fn storage_backend_names() {
 
     assert_eq!(StorageBackend::InMemory.name(), "in-memory");
     assert_eq!(StorageBackend::Redb.name(), "redb");
-    assert_eq!(StorageBackend::Sled.name(), "sled");
-    assert_eq!(StorageBackend::Sqlite.name(), "sqlite");
     assert_eq!(StorageBackend::Postgres.name(), "postgres");
     assert_eq!(StorageBackend::Rocksdb.name(), "rocksdb");
 }
@@ -338,8 +327,6 @@ fn storage_backend_display() {
 
     assert_eq!(format!("{}", StorageBackend::InMemory), "in-memory");
     assert_eq!(format!("{}", StorageBackend::Redb), "redb");
-    assert_eq!(format!("{}", StorageBackend::Sled), "sled");
-    assert_eq!(format!("{}", StorageBackend::Sqlite), "sqlite");
     assert_eq!(format!("{}", StorageBackend::Postgres), "postgres");
     assert_eq!(format!("{}", StorageBackend::Rocksdb), "rocksdb");
 }

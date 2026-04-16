@@ -3,14 +3,13 @@
 //! Storage traits and implementations for `LoamSpine`.
 //!
 //! This module defines the storage interfaces for persisting spines and entries.
-//! Includes both in-memory (for testing) and Sled-backed (for production) implementations.
+//! Includes in-memory (for testing) and redb-backed (default production) implementations.
 //!
 //! # Architecture
 //!
 //! - **Traits**: `SpineStorage`, `EntryStorage` — Define storage interfaces
 //! - **InMemory**: Fast, transient storage for testing and development
 //! - **redb**: Persistent, Pure Rust embedded database (default)
-//! - **Sled**: Persistent, embedded database (optional)
 //!
 //! # Example
 //!
@@ -38,10 +37,6 @@ use crate::types::{CertificateId, EntryHash, SpineId};
 mod memory;
 #[cfg(feature = "redb-storage")]
 mod redb;
-#[cfg(feature = "sled-storage")]
-mod sled;
-#[cfg(feature = "sqlite")]
-mod sqlite;
 
 // Tests
 #[cfg(test)]
@@ -52,23 +47,15 @@ mod redb_tests;
 mod redb_tests_cert_errors;
 #[cfg(all(test, feature = "redb-storage"))]
 mod redb_tests_coverage;
-#[cfg(all(test, feature = "sled-storage"))]
-mod sled_tests;
-#[cfg(all(test, feature = "sled-storage"))]
-mod sled_tests_certificate;
 #[cfg(test)]
 mod tests;
 
 // Re-exports
 #[cfg(feature = "redb-storage")]
 pub use self::redb::{RedbCertificateStorage, RedbEntryStorage, RedbSpineStorage, RedbStorage};
-#[cfg(feature = "sled-storage")]
-pub use self::sled::{SledCertificateStorage, SledEntryStorage, SledSpineStorage, SledStorage};
 pub use memory::{
     InMemoryCertificateStorage, InMemoryEntryStorage, InMemorySpineStorage, InMemoryStorage,
 };
-#[cfg(feature = "sqlite")]
-pub use sqlite::{SqliteCertificateStorage, SqliteEntryStorage, SqliteSpineStorage, SqliteStorage};
 
 /// Storage backend for spines.
 ///
@@ -198,17 +185,6 @@ pub enum StorageBackend {
     #[default]
     Redb,
 
-    /// Sled-backed persistent storage (optional).
-    ///
-    /// Embedded, pure-Rust database.
-    Sled,
-
-    /// SQLite-backed persistent storage (planned).
-    ///
-    /// Widely supported, file-based relational storage.
-    /// Note: Requires the `sqlite` feature to be enabled.
-    Sqlite,
-
     /// PostgreSQL-backed persistent storage (planned).
     ///
     /// Production-grade relational storage for multi-node deployments.
@@ -229,8 +205,6 @@ impl StorageBackend {
         match self {
             Self::InMemory => true,
             Self::Redb => cfg!(feature = "redb-storage"),
-            Self::Sled => cfg!(feature = "sled-storage"),
-            Self::Sqlite => cfg!(feature = "sqlite"),
             Self::Postgres | Self::Rocksdb => false,
         }
     }
@@ -241,8 +215,6 @@ impl StorageBackend {
         match self {
             Self::InMemory => "in-memory",
             Self::Redb => "redb",
-            Self::Sled => "sled",
-            Self::Sqlite => "sqlite",
             Self::Postgres => "postgres",
             Self::Rocksdb => "rocksdb",
         }

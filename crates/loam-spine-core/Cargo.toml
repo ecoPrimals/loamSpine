@@ -22,18 +22,12 @@ blake3.workspace = true
 uuid = { workspace = true }
 
 # Persistent storage (pure Rust embedded database)
-# NOTE: sled 0.34 is unmaintained upstream. redb is the default and recommended backend.
-# sled remains feature-gated for existing deployments; migration path is sled → redb.
-sled = { version = "0.34", optional = true }
 redb = { version = "2.4", optional = true }
 
 # Binary serialization for storage
 # NOTE: bincode 1.x has a RUSTSEC advisory. Migration to bincode 2.x is a
 # storage-format breaking change tracked for v1.0.0.
 bincode = { workspace = true }
-
-# SQLite storage backend (optional, bundles C SQLite — not ecoBin compliant)
-rusqlite = { version = "0.32", features = ["bundled"], optional = true }
 
 # Zero-copy buffer management for network operations
 bytes = { workspace = true }
@@ -46,7 +40,7 @@ url = { workspace = true }
 ureq = { version = "2.12", default-features = false, optional = true }
 
 # DNS resolution for service discovery (optional: reduces binary size when unused)
-hickory-resolver = { version = "0.24", optional = true }
+hickory-resolver = { version = "0.26", optional = true }
 
 
 # mDNS for local network service discovery (optional, experimental)
@@ -62,7 +56,6 @@ base64 = "0.22.1"
 [features]
 default = ["redb-storage", "dns-srv"]
 redb-storage = ["dep:redb"]
-sled-storage = ["dep:sled"]
 # Enable testing utilities (MockSigner, MockVerifier) for use in downstream crates
 testing = []
 # Enable direct HTTP via ureq (pure Rust, no TLS, no ring/C).
@@ -75,8 +68,6 @@ tower-atomic = []
 dns-srv = ["dep:hickory-resolver"]
 # Enable mDNS local network service discovery (experimental)
 mdns = ["dep:mdns", "dep:futures-util", "dep:async-std"]
-# SQLite storage backend (bundles C SQLite — not ecoBin compliant)
-sqlite = ["dep:rusqlite"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread"] }

@@ -31,7 +31,7 @@ when they need to commit, verify, or query permanent records.
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
 - **Version:** 0.9.16
-- **Source files:** 187 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Source files:** 178 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 - **Production crypto adapters:** `JsonRpcCryptoSigner` and `JsonRpcCryptoVerifier` implement the signing capability via JSON-RPC `crypto.sign_ed25519` / `crypto.verify_ed25519` per `CRYPTO_WIRE_CONTRACT.md` (see `crates/loam-spine-core/src/traits/crypto_provider.rs`). `CliSigner` remains the development fallback.
 
 ## Key Capabilities (JSON-RPC methods)
@@ -49,6 +49,7 @@ when they need to commit, verify, or query permanent records.
 - `capabilities.list` — Capability-based discovery (Wire Standard L3)
 - `identity.get` — Primal identity
 - `tools.list`, `tools.call` — MCP tool discovery and invocation
+- **Storage backends:** redb (default) and in-memory; optional sled and SQLite backends were removed for stadial compliance.
 
 ## What This Does NOT Do
 

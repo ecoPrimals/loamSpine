@@ -84,11 +84,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Niche `SIGNING` dependency**: Now references `crypto.sign_ed25519` / `crypto.verify_ed25519` wire methods.
 - **Dependency notes**: `sled` (unmaintained), `bincode` v1 (RUSTSEC), `mdns`/`async-std` (dual runtime) evolution paths documented in `Cargo.toml`.
 
+### Changed (April 16, 2026)
+- **Stadial parity gate**: Removed **sled** and **SQLite** storage backends entirely (9 source files: 3 sled, 6 sqlite); default suite remains **1,442** tests (feature-gated sled/sqlite tests were never in the default count). Production storage is **redb** (default) + **memory** only.
+- **`hickory-resolver`**: Upgraded **0.24 → 0.26** (drops `async-trait` from `hickory-proto`; `hickory-net` still carries it upstream).
+- **Lockfile**: Eliminated transitive ghosts **sled**, **libsqlite3-sys**, **rusqlite**, **instant**, **fxhash**. Remaining upstream-only ghosts: **async-trait** (via `hickory-net` 0.26), **ring** (optional features, not default build).
+- **`cargo deny`**: Bans and advisories both pass clean.
+- **Dyn audit**: 72 total `dyn` usages — 28 in doc examples/comments, 37 `Pin<Box<dyn Future>>` for object safety, 7 `Arc<dyn Trait>` for finite-implementor traits; all non-blocking per stadial gate.
+
 ### Metrics
 - Tests: **1,442** (all concurrent, ~3s, zero flaky)
 - `#[serial]`: **0** (was 121)
 - JSON-RPC methods: **37** (was 32)
-- Source files: **187** `.rs` (+ 3 fuzz targets)
+- Source files: **178** `.rs` (+ 3 fuzz targets)
 - Max file: **605** lines production; **783** max test file
 - Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
 - Doc warnings: **0**

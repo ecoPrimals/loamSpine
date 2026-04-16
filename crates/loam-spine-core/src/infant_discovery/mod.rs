@@ -56,11 +56,7 @@ use std::time::{Duration, SystemTime};
 use cache::DiscoveryCache;
 
 #[cfg(feature = "dns-srv")]
-use hickory_resolver::{
-    TokioAsyncResolver,
-    config::{ResolverConfig, ResolverOpts},
-    lookup::SrvLookup,
-};
+use hickory_resolver::TokioResolver;
 use tracing::{debug, info, warn};
 
 #[cfg(any(feature = "dns-srv", feature = "mdns"))]
@@ -365,20 +361,25 @@ impl InfantDiscovery {
     /// Requires the `dns-srv` feature.
     #[cfg(feature = "dns-srv")]
     async fn discover_via_dns_srv(&self, capability: &str) -> Vec<DiscoveredService> {
+        use hickory_resolver::proto::rr::rdata::SRV;
+
         debug!("Attempting DNS SRV discovery for '{}'", capability);
 
-        // Convert capability to DNS SRV service name
-        // "cryptographic-signing" -> "_signing._tcp.local"
         let service_name = backends::capability_to_srv_name(capability);
 
         debug!("Querying DNS SRV for: {}", service_name);
 
-        // Create resolver (TokioAsyncResolver::tokio returns the resolver directly, not a Result)
-        let resolver =
-            TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+        let resolver = match TokioResolver::builder_tokio()
+            .and_then(hickory_resolver::ResolverBuilder::build)
+        {
+            Ok(r) => r,
+            Err(e) => {
+                debug!("Failed to create DNS resolver: {e}");
+                return vec![];
+            }
+        };
 
-        // Query SRV records with timeout
-        let lookup: SrvLookup =
+        let lookup =
             match tokio::time::timeout(DNS_SRV_TIMEOUT, resolver.srv_lookup(service_name.as_str()))
                 .await
             {
@@ -393,14 +394,16 @@ impl InfantDiscovery {
                 }
             };
 
-        // Collect records with their properties
         let mut records_data: Vec<(u16, u16, String, u16)> = Vec::new();
-        for record in lookup.iter() {
-            let priority = record.priority();
-            let weight = record.weight();
-            let port = record.port();
-            let target = record.target().to_utf8();
-            records_data.push((priority, weight, target, port));
+        for record in lookup.answers() {
+            if let Some(srv_ref) = record.try_borrow::<SRV>() {
+                let srv = srv_ref.data();
+                let priority = srv.priority;
+                let weight = srv.weight;
+                let port = srv.port;
+                let target = srv.target.to_utf8();
+                records_data.push((priority, weight, target, port));
+            }
         }
 
         // Sort by priority (lower is better), then by weight (higher is better)

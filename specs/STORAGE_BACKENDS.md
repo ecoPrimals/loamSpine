@@ -8,6 +8,8 @@
 
 ---
 
+> **SQLite (fossilized):** The optional `rusqlite` / `libsqlite3-sys` storage implementation was **removed** from `loam-spine-core` (stadial debt elimination: bundled C SQLite is no longer in `Cargo.lock`). The SQLite-oriented sections below are **historical specification** only, not current code.
+
 ## 1. Overview
 
 LoamSpine uses a pluggable storage architecture. **redb** is the default embedded backend for local storage. **sled** is optional and available via the `sled-storage` feature. Additional backends:
@@ -16,7 +18,7 @@ LoamSpine uses a pluggable storage architecture. **redb** is the default embedde
 |---------|----------|-------------|-------------|
 | **redb** | Default embedded, local | Single node | Key-value |
 | **sled** | Optional embedded (feature-gated) | Single node | Key-value |
-| **SQLite** | Personal spines, portable | Single node | Full SQL |
+| **SQLite** | *Removed from tree* (see note above) | — | — |
 | **PostgreSQL** | Community spines, scalable | Multi-node | Full SQL |
 | **RocksDB** | High-performance local | Single node | Key-value |
 
@@ -194,9 +196,9 @@ pub struct CertificateFilter {
 
 ---
 
-## 3. SQLite Backend
+## 3. SQLite Backend *(fossil — not implemented in `loam-spine-core`)*
 
-Portable, single-file storage for personal spines.
+Portable, single-file storage for personal spines. *(Historical spec; the former feature-gated implementation was removed.)*
 
 ### 3.1 Schema
 

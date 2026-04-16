@@ -4,7 +4,7 @@
 //!
 //! Demonstrates different storage backends in `LoamSpine`:
 //! 1. In-Memory storage (fast, ephemeral)
-//! 2. Sled storage (persistent, embedded DB)
+//! 2. redb storage (persistent, embedded pure-Rust database)
 //! 3. Performance comparison
 //! 4. Use case recommendations
 
@@ -14,10 +14,6 @@
     reason = "example data uses small controlled values"
 )]
 #![expect(
-    clippy::redundant_clone,
-    reason = "examples show explicit ownership for pedagogical clarity"
-)]
-#![expect(
     clippy::uninlined_format_args,
     reason = "examples prioritize readability over production style"
 )]
@@ -25,6 +21,8 @@
 use loam_spine_core::{
     Did, Spine,
     entry::{Entry, EntryType, SpineConfig},
+    storage::{EntryStorage, RedbEntryStorage, RedbStorage, SpineStorage},
+    types::SpineId,
 };
 use std::time::Instant;
 
@@ -33,7 +31,8 @@ use std::time::Instant;
     clippy::too_many_lines,
     reason = "example demonstrates full workflow in one function"
 )]
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🦴 LoamSpine Storage Backends Demo\n");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
@@ -63,12 +62,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   Height: {}", spine1.height);
     println!();
 
-    // Backend 2: Sled Storage
+    // Backend 2: redb Storage
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    println!("💿 Backend 2: Sled Storage (Embedded DB)\n");
+    println!("💿 Backend 2: redb Storage (Embedded DB)\n");
 
-    println!("Note: Sled backend available via feature flag");
-    println!("✅ Configuration: loam-spine-core with sled feature\n");
+    println!("Note: redb is the default persistent backend (`redb-storage` feature).");
+    println!("✅ Pure Rust, ACID, embedded — no separate database server.\n");
 
     println!("Characteristics:");
     println!("   • Persistent: Data survives restarts");
@@ -77,18 +76,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   • Concurrent: Multi-threaded access");
     println!();
 
-    // Note about Sled usage
     println!("Usage in production:");
-    println!("   // With sled feature enabled:");
-    println!("   use loam_spine_core::storage::SledStorage;");
-    println!("   let storage = SledStorage::open(\"/data/loamspine\")?;");
+    println!("   use loam_spine_core::storage::RedbStorage;");
+    println!("   let storage = RedbStorage::open(\"/data/loamspine\")?;");
+    println!();
+
+    let redb = RedbStorage::temporary()?;
+    let demo_spine = Spine::new(
+        owner_did.clone(),
+        Some("redb demo spine".into()),
+        config.clone(),
+    )?;
+    redb.spines.save_spine(&demo_spine).await?;
+    let loaded = redb
+        .spines
+        .get_spine(demo_spine.id)
+        .await?
+        .ok_or("expected spine in redb")?;
+    println!("redb round-trip: saved and loaded spine {}", loaded.id);
+    redb.flush()?;
     println!();
 
     // Performance Comparison
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("⚡ Performance Comparison\n");
 
-    println!("Creating 100 entries in each backend...\n");
+    println!("Creating 100 chained entries: in-memory Spine vs redb entry storage...\n");
 
     // Benchmark in-memory
     let mut spine_mem = Spine::new(
@@ -122,41 +135,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     println!();
 
-    // Benchmark Sled (in-memory comparison, not actual disk ops)
-    let mut spine_sled = Spine::new(
-        owner_did.clone(),
-        Some("Sled Benchmark".into()),
-        SpineConfig::default(),
-    )?;
-
+    // Benchmark redb (persistent entry writes)
+    let entry_storage = RedbEntryStorage::temporary()?;
+    let spine_id = SpineId::now_v7();
+    let mut prev_hash = None;
     let start = Instant::now();
-    for i in 1..=100 {
-        let entry = Entry::new(
-            spine_sled.height,
-            Some(spine_sled.tip),
-            owner_did.clone(),
-            EntryType::DataAnchor {
-                data_hash: [i as u8; 32],
-                mime_type: Some("benchmark/data".to_string()),
-                size: i * 100,
-            },
-        );
-        spine_sled.append(entry)?;
+    for i in 0..100 {
+        let entry = if i == 0 {
+            Entry::genesis(owner_did.clone(), spine_id, SpineConfig::default())
+        } else {
+            Entry::new(
+                i,
+                prev_hash,
+                owner_did.clone(),
+                EntryType::SpineSealed { reason: None },
+            )
+            .with_spine_id(spine_id)
+        };
+        prev_hash = Some(entry_storage.save_entry(&entry).await?);
     }
-    let sled_duration = start.elapsed();
+    let redb_duration = start.elapsed();
 
-    println!("Sled Results (in-memory):");
-    println!("   Total time: {:?}", sled_duration);
-    println!("   Avg per entry: {:?}", sled_duration / 100);
+    println!("redb Results (on-disk embedded DB):");
+    println!("   Total time: {:?}", redb_duration);
+    println!("   Avg per entry: {:?}", redb_duration / 100);
     println!(
         "   Throughput: ~{} entries/sec",
-        (100_000 / sled_duration.as_millis().max(1))
+        (100_000 / redb_duration.as_millis().max(1))
     );
     println!();
 
     println!("Performance Ratio:");
-    let ratio = sled_duration.as_micros() as f64 / memory_duration.as_micros() as f64;
-    println!("   Sled vs In-Memory: {:.2}x", ratio);
+    let ratio = redb_duration.as_micros() as f64 / memory_duration.as_micros() as f64;
+    println!("   redb vs In-Memory: {:.2}x", ratio);
     println!();
 
     // Use Case Recommendations
@@ -171,12 +182,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   ❌ DON'T use for production data");
     println!();
 
-    println!("💾 Sled Storage - Use When:");
+    println!("💾 redb Storage - Use When:");
     println!("   ✅ Production deployments");
     println!("   ✅ Data must persist");
     println!("   ✅ ACID transactions needed");
-    println!("   ✅ Multiple instances (file-based isolation)");
-    println!("   ✅ Good balance of speed & durability");
+    println!("   ✅ Single-instance embedded workloads");
+    println!("   ✅ Pure Rust / ecoBin-aligned builds");
     println!();
 
     println!("🚀 Future Backends:");
@@ -199,15 +210,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
 
     println!("Production (Single Instance):");
-    println!("   → Sled (embedded, no ops overhead)");
+    println!("   → redb (embedded, no ops overhead)");
     println!();
 
     println!("Production (Multi-Instance):");
-    println!("   → PostgreSQL (future) or Sled with file-per-instance");
+    println!("   → PostgreSQL (future) or one redb file per instance");
     println!();
 
     println!("High Throughput:");
-    println!("   → In-Memory with periodic Sled snapshots");
+    println!("   → In-Memory with periodic persistence to redb");
     println!();
 
     println!();
@@ -216,14 +227,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Demonstrated:");
     println!("   ✅ In-Memory storage");
-    println!("   ✅ Sled embedded DB storage");
+    println!("   ✅ redb embedded DB storage");
     println!("   ✅ Performance comparison");
     println!("   ✅ Use case recommendations");
     println!();
 
     println!("Key Takeaways:");
     println!("   • In-Memory: Fast but ephemeral");
-    println!("   • Sled: Persistent and performant");
+    println!("   • redb: Persistent and pure Rust");
     println!("   • Choose based on use case");
     println!("   • Easy to switch backends");
     println!();

@@ -65,7 +65,7 @@ cargo deny check licenses bans sources
 
 **Pure Rust** -- No gRPC, no protobuf, no C/C++ tooling, no OpenSSL. Zero C dependencies (ecoBin compliant). Blake3 uses pure Rust mode (no C/asm). Builds as **musl-static** for portable container deployment via plasmidBin / benchScale.
 
-**Storage backends:** redb (default, pure Rust), memory, sqlite (feature-gated). sled is optional via `--features sled-storage`.
+**Storage backends:** redb (default, pure Rust) and memory.
 
 ```
 loamSpine/
@@ -99,7 +99,7 @@ loamSpine/
 │   │       │   ├── signals.rs     # Signal handling
 │   │       │   └── waypoint.rs    # Anchoring, operations, departure, attestation, proofs
 │   │       ├── spine.rs           # Spine structure
-│   │       ├── storage/           # Storage backends (redb default, memory, sled optional, sqlite)
+│   │       ├── storage/           # Storage backends (redb default, memory)
 │   │       ├── sync/              # Sync engine (push/pull, peer discovery)
 │   │       ├── temporal/          # Time tracking (moments, anchors)
 │   │       ├── traits/            # Integration traits
@@ -203,7 +203,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 783 max test file |
-| **Source Files** | 187 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Source Files** | 178 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

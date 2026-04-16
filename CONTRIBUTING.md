@@ -325,7 +325,8 @@ Look for issues labeled `good-first-issue`:
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | Lint Exceptions | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async), tests all `#[expect(reason)]` |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
-| SPDX Headers | All 187 source files |
+| SPDX Headers | All 178 source files |
+| Source files | 178 `.rs` across workspace (+ 3 fuzz targets) |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |
