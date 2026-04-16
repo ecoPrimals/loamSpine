@@ -45,7 +45,6 @@ pub struct JsonRpcCryptoVerifier {
 #[derive(Deserialize)]
 struct SignResponse {
     signature: String,
-    #[allow(dead_code)]
     algorithm: Option<String>,
 }
 
@@ -106,6 +105,10 @@ impl Signer for JsonRpcCryptoSigner {
             self.next_id(),
         )
         .await?;
+
+        if let Some(ref algo) = resp.algorithm {
+            tracing::trace!(algorithm = %algo, "crypto provider signed with algorithm");
+        }
 
         let sig_bytes = b64.decode(&resp.signature).map_err(|e| {
             LoamSpineError::ipc(

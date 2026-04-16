@@ -142,9 +142,9 @@ where
     } else {
         // Newline-delimited JSON-RPC: process the first line, then keep
         // reading until the peer closes the connection. Persistent connections
-        // are critical for trio IPC stability — partners (wetSpring, ludoSpring,
-        // healthSpring) hold long-lived UDS connections and send multiple
-        // requests without reconnecting.
+        // are critical for trio IPC stability — ecosystem partners hold
+        // long-lived UDS connections and send multiple requests without
+        // reconnecting.
         if let Some(resp) = process_ndjson_line(&handler, &first_line).await {
             writer.write_all(&resp).await?;
             writer.write_all(b"\n").await?;

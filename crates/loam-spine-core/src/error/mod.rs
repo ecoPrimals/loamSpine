@@ -246,8 +246,8 @@ pub fn extract_rpc_error(response: &serde_json::Value) -> Option<(i64, String)> 
 /// or `Err(LoamSpineError::Ipc)` if it contains an `error` field or
 /// is malformed. This is the counterpart to [`extract_rpc_error`].
 ///
-/// Aligns with neuralSpring's `extract_rpc_result` and healthSpring's
-/// `classify_response` for ecosystem-consistent outbound RPC handling.
+/// Aligns with the ecosystem `extract_rpc_result` / `classify_response`
+/// pattern for consistent outbound RPC handling.
 ///
 /// # Errors
 ///

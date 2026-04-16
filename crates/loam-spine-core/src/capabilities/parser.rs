@@ -42,7 +42,7 @@ pub struct ParsedCapabilities {
 /// Also handles Wire Standard L2 flat `methods` (string array) by treating
 /// each string as both a capability and a method name.
 ///
-/// Aligns with wetSpring V125 / airSpring v0.8.7 `parse_capabilities()`.
+/// Aligns with the ecosystem `parse_capabilities()` pattern.
 #[must_use]
 pub fn extract_capabilities(response: &serde_json::Value) -> ParsedCapabilities {
     let primal = response

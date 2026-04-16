@@ -427,9 +427,8 @@ impl SyncProtocol for SyncEngine {
 
 /// Sync engine wrapped with circuit-breaker and retry protection.
 ///
-/// Absorbs the resilience pattern from primalSpring / healthSpring /
-/// the ecosystem for outbound IPC. The inner `SyncEngine` handles wire
-/// protocol; this wrapper handles failure isolation.
+/// Absorbs the ecosystem resilience pattern for outbound IPC. The inner
+/// `SyncEngine` handles wire protocol; this wrapper handles failure isolation.
 ///
 /// Uses [`ResilientAdapter`](crate::ResilientAdapter) which combines
 /// [`CircuitBreaker`](crate::CircuitBreaker) (lock-free atomic state machine)
