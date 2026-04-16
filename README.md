@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C434%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C442%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
 [![Methods](https://img.shields.io/badge/JSON--RPC-37%20methods-blue)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
@@ -197,13 +197,13 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,434 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,442 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 899 max test file |
-| **Source Files** | 186 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Source Files** | 187 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

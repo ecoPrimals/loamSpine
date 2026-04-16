@@ -153,7 +153,7 @@ pub const DEPENDENCIES: &[(&str, bool, &str)] = &[
     (
         crate::capabilities::identifiers::external::SIGNING,
         false,
-        "external signature verification (graceful degradation to CLI signer)",
+        "crypto.sign_ed25519 / crypto.verify_ed25519 via JSON-RPC (graceful degradation to CLI signer)",
     ),
     (
         crate::capabilities::identifiers::external::STORAGE,

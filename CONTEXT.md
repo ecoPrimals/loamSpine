@@ -26,12 +26,13 @@ when they need to commit, verify, or query permanent records.
 - **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,434 (all concurrent, ~3s, zero flaky)
+- **Tests:** 1,442 (all concurrent, ~3s, zero flaky)
 - **Coverage:** 90.92% line / 89.09% branch / 92.92% region
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
 - **Version:** 0.9.16
-- **Source files:** 186 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Source files:** 187 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Production crypto adapters:** `JsonRpcCryptoSigner` and `JsonRpcCryptoVerifier` implement the signing capability via JSON-RPC `crypto.sign_ed25519` / `crypto.verify_ed25519` per `CRYPTO_WIRE_CONTRACT.md` (see `crates/loam-spine-core/src/traits/crypto_provider.rs`). `CliSigner` remains the development fallback.
 
 ## Key Capabilities (JSON-RPC methods)
 

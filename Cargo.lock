@@ -1297,6 +1297,7 @@ name = "loam-spine-core"
 version = "0.9.16"
 dependencies = [
  "async-std",
+ "base64",
  "bincode",
  "blake3",
  "bytes",

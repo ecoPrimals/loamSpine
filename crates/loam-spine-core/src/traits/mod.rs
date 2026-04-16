@@ -24,12 +24,15 @@
 /// CLI-based signer integration for external signing services.
 pub mod cli_signer;
 mod commit;
+/// JSON-RPC crypto provider adapter (production signing path).
+pub mod crypto_provider;
 /// Signing traits and test utilities.
 pub mod signing;
 mod slice;
 
 pub use cli_signer::{CliSigner, CliVerifier};
 pub use commit::{CommitAcceptor, DehydrationSummary, LoamCommitRef, ResultEntry, SpineQuery};
+pub use crypto_provider::{JsonRpcCryptoSigner, JsonRpcCryptoVerifier};
 pub use signing::{SignatureVerification, Signer, Verifier};
 pub use slice::{ActiveSlice, SliceManager, SliceOrigin, SliceResolution, SliceStatus};
 
