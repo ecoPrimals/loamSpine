@@ -123,7 +123,7 @@ fn main() -> LoamSpineResult<()> {
     println!();
     println!("Key concepts:");
     println!("  • SpineBackup: Container for spine + entries + certs");
-    println!("  • Binary export: Compact, fast (bincode)");
+    println!("  • Binary export: Compact, fast (MessagePack)");
     println!("  • JSON export: Human-readable, portable");
     println!("  • Verification: Chain integrity + certificate validity");
 

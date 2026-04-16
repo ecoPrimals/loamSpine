@@ -135,7 +135,7 @@ impl SpineStorage for RedbSpineStorage {
             match value {
                 Some(guard) => {
                     let spine: Spine =
-                        bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
+                        rmp_serde::from_slice(guard.value()).storage_ctx("deserialize")?;
                     Ok(Some(spine))
                 }
                 None => Ok(None),
@@ -147,7 +147,7 @@ impl SpineStorage for RedbSpineStorage {
     async fn save_spine(&self, spine: &Spine) -> LoamSpineResult<()> {
         let db = Arc::clone(&self.db);
         let key = *spine.id.as_bytes();
-        let bytes = bincode::serialize(spine).storage_ctx("serialize")?;
+        let bytes = rmp_serde::to_vec(spine).storage_ctx("serialize")?;
         blocking(move || {
             let write_txn = db.begin_write().storage_err()?;
             {
@@ -277,7 +277,7 @@ impl EntryStorage for RedbEntryStorage {
             match value {
                 Some(guard) => {
                     let entry: Entry =
-                        bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
+                        rmp_serde::from_slice(guard.value()).storage_ctx("deserialize")?;
                     Ok(Some(entry))
                 }
                 None => Ok(None),
@@ -289,7 +289,7 @@ impl EntryStorage for RedbEntryStorage {
     async fn save_entry(&self, entry: &Entry) -> LoamSpineResult<EntryHash> {
         let db = Arc::clone(&self.db);
         let hash = entry.compute_hash()?;
-        let bytes = bincode::serialize(entry).storage_ctx("serialize")?;
+        let bytes = rmp_serde::to_vec(entry).storage_ctx("serialize")?;
         let index_key = Self::make_index_key(entry.spine_id, entry.index);
         blocking(move || {
             let write_txn = db.begin_write().storage_err()?;
@@ -350,7 +350,7 @@ impl EntryStorage for RedbEntryStorage {
                 let hash_bytes = hash_guard.value();
                 if let Some(entry_guard) = entries_table.get(hash_bytes).storage_err()? {
                     let entry: Entry =
-                        bincode::deserialize(entry_guard.value()).storage_ctx("deserialize")?;
+                        rmp_serde::from_slice(entry_guard.value()).storage_ctx("deserialize")?;
                     entries.push(entry);
                 }
             }
@@ -432,7 +432,7 @@ impl CertificateStorage for RedbCertificateStorage {
             match value {
                 Some(guard) => {
                     let pair: (Certificate, SpineId) =
-                        bincode::deserialize(guard.value()).storage_ctx("deserialize")?;
+                        rmp_serde::from_slice(guard.value()).storage_ctx("deserialize")?;
                     Ok(Some(pair))
                 }
                 None => Ok(None),
@@ -448,7 +448,7 @@ impl CertificateStorage for RedbCertificateStorage {
     ) -> LoamSpineResult<()> {
         let db = Arc::clone(&self.db);
         let key = *certificate.id.as_bytes();
-        let bytes = bincode::serialize(&(certificate, spine_id)).storage_ctx("serialize")?;
+        let bytes = rmp_serde::to_vec(&(certificate, spine_id)).storage_ctx("serialize")?;
         blocking(move || {
             let write_txn = db.begin_write().storage_err()?;
             {

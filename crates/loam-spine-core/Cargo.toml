@@ -25,9 +25,7 @@ uuid = { workspace = true }
 redb = { version = "2.4", optional = true }
 
 # Binary serialization for storage
-# NOTE: bincode 1.x has a RUSTSEC advisory. Migration to bincode 2.x is a
-# storage-format breaking change tracked for v1.0.0.
-bincode = { workspace = true }
+rmp-serde = { workspace = true }
 
 # Zero-copy buffer management for network operations
 bytes = { workspace = true }

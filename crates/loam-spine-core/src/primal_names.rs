@@ -13,16 +13,16 @@ pub const SELF_ID: &str = "loamspine";
 /// `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 Socket Naming Convention.
 pub const DOMAIN: &str = "permanence";
 
-/// Capability-domain stem for biomeOS socket routing.
+/// Capability-domain stem for ecosystem socket routing.
 ///
-/// Other primals discover us via `ledger.sock` in the biomeos directory,
+/// Other primals discover us via `ledger.sock` under the runtime IPC path segment [`BIOMEOS_SOCKET_DIR`],
 /// matching `by_capability = "ledger"` in ecosystem deploy graphs.
 pub const CAPABILITY_DOMAIN: &str = "ledger";
 
-/// biomeOS orchestrator identifier (used for socket/IPC paths).
+/// Ecosystem orchestrator identifier for socket/IPC paths.
 pub const BIOMEOS: &str = "biomeos";
 
-/// Socket directory name for biomeOS IPC mesh.
+/// Socket directory name for the ecosystem IPC mesh.
 pub const BIOMEOS_SOCKET_DIR: &str = "biomeos";
 
 #[cfg(test)]

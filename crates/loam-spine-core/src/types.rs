@@ -238,7 +238,7 @@ impl<'de> serde::Deserialize<'de> for Signature {
 /// Visitor that deserializes directly into [`ByteBuffer`] (`Bytes`),
 /// avoiding the intermediate `Vec<u8>` allocation for binary formats.
 /// JSON falls back through `visit_seq` (array of numbers) which still
-/// allocates, but binary codecs (bincode, postcard) use `visit_byte_buf`
+/// allocates, but binary codecs (e.g. MessagePack via rmp-serde) use `visit_byte_buf`
 /// for true zero-copy handoff.
 struct ByteBufferVisitor;
 

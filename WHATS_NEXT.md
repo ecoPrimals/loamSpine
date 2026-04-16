@@ -7,6 +7,13 @@
 
 ---
 
+## Documentation changelog
+
+- **April 16, 2026** — **bincode → rmp-serde (MessagePack)**: Storage and backup serialization migrated from `bincode` v1 to **`rmp-serde`**, eliminating **RUSTSEC-2025-0141**. The prior **bincode v1 → v2** migration plan is complete in spirit but **not** via bincode v2 — MessagePack is the chosen on-disk format.
+- **April 16, 2026** — **biomeOS doc comments**: Literal **biomeOS** references in **production** doc comments genericized (**29 → 0**) for self-knowledge compliance.
+
+---
+
 ## Completed (v0.8.0 -- v0.8.9)
 
 - SQLite storage backend (feature-gated) with full test coverage
@@ -216,7 +223,7 @@
 - **Self-knowledge enforcement** — `primal_names.rs` stripped to `SELF_ID`/`BIOMEOS`/`BIOMEOS_SOCKET_DIR` only; config `"songbird"` alias removed
 - **tokio features narrowed** — `"full"` → explicit feature list for faster compile times
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
-- **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
+- **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
 ## v0.9.16 Stadial Parity Gate (April 16, 2026)
@@ -231,7 +238,7 @@
 - **`JsonRpcCryptoSigner` / `JsonRpcCryptoVerifier`**: Production signing path implementing `crypto.sign_ed25519` / `crypto.verify_ed25519` wire contract per `CRYPTO_WIRE_CONTRACT.md`. UDS NDJSON transport, base64 encoding, `const fn` constructors. `CliSigner` remains as development fallback.
 - **Self-knowledge sweep**: Remaining hardcoded primal names (`airSpring`, `healthSpring`, `wetSpring`, `ludoSpring`, `neuralSpring`) in production doc comments genericized to ecosystem-capability language.
 - **`#[allow(dead_code)]` evolved**: `SignResponse.algorithm` field now logged via `tracing::trace` instead of suppressed.
-- **Dependency evolution notes**: `sled` (unmaintained), `bincode` v1 (RUSTSEC), `mdns`/`async-std` (dual runtime) paths documented in `Cargo.toml`.
+- **Dependency evolution notes**: `sled` (unmaintained; removed in stadial gate), storage/backup uses **`rmp-serde`** (not `bincode`), `mdns`/`async-std` (dual runtime) paths documented in `Cargo.toml`.
 - **`cargo deny check`**: advisories OK, bans OK, licenses OK, sources OK.
 - **Tests**: **1,442**. Source files: **178**. JSON-RPC methods: **37**. All gates green.
 
@@ -256,7 +263,7 @@
 - **BTSP provider decoupling**: `beardog_client.rs` → `provider_client.rs` (module rename). `beardog_call` → `provider_call`, `beardog_socket` → `provider_socket` throughout handshake.rs. All "BearDog" error messages and doc comments evolved to "BTSP provider" — zero compile-time coupling to any specific signing primal. `BEARDOG_SOCKET` env var → `BTSP_PROVIDER_SOCKET` (checks BTSP_PROVIDER_SOCKET first, falls back to BEARDOG_SOCKET for backward compat). Unused `beardog_socket()` accessor removed.
 - **`.into()` modernization**: `DEFAULT_BTSP_PROVIDER_PREFIX.to_string()` → `.into()`, `"LoamSpine".to_string()` → `.into()` (config default), `"Storage backend unavailable".to_string()` → `.into()` (health readiness), `fid.to_string()` → `fid.into()` (BTSP config).
 - **Test naming evolved**: `spawn_mock_beardog` → `spawn_mock_provider`, `handshake_failure_beardog_unavailable` → `handshake_failure_provider_unavailable`.
-- **Full 11-dimension audit**: Zero unsafe, zero production unwrap/expect, zero TODO/FIXME, zero production mocks, zero hardcoded primal names in production, all files under 1000 lines, zero stale `#[allow]`. `bincode v1` migration already tracked in `DEPENDENCY_EVOLUTION.md`.
+- **Full 11-dimension audit**: Zero unsafe, zero production unwrap/expect, zero TODO/FIXME, zero production mocks, zero hardcoded primal names in production, all files under 1000 lines, zero stale `#[allow]`. **`bincode` v1 → `rmp-serde`** migration recorded as complete in `DEPENDENCY_EVOLUTION.md`.
 - **Tests**: **1,396**. All gates green.
 
 ## v0.9.16 Deep Debt Pass 8 — provenance.commit Alias (April 14, 2026)
@@ -476,7 +483,6 @@
 - **Showcase demos** — Expand from ~10% to full coverage
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
 - **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate `mdns-sd` or `hickory-resolver` mDNS (see `specs/DEPENDENCY_EVOLUTION.md`)
-- **bincode v1 → v2** — Storage format migration for RUSTSEC-2025-0141 resolution (see `specs/DEPENDENCY_EVOLUTION.md`)
 - **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)
 
 ---

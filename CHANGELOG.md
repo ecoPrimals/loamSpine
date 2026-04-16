@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Security / Dependencies (April 16, 2026)
+
+- **RUSTSEC-2025-0141 resolved**: Storage and backup serialization migrated from **`bincode` v1** to **`rmp-serde` (MessagePack)** — the advisory no longer applies to this codebase.
+- **Self-knowledge doc comments**: Remaining **biomeOS**-specific references in **production** doc comments genericized (**29 → 0**), improving compliance with primal self-knowledge conventions.
+
 ### Added
 - **Capability Wire Standard L2/L3**: `capabilities.list` response reshaped per Capability Wire Standard v1.0. `methods` promoted from array of objects to flat string array (primary biomeOS routing signal). `provided_capabilities` grouping added for structured routing (9 domain groups). `consumed_capabilities` declared for composition completeness validation. All 32 callable methods now advertised in `methods` (previously 24, missing health/permanence/tools/identity).
 - **`identity.get` JSON-RPC method**: Returns `{primal, version, domain, license}` per Wire Standard L2. Cached via `OnceLock`.
@@ -82,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Self-knowledge evolution**: ~50 hardcoded primal name references (BearDog, rhizoCrypt, sweetGrass, etc.) genericized to capability-based language throughout production code and docs.
 - **BTSP config**: `DEFAULT_BTSP_PROVIDER_PREFIX` from `"beardog"` to `"btsp-provider"`. Removed `BEARDOG_SOCKET` env var fallback.
 - **Niche `SIGNING` dependency**: Now references `crypto.sign_ed25519` / `crypto.verify_ed25519` wire methods.
-- **Dependency notes**: `sled` (unmaintained), `bincode` v1 (RUSTSEC), `mdns`/`async-std` (dual runtime) evolution paths documented in `Cargo.toml`.
+- **Dependency notes**: `sled` (unmaintained), `mdns`/`async-std` (dual runtime) evolution paths documented in `Cargo.toml`. Storage/backup serialization uses **`rmp-serde`** (not `bincode` v1).
 
 ### Changed (April 16, 2026)
 - **Stadial parity gate**: Removed **sled** and **SQLite** storage backends entirely (9 source files: 3 sled, 6 sqlite); default suite remains **1,442** tests (feature-gated sled/sqlite tests were never in the default count). Production storage is **redb** (default) + **memory** only.

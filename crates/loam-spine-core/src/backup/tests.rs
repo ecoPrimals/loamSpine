@@ -526,12 +526,12 @@ fn backup_restore_from_truncated_data() {
 }
 
 #[test]
-fn backup_restore_from_corrupt_bincode() {
+fn backup_restore_from_corrupt_msgpack() {
     let mut buffer = Vec::new();
     buffer.extend_from_slice(BACKUP_MAGIC);
     let len: u64 = 20;
     buffer.extend_from_slice(&len.to_le_bytes());
-    buffer.extend_from_slice(b"corrupt-bincode-data!!");
+    buffer.extend_from_slice(b"corrupt-msgpack-data!!");
 
     let mut cursor = Cursor::new(buffer);
     let result = SpineBackup::import(&mut cursor);

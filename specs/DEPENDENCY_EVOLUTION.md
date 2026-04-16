@@ -12,25 +12,17 @@
 
 ---
 
-## bincode v1.3 → v2
+## bincode v1 → MessagePack (`rmp-serde`) — **COMPLETE**
 
 | Field | Detail |
 |-------|--------|
-| **Current** | `bincode = "1.3"` (via serde `Serialize`/`Deserialize`) |
-| **Target** | `bincode = "2.x"` with native `Encode`/`Decode` derive macros |
-| **Blocker** | All storage backends (redb, sled, sqlite) use `bincode::serialize`/`deserialize`. Migration requires adding `#[derive(bincode::Encode, bincode::Decode)]` to all stored types (`Spine`, `Entry`, `Certificate`, etc.) and updating all call sites. |
-| **Risk** | Storage format is not wire-compatible between v1 and v2. Requires a migration strategy for existing databases or a format version header. |
-| **Benefit** | ~30% faster serialization, no serde dependency for storage path, smaller binary. bincode v2 also fixes RUSTSEC-2025-0141 (length-prefix confusion). |
-| **Priority** | Medium. Current v1 usage is safe for embedded use (trusted data). |
+| **Status** | **COMPLETE** (April 16, 2026) |
+| **Former plan** | Migrate to **bincode v2** (`Encode`/`Decode`) to address **RUSTSEC-2025-0141** |
+| **Actual path** | Replaced **`bincode` v1** with **`rmp-serde`** (serde over **MessagePack**) for storage and backup serialization — **RUSTSEC-2025-0141** eliminated because **`bincode` is no longer in the affected usage path** |
+| **Rationale** | MessagePack via serde keeps a single derive surface (`Serialize`/`Deserialize`) on stored types while avoiding bincode v1’s advisory; bincode v2 was not required to close the issue |
+| **Format note** | On-disk bytes are **not** bincode v1-compatible after migration — existing DBs need a one-time migration or restore-from-backup if upgrading from pre-MsgPack snapshots |
 
-### Migration Plan
-
-1. Add `bincode2 = { package = "bincode", version = "2" }` alongside v1
-2. Add `#[derive(bincode::Encode, bincode::Decode)]` to core types
-3. Implement format-version header in storage (1 byte prefix)
-4. Write migration tool: read v1, write v2
-5. Swap default storage format to v2
-6. Remove bincode v1 after one release cycle
+Historical planning text for a bincode v2 migration is superseded by this completion record.
 
 ---
 
@@ -53,14 +45,12 @@
 
 ---
 
-## sled → redb (completed)
+## sled → redb — **COMPLETE** (removed)
 
-redb is now the default storage backend (`default = ["redb-storage"]`). sled remains
-available behind the `sled-storage` feature flag for backward compatibility. sled's
-maintenance status is uncertain; redb is actively maintained and pure Rust.
-
-**Action**: No immediate change needed. sled will be deprecated in a future release
-if its maintenance situation does not improve.
+redb is the sole persistent storage backend (`default = ["redb-storage"]`). The `sled`
+dependency and `sled-storage` feature were **fully removed** from `loam-spine-core` during
+the Stadial Parity Gate (April 2026). `sled`, `instant`, and `fxhash` are no longer in
+`Cargo.lock`. SQLite (`rusqlite`/`libsqlite3-sys`) was removed at the same time.
 
 ---
 

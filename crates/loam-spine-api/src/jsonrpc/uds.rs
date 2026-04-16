@@ -16,7 +16,7 @@ use tracing::{debug, info, warn};
 
 /// Maximum concurrent UDS connections.
 ///
-/// Provides backpressure under composition load (trio IPC, biomeOS graphs).
+/// Provides backpressure under composition load (trio IPC, ecosystem pipeline graphs).
 /// Connections beyond this limit wait until a slot opens rather than being
 /// rejected, which prevents transient overload from breaking long-lived
 /// trio partner connections.

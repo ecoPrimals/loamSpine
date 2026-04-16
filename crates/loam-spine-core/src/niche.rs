@@ -8,10 +8,10 @@
 //!
 //! This module holds the primal's self-knowledge:
 //! - Identity (who am I?)
-//! - Capabilities (what do I expose via biomeOS?)
+//! - Capabilities (what do I expose via the orchestration layer?)
 //! - Semantic mappings (capability domain → JSON-RPC methods)
 //! - Dependencies (what capabilities do I consume?)
-//! - Operation costs (scheduling hints for biomeOS)
+//! - Operation costs (scheduling hints for the ecosystem orchestrator)
 //!
 //! Other modules (`neural_api`, `capabilities`, `service`) reference
 //! these constants rather than duplicating string literals. LoamSpine
@@ -20,11 +20,11 @@
 /// Primal identity — used in all JSON-RPC, provenance, and IPC interactions.
 pub const PRIMAL_ID: &str = crate::primal_names::SELF_ID;
 
-/// Human-readable primal description for biomeOS registration.
+/// Human-readable primal description for orchestrator registration.
 pub const PRIMAL_DESCRIPTION: &str =
     "Permanence layer providing selective memory, certificates, and inclusion proofs";
 
-/// Primal category for biomeOS deployment.
+/// Primal category for ecosystem deployment.
 pub const PRIMAL_CATEGORY: &str = "infrastructure";
 
 /// All capability domains this primal exposes.
@@ -41,10 +41,10 @@ pub const DOMAINS: &[&str] = &[
     "integration",
 ];
 
-/// All JSON-RPC methods this primal exposes to biomeOS.
+/// All JSON-RPC methods this primal exposes to the orchestration layer.
 ///
 /// Each string is a fully qualified method name (`{domain}.{operation}`)
-/// that biomeOS can route via `capability.call`.
+/// that the ecosystem orchestrator can route via `capability.call`.
 pub const METHODS: &[&str] = &[
     "spine.create",
     "spine.get",
@@ -87,7 +87,7 @@ pub const METHODS: &[&str] = &[
 
 /// Semantic mappings: short operation name → fully qualified method.
 ///
-/// biomeOS uses these during domain registration so
+/// The orchestrator uses these during domain registration so
 /// `capability.call { domain: "spine", operation: "create" }`
 /// routes to `spine.create` on our socket.
 pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
@@ -177,7 +177,7 @@ pub const DEPENDENCIES: &[(&str, bool, &str)] = &[
     ),
 ];
 
-/// Cost estimates for biomeOS scheduling.
+/// Cost estimates for ecosystem orchestrator scheduling.
 ///
 /// Each entry: `(method, estimated_ms, gpu_beneficial)`.
 pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[

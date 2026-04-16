@@ -139,7 +139,7 @@ impl SpineBackup {
             .write_all(BACKUP_MAGIC)
             .map_err(|e| LoamSpineError::Internal(format!("Failed to write magic bytes: {e}")))?;
 
-        let data = bincode::serialize(self)
+        let data = rmp_serde::to_vec(self)
             .map_err(|e| LoamSpineError::Internal(format!("Failed to serialize backup: {e}")))?;
 
         let len = u64::try_from(data.len())
@@ -185,7 +185,7 @@ impl SpineBackup {
             .read_exact(&mut data)
             .map_err(|e| LoamSpineError::Internal(format!("Failed to read data: {e}")))?;
 
-        let backup: Self = bincode::deserialize(&data)
+        let backup: Self = rmp_serde::from_slice(&data)
             .map_err(|e| LoamSpineError::Internal(format!("Failed to deserialize backup: {e}")))?;
 
         Ok(backup)

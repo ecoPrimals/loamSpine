@@ -21,7 +21,7 @@ use crate::error::LoamSpineError;
 use crate::types::{Did, EntryHash, Signature, SpineId, Timestamp};
 
 // ─── Wire types (JSON boundary) ─────────────────────────────────────────────
-// These mirror the JSON shapes produced by the ephemeral DAG primal and consumed by biomeOS.
+// These mirror the JSON shapes produced by the ephemeral DAG primal and consumed by the orchestration layer.
 // Each primal owns its own copy; the wire format (JSON) is the shared contract.
 
 /// Dehydration summary received from the ephemeral DAG primal over JSON-RPC.
@@ -180,14 +180,14 @@ pub struct WireSessionOperationRef {
     pub description: Option<String>,
 }
 
-/// Request to execute the provenance pipeline (biomeOS graph input).
+/// Request to execute the provenance pipeline (ecosystem pipeline graph input).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PipelineRequest {
     /// Ephemeral DAG session to dehydrate.
     pub session_id: String,
     /// DID of the agent performing the commit.
     pub agent_did: String,
-    /// biomeOS family identifier.
+    /// Ecosystem family identifier.
     #[serde(default)]
     pub family_id: String,
     /// Optional experiment identifier (for Spring experiments).
@@ -413,7 +413,7 @@ pub struct TrioCommitReceipt {
 }
 
 impl TrioCommitReceipt {
-    /// Convert to the canonical [`PipelineResult`] for biomeOS graph execution.
+    /// Convert to the canonical [`PipelineResult`] for ecosystem pipeline graph execution.
     #[must_use]
     pub fn to_pipeline_result(
         &self,

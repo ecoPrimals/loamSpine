@@ -181,7 +181,7 @@ impl Entry {
 
     /// Serialize to canonical bytes for hashing.
     ///
-    /// Uses `bincode` for compact, deterministic serialization. Metadata is
+    /// Uses `rmp-serde` (MessagePack) for compact, deterministic serialization. Metadata is
     /// stored in a `BTreeMap`, so keys are always sorted — no extra
     /// canonicalisation step is needed.
     ///
@@ -189,7 +189,7 @@ impl Entry {
     ///
     /// Returns an error if serialization fails (should never occur for valid entries).
     pub fn to_canonical_bytes(&self) -> crate::error::LoamSpineResult<Vec<u8>> {
-        bincode::serialize(self).map_err(|e| {
+        rmp_serde::to_vec(self).map_err(|e| {
             crate::error::LoamSpineError::Serialization(format!(
                 "canonical serialization failed: {e}"
             ))

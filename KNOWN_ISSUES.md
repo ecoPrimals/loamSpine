@@ -25,9 +25,8 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 
 | Dependency | Issue | Mitigation |
 |------------|-------|------------|
-| `bincode` v1 | RUSTSEC-2025-0141. Direct dep for storage/backup serialization. | tarpc tokio-serde path eliminated via feature trimming (v0.9.7). Direct usage deep in storage layer — migration to v2 tracked in `specs/DEPENDENCY_EVOLUTION.md` (storage format breaking change). |
 | `opentelemetry_sdk` | RUSTSEC-2026-0007. Hard dep of tarpc 0.37 (not feature-gated). | Tracked in `deny.toml`; awaiting upstream tarpc resolution. |
-| `hickory-net` (via `hickory-resolver` 0.26) | Pulls `async-trait` (stadial ghost; upstream debt). | Non-blocking per stadial gate; resolver upgraded 0.24→0.26 (`hickory-proto` no longer uses `async-trait`). |
+| `hickory-net` (via `hickory-resolver` 0.26) | Pulls `async-trait` (stadial ghost; upstream debt). `hickory-proto` 0.26 no longer uses it, but `hickory-net` 0.26 still does. | Non-blocking per stadial gate; awaiting upstream `hickory-net` release that drops `async-trait`. |
 | `ring` | Optional transitive dep (not in default build). | Stadial tracking only when optional features pull it in. |
 | `mdns` 3.0 | Pulls discontinued `async-std`, deprecated `net2`, unmaintained `proc-macro-error`. | Optional feature only. All three advisories tracked in `deny.toml`. Evolution to `mdns-sd` or `hickory-resolver` mDNS tracked in `specs/DEPENDENCY_EVOLUTION.md`. |
 | `async-channel` | Minor duplicate versions via `mdns` → `async-std`. | Cosmetic — no functional impact. |

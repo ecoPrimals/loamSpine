@@ -34,7 +34,7 @@ pub enum IpcErrorPhase {
 
 /// Backward-compatible alias for [`IpcErrorPhase`].
 ///
-/// Ecosystem naming converged on `IpcErrorPhase` (primalSpring, biomeOS).
+/// Ecosystem naming converged on `IpcErrorPhase` (e.g. provenance stack primals).
 /// This alias preserves backward compatibility for downstream
 /// code that imported the original name.
 pub type IpcPhase = IpcErrorPhase;

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! NeuralAPI registration for biomeOS orchestration.
+//! NeuralAPI registration for ecosystem orchestration.
 //!
-//! This module handles LoamSpine's registration with biomeOS's NeuralAPI,
+//! This module handles LoamSpine's registration with the ecosystem NeuralAPI,
 //! advertising capabilities and socket endpoints so the orchestration layer
 //! can route capability requests to LoamSpine.
 
@@ -28,7 +28,7 @@ pub use socket::{
 pub const PRIMAL_NAME: &str = crate::primal_names::SELF_ID;
 
 /// Semantic capabilities LoamSpine provides to the ecosystem.
-/// These map to biomeOS's `capability_domains.rs` for NeuralAPI routing.
+/// These map to the orchestrator's `capability_domains.rs` for NeuralAPI routing.
 pub const CAPABILITIES: &[&str] = &[
     "permanence",
     "session.commit",
@@ -56,7 +56,7 @@ pub const CAPABILITIES: &[&str] = &[
     "capability.list",
 ];
 
-/// Register LoamSpine with biomeOS's NeuralAPI.
+/// Register LoamSpine with the ecosystem NeuralAPI.
 ///
 /// Sends a `lifecycle.register` JSON-RPC request to the NeuralAPI Unix socket.
 /// If NeuralAPI is not available, logs a debug message and returns Ok (non-fatal).
@@ -311,7 +311,7 @@ fn capability_list_inner() -> serde_json::Value {
     serde_json::json!({
         "primal": PRIMAL_NAME,
         "version": env!("CARGO_PKG_VERSION"),
-        // Wire Standard L2: flat string array of all callable methods (primary biomeOS routing signal)
+        // Wire Standard L2: flat string array of all callable methods (primary ecosystem routing signal)
         "methods": crate::niche::METHODS,
         // Wire Standard L3: capability groupings for structured routing
         "provided_capabilities": [
@@ -328,7 +328,7 @@ fn capability_list_inner() -> serde_json::Value {
         ],
         // Wire Standard L3: consumed capabilities for composition completeness validation
         "consumed_capabilities": crate::niche::CONSUMED_CAPABILITIES,
-        // Backward-compatible: semantic capability labels for biomeOS domain registration
+        // Backward-compatible: semantic capability labels for ecosystem domain registration
         "capabilities": CAPABILITIES,
         // Wire Standard L3: per-method cost hints for AI advisors and scheduler
         "cost_estimates": {

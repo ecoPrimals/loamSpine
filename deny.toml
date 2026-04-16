@@ -94,7 +94,6 @@ registries = []
 # Tracked transitive advisories; accurate dependency chains documented below.
 # Aligns with rhizoCrypt/sweetGrass deny.toml advisory ignore lists.
 ignore = [
-    { id = "RUSTSEC-2025-0141", reason = "bincode v1: direct dep for storage/backup serialization (tarpc path eliminated via feature trimming)" },
     { id = "RUSTSEC-2026-0007", reason = "opentelemetry_sdk: tarpc 0.37 hard dep → tracing-opentelemetry (not feature-gated)" },
     { id = "RUSTSEC-2025-0052", reason = "async-std: mdns 3.0 dep (mdns feature-gated, optional)" },
     { id = "RUSTSEC-2020-0016", reason = "net2: mdns 3.0 dep — deprecated in favor of socket2 (mdns feature-gated)" },

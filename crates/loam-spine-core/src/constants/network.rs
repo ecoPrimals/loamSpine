@@ -228,7 +228,7 @@ pub fn resolve_primal_socket_with(
 pub enum IpcProtocol {
     /// JSON-RPC 2.0 over Unix socket (primary, always available).
     JsonRpc,
-    /// tarpc/bincode over Unix socket (high-performance primal-to-primal).
+    /// tarpc/msgpack over Unix socket (high-performance primal-to-primal).
     Tarpc,
 }
 

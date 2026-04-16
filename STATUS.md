@@ -60,6 +60,7 @@ This document tracks implementation progress against the specification suite in 
 | Unused dependencies | 0 | `serde_bytes` removed (confirmed unused) |
 | Workspace-centralized deps | 100% | All shared deps defined in `[workspace.dependencies]` |
 | `cargo deny check` | pass | advisories ok, bans ok, licenses ok, sources ok |
+| Storage/backup serde | `rmp-serde` (MessagePack) | Replaced **`bincode` v1** for on-disk and backup payloads; **RUSTSEC-2025-0141** no longer applies (see `specs/DEPENDENCY_EVOLUTION.md`). |
 
 ---
 
@@ -241,7 +242,7 @@ This document tracks implementation progress against the specification suite in 
 - **Self-knowledge enforcement**: `primal_names.rs` stripped to `SELF_ID`, `BIOMEOS`, `BIOMEOS_SOCKET_DIR` only — external primal names removed. Serde `"songbird"` alias removed from config.
 - **tokio features narrowed**: `"full"` → explicit feature list — faster compile times, smaller dependency footprint.
 - **Smart refactor `jsonrpc/tests.rs`**: Extracted `tests_protocol.rs` (526 lines) for protocol-level tests. Both files under 1,000 lines.
-- **Dependency evolution documented**: `specs/DEPENDENCY_EVOLUTION.md` tracks `bincode v1 → v2`, `mdns` crate evolution, `sled → redb` completion.
+- **Dependency evolution documented**: `specs/DEPENDENCY_EVOLUTION.md` tracks completed **`bincode` v1 → `rmp-serde` (MessagePack)** migration, `mdns` crate evolution, `sled → redb` completion (sled later removed in stadial gate).
 - **85 new tests**: UDS server, protocol-level JSON-RPC, lifecycle state transitions, discovery manifest, CLI signer, neural API edge cases.
 - **Tests**: 1,312 → **1,397** (+85). **Source files**: 131 → **129**. All under 1000 lines (max: 899). **Coverage**: 93.96% line / 92.60% region. Clippy pedantic+nursery: 0 warnings. Doc warnings: 0.
 

@@ -80,7 +80,7 @@ loamSpine/
 │   │       ├── config.rs          # Configuration
 │   │       ├── discovery/         # Capability registry + DynSigner/DynVerifier
 │   │       ├── discovery_client/  # HTTP discovery client + ResilientDiscoveryClient
-│   │       ├── entry/             # Entry types (15+ variants, bincode canonical)
+│   │       ├── entry/             # Entry types (15+ variants, MessagePack / rmp-serde canonical)
 │   │       ├── infant_discovery/  # DNS-SRV, mDNS, registry discovery
 │   │       ├── manager/           # Certificate manager
 │   │       ├── niche.rs            # Primal self-knowledge (capabilities, deps, costs)

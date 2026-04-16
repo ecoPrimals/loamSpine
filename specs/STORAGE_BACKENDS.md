@@ -4,23 +4,24 @@
 
 **Version**: 1.0.0  
 **Status**: Active  
-**Last Updated**: December 22, 2025
+**Last Updated**: April 16, 2026
 
 ---
 
-> **SQLite (fossilized):** The optional `rusqlite` / `libsqlite3-sys` storage implementation was **removed** from `loam-spine-core` (stadial debt elimination: bundled C SQLite is no longer in `Cargo.lock`). The SQLite-oriented sections below are **historical specification** only, not current code.
+> **Stadial cleanup (April 2026):** Both the **sled** (`sled-storage` feature) and **SQLite** (`rusqlite`/`libsqlite3-sys`) storage implementations were **removed** from `loam-spine-core` during the Stadial Parity Gate. Only **redb** (persistent) and **in-memory** (testing) backends remain in the codebase. The sled, SQLite, PostgreSQL, and RocksDB sections below are **historical specification** only, retained as fossil record for future backend design.
 
 ## 1. Overview
 
-LoamSpine uses a pluggable storage architecture. **redb** is the default embedded backend for local storage. **sled** is optional and available via the `sled-storage` feature. Additional backends:
+LoamSpine uses a pluggable storage architecture. **redb** is the default embedded backend for persistent local storage. **In-memory** storage is available for testing.
 
-| Backend | Use Case | Scalability | Query Power |
-|---------|----------|-------------|-------------|
-| **redb** | Default embedded, local | Single node | Key-value |
-| **sled** | Optional embedded (feature-gated) | Single node | Key-value |
-| **SQLite** | *Removed from tree* (see note above) | — | — |
-| **PostgreSQL** | Community spines, scalable | Multi-node | Full SQL |
-| **RocksDB** | High-performance local | Single node | Key-value |
+| Backend | Use Case | Scalability | Status |
+|---------|----------|-------------|--------|
+| **redb** | Default embedded, persistent | Single node | **Implemented** |
+| **memory** | Testing, ephemeral | Single process | **Implemented** |
+| **sled** | *(removed — stadial gate)* | — | Fossil |
+| **SQLite** | *(removed — stadial gate)* | — | Fossil |
+| **PostgreSQL** | Community spines, scalable | Multi-node | Spec only |
+| **RocksDB** | High-performance local | Single node | Spec only |
 
 All backends implement the same trait interface.
 

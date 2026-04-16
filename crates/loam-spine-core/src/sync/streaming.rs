@@ -3,7 +3,7 @@
 //! Streaming sync helpers for NDJSON progress reporting.
 //!
 //! Wraps the core `SyncEngine` push/pull operations with bounded `mpsc`
-//! channel progress, enabling biomeOS Pipeline coordination graphs to
+//! channel progress, enabling ecosystem pipeline coordination graphs to
 //! wire springs together with observable data flow.
 
 use tracing::{debug, warn};

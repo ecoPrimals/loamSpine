@@ -55,7 +55,7 @@
 )]
 #![expect(
     clippy::doc_markdown,
-    reason = "ecosystem terms like biomeOS, ecoPrimals are domain vocabulary"
+    reason = "ecosystem-specific proper nouns (e.g. ecoPrimals) are domain vocabulary"
 )]
 
 // Core modules

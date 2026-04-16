@@ -2,7 +2,7 @@
 
 //! NDJSON streaming types for pipeline coordination.
 //!
-//! Used by biomeOS Pipeline coordination graphs to wire bounded `mpsc`
+//! Used by ecosystem pipeline coordination graphs to wire bounded `mpsc`
 //! channels between springs. Items flow through as each node produces them.
 //!
 //! Aligns with the ecosystem `StreamItem` and NDJSON pipeline

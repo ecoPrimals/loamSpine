@@ -204,7 +204,7 @@ async fn redb_get_spine_corrupted_data_returns_error() {
             table
                 .insert(
                     bad_id.as_bytes().as_slice(),
-                    b"invalid-bincode-data" as &[u8],
+                    b"invalid-msgpack-data" as &[u8],
                 )
                 .unwrap();
         }
@@ -303,7 +303,7 @@ async fn redb_list_spines_with_raw_malformed_keys_skips_invalid() {
         {
             let mut table = write_txn.open_table(table_def).unwrap();
             let spine = create_test_spine();
-            let bytes = bincode::serialize(&spine).unwrap();
+            let bytes = rmp_serde::to_vec(&spine).unwrap();
             table
                 .insert(spine.id.as_bytes().as_slice(), bytes.as_slice())
                 .unwrap();

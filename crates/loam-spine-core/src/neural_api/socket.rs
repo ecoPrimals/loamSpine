@@ -85,7 +85,7 @@ pub fn resolve_legacy_symlink_path(primary: &std::path::Path, family_id: Option<
     parent.join(legacy_socket_name(family_id))
 }
 
-/// Build the capability-domain socket filename for biomeOS capability routing.
+/// Build the capability-domain socket filename for ecosystem capability routing.
 ///
 /// Per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 Phase 2: domain-named socket
 /// is primary, capability-domain symlink enables `by_capability = "ledger"`
@@ -177,7 +177,7 @@ pub fn resolve_neural_api_socket_with(
     Some(PathBuf::from(format!("{rd}/biomeos/neural-api-{fid}.sock")))
 }
 
-/// Resolve the NeuralAPI socket path for connecting to biomeOS (reads env).
+/// Resolve the NeuralAPI socket path for connecting to the orchestration layer (reads env).
 pub(super) fn resolve_neural_api_socket() -> Option<PathBuf> {
     resolve_neural_api_socket_with(
         std::env::var("BIOMEOS_NEURAL_API_SOCKET").ok().as_deref(),

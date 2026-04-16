@@ -219,7 +219,7 @@ impl LifecycleManager {
         Ok(())
     }
 
-    /// Register with NeuralAPI (biomeOS orchestration) — non-fatal.
+    /// Register with NeuralAPI (ecosystem orchestration) — non-fatal.
     async fn register_neural_api(&self) {
         match crate::neural_api::register_with_neural_api().await {
             Ok(true) => tracing::info!("✅ Registered with NeuralAPI"),

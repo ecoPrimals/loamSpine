@@ -47,7 +47,7 @@ async fn redb_list_certificates_with_malformed_key_skips_invalid() {
             let mut table = write_txn.open_table(certs_def).unwrap();
             let valid_id = CertificateId::now_v7();
             let cert = create_test_certificate(&Did::new("did:key:z6MkOwner"), SpineId::now_v7());
-            let bytes = bincode::serialize(&(cert, SpineId::now_v7())).unwrap();
+            let bytes = rmp_serde::to_vec(&(cert, SpineId::now_v7())).unwrap();
             table
                 .insert(valid_id.as_bytes().as_slice(), bytes.as_slice())
                 .unwrap();
@@ -126,7 +126,7 @@ async fn redb_get_entries_for_spine_corrupted_entry_in_entries_table() {
             key[16..].copy_from_slice(&0u64.to_be_bytes());
             index.insert(&key[..], &corrupt_hash[..]).unwrap();
             entries
-                .insert(&corrupt_hash[..], b"not-bincode" as &[u8])
+                .insert(&corrupt_hash[..], b"not-msgpack" as &[u8])
                 .unwrap();
         }
         write_txn.commit().unwrap();
@@ -167,7 +167,7 @@ async fn redb_get_entries_for_spine_short_index_key_terminates() {
 
             let entry = Entry::genesis(owner, spine_id, SpineConfig::default());
             let hash = entry.compute_hash().unwrap();
-            let bytes = bincode::serialize(&entry).unwrap();
+            let bytes = rmp_serde::to_vec(&entry).unwrap();
 
             entries_table.insert(&hash[..], bytes.as_slice()).unwrap();
             index.insert(&key[..], &hash[..]).unwrap();
