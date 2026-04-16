@@ -202,7 +202,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
-| **Max File Size** | 605 max production; 899 max test file |
+| **Max File Size** | 605 max production; 783 max test file |
 | **Source Files** | 187 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |

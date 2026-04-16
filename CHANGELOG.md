@@ -71,15 +71,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **18 new tests**: 8 `DiscoveryCache` unit tests, 5 `certificate_loan` expired-return path tests, 5 tarpc server delegation tests.
 - **Doc comments**: `sqlite/common.rs` functions and `serde_opt_bytes` module documented.
 
+### Added (April 15–16, 2026)
+- **Bond ledger persistence**: `bonding.ledger.store` / `bonding.ledger.retrieve` / `bonding.ledger.list` JSON-RPC methods implementing `STORAGE_WIRE_CONTRACT.md` for ionic bond state persistence. Dedicated append-only spine + in-memory `HashMap` index.
+- **`JsonRpcCryptoSigner` / `JsonRpcCryptoVerifier`**: Production signing path implementing `crypto.sign_ed25519` / `crypto.verify_ed25519` JSON-RPC wire contract per `CRYPTO_WIRE_CONTRACT.md`. UDS NDJSON transport, `const fn` constructors, `base64` encoding. `CliSigner` remains as development fallback.
+- **`BondLedgerRecord` entry type**: New `EntryType` variant with `bond_id` + opaque `data` payload.
+- **`bond-ledger` capability group**: Advertised via capabilities registry, neural API, MCP tools, and niche self-knowledge.
+- **5 new JSON-RPC methods**: `bonding.ledger.store`, `bonding.ledger.retrieve`, `bonding.ledger.list`, `slice.checkout`, `proof.verify_inclusion`.
+
+### Changed (April 15–16, 2026)
+- **Self-knowledge evolution**: ~50 hardcoded primal name references (BearDog, rhizoCrypt, sweetGrass, etc.) genericized to capability-based language throughout production code and docs.
+- **BTSP config**: `DEFAULT_BTSP_PROVIDER_PREFIX` from `"beardog"` to `"btsp-provider"`. Removed `BEARDOG_SOCKET` env var fallback.
+- **Niche `SIGNING` dependency**: Now references `crypto.sign_ed25519` / `crypto.verify_ed25519` wire methods.
+- **Dependency notes**: `sled` (unmaintained), `bincode` v1 (RUSTSEC), `mdns`/`async-std` (dual runtime) evolution paths documented in `Cargo.toml`.
+
 ### Metrics
-- Tests: **1,396** (all concurrent, ~3s, zero flaky)
+- Tests: **1,442** (all concurrent, ~3s, zero flaky)
 - `#[serial]`: **0** (was 121)
-- Source files: **178** `.rs` (+ 3 fuzz targets)
-- Max file: **605** lines production; all under 1000
-- Coverage: ~91% line (llvm-cov)
+- JSON-RPC methods: **37** (was 32)
+- Source files: **187** `.rs` (+ 3 fuzz targets)
+- Max file: **605** lines production; **783** max test file
 - Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
 - Doc warnings: **0**
 - `cargo deny check`: all pass
+- Capability Wire Standard: **Full L3**
 
 ## [0.9.15] - 2026-03-31
 

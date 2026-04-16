@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 12, 2026
+**Last Updated**: April 16, 2026
 
 ---
 
@@ -218,6 +218,24 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks bincode v2, mdns evolution, sled deprecation
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 Crypto Wire Adapter & Deep Debt Sweep (April 16, 2026)
+
+- **`JsonRpcCryptoSigner` / `JsonRpcCryptoVerifier`**: Production signing path implementing `crypto.sign_ed25519` / `crypto.verify_ed25519` wire contract per `CRYPTO_WIRE_CONTRACT.md`. UDS NDJSON transport, base64 encoding, `const fn` constructors. `CliSigner` remains as development fallback.
+- **Self-knowledge sweep**: Remaining hardcoded primal names (`airSpring`, `healthSpring`, `wetSpring`, `ludoSpring`, `neuralSpring`) in production doc comments genericized to ecosystem-capability language.
+- **`#[allow(dead_code)]` evolved**: `SignResponse.algorithm` field now logged via `tracing::trace` instead of suppressed.
+- **Dependency evolution notes**: `sled` (unmaintained), `bincode` v1 (RUSTSEC), `mdns`/`async-std` (dual runtime) paths documented in `Cargo.toml`.
+- **`cargo deny check`**: advisories OK, bans OK, licenses OK, sources OK.
+- **Tests**: **1,442**. Source files: **187**. JSON-RPC methods: **37**. All gates green.
+
+## v0.9.16 Bond Persistence & Self-Knowledge Evolution (April 15, 2026)
+
+- **Bond ledger persistence**: `bonding.ledger.store` / `bonding.ledger.retrieve` / `bonding.ledger.list` JSON-RPC methods implementing `STORAGE_WIRE_CONTRACT.md` for ionic bond state persistence. Dedicated append-only spine + in-memory `HashMap` index.
+- **`BondLedgerRecord` entry type**: New `EntryType` variant for cross-primal contract persistence.
+- **5 new JSON-RPC methods**: `bonding.ledger.store`, `bonding.ledger.retrieve`, `bonding.ledger.list`, `slice.checkout`, `proof.verify_inclusion` (37 total, was 32).
+- **Self-knowledge evolution**: ~50 hardcoded primal name references (BearDog, rhizoCrypt, sweetGrass, NestGate, ToadStool) genericized to capability-based language. `BTSP_PROVIDER_PREFIX` from `"beardog"` to `"btsp-provider"`.
+- **Capability Wire Standard**: Full L3 compliance — 37 methods, 10 capability groups (including bond-ledger), self-knowledge compliant.
+- **Tests**: **1,434**. Source files: **186**. All gates green.
 
 ## v0.9.16 Hardcoding Evolution & Transport Refactor (April 11, 2026)
 
