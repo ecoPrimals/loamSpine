@@ -41,14 +41,9 @@ ureq = { version = "2.12", default-features = false, optional = true }
 hickory-resolver = { version = "0.26", optional = true }
 
 
-# mDNS for local network service discovery (optional, experimental)
-# NOTE: mdns 3.0 depends on async-std (second async runtime alongside Tokio).
-# Evolution path: replace with a Tokio-native mDNS implementation when available.
-mdns = { version = "3.0", optional = true }
-# Required for mDNS stream consumption in spawn_blocking (pin_mut, StreamExt)
-futures-util = { version = "0.3", optional = true }
-# Required by mdns internally; runs inside spawn_blocking to bridge to Tokio
-async-std = { version = "1.6", optional = true }
+# mDNS-SD for local network service discovery (optional).
+# Pure Rust, manages its own daemon thread, no async runtime dependency.
+mdns-sd = { version = "0.19", optional = true }
 base64 = "0.22.1"
 
 [features]
@@ -64,8 +59,8 @@ discovery-http = ["dep:ureq"]
 tower-atomic = []
 # Enable DNS SRV discovery (RFC 2782) for production service discovery
 dns-srv = ["dep:hickory-resolver"]
-# Enable mDNS local network service discovery (experimental)
-mdns = ["dep:mdns", "dep:futures-util", "dep:async-std"]
+# Enable mDNS-SD local network service discovery (pure Rust, no async runtime dep)
+mdns = ["dep:mdns-sd"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros", "rt-multi-thread"] }

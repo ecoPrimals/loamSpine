@@ -279,7 +279,7 @@ async fn run_server(
     let family_id = std::env::var("BIOMEOS_FAMILY_ID").ok();
 
     // Capability-domain symlink: ledger.sock → permanence.sock
-    // Enables biomeOS `by_capability = "ledger"` routing in deploy graphs.
+    // Enables orchestration-layer `by_capability = "ledger"` routing in deploy graphs.
     #[cfg(unix)]
     let capability_symlink = {
         let link_path = loam_spine_core::neural_api::resolve_capability_symlink_path(

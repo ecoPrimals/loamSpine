@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Discovery backend implementations: mDNS, DNS SRV name mapping.
+//! Discovery backend implementations: mDNS-SD, DNS SRV name mapping.
 //!
 //! Extracted from `mod.rs` to keep the main discovery orchestration
 //! module focused on the infant-learning lifecycle. Backend-specific
@@ -25,67 +25,58 @@ use crate::capabilities::{DiscoveredService, ServiceHealth};
 #[cfg(feature = "mdns")]
 use tracing::{debug, info, warn};
 
-/// Real mDNS discovery implementation (runs on isolated OS thread).
+/// mDNS-SD discovery implementation (async, tokio-compatible).
 ///
-/// Uses the `mdns` crate to query for DNS-SD services, parses SRV records,
-/// and converts results to `DiscoveredService`. All errors are handled
-/// gracefully (returns empty vec, logs warnings).
+/// Uses `mdns-sd` which manages its own daemon thread internally.
+/// Results arrive via `recv_async()` on a flume channel — no second
+/// async runtime, no thread isolation needed.
 #[cfg(feature = "mdns")]
-pub(super) fn mdns_discover_impl(
+pub(super) async fn mdns_discover_impl(
     service_type: &str,
     capability: &str,
     cache_ttl_secs: u64,
 ) -> Vec<DiscoveredService> {
-    use std::time::Instant;
-
-    let discovery = match mdns::discover::all(service_type, MDNS_TIMEOUT) {
+    let daemon = match mdns_sd::ServiceDaemon::new() {
         Ok(d) => d,
         Err(e) => {
-            warn!("mDNS discovery failed for {service_type}: {e}");
+            warn!("mDNS-SD daemon creation failed: {e}");
             return vec![];
         }
     };
 
-    let stream = discovery.listen();
+    let receiver = match daemon.browse(service_type) {
+        Ok(r) => r,
+        Err(e) => {
+            warn!("mDNS-SD browse failed for {service_type}: {e}");
+            let _ = daemon.shutdown();
+            return vec![];
+        }
+    };
 
-    let services = async_std::task::block_on(async move {
-        use futures_util::{pin_mut, stream::StreamExt};
+    let mut services = Vec::new();
 
-        let mut services = Vec::new();
-        pin_mut!(stream);
-
-        let deadline = Instant::now() + MDNS_TIMEOUT;
-
+    let collect = async {
         loop {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                break;
-            }
-
-            let next = stream.next();
-            match async_std::future::timeout(remaining, next).await {
-                Ok(Some(Ok(response))) => {
-                    if let Some(service) =
-                        parse_mdns_response(&response, capability, cache_ttl_secs)
-                    {
-                        services.push(service);
+            match receiver.recv_async().await {
+                Ok(mdns_sd::ServiceEvent::ServiceResolved(info)) => {
+                    if let Some(svc) = resolved_to_discovered(&info, capability, cache_ttl_secs) {
+                        services.push(svc);
                     }
                 }
-                Ok(Some(Err(e))) => {
-                    warn!("mDNS response error: {e}");
-                }
-                Ok(None) | Err(_) => break,
+                Ok(mdns_sd::ServiceEvent::SearchStopped(_)) | Err(_) => break,
+                Ok(_) => {}
             }
         }
+    };
 
-        services
-    });
+    let _ = tokio::time::timeout(MDNS_TIMEOUT, collect).await;
+    let _ = daemon.shutdown();
 
     if services.is_empty() {
-        debug!("No mDNS services found for {service_type}");
+        debug!("No mDNS-SD services found for {service_type}");
     } else {
         info!(
-            "Found {} services via mDNS for '{capability}'",
+            "Found {} services via mDNS-SD for '{capability}'",
             services.len()
         );
     }
@@ -93,41 +84,23 @@ pub(super) fn mdns_discover_impl(
     services
 }
 
-/// Parse a single mDNS response into a `DiscoveredService`.
-///
-/// Extracts SRV records for host/port and A/AAAA for address resolution.
-/// Returns `None` if the response cannot be parsed into a valid service.
+/// Convert a resolved `mdns-sd` service into a `DiscoveredService`.
 #[cfg(feature = "mdns")]
-fn parse_mdns_response(
-    response: &mdns::Response,
+fn resolved_to_discovered(
+    info: &mdns_sd::ServiceInfo,
     capability: &str,
     cache_ttl_secs: u64,
 ) -> Option<DiscoveredService> {
-    use mdns::RecordKind;
+    let port = info.get_port();
+    let addr = info.get_addresses().iter().next()?;
 
-    let port = response.port()?;
-    let endpoint = if let Some(addr) = response.ip_addr() {
-        if port == HTTPS_DEFAULT_PORT {
-            format!("https://{addr}")
-        } else {
-            format!("https://{addr}:{port}")
-        }
+    let endpoint = if port == HTTPS_DEFAULT_PORT {
+        format!("https://{addr}")
     } else {
-        let target = response.records().find_map(|r| match &r.kind {
-            RecordKind::SRV { target, .. } => Some(target.clone()),
-            _ => None,
-        })?;
-        if port == HTTPS_DEFAULT_PORT {
-            format!("https://{target}")
-        } else {
-            format!("https://{target}:{port}")
-        }
+        format!("https://{addr}:{port}")
     };
 
-    let id = response.ip_addr().map_or_else(
-        || format!("mdns-{capability}-{port}"),
-        |a| format!("mdns-{a}:{port}"),
-    );
+    let id = format!("mdns-{addr}:{port}");
 
     Some(DiscoveredService {
         id,

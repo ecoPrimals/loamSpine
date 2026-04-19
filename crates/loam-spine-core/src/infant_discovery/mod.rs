@@ -517,28 +517,8 @@ impl InfantDiscovery {
         #[cfg(feature = "mdns")]
         {
             let service_name = backends::capability_to_srv_name(capability);
-            let capability = capability.to_string();
-            let cache_ttl_secs = self.config.cache_ttl_secs;
-
-            // Spawn a fully isolated OS thread so async-std's block_on
-            // never sees tokio's thread-local Handle (avoids "block_on
-            // inside async runtime" panic).
-            let (tx, rx) = tokio::sync::oneshot::channel();
-            std::thread::spawn(move || {
-                let _ = tx.send(backends::mdns_discover_impl(
-                    &service_name,
-                    &capability,
-                    cache_ttl_secs,
-                ));
-            });
-
-            match rx.await {
-                Ok(svc) => svc,
-                Err(e) => {
-                    warn!("mDNS discovery thread dropped: {e}");
-                    vec![]
-                }
-            }
+            backends::mdns_discover_impl(&service_name, capability, self.config.cache_ttl_secs)
+                .await
         }
 
         #[cfg(not(feature = "mdns"))]

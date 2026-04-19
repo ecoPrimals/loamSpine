@@ -310,12 +310,11 @@ impl InfantDiscovery {
         }
     }
 
-    /// Try to discover via mDNS (multicast DNS).
+    /// Try to discover via mDNS-SD (multicast DNS service discovery).
     ///
-    /// Broadcasts `_discovery._tcp.local` on the local network to find the
-    /// discovery service. Runs the mDNS query on an isolated OS thread
-    /// (the `mdns` crate uses `async-std` internally and panics on tokio's
-    /// blocking thread pool).
+    /// Broadcasts `_discovery._tcp.local.` on the local network to find the
+    /// discovery service. Uses `mdns-sd` which manages its own daemon thread
+    /// and delivers results via async-compatible flume channels.
     ///
     /// For production, prefer DNS SRV or environment variables.
     #[allow(
@@ -323,25 +322,14 @@ impl InfantDiscovery {
         reason = "async required for mdns feature builds; lint fires only in no-feature builds"
     )]
     async fn try_mdns_discovery(&self) -> Option<String> {
-        tracing::debug!("🔍 Attempting mDNS discovery (local network)...");
+        tracing::debug!("🔍 Attempting mDNS-SD discovery (local network)...");
 
         #[cfg(feature = "mdns")]
         {
-            // Spawn a fully isolated OS thread so async-std's block_on
-            // never sees tokio's thread-local Handle (avoids "block_on
-            // inside async runtime" panic).
-            let (tx, rx) = tokio::sync::oneshot::channel();
-            std::thread::spawn(move || {
-                let _ = tx.send(mdns_discover_service_impl(DISCOVERY_SRV_QUERY));
-            });
-
-            match rx.await {
-                Ok(Some(endpoint)) => return Some(endpoint),
-                Ok(None) => {
-                    tracing::debug!("🔍 mDNS: no discovery service found on LAN");
-                }
-                Err(e) => {
-                    tracing::debug!("🔍 mDNS discovery thread dropped: {e}");
+            match mdns_discover_service_impl(DISCOVERY_SRV_QUERY).await {
+                Some(endpoint) => return Some(endpoint),
+                None => {
+                    tracing::debug!("🔍 mDNS-SD: no discovery service found on LAN");
                 }
             }
         }
@@ -395,71 +383,50 @@ impl Default for InfantDiscovery {
     }
 }
 
-/// mDNS discovery for finding the discovery service on the local network.
+/// mDNS-SD discovery for finding the discovery service on the local network.
 ///
-/// Queries for `service_query` (e.g. `_discovery._tcp.local`) via multicast DNS.
-/// Returns the first responding endpoint, or `None` after a 2-second timeout.
-/// Runs synchronously on an isolated OS thread (not tokio's blocking pool).
+/// Queries for `service_query` (e.g. `_discovery._tcp.local.`) via mDNS-SD.
+/// Returns the first resolved endpoint, or `None` after a 2-second timeout.
+/// Uses `mdns-sd` which manages its own daemon thread — fully tokio-compatible.
 #[cfg(feature = "mdns")]
-fn mdns_discover_service_impl(service_query: &str) -> Option<String> {
-    use std::time::{Duration, Instant};
+async fn mdns_discover_service_impl(service_query: &str) -> Option<String> {
+    use std::time::Duration;
 
-    let discovery = match mdns::discover::all(service_query, Duration::from_secs(2)) {
+    let daemon = match mdns_sd::ServiceDaemon::new() {
         Ok(d) => d,
         Err(e) => {
-            tracing::debug!("mDNS discovery failed for {service_query}: {e}");
+            tracing::debug!("mDNS-SD daemon creation failed: {e}");
             return None;
         }
     };
 
-    let stream = discovery.listen();
+    let receiver = match daemon.browse(service_query) {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::debug!("mDNS-SD browse failed for {service_query}: {e}");
+            let _ = daemon.shutdown();
+            return None;
+        }
+    };
 
-    async_std::task::block_on(async {
-        use futures_util::{pin_mut, stream::StreamExt};
-        pin_mut!(stream);
-
-        let deadline = Instant::now() + Duration::from_secs(2);
-
+    let result = tokio::time::timeout(Duration::from_secs(2), async {
         loop {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                break None;
-            }
-
-            match async_std::future::timeout(remaining, stream.next()).await {
-                Ok(Some(Ok(response))) => {
-                    if let Some(endpoint) = parse_discovery_mdns_response(&response) {
-                        break Some(endpoint);
+            match receiver.recv_async().await {
+                Ok(mdns_sd::ServiceEvent::ServiceResolved(info)) => {
+                    if let Some(addr) = info.get_addresses().iter().next() {
+                        let port = info.get_port();
+                        return Some(format!("http://{addr}:{port}"));
                     }
                 }
-                Ok(Some(Err(e))) => {
-                    tracing::debug!("mDNS response error: {e}");
-                }
-                Ok(None) | Err(_) => break None,
+                Ok(mdns_sd::ServiceEvent::SearchStopped(_)) | Err(_) => return None,
+                Ok(_) => {}
             }
         }
     })
-}
+    .await;
 
-/// Extract the discovery service endpoint from an mDNS response.
-///
-/// Looks for SRV records with a host/port, falls back to A/AAAA records.
-#[cfg(feature = "mdns")]
-fn parse_discovery_mdns_response(response: &mdns::Response) -> Option<String> {
-    let port = response.port()?;
-    let addr = response.ip_addr().map_or_else(
-        || {
-            response.records().find_map(|r| match &r.kind {
-                mdns::RecordKind::SRV { target, .. } => {
-                    Some(target.trim_end_matches('.').to_string())
-                }
-                _ => None,
-            })
-        },
-        |a| Some(a.to_string()),
-    )?;
-
-    Some(format!("http://{addr}:{port}"))
+    let _ = daemon.shutdown();
+    result.unwrap_or(None)
 }
 
 #[cfg(test)]

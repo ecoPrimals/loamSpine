@@ -26,22 +26,16 @@ Historical planning text for a bincode v2 migration is superseded by this comple
 
 ---
 
-## mdns crate → tokio-native alternative
+## mdns 3.0 → mdns-sd 0.19 — **COMPLETE**
 
 | Field | Detail |
 |-------|--------|
-| **Current** | `mdns = "3.0"` + `async-std` + `futures-util` (feature-gated behind `mdns`) |
-| **Problem** | Pulls in `async-std` — an entire second async runtime alongside tokio. Violates ecoBin "minimal surface" and adds ~200KB to binary. |
-| **Target** | `mdns-sd` crate (pure Rust, tokio-native) or `hickory-resolver` mDNS support |
-| **Blocker** | `mdns-sd` API differs significantly. Need to rewrite `try_mdns_discovery()` in `infant_discovery.rs`. |
-| **Priority** | Low. Feature is experimental and behind a non-default feature flag. |
-
-### Migration Plan
-
-1. Evaluate `mdns-sd` (tokio-native, actively maintained)
-2. Rewrite `try_mdns_discovery()` to use new API
-3. Remove `async-std` and `futures-util` optional deps
-4. Update feature flag: `mdns = ["dep:mdns-sd"]`
+| **Status** | **COMPLETE** (April 20, 2026) |
+| **Former** | `mdns = "3.0"` + `async-std` + `futures-util` (feature-gated) |
+| **Now** | `mdns-sd = "0.19"` — pure Rust, manages its own daemon thread, no async runtime dep |
+| **Eliminated** | `async-std`, `net2`, `proc-macro-error`; 3 RUSTSEC advisories (2025-0052, 2020-0016, 2024-0370) removed from `deny.toml` |
+| **API change** | `mdns::discover::all` → `ServiceDaemon::new()` + `browse()` + `recv_async().await`. No `block_on`, no `spawn_blocking`, no thread isolation needed. |
+| **PG-33 fix** | The startup panic ("block_on inside async runtime") that blocked ludoSpring exp095 is structurally eliminated — `mdns-sd` never enters a tokio runtime context. |
 
 ---
 

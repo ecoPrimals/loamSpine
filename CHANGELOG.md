@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
-### Fixed (April 20, 2026)
+### Changed (April 20, 2026)
 
-- **PG-33 startup panic resolved**: mDNS discovery replaced `tokio::task::spawn_blocking` + `async_std::task::block_on` with `std::thread::spawn` + `tokio::sync::oneshot`. The `async-std` runtime now runs on a fully isolated OS thread, eliminating the "block_on inside async runtime" panic when tokio's thread-local `Handle` was visible from the blocking pool. Unblocks ludoSpring exp095.
+- **mdns 3.0 → mdns-sd 0.19**: Replaced `mdns` crate (which depended on `async-std`) with `mdns-sd` (pure Rust, manages own daemon thread, async-compatible via flume channels). Eliminates `async-std`, `net2`, `proc-macro-error` from dependency tree. 3 RUSTSEC advisories removed from `deny.toml`.
+- **PG-33 / GAP-07 startup panic structurally eliminated**: The "block_on inside async runtime" crash is no longer possible — `mdns-sd` never enters a tokio runtime context. Unblocks ludoSpring exp095.
+- **Self-knowledge doc comments**: Final `biomeOS` / primal-name references in comments genericized (trio_types.rs, main.rs).
 
 ### Security / Dependencies (April 16, 2026)
 

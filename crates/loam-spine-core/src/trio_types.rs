@@ -193,7 +193,7 @@ pub struct PipelineRequest {
     /// Optional experiment identifier (for Spring experiments).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub experiment_id: Option<String>,
-    /// Optional niche context (e.g., "rootpulse", "ludospring").
+    /// Optional niche context (e.g., "rootpulse", "gameplay").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub niche: Option<String>,
     /// Per-agent contribution data for attribution braids.
