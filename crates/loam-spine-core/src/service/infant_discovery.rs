@@ -313,8 +313,9 @@ impl InfantDiscovery {
     /// Try to discover via mDNS (multicast DNS).
     ///
     /// Broadcasts `_discovery._tcp.local` on the local network to find the
-    /// discovery service. Uses `spawn_blocking` to run the mDNS query in
-    /// a blocking thread (the `mdns` crate uses `async-std` internally).
+    /// discovery service. Runs the mDNS query on an isolated OS thread
+    /// (the `mdns` crate uses `async-std` internally and panics on tokio's
+    /// blocking thread pool).
     ///
     /// For production, prefer DNS SRV or environment variables.
     #[allow(
@@ -326,17 +327,21 @@ impl InfantDiscovery {
 
         #[cfg(feature = "mdns")]
         {
-            let result =
-                tokio::task::spawn_blocking(|| mdns_discover_service_impl(DISCOVERY_SRV_QUERY))
-                    .await;
+            // Spawn a fully isolated OS thread so async-std's block_on
+            // never sees tokio's thread-local Handle (avoids "block_on
+            // inside async runtime" panic).
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            std::thread::spawn(move || {
+                let _ = tx.send(mdns_discover_service_impl(DISCOVERY_SRV_QUERY));
+            });
 
-            match result {
+            match rx.await {
                 Ok(Some(endpoint)) => return Some(endpoint),
                 Ok(None) => {
                     tracing::debug!("🔍 mDNS: no discovery service found on LAN");
                 }
                 Err(e) => {
-                    tracing::debug!("🔍 mDNS spawn_blocking error: {e}");
+                    tracing::debug!("🔍 mDNS discovery thread dropped: {e}");
                 }
             }
         }
@@ -394,7 +399,7 @@ impl Default for InfantDiscovery {
 ///
 /// Queries for `service_query` (e.g. `_discovery._tcp.local`) via multicast DNS.
 /// Returns the first responding endpoint, or `None` after a 2-second timeout.
-/// Runs synchronously (called from `spawn_blocking`).
+/// Runs synchronously on an isolated OS thread (not tokio's blocking pool).
 #[cfg(feature = "mdns")]
 fn mdns_discover_service_impl(service_query: &str) -> Option<String> {
     use std::time::{Duration, Instant};

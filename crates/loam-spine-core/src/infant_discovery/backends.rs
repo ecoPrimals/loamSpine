@@ -25,7 +25,7 @@ use crate::capabilities::{DiscoveredService, ServiceHealth};
 #[cfg(feature = "mdns")]
 use tracing::{debug, info, warn};
 
-/// Real mDNS discovery implementation (runs in `spawn_blocking`).
+/// Real mDNS discovery implementation (runs on isolated OS thread).
 ///
 /// Uses the `mdns` crate to query for DNS-SD services, parses SRV records,
 /// and converts results to `DiscoveredService`. All errors are handled

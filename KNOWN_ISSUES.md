@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: April 16, 2026
+**Last Updated**: April 20, 2026
 
 ---
 
@@ -17,7 +17,7 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 | Area | Issue | Impact |
 |------|-------|--------|
 | `bin/loamspine-service/main.rs` | Integration tests added (CLI parsing, subcommands, server start/shutdown). Remaining untested: error-recovery paths in `run_server`. | Low — main paths covered; error recovery is thin orchestration. |
-| DNS SRV / mDNS discovery | Network-dependent paths have limited testability in CI without real DNS infrastructure. | Low — core discovery logic tested via mocks; network transport tested with `ConfigurableTransport`. |
+| DNS SRV / mDNS discovery | Network-dependent paths have limited testability in CI without real DNS infrastructure. mDNS runs on isolated OS threads (PG-33 fix). | Low — core discovery logic tested via mocks; network transport tested with `ConfigurableTransport`. |
 
 ---
 

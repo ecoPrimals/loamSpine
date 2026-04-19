@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Fixed (April 20, 2026)
+
+- **PG-33 startup panic resolved**: mDNS discovery replaced `tokio::task::spawn_blocking` + `async_std::task::block_on` with `std::thread::spawn` + `tokio::sync::oneshot`. The `async-std` runtime now runs on a fully isolated OS thread, eliminating the "block_on inside async runtime" panic when tokio's thread-local `Handle` was visible from the blocking pool. Unblocks ludoSpring exp095.
+
 ### Security / Dependencies (April 16, 2026)
 
 - **RUSTSEC-2025-0141 resolved**: Storage and backup serialization migrated from **`bincode` v1** to **`rmp-serde` (MessagePack)** — the advisory no longer applies to this codebase.
