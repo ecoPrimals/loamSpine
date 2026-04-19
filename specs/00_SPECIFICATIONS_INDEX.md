@@ -2,8 +2,8 @@
 
 # 🦴 LoamSpine — Specifications Index
 
-**Last Updated**: April 16, 2026  
-**Version**: 1.2.0  
+**Last Updated**: April 20, 2026  
+**Version**: 1.2.1  
 **Status**: Active
 
 ---
@@ -45,7 +45,7 @@ This directory contains the complete specification suite for LoamSpine, the perm
 
 | Document | Purpose | Status |
 |----------|---------|--------|
-| [DEPENDENCY_EVOLUTION.md](./DEPENDENCY_EVOLUTION.md) | Dependency migration tracking (**bincode → MessagePack/`rmp-serde` complete**; mdns; sled historical notes). **Self-knowledge:** literal **biomeOS** references in production doc comments reduced **29 → 0**. | 📋 Active |
+| [DEPENDENCY_EVOLUTION.md](./DEPENDENCY_EVOLUTION.md) | Dependency migration tracking (**bincode → rmp-serde complete**; **mdns 3.0 → mdns-sd 0.19 complete**; sled historical notes). Self-knowledge: literal biomeOS doc references **29 → 0**. | 📋 Active |
 
 ### Research Specifications
 

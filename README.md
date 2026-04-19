@@ -176,7 +176,7 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 2. **Environment Variables** (`CAPABILITY_*_ENDPOINT`, `*_SERVICE_URL`)
 3. **Service Registry** -- HTTP-based (Consul adapter, etcd adapter)
 4. **DNS SRV** -- RFC 2782 (`_signing._tcp.local`)
-5. **mDNS** -- RFC 6762 (experimental, feature-gated)
+5. **mDNS-SD** -- RFC 6762/6763 via `mdns-sd` (experimental, feature-gated)
 6. **Development Fallback** (`localhost`, debug builds only)
 
 ### Socket Naming (PRIMAL_SELF_KNOWLEDGE_STANDARD §3)
@@ -207,7 +207,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
-| **cargo deny** | advisories, bans, licenses, sources all pass |
+| **cargo deny** | advisories, bans, licenses, sources all pass (1 tarpc upstream advisory tracked in `deny.toml`) |
 | **UniBin** | `server`, `capabilities`, `socket` subcommands |
 | **Mock isolation** | All mocks cfg-gated out of production |
 

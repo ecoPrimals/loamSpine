@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 16, 2026
+**Last Updated**: April 20, 2026
 
 ---
 
@@ -238,7 +238,7 @@
 - **`JsonRpcCryptoSigner` / `JsonRpcCryptoVerifier`**: Production signing path implementing `crypto.sign_ed25519` / `crypto.verify_ed25519` wire contract per `CRYPTO_WIRE_CONTRACT.md`. UDS NDJSON transport, base64 encoding, `const fn` constructors. `CliSigner` remains as development fallback.
 - **Self-knowledge sweep**: Remaining hardcoded primal names (`airSpring`, `healthSpring`, `wetSpring`, `ludoSpring`, `neuralSpring`) in production doc comments genericized to ecosystem-capability language.
 - **`#[allow(dead_code)]` evolved**: `SignResponse.algorithm` field now logged via `tracing::trace` instead of suppressed.
-- **Dependency evolution notes**: `sled` (unmaintained; removed in stadial gate), storage/backup uses **`rmp-serde`** (not `bincode`), `mdns`/`async-std` (dual runtime) paths documented in `Cargo.toml`.
+- **Dependency evolution notes**: `sled` (unmaintained; removed in stadial gate), storage/backup uses **`rmp-serde`** (not `bincode`), `mdns-sd` 0.19 replaces `mdns` 3.0 (`async-std` eliminated).
 - **`cargo deny check`**: advisories OK, bans OK, licenses OK, sources OK.
 - **Tests**: **1,442**. Source files: **178**. JSON-RPC methods: **37**. All gates green.
 
@@ -365,7 +365,7 @@
 
 - **Smart refactor `jsonrpc/mod.rs`** (773 lines) → 3 focused modules: `wire.rs` (82 lines — wire types & error codes), `server.rs` (428 lines — TCP/UDS transport infrastructure), `mod.rs` (285 lines — dispatch logic only). Each module has a single responsibility.
 - **Smart refactor `capabilities.rs`** (587 lines) → `capabilities/` directory: `mod.rs` (107 lines — identifier constants & re-exports), `types.rs` (235 lines — enum definitions & impls), `parser.rs` (129 lines — response parser), `tests.rs` (116 lines).
-- **mDNS service discovery stub evolved**: `try_mdns_discovery()` from always-`None` stub to real async implementation using `spawn_blocking` + `mdns::discover::all`. Queries `_discovery._tcp.local` on LAN, parses SRV records. Feature-gated under `mdns`.
+- **mDNS-SD service discovery**: `try_mdns_discovery()` evolved from stub to real async implementation via `mdns-sd` 0.19. Queries `_discovery._tcp.local.` on LAN. Feature-gated under `mdns`. (Previously used `mdns` 3.0 + `async-std`; migrated April 20, 2026.)
 - **Lint audit**: All 2 `#[allow(` suppressions verified as correctly feature-conditional. All `#[expect(` suppressions have documented reasons.
 - **Tests**: 1,304 pass. Source files: **152**. Zero clippy warnings.
 
@@ -482,7 +482,7 @@
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
 - **Showcase demos** — Expand from ~10% to full coverage
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
-- **mdns crate evolution** — `mdns` 3.0 uses discontinued async-std/net2; evaluate `mdns-sd` or `hickory-resolver` mDNS (see `specs/DEPENDENCY_EVOLUTION.md`)
+- **~~mdns crate evolution~~** — **COMPLETE** (April 20, 2026): `mdns` 3.0 replaced with `mdns-sd` 0.19; async-std/net2/proc-macro-error eliminated; 3 RUSTSEC advisories removed
 - **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)
 
 ---

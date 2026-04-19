@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 16, 2026
+**Last Updated**: April 20, 2026
 
 ---
 
@@ -38,7 +38,7 @@ This document tracks implementation progress against the specification suite in 
 | Environment variables | COMPLETE |
 | DNS SRV | COMPLETE |
 | Service registry HTTP | COMPLETE |
-| mDNS | Feature-gated (real implementation via `mdns` crate) |
+| mDNS-SD | Feature-gated (`mdns-sd` 0.19 — pure Rust, no async runtime dep) |
 
 ---
 
