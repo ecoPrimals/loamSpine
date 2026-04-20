@@ -72,5 +72,9 @@ proptest = "1.10.0"
 name = "core_ops"
 harness = false
 
+[[bench]]
+name = "storage_ops"
+harness = false
+
 [lints]
 workspace = true

@@ -48,7 +48,7 @@ This document tracks implementation progress against the specification suite in 
 |--------|--------|---------|
 | Tests | — | 1,442 (178 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
-| Coverage (llvm-cov) | 90%+ | 90.20% line / 89.54% branch / 92.10% region |
+| Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |

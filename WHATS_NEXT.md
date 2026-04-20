@@ -291,7 +291,7 @@
 
 ## v0.9.16 Deep Debt Pass 5 — health.check Default & plasmidBin (April 12, 2026)
 
-- **`health.check` accepts empty params**: `HealthCheckRequest.include_details` annotated with `#[serde(default)]`, defaulting to `false` when absent. Downstream consumers can call `health.liveness` with `{}` or `null` without error.
+- **`health.check` accepts empty params**: `HealthCheckRequest.include_details` annotated with `#[serde(default)]`, defaulting to `false` when absent. Downstream consumers can call `health.check` with `{}` or `null` without error.
 - **JSON-RPC `null` param normalization**: `deser()` function now normalizes `Value::Null` to empty object, preventing deserialization failures for methods expecting struct params.
 - **plasmidBin/wateringHole updated**: Handoff and compliance docs updated for health.check fix.
 - **Tests**: **1,390**. Source files: **176**. All gates green.

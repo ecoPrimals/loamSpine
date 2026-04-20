@@ -81,7 +81,7 @@ loamSpine/
 │   │       ├── discovery/         # Capability registry + DynSigner/DynVerifier
 │   │       ├── discovery_client/  # HTTP discovery client + ResilientDiscoveryClient
 │   │       ├── entry/             # Entry types (15+ variants, MessagePack / rmp-serde canonical)
-│   │       ├── infant_discovery/  # DNS-SRV, mDNS, registry discovery
+│   │       ├── infant_discovery/  # DNS-SRV, mDNS-SD, registry discovery
 │   │       ├── manager/           # Certificate manager
 │   │       ├── niche.rs            # Primal self-knowledge (capabilities, deps, costs)
 │   │       ├── primal_names.rs    # Centralized primal identifier constants
@@ -204,7 +204,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 783 max test file |
-| **Source Files** | 178 `.rs` files across 2 crates + binary (+ 3 fuzz targets) |
+| **Source Files** | 178 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

@@ -49,7 +49,7 @@ when they need to commit, verify, or query permanent records.
 - `capabilities.list` — Capability-based discovery (Wire Standard L3)
 - `identity.get` — Primal identity
 - `tools.list`, `tools.call` — MCP tool discovery and invocation
-- **Storage backends:** redb (default) and in-memory; optional sled and SQLite backends were removed for stadial compliance.
+- **Storage backends:** redb (default) and in-memory.
 
 ## What This Does NOT Do
 

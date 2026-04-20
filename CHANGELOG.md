@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **mdns 3.0 → mdns-sd 0.19**: Replaced `mdns` crate (which depended on `async-std`) with `mdns-sd` (pure Rust, manages own daemon thread, async-compatible via flume channels). Eliminates `async-std`, `net2`, `proc-macro-error` from dependency tree. 3 RUSTSEC advisories removed from `deny.toml`.
 - **PG-33 / GAP-07 startup panic structurally eliminated**: The "block_on inside async runtime" crash is no longer possible — `mdns-sd` never enters a tokio runtime context. Unblocks ludoSpring exp095.
 - **Self-knowledge doc comments**: Final `biomeOS` / primal-name references in comments genericized (trio_types.rs, main.rs).
+- **`ServerError::Bind` structured error**: Evolved from `Bind(String)` to `Bind { context: String, #[source] source: std::io::Error }` — preserves the underlying I/O error for introspection instead of stringifying it. All call sites in `jsonrpc/uds.rs`, `jsonrpc/server.rs`, and `tarpc_server.rs` updated.
+- **`bond_ops.rs` error propagation**: Replaced manual `.map_err(|e| ApiError::Internal(e.to_string()))` with `?` operator leveraging the existing `From<LoamSpineError> for ApiError` impl — preserves structured error context.
+- **`deny.toml` license cleanup**: Removed 5 stale license allowances (`ISC`, `Unicode-DFS-2016`, `MPL-2.0`, `AGPL-3.0`, `CDLA-Permissive-2.0`) that had no matching dependencies in the tree.
 
 ### Security / Dependencies (April 16, 2026)
 
@@ -75,7 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Refactored
 - **Smart module refactoring (14 large files)**: Prior: `types.rs` → `types/` directory. `error.rs` → `error/` directory. `neural_api.rs` → `neural_api/` directory. `infant_discovery/` cache extraction. `constants/network.rs` env_resolution extraction. `sync/mod.rs` streaming extraction. `jsonrpc/mod.rs` wire/server/dispatch split. `capabilities.rs` → `capabilities/` directory. Sprint 3: `certificate_tests.rs` (1,060 → 535 + 525 by domain). Test extraction from 6 production files: `service/waypoint.rs`, `service/infant_discovery.rs`, `constants/network.rs`, `trio_types.rs`, `types.rs`, `entry/mod.rs`. Max file: 711 lines (was 1,060).
-- **mDNS service discovery stub evolved**: `try_mdns_discovery()` evolved from synchronous stub (always returned `None`) to async implementation using `spawn_blocking` + `mdns::discover::all`. Queries `_discovery._tcp.local` on LAN, parses SRV records for endpoint resolution. Feature-gated under `mdns`.
+- **mDNS service discovery stub evolved**: `try_mdns_discovery()` evolved from synchronous stub (always returned `None`) to async implementation via `mdns-sd` 0.19 (pure Rust daemon thread). Queries `_discovery._tcp.local.` on LAN. Feature-gated under `mdns`.
 - **SQLite `StorageResultExt` migration**: All 3 SQLite modules (`entry.rs`, `certificate.rs`, `spine.rs`) evolved from `to_storage_err()` calls to `.storage_err()` / `.storage_ctx()` trait methods. Standalone `to_storage_err` function removed.
 - **Parse helper extraction**: `integration_ops.rs` — 6 duplicated parse-and-map-err patterns extracted to `parse_uuid()`, `parse_content_hash()`, `bytes_to_hex()`.
 - **Hardcoding removal**: "Songbird/Consul/etcd" literal in `niche.rs` → generic "service registry (mDNS / DNS-SRV / etcd)".
