@@ -74,17 +74,23 @@ pub async fn run_jsonrpc_uds_server(
     let path = path.into();
 
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| ServerError::Bind(format!("cannot create socket directory: {e}")))?;
+        std::fs::create_dir_all(parent).map_err(|e| ServerError::Bind {
+            context: "cannot create socket directory".into(),
+            source: e,
+        })?;
     }
 
     if path.exists() {
-        std::fs::remove_file(&path)
-            .map_err(|e| ServerError::Bind(format!("cannot remove stale socket: {e}")))?;
+        std::fs::remove_file(&path).map_err(|e| ServerError::Bind {
+            context: "cannot remove stale socket".into(),
+            source: e,
+        })?;
     }
 
-    let listener = tokio::net::UnixListener::bind(&path)
-        .map_err(|e| ServerError::Bind(format!("UDS bind at {}: {e}", path.display())))?;
+    let listener = tokio::net::UnixListener::bind(&path).map_err(|e| ServerError::Bind {
+        context: format!("UDS bind at {}", path.display()),
+        source: e,
+    })?;
 
     let handler = Arc::new(LoamSpineJsonRpc::new(service));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);

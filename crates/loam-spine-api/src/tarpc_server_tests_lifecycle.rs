@@ -199,9 +199,11 @@ async fn run_tarpc_server_bind_fails_when_address_in_use() {
         .await
         .expect_err("second bind should fail");
     let msg = err.to_string();
+    assert!(msg.contains("bind failed"), "unexpected bind error: {msg}");
+    let source = std::error::Error::source(&err);
     assert!(
-        msg.contains("Bind") || msg.contains("address") || msg.contains("use"),
-        "unexpected bind error: {msg}"
+        source.is_some(),
+        "Bind error should preserve io::Error source"
     );
 
     first.abort();

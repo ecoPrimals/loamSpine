@@ -22,8 +22,7 @@ impl LoamSpineRpcService {
     ) -> ApiResult<BondLedgerStoreResponse> {
         let core = self.core().await;
         core.bond_ledger_store(request.bond_id, request.data)
-            .await
-            .map_err(|e| crate::error::ApiError::Internal(e.to_string()))?;
+            .await?;
 
         Ok(BondLedgerStoreResponse {
             status: "stored".into(),

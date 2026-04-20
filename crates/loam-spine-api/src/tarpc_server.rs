@@ -284,7 +284,10 @@ pub async fn run_tarpc_server_with_config(
 ) -> Result<(), ServerError> {
     let listener = tarpc::serde_transport::tcp::listen(&addr, Json::default)
         .await
-        .map_err(|e| ServerError::Bind(e.to_string()))?;
+        .map_err(|e| ServerError::Bind {
+            context: format!("tarpc TCP listen at {addr}"),
+            source: e,
+        })?;
     let server = LoamSpineTarpcServer::new(service);
 
     info!("tarpc server listening on {}", addr);

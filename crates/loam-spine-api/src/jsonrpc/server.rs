@@ -57,11 +57,15 @@ pub async fn run_jsonrpc_server(
 ) -> Result<ServerHandle, ServerError> {
     let listener = TcpListener::bind(addr)
         .await
-        .map_err(|e| ServerError::Bind(e.to_string()))?;
+        .map_err(|e| ServerError::Bind {
+            context: format!("TCP bind at {addr}"),
+            source: e,
+        })?;
 
-    let bound_addr = listener
-        .local_addr()
-        .map_err(|e| ServerError::Bind(e.to_string()))?;
+    let bound_addr = listener.local_addr().map_err(|e| ServerError::Bind {
+        context: "resolve local address".into(),
+        source: e,
+    })?;
 
     let handler = Arc::new(LoamSpineJsonRpc::new(service));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);

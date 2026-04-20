@@ -110,8 +110,14 @@ pub type ApiResult<T> = Result<T, ApiError>;
 #[non_exhaustive]
 pub enum ServerError {
     /// TCP/socket bind failure (e.g. address in use, permission denied).
-    #[error("bind failed: {0}")]
-    Bind(String),
+    #[error("bind failed: {context}")]
+    Bind {
+        /// What operation was attempted (e.g. "TCP bind at 0.0.0.0:8080").
+        context: String,
+        /// The underlying I/O error.
+        #[source]
+        source: std::io::Error,
+    },
 
     /// Transport-layer error (e.g. connection accept, I/O).
     #[error("transport error: {0}")]
