@@ -8,7 +8,7 @@ use super::*;
 fn resolve_socket_path_returns_valid_path() {
     let path = resolve_socket_path_with(None, None, None);
     assert!(!path.as_os_str().is_empty());
-    assert!(path.to_string_lossy().contains("permanence"));
+    assert!(path.to_string_lossy().contains("loamspine"));
 }
 
 #[test]
@@ -22,7 +22,7 @@ fn resolve_socket_path_uses_xdg_runtime_dir() {
     let path = resolve_socket_path_with(None, None, Some("/run/user/1000"));
     assert_eq!(
         path.to_string_lossy(),
-        "/run/user/1000/biomeos/permanence.sock"
+        "/run/user/1000/biomeos/loamspine.sock"
     );
 }
 
@@ -31,7 +31,7 @@ fn resolve_socket_path_uses_xdg_runtime_dir_with_family() {
     let path = resolve_socket_path_with(None, Some("myfamily"), Some("/run/user/1000"));
     assert_eq!(
         path.to_string_lossy(),
-        "/run/user/1000/biomeos/permanence-myfamily.sock"
+        "/run/user/1000/biomeos/loamspine-myfamily.sock"
     );
 }
 
@@ -39,7 +39,7 @@ fn resolve_socket_path_uses_xdg_runtime_dir_with_family() {
 fn resolve_socket_path_fallback_when_xdg_unset() {
     let path = resolve_socket_path_with(None, None, None);
     assert!(
-        path.to_string_lossy().ends_with("biomeos/permanence.sock"),
+        path.to_string_lossy().ends_with("biomeos/loamspine.sock"),
         "got: {}",
         path.display()
     );
@@ -50,7 +50,7 @@ fn resolve_socket_path_with_custom_family_id() {
     let path = resolve_socket_path_with(None, Some("custom-family"), None);
     assert!(
         path.to_string_lossy()
-            .ends_with("biomeos/permanence-custom-family.sock"),
+            .ends_with("biomeos/loamspine-custom-family.sock"),
         "got: {}",
         path.display()
     );
@@ -71,7 +71,7 @@ fn resolve_socket_path_empty_family_id_treated_as_unset() {
     let path = resolve_socket_path_with(None, Some(""), Some("/run/user/1000"));
     assert_eq!(
         path.to_string_lossy(),
-        "/run/user/1000/biomeos/permanence.sock",
+        "/run/user/1000/biomeos/loamspine.sock",
         "empty BIOMEOS_FAMILY_ID should be treated as unset"
     );
 }
@@ -81,7 +81,7 @@ fn resolve_socket_path_default_family_id_treated_as_unset() {
     let path = resolve_socket_path_with(None, Some("default"), Some("/run/user/1000"));
     assert_eq!(
         path.to_string_lossy(),
-        "/run/user/1000/biomeos/permanence.sock",
+        "/run/user/1000/biomeos/loamspine.sock",
         "BIOMEOS_FAMILY_ID=default should produce domain-only socket"
     );
 }
@@ -90,33 +90,33 @@ fn resolve_socket_path_default_family_id_treated_as_unset() {
 
 #[test]
 fn domain_socket_name_without_family() {
-    assert_eq!(domain_socket_name(None), "permanence.sock");
-    assert_eq!(domain_socket_name(Some("")), "permanence.sock");
-    assert_eq!(domain_socket_name(Some("default")), "permanence.sock");
+    assert_eq!(domain_socket_name(None), "loamspine.sock");
+    assert_eq!(domain_socket_name(Some("")), "loamspine.sock");
+    assert_eq!(domain_socket_name(Some("default")), "loamspine.sock");
 }
 
 #[test]
 fn domain_socket_name_with_family() {
-    assert_eq!(domain_socket_name(Some("prod")), "permanence-prod.sock");
+    assert_eq!(domain_socket_name(Some("prod")), "loamspine-prod.sock");
 }
 
 #[test]
 fn legacy_socket_name_without_family() {
-    assert_eq!(legacy_socket_name(None), "loamspine.sock");
+    assert_eq!(legacy_socket_name(None), "permanence.sock");
 }
 
 #[test]
 fn legacy_socket_name_with_family() {
-    assert_eq!(legacy_socket_name(Some("prod")), "loamspine-prod.sock");
+    assert_eq!(legacy_socket_name(Some("prod")), "permanence-prod.sock");
 }
 
 #[test]
 fn legacy_symlink_path_matches_parent() {
-    let primary = std::path::Path::new("/run/user/1000/biomeos/permanence.sock");
+    let primary = std::path::Path::new("/run/user/1000/biomeos/loamspine.sock");
     let legacy = resolve_legacy_symlink_path(primary, None);
     assert_eq!(
         legacy.to_string_lossy(),
-        "/run/user/1000/biomeos/loamspine.sock"
+        "/run/user/1000/biomeos/permanence.sock"
     );
 }
 
@@ -142,7 +142,7 @@ fn capability_domain_socket_name_with_family() {
 
 #[test]
 fn capability_symlink_path_matches_parent() {
-    let primary = std::path::Path::new("/run/user/1000/biomeos/permanence.sock");
+    let primary = std::path::Path::new("/run/user/1000/biomeos/loamspine.sock");
     let cap = resolve_capability_symlink_path(primary, None);
     assert_eq!(cap.to_string_lossy(), "/run/user/1000/biomeos/ledger.sock");
 }
@@ -265,6 +265,7 @@ fn identity_response_fields() {
 #[test]
 fn capabilities_contains_expected_entries() {
     assert!(CAPABILITIES.contains(&"permanence"));
+    assert!(CAPABILITIES.contains(&"ledger"));
     assert!(CAPABILITIES.contains(&"spine.create"));
     assert!(CAPABILITIES.contains(&"spine.query"));
     assert!(CAPABILITIES.contains(&"certificate.issue"));

@@ -306,7 +306,7 @@
 
 ## v0.9.16 Ecosystem Validation & Domain Symlink (April 12, 2026)
 
-- **Capability-domain symlink**: `ledger.sock → permanence.sock` created on bind, removed on shutdown. Enables biomeOS `by_capability = "ledger"` routing in deploy graphs. Socket naming now: primary `permanence.sock`, capability `ledger.sock`, legacy `loamspine.sock`. Matches BearDog/Songbird/coralReef pattern.
+- **Capability-domain symlink**: `ledger.sock → loamspine.sock` created on bind, removed on shutdown. Enables `by_capability = "ledger"` routing in deploy graphs. Socket naming now: primary `loamspine.sock`, capability `ledger.sock`, legacy `permanence.sock`. Matches BearDog/Songbird/coralReef pattern.
 - **`CAPABILITY_DOMAIN` constant**: `primal_names.rs` — new `CAPABILITY_DOMAIN = "ledger"` constant. `socket.rs` — `capability_domain_socket_name()` and `resolve_capability_symlink_path()` functions. 5 new tests.
 - **Wire Standard promoted**: `CAPABILITY_WIRE_STANDARD.md` loamSpine row updated to L2 ✓ L3 ✓ (full compliance — `methods`, `identity.get`, `provided_capabilities`, `consumed_capabilities`, `cost_estimates`, `operation_dependencies`).
 - **Compliance matrix updated**: `ECOSYSTEM_COMPLIANCE_MATRIX.md` loamSpine transport and discovery entries corrected to reflect domain symlink, Wire L2+L3, TCP opt-in.
@@ -380,10 +380,9 @@
 
 ## v0.9.16 GAP-MATRIX-12 Socket Naming Compliance (April 8, 2026)
 
-- **Domain-based socket naming**: Socket path changed from `loamspine.sock` → `permanence.sock` per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3. Family-scoped: `permanence-{family_id}.sock`. Uses `primal_names::DOMAIN` constant.
+- **Ecosystem convention socket naming**: Primary socket uses `loamspine.sock` / `loamspine-{family_id}.sock` per `{primal}-{FAMILY_ID}.sock` convention. Capability symlink: `ledger.sock → loamspine.sock`. Legacy symlink: `permanence.sock → loamspine.sock` (backward compat). `"ledger"` added to CAPABILITIES for `discover_by_capability("ledger")` support.
 - **`BIOMEOS_INSECURE` security guard**: `validate_security_config()` rejects startup when `BIOMEOS_INSECURE=1` is combined with a non-default `FAMILY_ID` (family-scoped sockets require BTSP authentication).
-- **Legacy symlink**: `loamspine.sock → permanence.sock` created on startup, cleaned up on graceful shutdown. Supports identity-based discovery consumers during migration.
-- **Socket cleanup on shutdown**: Both primary socket and legacy symlink removed on graceful exit per spec requirement.
+- **Socket cleanup on shutdown**: Primary socket, capability symlink, and legacy symlink all removed on graceful exit.
 - **Tests**: 1,304 → **1,316** (+12 new: domain naming, legacy symlink, security config validation). Zero clippy warnings.
 
 ## v0.9.16 Deep Debt Smart Refactoring Sprint 3 (April 8, 2026)

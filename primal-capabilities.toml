@@ -28,6 +28,7 @@ version = "0.9.16"
 capabilities = [
     # Core permanence capabilities
     "permanence",
+    "ledger",
     "selective-memory",
     "spine-management",
     "entry-chain",

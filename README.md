@@ -183,9 +183,10 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 
 | Mode | Socket Path |
 |------|------------|
-| **Development** (`BIOMEOS_INSECURE=1`) | `$XDG_RUNTIME_DIR/biomeos/permanence.sock` |
-| **Production** (`BIOMEOS_FAMILY_ID=<fid>`) | `$XDG_RUNTIME_DIR/biomeos/permanence-<fid>.sock` |
-| **Legacy symlink** | `loamspine.sock → permanence.sock` |
+| **Development** (`BIOMEOS_INSECURE=1`) | `$XDG_RUNTIME_DIR/biomeos/loamspine.sock` |
+| **Production** (`BIOMEOS_FAMILY_ID=<fid>`) | `$XDG_RUNTIME_DIR/biomeos/loamspine-<fid>.sock` |
+| **Capability symlink** | `ledger.sock → loamspine.sock` |
+| **Legacy symlink** | `permanence.sock → loamspine.sock` |
 
 Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to start.
 

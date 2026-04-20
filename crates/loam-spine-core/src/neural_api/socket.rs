@@ -2,12 +2,10 @@
 
 //! Socket path resolution for LoamSpine IPC endpoints.
 //!
-//! Follows `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 Socket Naming Convention:
-//! - Primary socket uses the **capability domain** (`permanence`), not the
-//!   primal name (`loamspine`).
-//! - Family-scoped: `permanence-{family_id}.sock` when `BIOMEOS_FAMILY_ID` is set.
-//! - Development mode: `permanence.sock` when `BIOMEOS_INSECURE=1`.
-//! - Legacy symlink: `loamspine.sock → permanence.sock` for backward compat.
+//! Follows the ecosystem `{primal}-{FAMILY_ID}.sock` convention:
+//! - Primary socket: `loamspine.sock` or `loamspine-{family_id}.sock`.
+//! - Capability symlink: `ledger.sock → loamspine.sock` for `by_capability = "ledger"`.
+//! - Legacy symlink: `permanence.sock → loamspine.sock` for backward compat.
 
 use std::path::PathBuf;
 
@@ -17,7 +15,7 @@ use crate::error::LoamSpineError;
 ///
 /// Resolution order:
 /// 1. `socket_override` (from `LOAMSPINE_SOCKET`)
-/// 2. `runtime_dir/biomeos/permanence-{family_id}.sock`
+/// 2. `runtime_dir/biomeos/loamspine-{family_id}.sock`
 /// 3. `/run/user/{uid}/biomeos/...` (Linux)
 /// 4. `temp_dir/biomeos/...`
 #[must_use]
@@ -47,32 +45,31 @@ pub fn resolve_socket_path_with(
         .join(sock_name)
 }
 
-/// Build the domain-based socket filename.
+/// Build the primary socket filename per ecosystem `{primal}-{FAMILY_ID}.sock` convention.
 ///
-/// Per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3:
-/// - With family: `permanence-{family_id}.sock`
-/// - Without family: `permanence.sock`
+/// - With family: `loamspine-{family_id}.sock`
+/// - Without family: `loamspine.sock`
 #[must_use]
 pub fn domain_socket_name(family_id: Option<&str>) -> String {
-    match family_id {
-        Some(fid) if !fid.is_empty() && fid != "default" => {
-            format!("{}-{fid}.sock", crate::primal_names::DOMAIN)
-        }
-        _ => format!("{}.sock", crate::primal_names::DOMAIN),
-    }
-}
-
-/// Build the legacy primal-named socket filename for backward compatibility.
-///
-/// Creates `loamspine.sock` or `loamspine-{family_id}.sock` to support
-/// consumers still using identity-based discovery (Tier 5–6).
-#[must_use]
-pub fn legacy_socket_name(family_id: Option<&str>) -> String {
     match family_id {
         Some(fid) if !fid.is_empty() && fid != "default" => {
             format!("{}-{fid}.sock", crate::primal_names::SELF_ID)
         }
         _ => format!("{}.sock", crate::primal_names::SELF_ID),
+    }
+}
+
+/// Build the legacy socket filename for backward compatibility.
+///
+/// Creates `permanence.sock` or `permanence-{family_id}.sock` for consumers
+/// that previously connected via the old domain-based socket name.
+#[must_use]
+pub fn legacy_socket_name(family_id: Option<&str>) -> String {
+    match family_id {
+        Some(fid) if !fid.is_empty() && fid != "default" => {
+            format!("{}-{fid}.sock", crate::primal_names::LEGACY_DOMAIN)
+        }
+        _ => format!("{}.sock", crate::primal_names::LEGACY_DOMAIN),
     }
 }
 
@@ -87,9 +84,7 @@ pub fn resolve_legacy_symlink_path(primary: &std::path::Path, family_id: Option<
 
 /// Build the capability-domain socket filename for ecosystem capability routing.
 ///
-/// Per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 Phase 2: domain-named socket
-/// is primary, capability-domain symlink enables `by_capability = "ledger"`
-/// routing in deploy graphs.
+/// Capability symlink enables `by_capability = "ledger"` routing in deploy graphs.
 /// - Without family: `ledger.sock`
 /// - With family: `ledger-{family_id}.sock`
 #[must_use]

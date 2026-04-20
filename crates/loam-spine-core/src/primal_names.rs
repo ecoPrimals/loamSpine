@@ -9,9 +9,12 @@
 /// This primal's canonical identifier.
 pub const SELF_ID: &str = "loamspine";
 
-/// Primary capability domain — used for socket naming per
-/// `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 Socket Naming Convention.
-pub const DOMAIN: &str = "permanence";
+/// Legacy socket domain — backward-compat symlink for consumers that
+/// previously connected via `permanence.sock`.
+///
+/// The primary socket now uses [`SELF_ID`] (`loamspine-{family}.sock`)
+/// per the ecosystem `{primal}-{FAMILY_ID}.sock` convention.
+pub const LEGACY_DOMAIN: &str = "permanence";
 
 /// Capability-domain stem for ecosystem socket routing.
 ///
@@ -40,13 +43,13 @@ mod tests {
     }
 
     #[test]
-    fn domain_is_lowercase() {
-        assert!(DOMAIN.chars().all(|c| c.is_ascii_lowercase()));
+    fn legacy_domain_is_lowercase() {
+        assert!(LEGACY_DOMAIN.chars().all(|c| c.is_ascii_lowercase()));
     }
 
     #[test]
-    fn domain_is_permanence() {
-        assert_eq!(DOMAIN, "permanence");
+    fn legacy_domain_is_permanence() {
+        assert_eq!(LEGACY_DOMAIN, "permanence");
     }
 
     #[test]

@@ -413,8 +413,8 @@ async fn mdns_discover_service_impl(service_query: &str) -> Option<String> {
         loop {
             match receiver.recv_async().await {
                 Ok(mdns_sd::ServiceEvent::ServiceResolved(info)) => {
-                    if let Some(addr) = info.get_addresses().iter().next() {
-                        let port = info.get_port();
+                    if let Some(addr) = info.addresses.iter().next() {
+                        let port = info.port;
                         return Some(format!("http://{addr}:{port}"));
                     }
                 }

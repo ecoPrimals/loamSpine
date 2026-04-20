@@ -87,12 +87,12 @@ pub(super) async fn mdns_discover_impl(
 /// Convert a resolved `mdns-sd` service into a `DiscoveredService`.
 #[cfg(feature = "mdns")]
 fn resolved_to_discovered(
-    info: &mdns_sd::ServiceInfo,
+    info: &mdns_sd::ResolvedService,
     capability: &str,
     cache_ttl_secs: u64,
 ) -> Option<DiscoveredService> {
-    let port = info.get_port();
-    let addr = info.get_addresses().iter().next()?;
+    let port = info.port;
+    let addr = info.addresses.iter().next()?;
 
     let endpoint = if port == HTTPS_DEFAULT_PORT {
         format!("https://{addr}")

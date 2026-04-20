@@ -31,6 +31,7 @@ pub const PRIMAL_NAME: &str = crate::primal_names::SELF_ID;
 /// These map to the orchestrator's `capability_domains.rs` for NeuralAPI routing.
 pub const CAPABILITIES: &[&str] = &[
     "permanence",
+    "ledger",
     "session.commit",
     "spine.create",
     "spine.query",

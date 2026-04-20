@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (April 20, 2026)
 
+- **Socket naming convention aligned**: Primary socket changed from `permanence.sock` to `loamspine.sock` (and `loamspine-{FAMILY_ID}.sock` with family), following the ecosystem `{primal}-{FAMILY_ID}.sock` convention. `permanence.sock` is now a legacy backward-compat symlink. `ledger.sock` capability symlink unchanged. Fixes `discover_by_capability("ledger")` failure reported by primalSpring Phase 45.
+- **`"ledger"` added to CAPABILITIES**: NeuralAPI registration now advertises `"ledger"` alongside `"permanence"`, enabling capability-based discovery by ecosystem deploy graphs.
+- **mdns-sd `ResolvedService` API fix**: Updated `resolved_to_discovered` and `mdns_discover_service_impl` to use `ResolvedService` field access (`.port`, `.addresses`) instead of `ServiceInfo` getters, fixing compile error with `--all-features`.
 - **mdns 3.0 → mdns-sd 0.19**: Replaced `mdns` crate (which depended on `async-std`) with `mdns-sd` (pure Rust, manages own daemon thread, async-compatible via flume channels). Eliminates `async-std`, `net2`, `proc-macro-error` from dependency tree. 3 RUSTSEC advisories removed from `deny.toml`.
 - **PG-33 / GAP-07 startup panic structurally eliminated**: The "block_on inside async runtime" crash is no longer possible — `mdns-sd` never enters a tokio runtime context. Unblocks ludoSpring exp095.
 - **Self-knowledge doc comments**: Final `biomeOS` / primal-name references in comments genericized (trio_types.rs, main.rs).
@@ -68,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **GAP-MATRIX-05 resolution**: 3 new UDS wire-format integration tests validating `health.liveness` and `capabilities.list` over Unix domain sockets — the exact path biomeOS Neural API uses to probe primals. Validates JSON-RPC 2.0 envelope, Semantic Method Naming Standard v2.1 liveness format (`{"status":"alive"}`), biomeOS-parseable capability structure (Format D: primal identity, string array, methods with domain/cost/deps, operation_dependencies DAG, cost_estimates), and legacy `capability.list` alias routing.
-- **GAP-MATRIX-12 resolution**: Domain-based socket naming per `PRIMAL_SELF_KNOWLEDGE_STANDARD.md` §3 — `permanence.sock` / `permanence-{family_id}.sock` replaces `loamspine.sock`. Legacy `loamspine.sock` symlink for backward compat. `BIOMEOS_INSECURE` guard rejects conflicting `FAMILY_ID` + insecure mode. Socket cleanup on graceful shutdown. 12 new tests.
+- **GAP-MATRIX-12 resolution**: Socket naming aligned to ecosystem `{primal}-{FAMILY_ID}.sock` convention — `loamspine.sock` / `loamspine-{family_id}.sock` as primary. `ledger.sock` capability symlink, `permanence.sock` legacy symlink for backward compat. `BIOMEOS_INSECURE` guard rejects conflicting `FAMILY_ID` + insecure mode. Socket cleanup on graceful shutdown. 12 new tests.
 
 ### Refactored
 - **Smart module refactoring (14 large files)**: Prior: `types.rs` → `types/` directory. `error.rs` → `error/` directory. `neural_api.rs` → `neural_api/` directory. `infant_discovery/` cache extraction. `constants/network.rs` env_resolution extraction. `sync/mod.rs` streaming extraction. `jsonrpc/mod.rs` wire/server/dispatch split. `capabilities.rs` → `capabilities/` directory. Sprint 3: `certificate_tests.rs` (1,060 → 535 + 525 by domain). Test extraction from 6 production files: `service/waypoint.rs`, `service/infant_discovery.rs`, `constants/network.rs`, `trio_types.rs`, `types.rs`, `entry/mod.rs`. Max file: 711 lines (was 1,060).

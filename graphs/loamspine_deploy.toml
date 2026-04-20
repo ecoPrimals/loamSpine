@@ -34,7 +34,7 @@ protocols = ["jsonrpc", "tarpc"]
 [[nodes]]
 id = "germinate_loamspine"
 output = "loamspine_genesis"
-capabilities = ["permanence", "certificates", "proofs"]
+capabilities = ["permanence", "ledger", "certificates", "proofs"]
 
 [nodes.primal]
 by_capability = "permanence"

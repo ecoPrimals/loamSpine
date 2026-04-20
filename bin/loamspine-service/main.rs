@@ -81,7 +81,7 @@ enum Command {
         ///
         /// Explicit socket path for launcher/orchestrator wiring.
         /// When omitted, resolved from `LOAMSPINE_SOCKET` env, then
-        /// `$XDG_RUNTIME_DIR/biomeos/permanence.sock`, then platform default.
+        /// `$XDG_RUNTIME_DIR/biomeos/loamspine.sock`, then platform default.
         #[arg(long)]
         socket: Option<String>,
 
@@ -278,7 +278,7 @@ async fn run_server(
     #[cfg(unix)]
     let family_id = std::env::var("BIOMEOS_FAMILY_ID").ok();
 
-    // Capability-domain symlink: ledger.sock → permanence.sock
+    // Capability-domain symlink: ledger.sock → loamspine.sock
     // Enables orchestration-layer `by_capability = "ledger"` routing in deploy graphs.
     #[cfg(unix)]
     let capability_symlink = {
@@ -310,8 +310,8 @@ async fn run_server(
         }
     };
 
-    // Legacy backward-compat symlink: loamspine.sock → permanence.sock
-    // per PRIMAL_SELF_KNOWLEDGE_STANDARD §3 "Legacy compatibility"
+    // Legacy backward-compat symlink: permanence.sock → loamspine.sock
+    // for consumers that connected via the old domain-based socket name
     #[cfg(unix)]
     let legacy_symlink = {
         let link_path = loam_spine_core::neural_api::resolve_legacy_symlink_path(
