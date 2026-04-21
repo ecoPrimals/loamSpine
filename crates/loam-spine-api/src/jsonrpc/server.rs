@@ -173,6 +173,51 @@ where
     Ok(())
 }
 
+/// Variant of [`handle_stream`] where the first line has already been read.
+///
+/// Used by the UDS accept loop when the first line was peeked for BTSP
+/// auto-detection and turned out to be a JSON-RPC request.
+pub(crate) async fn handle_stream_with_first_line<R, W>(
+    handler: Arc<LoamSpineJsonRpc>,
+    mut buf_reader: BufReader<R>,
+    mut writer: W,
+    first_line: &str,
+) -> Result<(), std::io::Error>
+where
+    R: tokio::io::AsyncRead + Unpin,
+    W: tokio::io::AsyncWrite + Unpin,
+{
+    let is_http = first_line.starts_with("POST")
+        || first_line.starts_with("GET")
+        || first_line.starts_with("HTTP");
+
+    if is_http {
+        handle_http_request(&handler, &mut buf_reader, &mut writer, first_line).await?;
+    } else {
+        if let Some(resp) = process_ndjson_line(&handler, first_line).await {
+            writer.write_all(&resp).await?;
+            writer.write_all(b"\n").await?;
+            writer.flush().await?;
+        }
+
+        let mut line = String::new();
+        loop {
+            line.clear();
+            let n = buf_reader.read_line(&mut line).await?;
+            if n == 0 {
+                break;
+            }
+            if let Some(resp) = process_ndjson_line(&handler, &line).await {
+                writer.write_all(&resp).await?;
+                writer.write_all(b"\n").await?;
+                writer.flush().await?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// HTTP/1.1 persistent connection handler.
 ///
 /// Supports keep-alive by default (HTTP/1.1 semantics): the connection

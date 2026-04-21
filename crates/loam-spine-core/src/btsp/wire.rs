@@ -87,3 +87,39 @@ pub struct BtspSession {
     /// Negotiated cipher suite (e.g. `"null"`, `"chacha20_poly1305"`).
     pub cipher: String,
 }
+
+// --- NDJSON wire types (primalSpring-compatible) ---
+//
+// primalSpring sends newline-delimited JSON with a `protocol` discriminator
+// field. These types match the wire format from
+// `primalSpring/ecoPrimal/src/ipc/btsp_handshake.rs`.
+
+/// NDJSON `ClientHello` — first line from a primalSpring-style BTSP client.
+///
+/// Distinguished from JSON-RPC by the `protocol: "btsp"` field (no `jsonrpc`
+/// or `method` fields present).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NdjsonClientHello {
+    /// Protocol discriminator — always `"btsp"`.
+    pub protocol: String,
+    /// BTSP version (primalSpring sends `1` as u8).
+    pub version: u32,
+    /// Client's ephemeral public key (base64, 32 bytes).
+    pub client_ephemeral_pub: String,
+}
+
+/// NDJSON `ServerHello` — response to primalSpring-style BTSP client.
+///
+/// Includes `session_id` which the length-prefixed `ServerHello` omits
+/// (primalSpring expects it for logging and session tracking).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NdjsonServerHello {
+    /// BTSP version.
+    pub version: u32,
+    /// Server's ephemeral public key (base64).
+    pub server_ephemeral_pub: String,
+    /// Challenge (base64-encoded random bytes).
+    pub challenge: String,
+    /// Session identifier.
+    pub session_id: String,
+}

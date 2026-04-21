@@ -43,9 +43,10 @@ pub use config::{
     resolve_provider_socket_with,
 };
 pub use frame::{read_frame, write_frame};
-pub use handshake::perform_server_handshake;
+pub use handshake::{perform_ndjson_server_handshake, perform_server_handshake};
 pub use wire::{
-    BtspSession, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError, ServerHello,
+    BtspSession, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError,
+    NdjsonClientHello, NdjsonServerHello, ServerHello,
 };
 
 #[cfg(test)]

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (April 21, 2026)
+
+- **BTSP NDJSON wire-format alignment**: Added auto-detection of primalSpring-style BTSP handshake (`{"protocol":"btsp",...}\n`) in the UDS accept loop. When the first line of a connection contains `"protocol":"btsp"`, routes to the new `perform_ndjson_server_handshake` (newline-delimited JSON, session_id in ServerHello). Provider-delegated crypto preserved. Resolves primalSpring Phase 45b BTSP escalation gap for loamSpine. 12 new tests (wire types, NDJSON handshake full sequence, version mismatch, detection logic). Existing length-prefixed BTSP path unchanged.
+
 ### Changed (April 20, 2026)
 
 - **Socket naming convention aligned**: Primary socket changed from `permanence.sock` to `loamspine.sock` (and `loamspine-{FAMILY_ID}.sock` with family), following the ecosystem `{primal}-{FAMILY_ID}.sock` convention. `permanence.sock` is now a legacy backward-compat symlink. `ledger.sock` capability symlink unchanged. Fixes `discover_by_capability("ledger")` failure reported by primalSpring Phase 45.

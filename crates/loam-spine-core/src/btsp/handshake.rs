@@ -11,14 +11,15 @@
 
 use std::path::Path;
 
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tracing::debug;
 
 use super::frame::{deserialize_btsp_msg, read_frame, serialize_btsp_msg, write_frame};
 use super::provider_client::provider_call;
 use super::wire::{
     BtspSession, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError,
-    NegotiateResult, ServerHello, SessionCreateResult, SessionVerifyResult,
+    NdjsonClientHello, NdjsonServerHello, NegotiateResult, ServerHello, SessionCreateResult,
+    SessionVerifyResult,
 };
 use crate::error::{IpcErrorPhase, LoamSpineError};
 
@@ -227,6 +228,229 @@ async fn send_handshake_error<S: AsyncWriteExt + Unpin>(
     };
     let bytes = serialize_btsp_msg(&err, "HandshakeError")?;
     write_frame(stream, &bytes).await
+}
+
+// ---------------------------------------------------------------------------
+// NDJSON BTSP handshake (primalSpring-compatible)
+// ---------------------------------------------------------------------------
+
+/// Perform the BTSP server-side handshake using newline-delimited JSON.
+///
+/// This is the primalSpring-compatible path: the client sends
+/// `{"protocol":"btsp","version":1,"client_ephemeral_pub":"..."}\n` as the
+/// first line on a UDS connection. All crypto is still delegated to the
+/// BTSP provider — only the wire framing differs from the length-prefixed
+/// variant.
+///
+/// `first_line` is the already-read first line from the connection (the
+/// `NdjsonClientHello`). The caller has already peeked it to detect BTSP.
+///
+/// # Errors
+///
+/// Returns `LoamSpineError` if the handshake fails at any step.
+pub async fn perform_ndjson_server_handshake<R, W>(
+    reader: &mut R,
+    writer: &mut W,
+    provider_socket: &Path,
+    first_line: &str,
+) -> Result<BtspSession, LoamSpineError>
+where
+    R: AsyncBufReadExt + Unpin + Send,
+    W: AsyncWriteExt + Unpin + Send,
+{
+    let hello: NdjsonClientHello = serde_json::from_str(first_line.trim()).map_err(|e| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::InvalidJson,
+            format!("BTSP NDJSON ClientHello parse: {e}"),
+        )
+    })?;
+
+    if hello.version != BTSP_VERSION {
+        ndjson_send_error(
+            writer,
+            "unsupported_version",
+            &format!(
+                "server supports BTSP v{BTSP_VERSION}, client sent v{}",
+                hello.version
+            ),
+        )
+        .await?;
+        return Err(LoamSpineError::ipc(
+            IpcErrorPhase::Read,
+            format!("BTSP version mismatch: {}", hello.version),
+        ));
+    }
+    debug!("BTSP NDJSON: received ClientHello v{}", hello.version);
+
+    let challenge = generate_challenge();
+    let create_result = create_provider_session(
+        provider_socket,
+        &ClientHello {
+            version: hello.version,
+            client_ephemeral_pub: hello.client_ephemeral_pub.clone(),
+        },
+        &challenge,
+    )
+    .await?;
+
+    let server_hello = NdjsonServerHello {
+        version: BTSP_VERSION,
+        server_ephemeral_pub: create_result.server_ephemeral_pub.clone(),
+        challenge: challenge.clone(),
+        session_id: create_result.session_id.clone(),
+    };
+    ndjson_send(writer, &server_hello, "ServerHello").await?;
+    debug!("BTSP NDJSON: sent ServerHello");
+
+    let mut cr_line = String::new();
+    reader.read_line(&mut cr_line).await.map_err(|e| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Read,
+            format!("BTSP NDJSON ChallengeResponse read: {e}"),
+        )
+    })?;
+    let challenge_response: ChallengeResponse =
+        serde_json::from_str(cr_line.trim()).map_err(|e| {
+            LoamSpineError::ipc(
+                IpcErrorPhase::InvalidJson,
+                format!("BTSP NDJSON ChallengeResponse parse: {e}"),
+            )
+        })?;
+    debug!("BTSP NDJSON: received ChallengeResponse");
+
+    let original_hello = ClientHello {
+        version: hello.version,
+        client_ephemeral_pub: hello.client_ephemeral_pub,
+    };
+
+    ndjson_verify_and_complete(
+        writer,
+        provider_socket,
+        &original_hello,
+        &create_result,
+        &challenge,
+        &challenge_response,
+    )
+    .await
+}
+
+/// NDJSON verify + complete: same logic as length-prefixed but line-delimited output.
+async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
+    writer: &mut W,
+    provider_socket: &Path,
+    client_hello: &ClientHello,
+    create_result: &SessionCreateResult,
+    challenge: &str,
+    challenge_response: &ChallengeResponse,
+) -> Result<BtspSession, LoamSpineError> {
+    let verify: SessionVerifyResult = provider_call(
+        provider_socket,
+        "btsp.session.verify",
+        serde_json::json!({
+            "session_id": create_result.session_id,
+            "client_response": challenge_response.response,
+            "client_ephemeral_pub": client_hello.client_ephemeral_pub,
+            "server_ephemeral_pub": create_result.server_ephemeral_pub,
+            "challenge": challenge,
+        }),
+        rpc_id::SESSION_VERIFY,
+    )
+    .await?;
+
+    if !verify.verified {
+        ndjson_send_error(writer, "handshake_failed", "family_verification").await?;
+        return Err(LoamSpineError::ipc(
+            IpcErrorPhase::Read,
+            "BTSP NDJSON handshake failed: family verification",
+        ));
+    }
+    debug!("BTSP NDJSON: client verified");
+
+    let negotiate: NegotiateResult = provider_call(
+        provider_socket,
+        "btsp.negotiate",
+        serde_json::json!({
+            "session_id": create_result.session_id,
+            "preferred_cipher": challenge_response.preferred_cipher,
+            "bond_type": "Covalent",
+        }),
+        rpc_id::NEGOTIATE,
+    )
+    .await?;
+
+    if !negotiate.allowed {
+        ndjson_send_error(
+            writer,
+            "cipher_rejected",
+            "requested cipher not allowed by bond policy",
+        )
+        .await?;
+        return Err(LoamSpineError::ipc(
+            IpcErrorPhase::Read,
+            "BTSP NDJSON cipher negotiation rejected",
+        ));
+    }
+
+    let complete = HandshakeComplete {
+        cipher: negotiate.cipher.clone(),
+        session_id: create_result.session_id.clone(),
+    };
+    ndjson_send(writer, &complete, "HandshakeComplete").await?;
+
+    debug!(
+        "BTSP NDJSON: handshake complete (session={}, cipher={})",
+        create_result.session_id, negotiate.cipher
+    );
+
+    Ok(BtspSession {
+        session_id: create_result.session_id.clone(),
+        cipher: negotiate.cipher,
+    })
+}
+
+/// Send a serialized JSON object followed by `\n` (NDJSON framing).
+async fn ndjson_send<W: AsyncWriteExt + Unpin + Send, T: serde::Serialize + Sync>(
+    stream: &mut W,
+    msg: &T,
+    label: &str,
+) -> Result<(), LoamSpineError> {
+    let mut line = serde_json::to_string(msg).map_err(|e| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Serialization,
+            format!("BTSP NDJSON {label} serialize: {e}"),
+        )
+    })?;
+    line.push('\n');
+    stream.write_all(line.as_bytes()).await.map_err(|e| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Write,
+            format!("BTSP NDJSON {label} write: {e}"),
+        )
+    })?;
+    stream.flush().await.map_err(|e| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Write,
+            format!("BTSP NDJSON {label} flush: {e}"),
+        )
+    })?;
+    Ok(())
+}
+
+/// Send a `HandshakeError` as NDJSON.
+async fn ndjson_send_error<W: AsyncWriteExt + Unpin + Send>(
+    stream: &mut W,
+    error: &str,
+    reason: &str,
+) -> Result<(), LoamSpineError> {
+    ndjson_send(
+        stream,
+        &HandshakeError {
+            error: error.to_string(),
+            reason: reason.to_string(),
+        },
+        "HandshakeError",
+    )
+    .await
 }
 
 /// Generate a hex-encoded 32-byte challenge from OS entropy.

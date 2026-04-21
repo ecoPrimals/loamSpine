@@ -515,6 +515,234 @@ async fn handshake_version_mismatch() {
     client_handle.await.expect("client task");
 }
 
+// ---------------------------------------------------------------------------
+// NDJSON wire type serde tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn ndjson_client_hello_roundtrip() {
+    let msg = NdjsonClientHello {
+        protocol: "btsp".to_string(),
+        version: 1,
+        client_ephemeral_pub: "AAAA".to_string(),
+    };
+    let json = serde_json::to_string(&msg).expect("serialize");
+    assert!(json.contains("\"protocol\":\"btsp\""));
+    let decoded: NdjsonClientHello = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(decoded.protocol, "btsp");
+    assert_eq!(decoded.version, 1);
+    assert_eq!(decoded.client_ephemeral_pub, "AAAA");
+}
+
+#[test]
+fn ndjson_server_hello_roundtrip() {
+    let msg = NdjsonServerHello {
+        version: 1,
+        server_ephemeral_pub: "BBBB".to_string(),
+        challenge: "CCCC".to_string(),
+        session_id: "sess123".to_string(),
+    };
+    let json = serde_json::to_string(&msg).expect("serialize");
+    assert!(json.contains("\"session_id\""));
+    let decoded: NdjsonServerHello = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(decoded.version, 1);
+    assert_eq!(decoded.server_ephemeral_pub, "BBBB");
+    assert_eq!(decoded.challenge, "CCCC");
+    assert_eq!(decoded.session_id, "sess123");
+}
+
+#[test]
+fn ndjson_client_hello_deserializes_primalspring_format() {
+    let primalspring_line =
+        r#"{"protocol":"btsp","version":1,"client_ephemeral_pub":"dGVzdC1rZXk="}"#;
+    let hello: NdjsonClientHello =
+        serde_json::from_str(primalspring_line).expect("parse primalSpring format");
+    assert_eq!(hello.protocol, "btsp");
+    assert_eq!(hello.version, 1);
+    assert_eq!(hello.client_ephemeral_pub, "dGVzdC1rZXk=");
+}
+
+#[test]
+fn ndjson_client_hello_version_u8_u32_compat() {
+    let v_u8 = r#"{"protocol":"btsp","version":1,"client_ephemeral_pub":"key"}"#;
+    let hello: NdjsonClientHello = serde_json::from_str(v_u8).expect("parse u8 version");
+    assert_eq!(hello.version, 1);
+}
+
+// ---------------------------------------------------------------------------
+// NDJSON handshake integration tests (with mock BTSP provider)
+// ---------------------------------------------------------------------------
+
+/// Simulates a primalSpring-style NDJSON BTSP client.
+async fn mock_ndjson_client_handshake(
+    stream: UnixStream,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    use tokio::io::AsyncBufReadExt;
+    let (reader, mut writer) = stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+
+    let client_hello = NdjsonClientHello {
+        protocol: "btsp".to_string(),
+        version: 1,
+        client_ephemeral_pub: "bW9ja19jbGllbnRfcHViX2tleQ==".to_string(),
+    };
+    let mut hello_line = serde_json::to_string(&client_hello)?;
+    hello_line.push('\n');
+    writer.write_all(hello_line.as_bytes()).await?;
+
+    let mut server_hello_line = String::new();
+    buf_reader.read_line(&mut server_hello_line).await?;
+    let _server_hello: NdjsonServerHello = serde_json::from_str(server_hello_line.trim())?;
+
+    let cr = ChallengeResponse {
+        response: "mock_hmac_response".to_string(),
+        preferred_cipher: "null".to_string(),
+    };
+    let mut cr_line = serde_json::to_string(&cr)?;
+    cr_line.push('\n');
+    writer.write_all(cr_line.as_bytes()).await?;
+
+    let mut final_line = String::new();
+    buf_reader.read_line(&mut final_line).await?;
+    Ok(final_line)
+}
+
+#[tokio::test]
+async fn ndjson_handshake_success_full_sequence() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, true).await;
+
+    let uds_path = tmp.path().join("loam-ndjson-test.sock");
+    let listener = UnixListener::bind(&uds_path).expect("bind");
+
+    let client_handle = tokio::spawn({
+        let uds_path = uds_path.clone();
+        async move {
+            let stream = UnixStream::connect(&uds_path).await.expect("connect");
+            mock_ndjson_client_handshake(stream).await
+        }
+    });
+
+    let (server_stream, _) = listener.accept().await.expect("accept");
+    let (reader, mut writer) = server_stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+
+    let mut first_line = String::new();
+    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line)
+        .await
+        .expect("read first line");
+    assert!(first_line.contains("\"protocol\""));
+    assert!(first_line.contains("\"btsp\""));
+
+    let session = super::handshake::perform_ndjson_server_handshake(
+        &mut buf_reader,
+        &mut writer,
+        &provider_socket,
+        &first_line,
+    )
+    .await
+    .expect("ndjson handshake should succeed");
+
+    assert_eq!(session.session_id, "abcdef0123456789");
+    assert_eq!(session.cipher, "null");
+
+    let final_line = client_handle
+        .await
+        .expect("client task")
+        .expect("client ok");
+    let complete: HandshakeComplete =
+        serde_json::from_str(final_line.trim()).expect("parse HandshakeComplete");
+    assert_eq!(complete.session_id, "abcdef0123456789");
+    assert_eq!(complete.cipher, "null");
+}
+
+#[tokio::test]
+async fn ndjson_handshake_failure_verify_rejected() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), false, true).await;
+
+    let uds_path = tmp.path().join("loam-ndjson-reject.sock");
+    let listener = UnixListener::bind(&uds_path).expect("bind");
+
+    let client_handle = tokio::spawn({
+        let uds_path = uds_path.clone();
+        async move {
+            let stream = UnixStream::connect(&uds_path).await.expect("connect");
+            mock_ndjson_client_handshake(stream).await
+        }
+    });
+
+    let (server_stream, _) = listener.accept().await.expect("accept");
+    let (reader, mut writer) = server_stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+
+    let mut first_line = String::new();
+    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line)
+        .await
+        .expect("read first line");
+
+    let result = super::handshake::perform_ndjson_server_handshake(
+        &mut buf_reader,
+        &mut writer,
+        &provider_socket,
+        &first_line,
+    )
+    .await;
+
+    assert!(result.is_err());
+    let err_str = result.unwrap_err().to_string();
+    assert!(
+        err_str.contains("family verification") || err_str.contains("handshake failed"),
+        "unexpected error: {err_str}"
+    );
+
+    let final_line = client_handle
+        .await
+        .expect("client task")
+        .expect("client ok");
+    let error: HandshakeError =
+        serde_json::from_str(final_line.trim()).expect("parse HandshakeError");
+    assert_eq!(error.error, "handshake_failed");
+}
+
+#[tokio::test]
+async fn ndjson_handshake_version_mismatch() {
+    let (mut client, server) = tokio::io::duplex(8192);
+    let (reader, mut writer) = tokio::io::split(server);
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+
+    let client_handle = tokio::spawn(async move {
+        use tokio::io::AsyncBufReadExt;
+        let hello = r#"{"protocol":"btsp","version":99,"client_ephemeral_pub":"key"}"#;
+        client
+            .write_all(format!("{hello}\n").as_bytes())
+            .await
+            .expect("write");
+        let mut reader = tokio::io::BufReader::new(client);
+        let mut err_line = String::new();
+        reader
+            .read_line(&mut err_line)
+            .await
+            .expect("read error line");
+        let err: HandshakeError =
+            serde_json::from_str(err_line.trim()).expect("parse HandshakeError");
+        assert_eq!(err.error, "unsupported_version");
+    });
+
+    let first_line = r#"{"protocol":"btsp","version":99,"client_ephemeral_pub":"key"}"#;
+    let provider = PathBuf::from("/tmp/unused-btsp-provider.sock");
+    let result = super::handshake::perform_ndjson_server_handshake(
+        &mut buf_reader,
+        &mut writer,
+        &provider,
+        first_line,
+    )
+    .await;
+    assert!(result.is_err());
+
+    client_handle.await.expect("client task");
+}
+
 #[test]
 fn generate_challenge_is_not_empty() {
     let challenge = generate_challenge();

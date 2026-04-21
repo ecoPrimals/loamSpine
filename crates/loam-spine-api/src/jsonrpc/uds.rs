@@ -150,7 +150,14 @@ pub async fn run_jsonrpc_uds_server(
     })
 }
 
-/// Handle a single UDS connection: BTSP handshake (if configured), then JSON-RPC.
+/// Handle a single UDS connection with wire-level BTSP auto-detection.
+///
+/// Three paths:
+/// 1. **Static BTSP** (`btsp_config` is `Some`): length-prefixed handshake
+///    before JSON-RPC (existing Phase 2 behavior).
+/// 2. **NDJSON BTSP** (first line has `"protocol":"btsp"`): primalSpring-
+///    compatible newline-delimited handshake, then JSON-RPC.
+/// 3. **Plain JSON-RPC**: no handshake, direct dispatch.
 async fn handle_uds_connection(
     handler: Arc<LoamSpineJsonRpc>,
     mut stream: tokio::net::UnixStream,
@@ -171,8 +178,103 @@ async fn handle_uds_connection(
                 return Ok(());
             }
         }
+        let (reader, writer) = stream.into_split();
+        return super::server::handle_stream(handler, reader, writer).await;
     }
 
-    let (reader, writer) = stream.into_split();
-    super::server::handle_stream(handler, reader, writer).await
+    // No static BTSP config — peek the first line to detect NDJSON BTSP.
+    let (reader, mut writer) = stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+
+    let mut first_line = String::new();
+    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line).await?;
+
+    if first_line.trim().is_empty() {
+        return Ok(());
+    }
+
+    if is_btsp_ndjson(&first_line) {
+        if let Some(provider_path) = resolve_btsp_provider() {
+            match loam_spine_core::btsp::perform_ndjson_server_handshake(
+                &mut buf_reader,
+                &mut writer,
+                &provider_path,
+                &first_line,
+            )
+            .await
+            {
+                Ok(session) => {
+                    debug!(
+                        "BTSP NDJSON authenticated: session={}, cipher={}",
+                        session.session_id, session.cipher
+                    );
+                }
+                Err(e) => {
+                    warn!("BTSP NDJSON handshake failed: {e}");
+                    return Ok(());
+                }
+            }
+            super::server::handle_stream(handler, buf_reader, writer).await
+        } else {
+            warn!(
+                "BTSP NDJSON handshake requested but no provider available; \
+                 set BTSP_PROVIDER_SOCKET or BIOMEOS_FAMILY_ID"
+            );
+            Ok(())
+        }
+    } else {
+        super::server::handle_stream_with_first_line(handler, buf_reader, writer, &first_line).await
+    }
+}
+
+/// Check whether a first line looks like a BTSP NDJSON `ClientHello`.
+fn is_btsp_ndjson(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.starts_with('{') && trimmed.contains("\"protocol\"") && trimmed.contains("\"btsp\"")
+}
+
+/// Resolve the BTSP provider socket from environment for NDJSON auto-detect.
+fn resolve_btsp_provider() -> Option<std::path::PathBuf> {
+    if let Ok(path) = std::env::var("BTSP_PROVIDER_SOCKET") {
+        return Some(std::path::PathBuf::from(path));
+    }
+    let config = loam_spine_core::btsp::BtspHandshakeConfig::from_env()?;
+    Some(config.provider_socket)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn btsp_ndjson_detection_positive() {
+        assert!(is_btsp_ndjson(
+            r#"{"protocol":"btsp","version":1,"client_ephemeral_pub":"key"}"#
+        ));
+    }
+
+    #[test]
+    fn btsp_ndjson_detection_positive_with_newline() {
+        assert!(is_btsp_ndjson(
+            "{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"key\"}\n"
+        ));
+    }
+
+    #[test]
+    fn btsp_ndjson_detection_negative_jsonrpc() {
+        assert!(!is_btsp_ndjson(
+            r#"{"jsonrpc":"2.0","method":"health.check","id":1}"#
+        ));
+    }
+
+    #[test]
+    fn btsp_ndjson_detection_negative_http() {
+        assert!(!is_btsp_ndjson("POST /jsonrpc HTTP/1.1"));
+    }
+
+    #[test]
+    fn btsp_ndjson_detection_negative_empty() {
+        assert!(!is_btsp_ndjson(""));
+        assert!(!is_btsp_ndjson("  \n"));
+    }
 }
