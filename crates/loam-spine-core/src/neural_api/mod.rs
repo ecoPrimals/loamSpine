@@ -30,8 +30,8 @@ pub const PRIMAL_NAME: &str = crate::primal_names::SELF_ID;
 /// Semantic capabilities LoamSpine provides to the ecosystem.
 /// These map to the orchestrator's `capability_domains.rs` for NeuralAPI routing.
 pub const CAPABILITIES: &[&str] = &[
-    "permanence",
-    "ledger",
+    crate::primal_names::LEGACY_DOMAIN,
+    crate::primal_names::CAPABILITY_DOMAIN,
     "session.commit",
     "spine.create",
     "spine.query",
@@ -302,7 +302,7 @@ pub fn identity_response() -> &'static serde_json::Value {
         serde_json::json!({
             "primal": PRIMAL_NAME,
             "version": env!("CARGO_PKG_VERSION"),
-            "domain": "permanence",
+            "domain": crate::primal_names::LEGACY_DOMAIN,
             "license": env!("CARGO_PKG_LICENSE"),
         })
     })

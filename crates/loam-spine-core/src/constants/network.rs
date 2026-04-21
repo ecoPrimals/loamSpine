@@ -130,13 +130,13 @@ pub fn resolve_actual_tarpc_port(os_assigned: bool, port: u16) -> u16 {
 #[must_use]
 pub fn resolve_socket_base_dir_with(runtime_dir: Option<&str>) -> std::path::PathBuf {
     if let Some(rd) = runtime_dir {
-        return std::path::PathBuf::from(format!("{rd}/biomeos"));
+        return std::path::PathBuf::from(rd).join(crate::primal_names::BIOMEOS_SOCKET_DIR);
     }
     #[cfg(target_os = "linux")]
     if let Some(path) = linux_run_user_biomeos() {
         return path;
     }
-    std::env::temp_dir().join("biomeos")
+    std::env::temp_dir().join(crate::primal_names::BIOMEOS_SOCKET_DIR)
 }
 
 pub use super::env_resolution::{
