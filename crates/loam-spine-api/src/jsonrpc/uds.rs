@@ -150,22 +150,86 @@ pub async fn run_jsonrpc_uds_server(
     })
 }
 
-/// Handle a single UDS connection with wire-level BTSP auto-detection.
+/// Handle a single UDS connection with wire-level protocol auto-detection.
 ///
-/// Three paths:
-/// 1. **Static BTSP** (`btsp_config` is `Some`): length-prefixed handshake
-///    before JSON-RPC (existing Phase 2 behavior).
-/// 2. **NDJSON BTSP** (first line has `"protocol":"btsp"`): primalSpring-
-///    compatible newline-delimited handshake, then JSON-RPC.
-/// 3. **Plain JSON-RPC**: no handshake, direct dispatch.
+/// Always peeks the first byte to determine wire format, regardless of
+/// whether static BTSP is configured:
+///
+/// 1. **`{` → line-based**: read the full first line. If it contains
+///    `"protocol":"btsp"`, route to NDJSON BTSP handshake (primalSpring-
+///    compatible). Otherwise, dispatch as JSON-RPC.
+/// 2. **Non-`{` + BTSP configured**: length-prefixed BTSP handshake
+///    (Phase 2 binary framing), then JSON-RPC.
+/// 3. **Non-`{` + no BTSP**: unexpected binary data, close.
 async fn handle_uds_connection(
     handler: Arc<LoamSpineJsonRpc>,
-    mut stream: tokio::net::UnixStream,
+    stream: tokio::net::UnixStream,
     btsp_config: Option<Arc<loam_spine_core::btsp::BtspHandshakeConfig>>,
 ) -> Result<(), std::io::Error> {
-    if let Some(ref btsp) = btsp_config {
-        match loam_spine_core::btsp::perform_server_handshake(&mut stream, &btsp.provider_socket)
-            .await
+    let (reader, mut writer) = stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+
+    let first_byte = {
+        let buf = tokio::io::AsyncBufReadExt::fill_buf(&mut buf_reader).await?;
+        if buf.is_empty() {
+            return Ok(());
+        }
+        buf[0]
+    };
+
+    if first_byte == b'{' {
+        let mut first_line = String::new();
+        tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line).await?;
+
+        if first_line.trim().is_empty() {
+            return Ok(());
+        }
+
+        if is_btsp_ndjson(&first_line) {
+            let provider_path = btsp_config
+                .as_ref()
+                .map(|c| c.provider_socket.clone())
+                .or_else(resolve_btsp_provider);
+
+            if let Some(provider_path) = provider_path {
+                match loam_spine_core::btsp::perform_ndjson_server_handshake(
+                    &mut buf_reader,
+                    &mut writer,
+                    &provider_path,
+                    &first_line,
+                )
+                .await
+                {
+                    Ok(session) => {
+                        debug!(
+                            "BTSP NDJSON authenticated: session={}, cipher={}",
+                            session.session_id, session.cipher
+                        );
+                    }
+                    Err(e) => {
+                        warn!("BTSP NDJSON handshake failed: {e}");
+                        return Ok(());
+                    }
+                }
+                super::server::handle_stream(handler, buf_reader, writer).await
+            } else {
+                warn!(
+                    "BTSP NDJSON handshake requested but no provider available; \
+                     set BTSP_PROVIDER_SOCKET or BIOMEOS_FAMILY_ID"
+                );
+                Ok(())
+            }
+        } else {
+            super::server::handle_stream_with_first_line(handler, buf_reader, writer, &first_line)
+                .await
+        }
+    } else if let Some(ref btsp) = btsp_config {
+        match loam_spine_core::btsp::perform_server_handshake(
+            &mut buf_reader,
+            &mut writer,
+            &btsp.provider_socket,
+        )
+        .await
         {
             Ok(session) => {
                 debug!(
@@ -178,52 +242,10 @@ async fn handle_uds_connection(
                 return Ok(());
             }
         }
-        let (reader, writer) = stream.into_split();
-        return super::server::handle_stream(handler, reader, writer).await;
-    }
-
-    // No static BTSP config — peek the first line to detect NDJSON BTSP.
-    let (reader, mut writer) = stream.into_split();
-    let mut buf_reader = tokio::io::BufReader::new(reader);
-
-    let mut first_line = String::new();
-    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line).await?;
-
-    if first_line.trim().is_empty() {
-        return Ok(());
-    }
-
-    if is_btsp_ndjson(&first_line) {
-        if let Some(provider_path) = resolve_btsp_provider() {
-            match loam_spine_core::btsp::perform_ndjson_server_handshake(
-                &mut buf_reader,
-                &mut writer,
-                &provider_path,
-                &first_line,
-            )
-            .await
-            {
-                Ok(session) => {
-                    debug!(
-                        "BTSP NDJSON authenticated: session={}, cipher={}",
-                        session.session_id, session.cipher
-                    );
-                }
-                Err(e) => {
-                    warn!("BTSP NDJSON handshake failed: {e}");
-                    return Ok(());
-                }
-            }
-            super::server::handle_stream(handler, buf_reader, writer).await
-        } else {
-            warn!(
-                "BTSP NDJSON handshake requested but no provider available; \
-                 set BTSP_PROVIDER_SOCKET or BIOMEOS_FAMILY_ID"
-            );
-            Ok(())
-        }
+        super::server::handle_stream(handler, buf_reader, writer).await
     } else {
-        super::server::handle_stream_with_first_line(handler, buf_reader, writer, &first_line).await
+        debug!("UDS connection starts with non-JSON byte and no BTSP config; closing");
+        Ok(())
     }
 }
 

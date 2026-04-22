@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (April 22, 2026)
+
+- **BTSP provider socket wired in static mode**: Restructured UDS accept loop to always peek the first byte (`BufReader::fill_buf`) and auto-detect wire format regardless of whether `btsp_config` is `Some`. Previously, static BTSP mode routed all connections to the binary length-prefixed path, making NDJSON BTSP unreachable when `BIOMEOS_FAMILY_ID` was set. Now: `{` → line-based (NDJSON BTSP or JSON-RPC), non-`{` → binary length-prefixed BTSP. Provider socket resolved from `btsp_config` first, falling back to `BTSP_PROVIDER_SOCKET` env var. Resolves primalSpring Phase 45b BTSP provider socket wiring gap.
+- **`perform_server_handshake` split reader/writer**: Refactored from `<S: AsyncReadExt + AsyncWriteExt>` to `<R: AsyncReadExt, W: AsyncWriteExt>` (separate reader/writer), matching `perform_ndjson_server_handshake`'s design. Enables `BufReader` peek for wire-format detection before routing to the binary handshake.
+- **2 new integration tests**: `uds_ndjson_btsp_through_static_config` (regression test for the exact bug — NDJSON handshake completes when btsp_config is Some), `uds_jsonrpc_with_static_btsp_config` (JSON-RPC still works with BTSP configured).
+
 ### Changed (April 21, 2026)
 
 - **BTSP NDJSON wire-format alignment**: Added auto-detection of primalSpring-style BTSP handshake (`{"protocol":"btsp",...}\n`) in the UDS accept loop. When the first line of a connection contains `"protocol":"btsp"`, routes to the new `perform_ndjson_server_handshake` (newline-delimited JSON, session_id in ServerHello). Provider-delegated crypto preserved. Resolves primalSpring Phase 45b BTSP escalation gap for loamSpine. 12 new tests (wire types, NDJSON handshake full sequence, version mismatch, detection logic). Existing length-prefixed BTSP path unchanged.

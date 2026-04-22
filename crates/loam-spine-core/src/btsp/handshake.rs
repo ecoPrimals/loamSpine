@@ -35,28 +35,33 @@ mod rpc_id {
 
 /// Perform the BTSP server-side handshake on an accepted UDS connection.
 ///
+/// Accepts separate reader and writer halves so the caller can use
+/// `BufReader` for wire-format peeking before routing here.
+///
 /// # Errors
 ///
 /// Returns `LoamSpineError` if the handshake fails at any step. The caller
 /// should close the connection on error.
-pub async fn perform_server_handshake<S>(
-    stream: &mut S,
+pub async fn perform_server_handshake<R, W>(
+    reader: &mut R,
+    writer: &mut W,
     provider_socket: &Path,
 ) -> Result<BtspSession, LoamSpineError>
 where
-    S: AsyncReadExt + AsyncWriteExt + Unpin,
+    R: AsyncReadExt + Unpin + Send,
+    W: AsyncWriteExt + Unpin + Send,
 {
-    let client_hello = read_and_validate_client_hello(stream).await?;
+    let client_hello = read_and_validate_client_hello(reader, writer).await?;
 
     let challenge = generate_challenge();
     let create_result = create_provider_session(provider_socket, &client_hello, &challenge).await?;
 
-    send_server_hello(stream, &create_result, &challenge).await?;
+    send_server_hello(writer, &create_result, &challenge).await?;
 
-    let challenge_response = read_challenge_response(stream).await?;
+    let challenge_response = read_challenge_response(reader).await?;
 
     verify_and_complete(
-        stream,
+        writer,
         provider_socket,
         &client_hello,
         &create_result,
@@ -67,15 +72,16 @@ where
 }
 
 /// Step 1: Read `ClientHello` and validate the protocol version.
-async fn read_and_validate_client_hello<S: AsyncReadExt + AsyncWriteExt + Unpin>(
-    stream: &mut S,
+async fn read_and_validate_client_hello<R: AsyncReadExt + Unpin, W: AsyncWriteExt + Unpin>(
+    reader: &mut R,
+    writer: &mut W,
 ) -> Result<ClientHello, LoamSpineError> {
-    let bytes = read_frame(stream).await?;
+    let bytes = read_frame(reader).await?;
     let hello: ClientHello = deserialize_btsp_msg(&bytes, "ClientHello")?;
 
     if hello.version != BTSP_VERSION {
         send_handshake_error(
-            stream,
+            writer,
             "unsupported_version",
             &format!(
                 "server supports BTSP v{BTSP_VERSION}, client sent v{}",
@@ -115,8 +121,8 @@ async fn create_provider_session(
 }
 
 /// Step 3: Send `ServerHello` with the provider-generated ephemeral key and challenge.
-async fn send_server_hello<S: AsyncWriteExt + Unpin>(
-    stream: &mut S,
+async fn send_server_hello<W: AsyncWriteExt + Unpin>(
+    writer: &mut W,
     create_result: &SessionCreateResult,
     challenge: &str,
 ) -> Result<(), LoamSpineError> {
@@ -126,24 +132,24 @@ async fn send_server_hello<S: AsyncWriteExt + Unpin>(
         challenge: challenge.to_string(),
     };
     let bytes = serialize_btsp_msg(&hello, "ServerHello")?;
-    write_frame(stream, &bytes).await?;
+    write_frame(writer, &bytes).await?;
     debug!("BTSP: sent ServerHello");
     Ok(())
 }
 
 /// Step 4: Read the client's `ChallengeResponse`.
-async fn read_challenge_response<S: AsyncReadExt + Unpin>(
-    stream: &mut S,
+async fn read_challenge_response<R: AsyncReadExt + Unpin>(
+    reader: &mut R,
 ) -> Result<ChallengeResponse, LoamSpineError> {
-    let bytes = read_frame(stream).await?;
+    let bytes = read_frame(reader).await?;
     let cr: ChallengeResponse = deserialize_btsp_msg(&bytes, "ChallengeResponse")?;
     debug!("BTSP: received ChallengeResponse");
     Ok(cr)
 }
 
 /// Steps 5–7: Verify via BTSP provider, negotiate cipher, send completion or error.
-async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
-    stream: &mut S,
+async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
+    writer: &mut W,
     provider_socket: &Path,
     client_hello: &ClientHello,
     create_result: &SessionCreateResult,
@@ -165,7 +171,7 @@ async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
     .await?;
 
     if !verify.verified {
-        send_handshake_error(stream, "handshake_failed", "family_verification").await?;
+        send_handshake_error(writer, "handshake_failed", "family_verification").await?;
         return Err(LoamSpineError::ipc(
             IpcErrorPhase::Read,
             "BTSP handshake failed: family verification",
@@ -187,7 +193,7 @@ async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
 
     if !negotiate.allowed {
         send_handshake_error(
-            stream,
+            writer,
             "cipher_rejected",
             "requested cipher not allowed by bond policy",
         )
@@ -203,7 +209,7 @@ async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
         session_id: create_result.session_id.clone(),
     };
     let bytes = serialize_btsp_msg(&complete, "HandshakeComplete")?;
-    write_frame(stream, &bytes).await?;
+    write_frame(writer, &bytes).await?;
 
     debug!(
         "BTSP: handshake complete (session={}, cipher={})",
@@ -217,8 +223,8 @@ async fn verify_and_complete<S: AsyncReadExt + AsyncWriteExt + Unpin>(
 }
 
 /// Serialize a `HandshakeError` and send it as a length-prefixed frame.
-async fn send_handshake_error<S: AsyncWriteExt + Unpin>(
-    stream: &mut S,
+async fn send_handshake_error<W: AsyncWriteExt + Unpin>(
+    writer: &mut W,
     error: &str,
     reason: &str,
 ) -> Result<(), LoamSpineError> {
@@ -227,7 +233,7 @@ async fn send_handshake_error<S: AsyncWriteExt + Unpin>(
         reason: reason.to_string(),
     };
     let bytes = serialize_btsp_msg(&err, "HandshakeError")?;
-    write_frame(stream, &bytes).await
+    write_frame(writer, &bytes).await
 }
 
 // ---------------------------------------------------------------------------

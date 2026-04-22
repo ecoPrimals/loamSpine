@@ -390,8 +390,10 @@ async fn handshake_success_full_sequence() {
         }
     });
 
-    let (mut server_stream, _) = listener.accept().await.expect("accept");
-    let session = perform_server_handshake(&mut server_stream, &provider_socket)
+    let (server_stream, _) = listener.accept().await.expect("accept");
+    let (reader, mut writer) = server_stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+    let session = perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket)
         .await
         .expect("handshake should succeed");
 
@@ -421,8 +423,10 @@ async fn handshake_failure_verify_rejected() {
         }
     });
 
-    let (mut server_stream, _) = listener.accept().await.expect("accept");
-    let result = perform_server_handshake(&mut server_stream, &provider_socket).await;
+    let (server_stream, _) = listener.accept().await.expect("accept");
+    let (reader, mut writer) = server_stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+    let result = perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket).await;
 
     assert!(result.is_err());
     let err_str = result.unwrap_err().to_string();
@@ -453,8 +457,10 @@ async fn handshake_failure_cipher_rejected() {
         }
     });
 
-    let (mut server_stream, _) = listener.accept().await.expect("accept");
-    let result = perform_server_handshake(&mut server_stream, &provider_socket).await;
+    let (server_stream, _) = listener.accept().await.expect("accept");
+    let (reader, mut writer) = server_stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+    let result = perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket).await;
 
     assert!(result.is_err());
     let err_str = result.unwrap_err().to_string();
@@ -469,7 +475,9 @@ async fn handshake_failure_cipher_rejected() {
 async fn handshake_failure_provider_unavailable() {
     let nonexistent = PathBuf::from("/tmp/btsp-no-such-socket-12345.sock");
 
-    let (mut client, mut server) = tokio::io::duplex(8192);
+    let (mut client, server) = tokio::io::duplex(8192);
+    let (server_reader, mut server_writer) = tokio::io::split(server);
+    let mut buf_reader = tokio::io::BufReader::new(server_reader);
 
     let client_handle = tokio::spawn(async move {
         let client_hello = ClientHello {
@@ -480,7 +488,7 @@ async fn handshake_failure_provider_unavailable() {
         write_frame(&mut client, &bytes).await.expect("write");
     });
 
-    let result = perform_server_handshake(&mut server, &nonexistent).await;
+    let result = perform_server_handshake(&mut buf_reader, &mut server_writer, &nonexistent).await;
     assert!(result.is_err());
     let err_str = result.unwrap_err().to_string();
     assert!(
@@ -493,7 +501,9 @@ async fn handshake_failure_provider_unavailable() {
 
 #[tokio::test]
 async fn handshake_version_mismatch() {
-    let (mut client, mut server) = tokio::io::duplex(8192);
+    let (mut client, server) = tokio::io::duplex(8192);
+    let (server_reader, mut server_writer) = tokio::io::split(server);
+    let mut buf_reader = tokio::io::BufReader::new(server_reader);
 
     let client_handle = tokio::spawn(async move {
         let client_hello = ClientHello {
@@ -509,7 +519,7 @@ async fn handshake_version_mismatch() {
     });
 
     let provider = PathBuf::from("/tmp/unused-btsp-provider.sock");
-    let result = perform_server_handshake(&mut server, &provider).await;
+    let result = perform_server_handshake(&mut buf_reader, &mut server_writer, &provider).await;
     assert!(result.is_err());
 
     client_handle.await.expect("client task");

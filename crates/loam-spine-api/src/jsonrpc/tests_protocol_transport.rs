@@ -463,3 +463,174 @@ async fn uds_concurrent_load_8x5() {
 
     handle.stop();
 }
+
+// =========================================================================
+// BTSP NDJSON with static btsp_config (regression: provider socket wiring)
+// =========================================================================
+
+/// Minimal mock BTSP provider that handles the three JSON-RPC methods
+/// needed for a full NDJSON handshake.
+#[cfg(unix)]
+async fn handle_mock_btsp_provider_conn(stream: tokio::net::UnixStream) {
+    let (reader, mut writer) = stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+    let mut line = String::new();
+    let _ = tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut line).await;
+
+    let request: serde_json::Value =
+        serde_json::from_str(line.trim()).unwrap_or(serde_json::Value::Null);
+    let method = request
+        .get("method")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("");
+    let id = request
+        .get("id")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+
+    let response = match method {
+        "btsp.session.create" => serde_json::json!({
+            "jsonrpc": "2.0", "id": id,
+            "result": {
+                "session_id": "test_session_001",
+                "server_ephemeral_pub": "mock_server_pub",
+                "handshake_key": "mock_hk"
+            }
+        }),
+        "btsp.session.verify" => serde_json::json!({
+            "jsonrpc": "2.0", "id": id,
+            "result": { "verified": true, "session_key": "mock_sk" }
+        }),
+        "btsp.negotiate" => serde_json::json!({
+            "jsonrpc": "2.0", "id": id,
+            "result": { "cipher": "null", "allowed": true }
+        }),
+        _ => serde_json::json!({
+            "jsonrpc": "2.0", "id": id,
+            "error": { "code": -32601, "message": "method not found" }
+        }),
+    };
+
+    let mut bytes = serde_json::to_vec(&response).unwrap();
+    bytes.push(b'\n');
+    let _ = writer.write_all(&bytes).await;
+    let _ = writer.flush().await;
+}
+
+/// Spawn a mock BTSP provider and return its socket path.
+#[cfg(unix)]
+async fn spawn_test_btsp_provider(
+    dir: &std::path::Path,
+) -> (std::path::PathBuf, tokio::task::JoinHandle<()>) {
+    let socket = dir.join("btsp-mock-provider.sock");
+    let _ = std::fs::remove_file(&socket);
+    let listener = tokio::net::UnixListener::bind(&socket).unwrap();
+
+    let handle = tokio::spawn(async move {
+        for _ in 0..3 {
+            let Ok((stream, _)) = listener.accept().await else {
+                break;
+            };
+            tokio::spawn(handle_mock_btsp_provider_conn(stream));
+        }
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    (socket, handle)
+}
+
+/// NDJSON BTSP handshake through the UDS server when `btsp_config` is `Some`.
+///
+/// Before the fix, this path was unreachable — static BTSP mode sent NDJSON
+/// data into the binary length-prefixed handshake, which failed.
+#[cfg(unix)]
+#[tokio::test]
+async fn uds_ndjson_btsp_through_static_config() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (provider_socket, _provider_handle) = spawn_test_btsp_provider(tmp.path()).await;
+
+    let btsp_config = loam_spine_core::btsp::BtspHandshakeConfig {
+        required: true,
+        provider_socket: provider_socket.clone(),
+        family_id: "test-fam".into(),
+    };
+
+    let sock_path = tmp.path().join("ndjson-btsp-static.sock");
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, Some(btsp_config))
+        .await
+        .unwrap();
+
+    let stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
+    let (reader, mut writer) = stream.into_split();
+    let mut buf_reader = tokio::io::BufReader::new(reader);
+
+    let client_hello = serde_json::json!({
+        "protocol": "btsp",
+        "version": 1,
+        "client_ephemeral_pub": "dGVzdC1rZXk="
+    });
+    let mut line = serde_json::to_string(&client_hello).unwrap();
+    line.push('\n');
+    writer.write_all(line.as_bytes()).await.unwrap();
+
+    let mut server_hello_line = String::new();
+    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut server_hello_line)
+        .await
+        .unwrap();
+    let server_hello: serde_json::Value = serde_json::from_str(server_hello_line.trim()).unwrap();
+    assert_eq!(server_hello["version"], 1);
+    assert!(
+        server_hello.get("session_id").is_some(),
+        "ServerHello should contain session_id"
+    );
+
+    let cr = serde_json::json!({
+        "response": "mock_hmac",
+        "preferred_cipher": "null"
+    });
+    let mut cr_line = serde_json::to_string(&cr).unwrap();
+    cr_line.push('\n');
+    writer.write_all(cr_line.as_bytes()).await.unwrap();
+
+    let mut complete_line = String::new();
+    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut complete_line)
+        .await
+        .unwrap();
+    let complete: serde_json::Value = serde_json::from_str(complete_line.trim()).unwrap();
+    assert_eq!(complete["cipher"], "null");
+    assert_eq!(complete["session_id"], "test_session_001");
+
+    handle.stop();
+}
+
+/// Plain JSON-RPC still works when `btsp_config` is `Some` but the client
+/// sends JSON-RPC (not NDJSON BTSP). The auto-detect routes to JSON-RPC dispatch.
+#[cfg(unix)]
+#[tokio::test]
+async fn uds_jsonrpc_with_static_btsp_config() {
+    let tmp = tempfile::tempdir().unwrap();
+
+    let btsp_config = loam_spine_core::btsp::BtspHandshakeConfig {
+        required: true,
+        provider_socket: tmp.path().join("no-such-provider.sock"),
+        family_id: "test-fam".into(),
+    };
+
+    let sock_path = tmp.path().join("jsonrpc-with-btsp.sock");
+    let service = crate::service::LoamSpineRpcService::default_service();
+    let handle = super::run_jsonrpc_uds_server(&sock_path, service, Some(btsp_config))
+        .await
+        .unwrap();
+
+    let mut stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
+    let response = uds_rpc(
+        &mut stream,
+        r#"{"jsonrpc":"2.0","method":"health.liveness","id":1}"#,
+    )
+    .await;
+
+    assert_eq!(response["result"]["status"], "alive");
+
+    handle.stop();
+}

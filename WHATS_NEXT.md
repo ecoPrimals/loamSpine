@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 21, 2026
+**Last Updated**: April 22, 2026
 
 ---
 
@@ -225,6 +225,14 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 BTSP Provider Socket Wired (April 22, 2026)
+
+- **BTSP provider socket wired in static mode**: UDS accept loop restructured to always peek first byte via `BufReader::fill_buf()`, routing by wire format regardless of `btsp_config`. Fixes: when `BIOMEOS_FAMILY_ID` was set (static BTSP), NDJSON connections from primalSpring were misrouted to the binary length-prefixed handshake. Now `{` → NDJSON/JSON-RPC detection, non-`{` → binary BTSP.
+- **`perform_server_handshake` split R/W**: Refactored from single `<S: AsyncReadExt + AsyncWriteExt>` to `<R, W>` (separate reader/writer). Matches `perform_ndjson_server_handshake` design and enables BufReader-based peek before binary handshake.
+- **Provider resolution priority**: NDJSON BTSP path uses `btsp_config.provider_socket` when available, falling back to `resolve_btsp_provider()` (env vars). Static mode now carries its config into the NDJSON path.
+- **2 new integration tests**: Full NDJSON handshake through `run_jsonrpc_uds_server` with `btsp_config = Some(...)` (regression for the exact bug), JSON-RPC fallthrough with BTSP configured.
+- **Tests**: **1,499**. All gates green.
 
 ## v0.9.16 BTSP NDJSON Wire-Format Alignment & Deep Debt (April 21, 2026)
 
