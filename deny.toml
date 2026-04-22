@@ -92,7 +92,7 @@ registries = []
 # mdns 3.0 advisories (async-std, net2, proc-macro-error) ELIMINATED:
 # migrated to mdns-sd 0.19 (pure Rust, no async runtime dep).
 ignore = [
-    { id = "RUSTSEC-2026-0007", reason = "opentelemetry_sdk: tarpc 0.37 hard dep → tracing-opentelemetry (not feature-gated)" },
+    # RUSTSEC-2026-0007 (opentelemetry_sdk) removed — resolved upstream in tarpc 0.37 dep tree.
 ]
 
 # =============================================================================

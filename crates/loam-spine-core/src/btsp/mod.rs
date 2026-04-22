@@ -52,3 +52,7 @@ pub use wire::{
 #[cfg(test)]
 #[path = "../btsp_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../btsp_tests_integration.rs"]
+mod integration_tests;
