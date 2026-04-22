@@ -17,7 +17,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![forbid(unsafe_code)]` workspace-wide; test modules use inner/outer function pattern for env injection
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 90.92% line / 92.92% region, 1,442 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: 90.92% line / 92.92% region, 1,502 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -66,7 +66,7 @@ cargo build-arm64  # aarch64-unknown-linux-musl
 # Build
 cargo build
 
-# Test (1,442 tests, all concurrent)
+# Test (1,502 tests, all concurrent)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -318,15 +318,15 @@ Look for issues labeled `good-first-issue`:
 |--------|-------|
 | Version | 0.9.16 |
 | Edition | 2024 |
-| Tests | 1,442 (all concurrent, ~3s, zero flaky) |
+| Tests | 1,502 (all concurrent, ~3s, zero flaky) |
 | Coverage | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
-| Max File Size | 605 max production; 899 max test file |
+| Max File Size | 605 max production; 783 max test file |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
-| Lint Exceptions | 4 `#[allow]` in production (2× tarpc macro, 2× feature-conditional async), tests all `#[expect(reason)]` |
+| Lint Exceptions | 2 `#[allow]` in production (2× feature-conditional async), tests all `#[expect(reason)]` |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
-| SPDX Headers | All 178 source files |
-| Source files | 178 `.rs` across workspace (+ 3 fuzz targets) |
+| SPDX Headers | All 179 source files |
+| Source files | 179 `.rs` across workspace (+ 3 fuzz targets) |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |

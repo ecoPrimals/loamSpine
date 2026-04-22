@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C442%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C502%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
 [![Methods](https://img.shields.io/badge/JSON--RPC-37%20methods-blue)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
@@ -204,7 +204,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 2 `#[allow]` in production (feature-conditional async for dns-srv/mdns); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 783 max test file |
-| **Source Files** | 178 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Source Files** | 179 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
