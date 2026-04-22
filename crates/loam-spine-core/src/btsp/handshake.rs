@@ -53,10 +53,9 @@ where
 {
     let client_hello = read_and_validate_client_hello(reader, writer).await?;
 
-    let challenge = generate_challenge();
-    let create_result = create_provider_session(provider_socket, &client_hello, &challenge).await?;
+    let create_result = create_provider_session(provider_socket).await?;
 
-    send_server_hello(writer, &create_result, &challenge).await?;
+    send_server_hello(writer, &create_result).await?;
 
     let challenge_response = read_challenge_response(reader).await?;
 
@@ -65,7 +64,6 @@ where
         provider_socket,
         &client_hello,
         &create_result,
-        &challenge,
         &challenge_response,
     )
     .await
@@ -100,23 +98,24 @@ async fn read_and_validate_client_hello<R: AsyncReadExt + Unpin, W: AsyncWriteEx
 }
 
 /// Step 2: Create a BTSP session on the handshake provider.
+///
+/// Sends only `family_seed` (base64-encoded) per BearDog's
+/// `SessionCreateParams`. BearDog generates the challenge and ephemeral
+/// keys server-side, returning them in `SessionCreateResponse`.
 async fn create_provider_session(
     provider_socket: &Path,
-    client_hello: &ClientHello,
-    challenge: &str,
 ) -> Result<SessionCreateResult, LoamSpineError> {
+    let family_seed = resolve_family_seed()?;
     let result: SessionCreateResult = provider_call(
         provider_socket,
         "btsp.session.create",
         serde_json::json!({
-            "family_seed_ref": "env:FAMILY_SEED",
-            "client_ephemeral_pub": client_hello.client_ephemeral_pub,
-            "challenge": challenge,
+            "family_seed": family_seed,
         }),
         rpc_id::SESSION_CREATE,
     )
     .await?;
-    debug!("BTSP: session created: {}", result.session_id);
+    debug!("BTSP: session created: {}", result.session_token);
     Ok(result)
 }
 
@@ -124,12 +123,11 @@ async fn create_provider_session(
 async fn send_server_hello<W: AsyncWriteExt + Unpin>(
     writer: &mut W,
     create_result: &SessionCreateResult,
-    challenge: &str,
 ) -> Result<(), LoamSpineError> {
     let hello = ServerHello {
         version: BTSP_VERSION,
         server_ephemeral_pub: create_result.server_ephemeral_pub.clone(),
-        challenge: challenge.to_string(),
+        challenge: create_result.challenge.clone(),
     };
     let bytes = serialize_btsp_msg(&hello, "ServerHello")?;
     write_frame(writer, &bytes).await?;
@@ -148,23 +146,25 @@ async fn read_challenge_response<R: AsyncReadExt + Unpin>(
 }
 
 /// Steps 5–7: Verify via BTSP provider, negotiate cipher, send completion or error.
+///
+/// Params aligned with BearDog's `SessionVerifyParams` / `SessionNegotiateParams`:
+/// - verify: `session_token`, `client_ephemeral_pub`, `response`, `preferred_cipher`
+/// - negotiate: `session_token`, `cipher`
 async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     writer: &mut W,
     provider_socket: &Path,
     client_hello: &ClientHello,
     create_result: &SessionCreateResult,
-    challenge: &str,
     challenge_response: &ChallengeResponse,
 ) -> Result<BtspSession, LoamSpineError> {
     let verify: SessionVerifyResult = provider_call(
         provider_socket,
         "btsp.session.verify",
         serde_json::json!({
-            "session_id": create_result.session_id,
-            "client_response": challenge_response.response,
+            "session_token": create_result.session_token,
             "client_ephemeral_pub": client_hello.client_ephemeral_pub,
-            "server_ephemeral_pub": create_result.server_ephemeral_pub,
-            "challenge": challenge,
+            "response": challenge_response.response,
+            "preferred_cipher": challenge_response.preferred_cipher,
         }),
         rpc_id::SESSION_VERIFY,
     )
@@ -179,19 +179,22 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     }
     debug!("BTSP: client verified");
 
+    let session_id = verify
+        .session_id
+        .unwrap_or_else(|| create_result.session_token.clone());
+
     let negotiate: NegotiateResult = provider_call(
         provider_socket,
         "btsp.negotiate",
         serde_json::json!({
-            "session_id": create_result.session_id,
-            "preferred_cipher": challenge_response.preferred_cipher,
-            "bond_type": "Covalent",
+            "session_token": create_result.session_token,
+            "cipher": challenge_response.preferred_cipher,
         }),
         rpc_id::NEGOTIATE,
     )
     .await?;
 
-    if !negotiate.allowed {
+    if !negotiate.accepted {
         send_handshake_error(
             writer,
             "cipher_rejected",
@@ -206,18 +209,18 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
 
     let complete = HandshakeComplete {
         cipher: negotiate.cipher.clone(),
-        session_id: create_result.session_id.clone(),
+        session_id: session_id.clone(),
     };
     let bytes = serialize_btsp_msg(&complete, "HandshakeComplete")?;
     write_frame(writer, &bytes).await?;
 
     debug!(
-        "BTSP: handshake complete (session={}, cipher={})",
-        create_result.session_id, negotiate.cipher
+        "BTSP: handshake complete (session={session_id}, cipher={})",
+        negotiate.cipher
     );
 
     Ok(BtspSession {
-        session_id: create_result.session_id.clone(),
+        session_id,
         cipher: negotiate.cipher,
     })
 }
@@ -288,22 +291,13 @@ where
     }
     debug!("BTSP NDJSON: received ClientHello v{}", hello.version);
 
-    let challenge = generate_challenge();
-    let create_result = create_provider_session(
-        provider_socket,
-        &ClientHello {
-            version: hello.version,
-            client_ephemeral_pub: hello.client_ephemeral_pub.clone(),
-        },
-        &challenge,
-    )
-    .await?;
+    let create_result = create_provider_session(provider_socket).await?;
 
     let server_hello = NdjsonServerHello {
         version: BTSP_VERSION,
         server_ephemeral_pub: create_result.server_ephemeral_pub.clone(),
-        challenge: challenge.clone(),
-        session_id: create_result.session_id.clone(),
+        challenge: create_result.challenge.clone(),
+        session_id: create_result.session_token.clone(),
     };
     ndjson_send(writer, &server_hello, "ServerHello").await?;
     debug!("BTSP NDJSON: sent ServerHello");
@@ -334,7 +328,6 @@ where
         provider_socket,
         &original_hello,
         &create_result,
-        &challenge,
         &challenge_response,
     )
     .await
@@ -346,18 +339,16 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     provider_socket: &Path,
     client_hello: &ClientHello,
     create_result: &SessionCreateResult,
-    challenge: &str,
     challenge_response: &ChallengeResponse,
 ) -> Result<BtspSession, LoamSpineError> {
     let verify: SessionVerifyResult = provider_call(
         provider_socket,
         "btsp.session.verify",
         serde_json::json!({
-            "session_id": create_result.session_id,
-            "client_response": challenge_response.response,
+            "session_token": create_result.session_token,
             "client_ephemeral_pub": client_hello.client_ephemeral_pub,
-            "server_ephemeral_pub": create_result.server_ephemeral_pub,
-            "challenge": challenge,
+            "response": challenge_response.response,
+            "preferred_cipher": challenge_response.preferred_cipher,
         }),
         rpc_id::SESSION_VERIFY,
     )
@@ -372,19 +363,22 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     }
     debug!("BTSP NDJSON: client verified");
 
+    let session_id = verify
+        .session_id
+        .unwrap_or_else(|| create_result.session_token.clone());
+
     let negotiate: NegotiateResult = provider_call(
         provider_socket,
         "btsp.negotiate",
         serde_json::json!({
-            "session_id": create_result.session_id,
-            "preferred_cipher": challenge_response.preferred_cipher,
-            "bond_type": "Covalent",
+            "session_token": create_result.session_token,
+            "cipher": challenge_response.preferred_cipher,
         }),
         rpc_id::NEGOTIATE,
     )
     .await?;
 
-    if !negotiate.allowed {
+    if !negotiate.accepted {
         ndjson_send_error(
             writer,
             "cipher_rejected",
@@ -399,17 +393,17 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
 
     let complete = HandshakeComplete {
         cipher: negotiate.cipher.clone(),
-        session_id: create_result.session_id.clone(),
+        session_id: session_id.clone(),
     };
     ndjson_send(writer, &complete, "HandshakeComplete").await?;
 
     debug!(
-        "BTSP NDJSON: handshake complete (session={}, cipher={})",
-        create_result.session_id, negotiate.cipher
+        "BTSP NDJSON: handshake complete (session={session_id}, cipher={})",
+        negotiate.cipher
     );
 
     Ok(BtspSession {
-        session_id: create_result.session_id.clone(),
+        session_id,
         cipher: negotiate.cipher,
     })
 }
@@ -459,25 +453,27 @@ async fn ndjson_send_error<W: AsyncWriteExt + Unpin + Send>(
     .await
 }
 
-/// Generate a hex-encoded 32-byte challenge from OS entropy.
+/// Read the family seed from the environment and base64-encode it for
+/// the `btsp.session.create` RPC.
 ///
-/// Uses `blake3(uuid_v7_a || uuid_v7_b)` to produce a full 32-byte challenge
-/// from UUID v7's OS-sourced randomness (74 random bits per UUID via `getrandom`).
-/// The BTSP provider remains the authority for session key material — this challenge seeds
-/// the `btsp.session.create` call which may augment it with its own entropy.
-pub(crate) fn generate_challenge() -> String {
-    use std::fmt::Write;
+/// Resolution order:
+/// 1. `FAMILY_SEED` — canonical seed variable set by primalSpring guidestone
+/// 2. `BEARDOG_FAMILY_SEED` — BearDog-scoped alias
+///
+/// The env value is typically a hex string (64 ASCII chars = 32 seed bytes).
+/// BearDog expects the raw UTF-8 bytes base64-encoded in the `family_seed`
+/// JSON-RPC param.
+pub(crate) fn resolve_family_seed() -> Result<String, LoamSpineError> {
+    use base64::Engine;
 
-    let a = uuid::Uuid::now_v7();
-    let b = uuid::Uuid::now_v7();
-    let hash = blake3::Hasher::new()
-        .update(a.as_bytes())
-        .update(b.as_bytes())
-        .finalize();
+    let raw = std::env::var("FAMILY_SEED")
+        .or_else(|_| std::env::var("BEARDOG_FAMILY_SEED"))
+        .map_err(|_| {
+            LoamSpineError::ipc(
+                IpcErrorPhase::Connect,
+                "FAMILY_SEED not set (checked FAMILY_SEED and BEARDOG_FAMILY_SEED)",
+            )
+        })?;
 
-    let mut s = String::with_capacity(64);
-    for byte in hash.as_bytes() {
-        let _ = write!(s, "{byte:02x}");
-    }
-    s
+    Ok(base64::engine::general_purpose::STANDARD.encode(raw.as_bytes()))
 }

@@ -492,18 +492,18 @@ async fn handle_mock_btsp_provider_conn(stream: tokio::net::UnixStream) {
         "btsp.session.create" => serde_json::json!({
             "jsonrpc": "2.0", "id": id,
             "result": {
-                "session_id": "test_session_001",
+                "session_token": "tok_test_001",
                 "server_ephemeral_pub": "mock_server_pub",
-                "handshake_key": "mock_hk"
+                "challenge": "bW9ja19jaGFsbGVuZ2U="
             }
         }),
         "btsp.session.verify" => serde_json::json!({
             "jsonrpc": "2.0", "id": id,
-            "result": { "verified": true, "session_key": "mock_sk" }
+            "result": { "verified": true, "session_id": "test_session_001", "cipher": "null" }
         }),
         "btsp.negotiate" => serde_json::json!({
             "jsonrpc": "2.0", "id": id,
-            "result": { "cipher": "null", "allowed": true }
+            "result": { "cipher": "null", "accepted": true }
         }),
         _ => serde_json::json!({
             "jsonrpc": "2.0", "id": id,
@@ -544,64 +544,80 @@ async fn spawn_test_btsp_provider(
 /// Before the fix, this path was unreachable — static BTSP mode sent NDJSON
 /// data into the binary length-prefixed handshake, which failed.
 #[cfg(unix)]
-#[tokio::test]
-async fn uds_ndjson_btsp_through_static_config() {
-    let tmp = tempfile::tempdir().unwrap();
-    let (provider_socket, _provider_handle) = spawn_test_btsp_provider(tmp.path()).await;
-
-    let btsp_config = loam_spine_core::btsp::BtspHandshakeConfig {
-        required: true,
-        provider_socket: provider_socket.clone(),
-        family_id: "test-fam".into(),
-    };
-
-    let sock_path = tmp.path().join("ndjson-btsp-static.sock");
-    let service = crate::service::LoamSpineRpcService::default_service();
-    let handle = super::run_jsonrpc_uds_server(&sock_path, service, Some(btsp_config))
-        .await
+#[test]
+fn uds_ndjson_btsp_through_static_config() {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
         .unwrap();
 
-    let stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
-    let (reader, mut writer) = stream.into_split();
-    let mut buf_reader = tokio::io::BufReader::new(reader);
+    temp_env::with_var(
+        "FAMILY_SEED",
+        Some("test_seed_for_btsp_integration"),
+        || {
+            rt.block_on(async {
+                let tmp = tempfile::tempdir().unwrap();
+                let (provider_socket, _provider_handle) =
+                    spawn_test_btsp_provider(tmp.path()).await;
 
-    let client_hello = serde_json::json!({
-        "protocol": "btsp",
-        "version": 1,
-        "client_ephemeral_pub": "dGVzdC1rZXk="
-    });
-    let mut line = serde_json::to_string(&client_hello).unwrap();
-    line.push('\n');
-    writer.write_all(line.as_bytes()).await.unwrap();
+                let btsp_config = loam_spine_core::btsp::BtspHandshakeConfig {
+                    required: true,
+                    provider_socket: provider_socket.clone(),
+                    family_id: "test-fam".into(),
+                };
 
-    let mut server_hello_line = String::new();
-    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut server_hello_line)
-        .await
-        .unwrap();
-    let server_hello: serde_json::Value = serde_json::from_str(server_hello_line.trim()).unwrap();
-    assert_eq!(server_hello["version"], 1);
-    assert!(
-        server_hello.get("session_id").is_some(),
-        "ServerHello should contain session_id"
+                let sock_path = tmp.path().join("ndjson-btsp-static.sock");
+                let service = crate::service::LoamSpineRpcService::default_service();
+                let handle = super::run_jsonrpc_uds_server(&sock_path, service, Some(btsp_config))
+                    .await
+                    .unwrap();
+
+                let stream = tokio::net::UnixStream::connect(&sock_path).await.unwrap();
+                let (reader, mut writer) = stream.into_split();
+                let mut buf_reader = tokio::io::BufReader::new(reader);
+
+                let client_hello = serde_json::json!({
+                    "protocol": "btsp",
+                    "version": 1,
+                    "client_ephemeral_pub": "dGVzdC1rZXk="
+                });
+                let mut line = serde_json::to_string(&client_hello).unwrap();
+                line.push('\n');
+                writer.write_all(line.as_bytes()).await.unwrap();
+
+                let mut server_hello_line = String::new();
+                tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut server_hello_line)
+                    .await
+                    .unwrap();
+                let server_hello: serde_json::Value =
+                    serde_json::from_str(server_hello_line.trim()).unwrap();
+                assert_eq!(server_hello["version"], 1);
+                assert!(
+                    server_hello.get("session_id").is_some(),
+                    "ServerHello should contain session_id"
+                );
+
+                let cr = serde_json::json!({
+                    "response": "mock_hmac",
+                    "preferred_cipher": "null"
+                });
+                let mut cr_line = serde_json::to_string(&cr).unwrap();
+                cr_line.push('\n');
+                writer.write_all(cr_line.as_bytes()).await.unwrap();
+
+                let mut complete_line = String::new();
+                tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut complete_line)
+                    .await
+                    .unwrap();
+                let complete: serde_json::Value =
+                    serde_json::from_str(complete_line.trim()).unwrap();
+                assert_eq!(complete["cipher"], "null");
+                assert_eq!(complete["session_id"], "test_session_001");
+
+                handle.stop();
+            });
+        },
     );
-
-    let cr = serde_json::json!({
-        "response": "mock_hmac",
-        "preferred_cipher": "null"
-    });
-    let mut cr_line = serde_json::to_string(&cr).unwrap();
-    cr_line.push('\n');
-    writer.write_all(cr_line.as_bytes()).await.unwrap();
-
-    let mut complete_line = String::new();
-    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut complete_line)
-        .await
-        .unwrap();
-    let complete: serde_json::Value = serde_json::from_str(complete_line.trim()).unwrap();
-    assert_eq!(complete["cipher"], "null");
-    assert_eq!(complete["session_id"], "test_session_001");
-
-    handle.stop();
 }
 
 /// Plain JSON-RPC still works when `btsp_config` is `Some` but the client

@@ -13,12 +13,12 @@
 
 use std::path::PathBuf;
 
+use base64::Engine;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{UnixListener, UnixStream};
 
 use super::config::provider_socket_name;
 use super::frame::MAX_FRAME_SIZE;
-use super::handshake::generate_challenge;
 use super::*;
 
 // ---------------------------------------------------------------------------
@@ -310,9 +310,9 @@ async fn handle_mock_btsp_provider(stream: UnixStream, verify_ok: bool, cipher_a
             "jsonrpc": "2.0",
             "id": id,
             "result": {
-                "session_id": "abcdef0123456789",
+                "session_token": "tok_abcdef0123456789",
                 "server_ephemeral_pub": "mock_server_pub_key",
-                "handshake_key": "mock_handshake_key_base64"
+                "challenge": "bW9ja19jaGFsbGVuZ2VfMzJfYnl0ZXM="
             }
         }),
         "btsp.session.verify" => serde_json::json!({
@@ -320,7 +320,8 @@ async fn handle_mock_btsp_provider(stream: UnixStream, verify_ok: bool, cipher_a
             "id": id,
             "result": {
                 "verified": verify_ok,
-                "session_key": if verify_ok { Some("mock_session_key") } else { None::<&str> }
+                "session_id": if verify_ok { Some("abcdef0123456789") } else { None::<&str> },
+                "cipher": if verify_ok { Some("null") } else { None::<&str> }
             }
         }),
         "btsp.negotiate" => serde_json::json!({
@@ -328,7 +329,7 @@ async fn handle_mock_btsp_provider(stream: UnixStream, verify_ok: bool, cipher_a
             "id": id,
             "result": {
                 "cipher": "null",
-                "allowed": cipher_allowed
+                "accepted": cipher_allowed
             }
         }),
         _ => serde_json::json!({
@@ -374,129 +375,172 @@ async fn mock_client_handshake(mut stream: UnixStream) -> bytes::Bytes {
     read_frame(&mut stream).await.expect("read final frame")
 }
 
-#[tokio::test]
-async fn handshake_success_full_sequence() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, true).await;
+const TEST_FAMILY_SEED: &str = "deadbeef01234567deadbeef01234567deadbeef01234567deadbeef01234567";
 
-    let uds_path = tmp.path().join("loam-test.sock");
-    let listener = UnixListener::bind(&uds_path).expect("bind loam test");
+#[test]
+fn handshake_success_full_sequence() {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("tokio runtime");
 
-    let client_handle = tokio::spawn({
-        let uds_path = uds_path.clone();
-        async move {
-            let stream = UnixStream::connect(&uds_path).await.expect("connect");
-            mock_client_handshake(stream).await
-        }
+    temp_env::with_var("FAMILY_SEED", Some(TEST_FAMILY_SEED), || {
+        rt.block_on(async {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, true).await;
+
+            let uds_path = tmp.path().join("loam-test.sock");
+            let listener = UnixListener::bind(&uds_path).expect("bind loam test");
+
+            let client_handle = tokio::spawn({
+                let uds_path = uds_path.clone();
+                async move {
+                    let stream = UnixStream::connect(&uds_path).await.expect("connect");
+                    mock_client_handshake(stream).await
+                }
+            });
+
+            let (server_stream, _) = listener.accept().await.expect("accept");
+            let (reader, mut writer) = server_stream.into_split();
+            let mut buf_reader = tokio::io::BufReader::new(reader);
+            let session = perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket)
+                .await
+                .expect("handshake should succeed");
+
+            assert_eq!(session.session_id, "abcdef0123456789");
+            assert_eq!(session.cipher, "null");
+
+            let final_bytes = client_handle.await.expect("client task");
+            let complete: HandshakeComplete =
+                serde_json::from_slice(&final_bytes).expect("parse HandshakeComplete");
+            assert_eq!(complete.session_id, "abcdef0123456789");
+            assert_eq!(complete.cipher, "null");
+        });
     });
-
-    let (server_stream, _) = listener.accept().await.expect("accept");
-    let (reader, mut writer) = server_stream.into_split();
-    let mut buf_reader = tokio::io::BufReader::new(reader);
-    let session = perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket)
-        .await
-        .expect("handshake should succeed");
-
-    assert_eq!(session.session_id, "abcdef0123456789");
-    assert_eq!(session.cipher, "null");
-
-    let final_bytes = client_handle.await.expect("client task");
-    let complete: HandshakeComplete =
-        serde_json::from_slice(&final_bytes).expect("parse HandshakeComplete");
-    assert_eq!(complete.session_id, "abcdef0123456789");
-    assert_eq!(complete.cipher, "null");
 }
 
-#[tokio::test]
-async fn handshake_failure_verify_rejected() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), false, true).await;
+#[test]
+fn handshake_failure_verify_rejected() {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("tokio runtime");
 
-    let uds_path = tmp.path().join("loam-reject.sock");
-    let listener = UnixListener::bind(&uds_path).expect("bind");
+    temp_env::with_var("FAMILY_SEED", Some(TEST_FAMILY_SEED), || {
+        rt.block_on(async {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), false, true).await;
 
-    let client_handle = tokio::spawn({
-        let uds_path = uds_path.clone();
-        async move {
-            let stream = UnixStream::connect(&uds_path).await.expect("connect");
-            mock_client_handshake(stream).await
-        }
+            let uds_path = tmp.path().join("loam-reject.sock");
+            let listener = UnixListener::bind(&uds_path).expect("bind");
+
+            let client_handle = tokio::spawn({
+                let uds_path = uds_path.clone();
+                async move {
+                    let stream = UnixStream::connect(&uds_path).await.expect("connect");
+                    mock_client_handshake(stream).await
+                }
+            });
+
+            let (server_stream, _) = listener.accept().await.expect("accept");
+            let (reader, mut writer) = server_stream.into_split();
+            let mut buf_reader = tokio::io::BufReader::new(reader);
+            let result =
+                perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket).await;
+
+            assert!(result.is_err());
+            let err_str = result.unwrap_err().to_string();
+            assert!(
+                err_str.contains("family verification") || err_str.contains("handshake failed"),
+                "unexpected error: {err_str}"
+            );
+
+            let final_bytes = client_handle.await.expect("client task");
+            let error: HandshakeError =
+                serde_json::from_slice(&final_bytes).expect("parse HandshakeError");
+            assert_eq!(error.error, "handshake_failed");
+            assert_eq!(error.reason, "family_verification");
+        });
     });
-
-    let (server_stream, _) = listener.accept().await.expect("accept");
-    let (reader, mut writer) = server_stream.into_split();
-    let mut buf_reader = tokio::io::BufReader::new(reader);
-    let result = perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket).await;
-
-    assert!(result.is_err());
-    let err_str = result.unwrap_err().to_string();
-    assert!(
-        err_str.contains("family verification") || err_str.contains("handshake failed"),
-        "unexpected error: {err_str}"
-    );
-
-    let final_bytes = client_handle.await.expect("client task");
-    let error: HandshakeError = serde_json::from_slice(&final_bytes).expect("parse HandshakeError");
-    assert_eq!(error.error, "handshake_failed");
-    assert_eq!(error.reason, "family_verification");
 }
 
-#[tokio::test]
-async fn handshake_failure_cipher_rejected() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, false).await;
+#[test]
+fn handshake_failure_cipher_rejected() {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("tokio runtime");
 
-    let uds_path = tmp.path().join("loam-cipher.sock");
-    let listener = UnixListener::bind(&uds_path).expect("bind");
+    temp_env::with_var("FAMILY_SEED", Some(TEST_FAMILY_SEED), || {
+        rt.block_on(async {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, false).await;
 
-    let client_handle = tokio::spawn({
-        let uds_path = uds_path.clone();
-        async move {
-            let stream = UnixStream::connect(&uds_path).await.expect("connect");
-            mock_client_handshake(stream).await
-        }
+            let uds_path = tmp.path().join("loam-cipher.sock");
+            let listener = UnixListener::bind(&uds_path).expect("bind");
+
+            let client_handle = tokio::spawn({
+                let uds_path = uds_path.clone();
+                async move {
+                    let stream = UnixStream::connect(&uds_path).await.expect("connect");
+                    mock_client_handshake(stream).await
+                }
+            });
+
+            let (server_stream, _) = listener.accept().await.expect("accept");
+            let (reader, mut writer) = server_stream.into_split();
+            let mut buf_reader = tokio::io::BufReader::new(reader);
+            let result =
+                perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket).await;
+
+            assert!(result.is_err());
+            let err_str = result.unwrap_err().to_string();
+            assert!(err_str.contains("cipher"), "unexpected error: {err_str}");
+
+            let final_bytes = client_handle.await.expect("client task");
+            let error: HandshakeError =
+                serde_json::from_slice(&final_bytes).expect("parse HandshakeError");
+            assert_eq!(error.error, "cipher_rejected");
+        });
     });
-
-    let (server_stream, _) = listener.accept().await.expect("accept");
-    let (reader, mut writer) = server_stream.into_split();
-    let mut buf_reader = tokio::io::BufReader::new(reader);
-    let result = perform_server_handshake(&mut buf_reader, &mut writer, &provider_socket).await;
-
-    assert!(result.is_err());
-    let err_str = result.unwrap_err().to_string();
-    assert!(err_str.contains("cipher"), "unexpected error: {err_str}");
-
-    let final_bytes = client_handle.await.expect("client task");
-    let error: HandshakeError = serde_json::from_slice(&final_bytes).expect("parse HandshakeError");
-    assert_eq!(error.error, "cipher_rejected");
 }
 
-#[tokio::test]
-async fn handshake_failure_provider_unavailable() {
-    let nonexistent = PathBuf::from("/tmp/btsp-no-such-socket-12345.sock");
+#[test]
+fn handshake_failure_provider_unavailable() {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("tokio runtime");
 
-    let (mut client, server) = tokio::io::duplex(8192);
-    let (server_reader, mut server_writer) = tokio::io::split(server);
-    let mut buf_reader = tokio::io::BufReader::new(server_reader);
+    temp_env::with_var("FAMILY_SEED", Some(TEST_FAMILY_SEED), || {
+        rt.block_on(async {
+            let nonexistent = PathBuf::from("/tmp/btsp-no-such-socket-12345.sock");
 
-    let client_handle = tokio::spawn(async move {
-        let client_hello = ClientHello {
-            version: 1,
-            client_ephemeral_pub: "key".to_string(),
-        };
-        let bytes = serde_json::to_vec(&client_hello).expect("ser");
-        write_frame(&mut client, &bytes).await.expect("write");
+            let (mut client, server) = tokio::io::duplex(8192);
+            let (server_reader, mut server_writer) = tokio::io::split(server);
+            let mut buf_reader = tokio::io::BufReader::new(server_reader);
+
+            let client_handle = tokio::spawn(async move {
+                let client_hello = ClientHello {
+                    version: 1,
+                    client_ephemeral_pub: "key".to_string(),
+                };
+                let bytes = serde_json::to_vec(&client_hello).expect("ser");
+                write_frame(&mut client, &bytes).await.expect("write");
+            });
+
+            let result =
+                perform_server_handshake(&mut buf_reader, &mut server_writer, &nonexistent).await;
+            assert!(result.is_err());
+            let err_str = result.unwrap_err().to_string();
+            assert!(
+                err_str.contains("unreachable") || err_str.contains("connect"),
+                "unexpected error: {err_str}"
+            );
+
+            client_handle.await.expect("client task");
+        });
     });
-
-    let result = perform_server_handshake(&mut buf_reader, &mut server_writer, &nonexistent).await;
-    assert!(result.is_err());
-    let err_str = result.unwrap_err().to_string();
-    assert!(
-        err_str.contains("unreachable") || err_str.contains("connect"),
-        "unexpected error: {err_str}"
-    );
-
-    client_handle.await.expect("client task");
 }
 
 #[tokio::test]
@@ -617,102 +661,120 @@ async fn mock_ndjson_client_handshake(
     Ok(final_line)
 }
 
-#[tokio::test]
-async fn ndjson_handshake_success_full_sequence() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, true).await;
+#[test]
+fn ndjson_handshake_success_full_sequence() {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("tokio runtime");
 
-    let uds_path = tmp.path().join("loam-ndjson-test.sock");
-    let listener = UnixListener::bind(&uds_path).expect("bind");
+    temp_env::with_var("FAMILY_SEED", Some(TEST_FAMILY_SEED), || {
+        rt.block_on(async {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), true, true).await;
 
-    let client_handle = tokio::spawn({
-        let uds_path = uds_path.clone();
-        async move {
-            let stream = UnixStream::connect(&uds_path).await.expect("connect");
-            mock_ndjson_client_handshake(stream).await
-        }
+            let uds_path = tmp.path().join("loam-ndjson-test.sock");
+            let listener = UnixListener::bind(&uds_path).expect("bind");
+
+            let client_handle = tokio::spawn({
+                let uds_path = uds_path.clone();
+                async move {
+                    let stream = UnixStream::connect(&uds_path).await.expect("connect");
+                    mock_ndjson_client_handshake(stream).await
+                }
+            });
+
+            let (server_stream, _) = listener.accept().await.expect("accept");
+            let (reader, mut writer) = server_stream.into_split();
+            let mut buf_reader = tokio::io::BufReader::new(reader);
+
+            let mut first_line = String::new();
+            tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line)
+                .await
+                .expect("read first line");
+            assert!(first_line.contains("\"protocol\""));
+            assert!(first_line.contains("\"btsp\""));
+
+            let session = super::handshake::perform_ndjson_server_handshake(
+                &mut buf_reader,
+                &mut writer,
+                &provider_socket,
+                &first_line,
+            )
+            .await
+            .expect("ndjson handshake should succeed");
+
+            assert_eq!(session.session_id, "abcdef0123456789");
+            assert_eq!(session.cipher, "null");
+
+            let final_line = client_handle
+                .await
+                .expect("client task")
+                .expect("client ok");
+            let complete: HandshakeComplete =
+                serde_json::from_str(final_line.trim()).expect("parse HandshakeComplete");
+            assert_eq!(complete.session_id, "abcdef0123456789");
+            assert_eq!(complete.cipher, "null");
+        });
     });
-
-    let (server_stream, _) = listener.accept().await.expect("accept");
-    let (reader, mut writer) = server_stream.into_split();
-    let mut buf_reader = tokio::io::BufReader::new(reader);
-
-    let mut first_line = String::new();
-    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line)
-        .await
-        .expect("read first line");
-    assert!(first_line.contains("\"protocol\""));
-    assert!(first_line.contains("\"btsp\""));
-
-    let session = super::handshake::perform_ndjson_server_handshake(
-        &mut buf_reader,
-        &mut writer,
-        &provider_socket,
-        &first_line,
-    )
-    .await
-    .expect("ndjson handshake should succeed");
-
-    assert_eq!(session.session_id, "abcdef0123456789");
-    assert_eq!(session.cipher, "null");
-
-    let final_line = client_handle
-        .await
-        .expect("client task")
-        .expect("client ok");
-    let complete: HandshakeComplete =
-        serde_json::from_str(final_line.trim()).expect("parse HandshakeComplete");
-    assert_eq!(complete.session_id, "abcdef0123456789");
-    assert_eq!(complete.cipher, "null");
 }
 
-#[tokio::test]
-async fn ndjson_handshake_failure_verify_rejected() {
-    let tmp = tempfile::tempdir().expect("tempdir");
-    let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), false, true).await;
+#[test]
+fn ndjson_handshake_failure_verify_rejected() {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("tokio runtime");
 
-    let uds_path = tmp.path().join("loam-ndjson-reject.sock");
-    let listener = UnixListener::bind(&uds_path).expect("bind");
+    temp_env::with_var("FAMILY_SEED", Some(TEST_FAMILY_SEED), || {
+        rt.block_on(async {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let (provider_socket, _provider) = spawn_mock_provider(tmp.path(), false, true).await;
 
-    let client_handle = tokio::spawn({
-        let uds_path = uds_path.clone();
-        async move {
-            let stream = UnixStream::connect(&uds_path).await.expect("connect");
-            mock_ndjson_client_handshake(stream).await
-        }
+            let uds_path = tmp.path().join("loam-ndjson-reject.sock");
+            let listener = UnixListener::bind(&uds_path).expect("bind");
+
+            let client_handle = tokio::spawn({
+                let uds_path = uds_path.clone();
+                async move {
+                    let stream = UnixStream::connect(&uds_path).await.expect("connect");
+                    mock_ndjson_client_handshake(stream).await
+                }
+            });
+
+            let (server_stream, _) = listener.accept().await.expect("accept");
+            let (reader, mut writer) = server_stream.into_split();
+            let mut buf_reader = tokio::io::BufReader::new(reader);
+
+            let mut first_line = String::new();
+            tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line)
+                .await
+                .expect("read first line");
+
+            let result = super::handshake::perform_ndjson_server_handshake(
+                &mut buf_reader,
+                &mut writer,
+                &provider_socket,
+                &first_line,
+            )
+            .await;
+
+            assert!(result.is_err());
+            let err_str = result.unwrap_err().to_string();
+            assert!(
+                err_str.contains("family verification") || err_str.contains("handshake failed"),
+                "unexpected error: {err_str}"
+            );
+
+            let final_line = client_handle
+                .await
+                .expect("client task")
+                .expect("client ok");
+            let error: HandshakeError =
+                serde_json::from_str(final_line.trim()).expect("parse HandshakeError");
+            assert_eq!(error.error, "handshake_failed");
+        });
     });
-
-    let (server_stream, _) = listener.accept().await.expect("accept");
-    let (reader, mut writer) = server_stream.into_split();
-    let mut buf_reader = tokio::io::BufReader::new(reader);
-
-    let mut first_line = String::new();
-    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut first_line)
-        .await
-        .expect("read first line");
-
-    let result = super::handshake::perform_ndjson_server_handshake(
-        &mut buf_reader,
-        &mut writer,
-        &provider_socket,
-        &first_line,
-    )
-    .await;
-
-    assert!(result.is_err());
-    let err_str = result.unwrap_err().to_string();
-    assert!(
-        err_str.contains("family verification") || err_str.contains("handshake failed"),
-        "unexpected error: {err_str}"
-    );
-
-    let final_line = client_handle
-        .await
-        .expect("client task")
-        .expect("client ok");
-    let error: HandshakeError =
-        serde_json::from_str(final_line.trim()).expect("parse HandshakeError");
-    assert_eq!(error.error, "handshake_failed");
 }
 
 #[tokio::test]
@@ -754,15 +816,83 @@ async fn ndjson_handshake_version_mismatch() {
 }
 
 #[test]
-fn generate_challenge_is_not_empty() {
-    let challenge = generate_challenge();
-    assert!(!challenge.is_empty());
-    assert_eq!(challenge.len(), 64, "blake3 hash hex = 64 chars");
+fn resolve_family_seed_from_primary_env() {
+    temp_env::with_vars(
+        [
+            ("FAMILY_SEED", Some("abcdef1234567890")),
+            ("BEARDOG_FAMILY_SEED", None::<&str>),
+        ],
+        || {
+            let seed = super::handshake::resolve_family_seed().expect("should resolve");
+            let decoded = base64::engine::general_purpose::STANDARD
+                .decode(&seed)
+                .expect("valid base64");
+            assert_eq!(decoded, b"abcdef1234567890");
+        },
+    );
 }
 
 #[test]
-fn generate_challenge_is_unique() {
-    let a = generate_challenge();
-    let b = generate_challenge();
-    assert_ne!(a, b, "two challenges must differ (OS entropy)");
+fn resolve_family_seed_falls_back_to_beardog() {
+    temp_env::with_vars(
+        [
+            ("FAMILY_SEED", None::<&str>),
+            ("BEARDOG_FAMILY_SEED", Some("fallback_seed")),
+        ],
+        || {
+            let seed = super::handshake::resolve_family_seed().expect("should resolve");
+            let decoded = base64::engine::general_purpose::STANDARD
+                .decode(&seed)
+                .expect("valid base64");
+            assert_eq!(decoded, b"fallback_seed");
+        },
+    );
+}
+
+#[test]
+fn resolve_family_seed_primary_takes_precedence() {
+    temp_env::with_vars(
+        [
+            ("FAMILY_SEED", Some("primary")),
+            ("BEARDOG_FAMILY_SEED", Some("fallback")),
+        ],
+        || {
+            let seed = super::handshake::resolve_family_seed().expect("should resolve");
+            let decoded = base64::engine::general_purpose::STANDARD
+                .decode(&seed)
+                .expect("valid base64");
+            assert_eq!(decoded, b"primary");
+        },
+    );
+}
+
+#[test]
+fn resolve_family_seed_missing_returns_error() {
+    temp_env::with_vars(
+        [
+            ("FAMILY_SEED", None::<&str>),
+            ("BEARDOG_FAMILY_SEED", None::<&str>),
+        ],
+        || {
+            let result = super::handshake::resolve_family_seed();
+            assert!(result.is_err());
+            let err = result.unwrap_err().to_string();
+            assert!(
+                err.contains("FAMILY_SEED"),
+                "error should mention env var: {err}"
+            );
+        },
+    );
+}
+
+#[test]
+fn resolve_family_seed_hex_roundtrip() {
+    let hex_seed = "deadbeef01234567deadbeef01234567deadbeef01234567deadbeef01234567";
+    temp_env::with_var("FAMILY_SEED", Some(hex_seed), || {
+        let seed = super::handshake::resolve_family_seed().expect("should resolve");
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(&seed)
+            .expect("valid base64");
+        assert_eq!(std::str::from_utf8(&decoded).expect("utf8"), hex_seed);
+    });
 }

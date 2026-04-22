@@ -55,28 +55,33 @@ pub struct HandshakeError {
     pub reason: String,
 }
 
-/// BTSP provider `btsp.session.create` response.
+/// BTSP provider `btsp.session.create` response per `beardog_types::btsp::rpc`.
 #[derive(Debug, Deserialize)]
 pub(crate) struct SessionCreateResult {
-    pub session_id: String,
+    /// Opaque session token referencing BearDog's server-side state.
+    pub session_token: String,
+    /// Server's ephemeral X25519 public key (base64).
     pub server_ephemeral_pub: String,
-    #[expect(dead_code, reason = "reserved for Phase 3 encrypted framing")]
-    pub handshake_key: String,
+    /// BearDog-generated challenge (base64, 32 bytes).
+    pub challenge: String,
 }
 
-/// BTSP provider `btsp.session.verify` response.
+/// BTSP provider `btsp.session.verify` response per `beardog_types::btsp::rpc`.
 #[derive(Debug, Deserialize)]
 pub(crate) struct SessionVerifyResult {
     pub verified: bool,
+    /// Session ID assigned by BearDog on successful verification.
+    pub session_id: Option<String>,
+    /// Negotiated cipher (set on success).
     #[expect(dead_code, reason = "reserved for Phase 3 encrypted framing")]
-    pub session_key: Option<String>,
+    pub cipher: Option<String>,
 }
 
-/// BTSP provider `btsp.negotiate` response.
+/// BTSP provider `btsp.negotiate` response per `beardog_types::btsp::rpc`.
 #[derive(Debug, Deserialize)]
 pub(crate) struct NegotiateResult {
     pub cipher: String,
-    pub allowed: bool,
+    pub accepted: bool,
 }
 
 /// An authenticated BTSP session.
