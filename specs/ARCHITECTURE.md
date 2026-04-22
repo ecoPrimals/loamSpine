@@ -101,8 +101,8 @@ LoamSpine is the **permanent ledger** of the ecoPrimals ecosystem. It provides i
 │  ┌─────────────────────────────▼─────────────────────────────┐  │
 │  │                     Storage Layer                          │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐    │  │
-│  │  │   SQLite    │  │ PostgreSQL  │  │     RocksDB     │    │  │
-│  │  │   Store     │  │    Store    │  │      Store      │    │  │
+│  │  │    redb     │  │  In-Memory  │  │   (future:      │    │  │
+│  │  │  (default)  │  │    Store    │  │   PostgreSQL)   │    │  │
 │  │  └─────────────┘  └─────────────┘  └─────────────────┘    │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                │                                │
@@ -158,9 +158,10 @@ The heart of LoamSpine:
 
 #### Storage Layer
 Pluggable backends:
-- **SQLite**: Personal spines, portable
-- **PostgreSQL**: Community spines, scalable
-- **RocksDB**: High-performance local storage
+- **redb** (default): Embedded pure-Rust B+ tree — personal spines, zero C deps
+- **In-memory**: Ephemeral testing and CI
+- **PostgreSQL** (future): Community spines, scalable
+- *SQLite and sled were removed for stadial compliance (April 2026)*
 
 #### Replication Engine
 Federation support:
@@ -320,7 +321,7 @@ loamSpine/
 │   │   │   ├── spine.rs          # Spine management
 │   │   │   ├── certificate/      # Certificate layer (lifecycle, escrow, usage)
 │   │   │   ├── proof.rs          # Inclusion proofs
-│   │   │   ├── storage/          # Storage backends (memory, redb, sled, sqlite/)
+│   │   │   ├── storage/          # Storage backends (memory, redb)
 │   │   │   ├── service/          # Service layer (lifecycle, integration, waypoint)
 │   │   │   ├── sync/             # Federation sync protocol
 │   │   │   ├── btsp/             # BTSP handshake consumer
@@ -445,7 +446,7 @@ LoamSpine uses Tokio as its async runtime with pure Rust RPC:
 | Component | Concurrency Strategy |
 |-----------|---------------------|
 | Spine Manager | `RwLock<HashMap<SpineId, SpineHandle>>` |
-| Entry Store | Connection pool (SQLite/PG), or sharded (RocksDB) |
+| Entry Store | redb (single-writer, concurrent reads) or in-memory |
 | Chain Index | Per-spine locks, concurrent reads |
 | Certificate Manager | Per-certificate locks |
 | Replication | Single writer per spine, concurrent sync tasks |
@@ -606,7 +607,7 @@ LoamSpine runs in-process with the application:
 
 ```rust
 let loam = LoamSpine::embedded()
-    .with_store(SqliteStore::open("loam.db")?)
+    .with_store(RedbStore::open("loam.redb")?)
     .build()?;
 
 let spine = loam.create_spine(owner_did, config).await?;

@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed (April 21, 2026)
 
 - **BTSP NDJSON wire-format alignment**: Added auto-detection of primalSpring-style BTSP handshake (`{"protocol":"btsp",...}\n`) in the UDS accept loop. When the first line of a connection contains `"protocol":"btsp"`, routes to the new `perform_ndjson_server_handshake` (newline-delimited JSON, session_id in ServerHello). Provider-delegated crypto preserved. Resolves primalSpring Phase 45b BTSP escalation gap for loamSpine. 12 new tests (wire types, NDJSON handshake full sequence, version mismatch, detection logic). Existing length-prefixed BTSP path unchanged.
+- **Capability/path constant unification**: `"permanence"`/`"ledger"` string literals in `neural_api/mod.rs` replaced with `primal_names::LEGACY_DOMAIN`/`CAPABILITY_DOMAIN`. `"biomeos"` path segment in `network.rs` replaced with `primal_names::BIOMEOS_SOCKET_DIR`. Single source of truth for all identity/path constants.
+- **`specs/ARCHITECTURE.md` storage layer updated**: Stale SQLite/sled/RocksDB references replaced with current redb + in-memory backends.
 
 ### Changed (April 20, 2026)
 

@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 20, 2026
+**Last Updated**: April 21, 2026
 
 ---
 
@@ -225,6 +225,16 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 BTSP NDJSON Wire-Format Alignment & Deep Debt (April 21, 2026)
+
+- **BTSP NDJSON auto-detection**: UDS accept loop now peeks the first line of each connection. When `"protocol":"btsp"` is detected (primalSpring-style newline-delimited JSON), routes to `perform_ndjson_server_handshake`. Resolves Phase 45b BTSP escalation gap. Existing length-prefixed BTSP unchanged.
+- **NDJSON wire types**: `NdjsonClientHello` (with `protocol` discriminator), `NdjsonServerHello` (with `session_id`) — matches primalSpring `ecoPrimal/src/ipc/btsp_handshake.rs` format.
+- **`handle_stream_with_first_line`**: New server entry point replays already-read first line into HTTP/NDJSON dispatch when the line is not BTSP.
+- **Capability string unification**: `"permanence"`/`"ledger"` literals in `neural_api/mod.rs` CAPABILITIES and identity response → `primal_names::LEGACY_DOMAIN`/`CAPABILITY_DOMAIN`.
+- **Path constant unification**: `"biomeos"` path segment in `network.rs` → `primal_names::BIOMEOS_SOCKET_DIR`.
+- **12 new tests**: NDJSON wire type serde, primalSpring format compat, full handshake sequence (success + verify rejection + version mismatch), `is_btsp_ndjson` detection logic.
+- **Tests**: **1,454**. All gates green. `cargo deny check` passes clean.
 
 ## v0.9.16 Stadial Parity Gate (April 16, 2026)
 
