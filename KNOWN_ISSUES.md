@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: April 21, 2026
+**Last Updated**: April 22, 2026
 
 ---
 
@@ -27,7 +27,7 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 |------------|-------|------------|
 | `opentelemetry_sdk` | RUSTSEC-2026-0007. Hard dep of tarpc 0.37 (not feature-gated). | Tracked in `deny.toml`; awaiting upstream tarpc resolution. |
 | `hickory-net` (via `hickory-resolver` 0.26) | Pulls `async-trait` (stadial ghost; upstream debt). `hickory-proto` 0.26 no longer uses it, but `hickory-net` 0.26 still does. | Non-blocking per stadial gate; awaiting upstream `hickory-net` release that drops `async-trait`. |
-| `ring` | Optional transitive dep (not in default build). | Stadial tracking only when optional features pull it in. |
+| `ring` | Lockfile artifact via `hickory-proto` 0.26 conditional dep. Never compiled — `cargo tree -i ring --all-features` returns nothing. | Cosmetic lockfile presence only; no code is linked. |
 | `mdns` 3.0 → `mdns-sd` 0.19 | **RESOLVED** — migrated to `mdns-sd` 0.19 (pure Rust, no async runtime dep). `async-std`, `net2`, `proc-macro-error` all eliminated. 3 RUSTSEC advisories removed from `deny.toml`. | N/A |
 
 ---

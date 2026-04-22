@@ -55,7 +55,7 @@ This document tracks implementation progress against the specification suite in 
 | Max file size | < 800 lines | 605 max production (discovery_client/mod.rs); 783 max test file (chaos.rs) |
 | Source files | — | 178 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
-| `#[allow]` in production | 4 | 2× `clippy::wildcard_imports` (tarpc macro requires it; `#[expect]` unfulfilled in test target), 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |
+| `#[allow]` in production | 2 | 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
 | Unused dependencies | 0 | `serde_bytes` removed (confirmed unused) |
 | Workspace-centralized deps | 100% | All shared deps defined in `[workspace.dependencies]` |
