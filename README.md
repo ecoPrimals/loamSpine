@@ -202,7 +202,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Lint Exceptions** | 2 `#[allow]` in production (feature-conditional async for dns-srv/mdns); tests all `#[expect(reason)]` |
+| **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc `wildcard_imports`, 2× feature-conditional `unused_async`); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 783 max test file |
 | **Source Files** | 179 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |

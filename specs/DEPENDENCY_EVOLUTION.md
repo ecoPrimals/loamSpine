@@ -48,16 +48,15 @@ the Stadial Parity Gate (April 2026). `sled`, `instant`, and `fxhash` are no lon
 
 ---
 
-## tarpc 0.37 / opentelemetry advisory
+## tarpc 0.37 / opentelemetry transitive weight
 
 | Field | Detail |
 |-------|--------|
-| **Current** | `tarpc = "0.37"` → transitive `tracing-opentelemetry` → `opentelemetry_sdk` |
-| **Advisory** | RUSTSEC-2026-0007 (`opentelemetry_sdk`). tarpc 0.37 unconditionally pulls `tracing-opentelemetry` which depends on the affected `opentelemetry_sdk` version. |
-| **Blocker** | Upstream tarpc must bump `tracing-opentelemetry` to a version that depends on a patched `opentelemetry_sdk`. No tarpc release yet addresses this. |
-| **Risk** | Low for loamSpine — we do not enable OpenTelemetry export. The SDK is a transitive dependency, not actively invoked. Advisory is ignored in `deny.toml`. |
-| **Mitigation** | Monitor tarpc releases. When tarpc 0.38+ ships with an updated `opentelemetry` stack, bump and remove the `deny.toml` ignore. |
-| **Priority** | Low — waiting on upstream. |
+| **Current** | `tarpc = "0.37"` → transitive `tracing-opentelemetry` → `opentelemetry_sdk` 0.30 |
+| **Advisory** | **RESOLVED** — RUSTSEC-2026-0007 (which affected `bytes`, not `opentelemetry_sdk`) is patched at `bytes >= 1.11.1` (our lockfile: 1.11.1). `cargo deny check advisories` passes clean. `deny.toml` ignore list is empty. |
+| **Remaining concern** | tarpc 0.37 unconditionally pulls `opentelemetry` + `opentelemetry_sdk` + `tracing-opentelemetry` even when unused. This is a binary-size and audit-surface cost, not a runtime bug. |
+| **Mitigation** | Monitor tarpc releases. When tarpc 0.38+ ships with optional `opentelemetry` (feature-gated), bump and remove the transitive weight. |
+| **Priority** | Low — cosmetic/audit-surface only; no active advisory. |
 
 ---
 

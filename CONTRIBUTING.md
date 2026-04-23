@@ -323,7 +323,7 @@ Look for issues labeled `good-first-issue`:
 | Max File Size | 605 max production; 783 max test file |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
-| Lint Exceptions | 2 `#[allow]` in production (2× feature-conditional async), tests all `#[expect(reason)]` |
+| Lint Exceptions | 4 `#[allow]` in production (2× tarpc `wildcard_imports`, 2× feature-conditional `unused_async`), tests all `#[expect(reason)]` |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | SPDX Headers | All 179 source files |
 | Source files | 179 `.rs` across workspace (+ 3 fuzz targets) |
