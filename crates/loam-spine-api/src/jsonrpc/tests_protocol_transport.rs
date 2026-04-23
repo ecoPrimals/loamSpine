@@ -611,6 +611,7 @@ fn uds_ndjson_btsp_through_static_config() {
                     .unwrap();
                 let complete: serde_json::Value =
                     serde_json::from_str(complete_line.trim()).unwrap();
+                assert_eq!(complete["status"], "ok");
                 assert_eq!(complete["cipher"], "null");
                 assert_eq!(complete["session_id"], "test_session_001");
 

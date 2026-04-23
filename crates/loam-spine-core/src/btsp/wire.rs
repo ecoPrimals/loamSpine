@@ -38,8 +38,13 @@ pub struct ChallengeResponse {
 }
 
 /// `HandshakeComplete` — server confirms authentication and cipher.
+///
+/// The `status` field acts as a message discriminator for the client:
+/// primalSpring identifies `HandshakeComplete` by `"status":"ok"`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HandshakeComplete {
+    /// Completion status — always `"ok"` for success.
+    pub status: String,
     /// Negotiated cipher suite.
     pub cipher: String,
     /// Session identifier (hex, 16 bytes).

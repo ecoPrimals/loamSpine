@@ -208,6 +208,7 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     }
 
     let complete = HandshakeComplete {
+        status: "ok".into(),
         cipher: negotiate.cipher.clone(),
         session_id: session_id.clone(),
     };
@@ -392,6 +393,7 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     }
 
     let complete = HandshakeComplete {
+        status: "ok".into(),
         cipher: negotiate.cipher.clone(),
         session_id: session_id.clone(),
     };

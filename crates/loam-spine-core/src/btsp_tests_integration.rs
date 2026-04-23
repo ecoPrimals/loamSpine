@@ -182,6 +182,7 @@ fn handshake_success_full_sequence() {
             let final_bytes = client_handle.await.expect("client task");
             let complete: HandshakeComplete =
                 serde_json::from_slice(&final_bytes).expect("parse HandshakeComplete");
+            assert_eq!(complete.status, "ok");
             assert_eq!(complete.session_id, "abcdef0123456789");
             assert_eq!(complete.cipher, "null");
         });
@@ -427,6 +428,7 @@ fn ndjson_handshake_success_full_sequence() {
                 .expect("client ok");
             let complete: HandshakeComplete =
                 serde_json::from_str(final_line.trim()).expect("parse HandshakeComplete");
+            assert_eq!(complete.status, "ok");
             assert_eq!(complete.session_id, "abcdef0123456789");
             assert_eq!(complete.cipher, "null");
         });

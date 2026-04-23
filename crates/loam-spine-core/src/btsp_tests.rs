@@ -228,13 +228,29 @@ fn challenge_response_roundtrip() {
 #[test]
 fn handshake_complete_roundtrip() {
     let msg = HandshakeComplete {
+        status: "ok".to_string(),
         cipher: "null".to_string(),
         session_id: "deadbeef".to_string(),
     };
     let bytes = serde_json::to_vec(&msg).expect("serialize");
     let decoded: HandshakeComplete = serde_json::from_slice(&bytes).expect("deserialize");
+    assert_eq!(decoded.status, "ok");
     assert_eq!(decoded.cipher, "null");
     assert_eq!(decoded.session_id, "deadbeef");
+}
+
+#[test]
+fn handshake_complete_contains_status_ok_in_json() {
+    let msg = HandshakeComplete {
+        status: "ok".to_string(),
+        cipher: "null".to_string(),
+        session_id: "sess123".to_string(),
+    };
+    let json = serde_json::to_string(&msg).expect("serialize");
+    assert!(
+        json.contains("\"status\":\"ok\""),
+        "HandshakeComplete JSON must contain status:ok for primalSpring wire compat: {json}"
+    );
 }
 
 #[test]
