@@ -31,22 +31,6 @@ services:
       retries: 3
       start_period: 10s
 
-  # ==========================================================================
-  # Development Tools (optional)
-  # ==========================================================================
-  
-  # Redis for caching (optional, for future use)
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: loamspine-redis
-  #   restart: unless-stopped
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis-data:/data
-  #   networks:
-  #     - ecoprimals
-  #   command: redis-server --appendonly yes
 
 # =============================================================================
 # Networks
@@ -63,6 +47,4 @@ volumes:
   loamspine-data:
     driver: local
     name: loamspine-data
-  # redis-data:
-  #   driver: local
 
