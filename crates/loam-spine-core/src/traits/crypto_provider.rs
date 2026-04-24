@@ -212,20 +212,21 @@ async fn crypto_provider_call<R: serde::de::DeserializeOwned>(
     writer.flush().await.map_err(|e| {
         LoamSpineError::ipc(IpcErrorPhase::Write, format!("crypto provider flush: {e}"))
     })?;
-    writer.shutdown().await.map_err(|e| {
-        LoamSpineError::ipc(
-            IpcErrorPhase::Write,
-            format!("crypto provider shutdown: {e}"),
-        )
-    })?;
 
     let mut response_line = String::new();
     let mut buf_reader = tokio::io::BufReader::new(reader);
-    tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut response_line)
-        .await
-        .map_err(|e| {
-            LoamSpineError::ipc(IpcErrorPhase::Read, format!("crypto provider read: {e}"))
-        })?;
+    tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut response_line),
+    )
+    .await
+    .map_err(|_| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Read,
+            format!("crypto provider {method}: read timeout (10s)"),
+        )
+    })?
+    .map_err(|e| LoamSpineError::ipc(IpcErrorPhase::Read, format!("crypto provider read: {e}")))?;
 
     let response: serde_json::Value = serde_json::from_str(response_line.trim()).map_err(|e| {
         LoamSpineError::ipc(

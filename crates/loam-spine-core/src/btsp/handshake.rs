@@ -15,7 +15,7 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tracing::debug;
 
 use super::frame::{deserialize_btsp_msg, read_frame, serialize_btsp_msg, write_frame};
-use super::provider_client::provider_call;
+use super::provider_client::ProviderConn;
 use super::wire::{
     BtspSession, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError,
     NdjsonClientHello, NdjsonServerHello, NegotiateResult, ServerHello, SessionCreateResult,
@@ -53,7 +53,9 @@ where
 {
     let client_hello = read_and_validate_client_hello(reader, writer).await?;
 
-    let create_result = create_provider_session(provider_socket).await?;
+    let mut conn = ProviderConn::connect(provider_socket).await?;
+
+    let create_result = create_provider_session(&mut conn).await?;
 
     send_server_hello(writer, &create_result).await?;
 
@@ -61,7 +63,7 @@ where
 
     verify_and_complete(
         writer,
-        provider_socket,
+        &mut conn,
         &client_hello,
         &create_result,
         &challenge_response,
@@ -103,18 +105,18 @@ async fn read_and_validate_client_hello<R: AsyncReadExt + Unpin, W: AsyncWriteEx
 /// `SessionCreateParams`. BearDog generates the challenge and ephemeral
 /// keys server-side, returning them in `SessionCreateResponse`.
 async fn create_provider_session(
-    provider_socket: &Path,
+    conn: &mut ProviderConn,
 ) -> Result<SessionCreateResult, LoamSpineError> {
     let family_seed = resolve_family_seed()?;
-    let result: SessionCreateResult = provider_call(
-        provider_socket,
-        "btsp.session.create",
-        serde_json::json!({
-            "family_seed": family_seed,
-        }),
-        rpc_id::SESSION_CREATE,
-    )
-    .await?;
+    let result: SessionCreateResult = conn
+        .call(
+            "btsp.session.create",
+            serde_json::json!({
+                "family_seed": family_seed,
+            }),
+            rpc_id::SESSION_CREATE,
+        )
+        .await?;
     debug!("BTSP: session created: {}", result.session_token);
     Ok(result)
 }
@@ -152,23 +154,23 @@ async fn read_challenge_response<R: AsyncReadExt + Unpin>(
 /// - negotiate: `session_token`, `cipher`
 async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     writer: &mut W,
-    provider_socket: &Path,
+    conn: &mut ProviderConn,
     client_hello: &ClientHello,
     create_result: &SessionCreateResult,
     challenge_response: &ChallengeResponse,
 ) -> Result<BtspSession, LoamSpineError> {
-    let verify: SessionVerifyResult = provider_call(
-        provider_socket,
-        "btsp.session.verify",
-        serde_json::json!({
-            "session_token": create_result.session_token,
-            "client_ephemeral_pub": client_hello.client_ephemeral_pub,
-            "response": challenge_response.response,
-            "preferred_cipher": challenge_response.preferred_cipher,
-        }),
-        rpc_id::SESSION_VERIFY,
-    )
-    .await?;
+    let verify: SessionVerifyResult = conn
+        .call(
+            "btsp.session.verify",
+            serde_json::json!({
+                "session_token": create_result.session_token,
+                "client_ephemeral_pub": client_hello.client_ephemeral_pub,
+                "response": challenge_response.response,
+                "preferred_cipher": challenge_response.preferred_cipher,
+            }),
+            rpc_id::SESSION_VERIFY,
+        )
+        .await?;
 
     if !verify.verified {
         send_handshake_error(writer, "handshake_failed", "family_verification").await?;
@@ -183,16 +185,16 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         .session_id
         .unwrap_or_else(|| create_result.session_token.clone());
 
-    let negotiate: NegotiateResult = provider_call(
-        provider_socket,
-        "btsp.negotiate",
-        serde_json::json!({
-            "session_token": create_result.session_token,
-            "cipher": challenge_response.preferred_cipher,
-        }),
-        rpc_id::NEGOTIATE,
-    )
-    .await?;
+    let negotiate: NegotiateResult = conn
+        .call(
+            "btsp.negotiate",
+            serde_json::json!({
+                "session_token": create_result.session_token,
+                "cipher": challenge_response.preferred_cipher,
+            }),
+            rpc_id::NEGOTIATE,
+        )
+        .await?;
 
     if !negotiate.accepted {
         send_handshake_error(
@@ -292,7 +294,8 @@ where
     }
     debug!("BTSP NDJSON: received ClientHello v{}", hello.version);
 
-    let create_result = create_provider_session(provider_socket).await?;
+    let mut conn = ProviderConn::connect(provider_socket).await?;
+    let create_result = create_provider_session(&mut conn).await?;
 
     let server_hello = NdjsonServerHello {
         version: BTSP_VERSION,
@@ -326,7 +329,7 @@ where
 
     ndjson_verify_and_complete(
         writer,
-        provider_socket,
+        &mut conn,
         &original_hello,
         &create_result,
         &challenge_response,
@@ -337,23 +340,23 @@ where
 /// NDJSON verify + complete: same logic as length-prefixed but line-delimited output.
 async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     writer: &mut W,
-    provider_socket: &Path,
+    conn: &mut ProviderConn,
     client_hello: &ClientHello,
     create_result: &SessionCreateResult,
     challenge_response: &ChallengeResponse,
 ) -> Result<BtspSession, LoamSpineError> {
-    let verify: SessionVerifyResult = provider_call(
-        provider_socket,
-        "btsp.session.verify",
-        serde_json::json!({
-            "session_token": create_result.session_token,
-            "client_ephemeral_pub": client_hello.client_ephemeral_pub,
-            "response": challenge_response.response,
-            "preferred_cipher": challenge_response.preferred_cipher,
-        }),
-        rpc_id::SESSION_VERIFY,
-    )
-    .await?;
+    let verify: SessionVerifyResult = conn
+        .call(
+            "btsp.session.verify",
+            serde_json::json!({
+                "session_token": create_result.session_token,
+                "client_ephemeral_pub": client_hello.client_ephemeral_pub,
+                "response": challenge_response.response,
+                "preferred_cipher": challenge_response.preferred_cipher,
+            }),
+            rpc_id::SESSION_VERIFY,
+        )
+        .await?;
 
     if !verify.verified {
         ndjson_send_error(writer, "handshake_failed", "family_verification").await?;
@@ -368,16 +371,16 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         .session_id
         .unwrap_or_else(|| create_result.session_token.clone());
 
-    let negotiate: NegotiateResult = provider_call(
-        provider_socket,
-        "btsp.negotiate",
-        serde_json::json!({
-            "session_token": create_result.session_token,
-            "cipher": challenge_response.preferred_cipher,
-        }),
-        rpc_id::NEGOTIATE,
-    )
-    .await?;
+    let negotiate: NegotiateResult = conn
+        .call(
+            "btsp.negotiate",
+            serde_json::json!({
+                "session_token": create_result.session_token,
+                "cipher": challenge_response.preferred_cipher,
+            }),
+            rpc_id::NEGOTIATE,
+        )
+        .await?;
 
     if !negotiate.accepted {
         ndjson_send_error(

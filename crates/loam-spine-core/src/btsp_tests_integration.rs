@@ -27,7 +27,8 @@ use super::wire::{
 // Mock BTSP provider server (beardog_types-compatible responses)
 // ---------------------------------------------------------------------------
 
-/// Spawn a mock BTSP provider that handles the three BTSP JSON-RPC methods.
+/// Spawn a mock BTSP provider that handles the three BTSP JSON-RPC methods
+/// on a single persistent connection (matching SOURDOUGH §3 relay pattern).
 ///
 /// Returns the socket path (in a temp dir) and a join handle.
 async fn spawn_mock_provider(
@@ -41,16 +42,10 @@ async fn spawn_mock_provider(
 
     let path = socket_path.clone();
     let handle = tokio::spawn(async move {
-        for _ in 0..3 {
-            let Ok((stream, _)) = listener.accept().await else {
-                break;
-            };
-            let verify_ok = verify_ok;
-            let cipher_allowed = cipher_allowed;
-            tokio::spawn(async move {
-                handle_mock_btsp_provider(stream, verify_ok, cipher_allowed).await;
-            });
-        }
+        let Ok((stream, _)) = listener.accept().await else {
+            return;
+        };
+        handle_mock_btsp_provider(stream, verify_ok, cipher_allowed).await;
     });
 
     tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
@@ -58,62 +53,72 @@ async fn spawn_mock_provider(
     (path, handle)
 }
 
+/// Handle multiple JSON-RPC requests on a single persistent connection.
 async fn handle_mock_btsp_provider(stream: UnixStream, verify_ok: bool, cipher_allowed: bool) {
     let (reader, mut writer) = stream.into_split();
     let mut buf_reader = tokio::io::BufReader::new(reader);
-    let mut line = String::new();
-    let _ = tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut line).await;
 
-    let request: serde_json::Value =
-        serde_json::from_str(line.trim()).unwrap_or(serde_json::Value::Null);
+    loop {
+        let mut line = String::new();
+        match tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut line).await {
+            Ok(0) | Err(_) => break,
+            Ok(_) => {}
+        }
+        if line.trim().is_empty() {
+            continue;
+        }
 
-    let method = request
-        .get("method")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or("");
-    let id = request
-        .get("id")
-        .cloned()
-        .unwrap_or(serde_json::Value::Null);
+        let request: serde_json::Value =
+            serde_json::from_str(line.trim()).unwrap_or(serde_json::Value::Null);
 
-    let response = match method {
-        "btsp.session.create" => serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "result": {
-                "session_token": "tok_abcdef0123456789",
-                "server_ephemeral_pub": "mock_server_pub_key",
-                "challenge": "bW9ja19jaGFsbGVuZ2VfMzJfYnl0ZXM="
-            }
-        }),
-        "btsp.session.verify" => serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "result": {
-                "verified": verify_ok,
-                "session_id": if verify_ok { Some("abcdef0123456789") } else { None::<&str> },
-                "cipher": if verify_ok { Some("null") } else { None::<&str> }
-            }
-        }),
-        "btsp.negotiate" => serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "result": {
-                "cipher": "null",
-                "accepted": cipher_allowed
-            }
-        }),
-        _ => serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "error": { "code": -32601, "message": "method not found" }
-        }),
-    };
+        let method = request
+            .get("method")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("");
+        let id = request
+            .get("id")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
 
-    let mut response_bytes = serde_json::to_vec(&response).expect("serialize mock response");
-    response_bytes.push(b'\n');
-    let _ = writer.write_all(&response_bytes).await;
-    let _ = writer.flush().await;
+        let response = match method {
+            "btsp.session.create" => serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": {
+                    "session_token": "tok_abcdef0123456789",
+                    "server_ephemeral_pub": "mock_server_pub_key",
+                    "challenge": "bW9ja19jaGFsbGVuZ2VfMzJfYnl0ZXM="
+                }
+            }),
+            "btsp.session.verify" => serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": {
+                    "verified": verify_ok,
+                    "session_id": if verify_ok { Some("abcdef0123456789") } else { None::<&str> },
+                    "cipher": if verify_ok { Some("null") } else { None::<&str> }
+                }
+            }),
+            "btsp.negotiate" => serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "result": {
+                    "cipher": "null",
+                    "accepted": cipher_allowed
+                }
+            }),
+            _ => serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "error": { "code": -32601, "message": "method not found" }
+            }),
+        };
+
+        let mut response_bytes = serde_json::to_vec(&response).expect("serialize mock response");
+        response_bytes.push(b'\n');
+        let _ = writer.write_all(&response_bytes).await;
+        let _ = writer.flush().await;
+    }
 }
 
 // ---------------------------------------------------------------------------

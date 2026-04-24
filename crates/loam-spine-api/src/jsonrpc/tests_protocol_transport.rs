@@ -469,52 +469,62 @@ async fn uds_concurrent_load_8x5() {
 // =========================================================================
 
 /// Minimal mock BTSP provider that handles the three JSON-RPC methods
-/// needed for a full NDJSON handshake.
+/// needed for a full NDJSON handshake on a single persistent connection
+/// (matching SOURDOUGH §3 relay pattern).
 #[cfg(unix)]
 async fn handle_mock_btsp_provider_conn(stream: tokio::net::UnixStream) {
     let (reader, mut writer) = stream.into_split();
     let mut buf_reader = tokio::io::BufReader::new(reader);
-    let mut line = String::new();
-    let _ = tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut line).await;
 
-    let request: serde_json::Value =
-        serde_json::from_str(line.trim()).unwrap_or(serde_json::Value::Null);
-    let method = request
-        .get("method")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or("");
-    let id = request
-        .get("id")
-        .cloned()
-        .unwrap_or(serde_json::Value::Null);
+    loop {
+        let mut line = String::new();
+        match tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut line).await {
+            Ok(0) | Err(_) => break,
+            Ok(_) => {}
+        }
+        if line.trim().is_empty() {
+            continue;
+        }
 
-    let response = match method {
-        "btsp.session.create" => serde_json::json!({
-            "jsonrpc": "2.0", "id": id,
-            "result": {
-                "session_token": "tok_test_001",
-                "server_ephemeral_pub": "mock_server_pub",
-                "challenge": "bW9ja19jaGFsbGVuZ2U="
-            }
-        }),
-        "btsp.session.verify" => serde_json::json!({
-            "jsonrpc": "2.0", "id": id,
-            "result": { "verified": true, "session_id": "test_session_001", "cipher": "null" }
-        }),
-        "btsp.negotiate" => serde_json::json!({
-            "jsonrpc": "2.0", "id": id,
-            "result": { "cipher": "null", "accepted": true }
-        }),
-        _ => serde_json::json!({
-            "jsonrpc": "2.0", "id": id,
-            "error": { "code": -32601, "message": "method not found" }
-        }),
-    };
+        let request: serde_json::Value =
+            serde_json::from_str(line.trim()).unwrap_or(serde_json::Value::Null);
+        let method = request
+            .get("method")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("");
+        let id = request
+            .get("id")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null);
 
-    let mut bytes = serde_json::to_vec(&response).unwrap();
-    bytes.push(b'\n');
-    let _ = writer.write_all(&bytes).await;
-    let _ = writer.flush().await;
+        let response = match method {
+            "btsp.session.create" => serde_json::json!({
+                "jsonrpc": "2.0", "id": id,
+                "result": {
+                    "session_token": "tok_test_001",
+                    "server_ephemeral_pub": "mock_server_pub",
+                    "challenge": "bW9ja19jaGFsbGVuZ2U="
+                }
+            }),
+            "btsp.session.verify" => serde_json::json!({
+                "jsonrpc": "2.0", "id": id,
+                "result": { "verified": true, "session_id": "test_session_001", "cipher": "null" }
+            }),
+            "btsp.negotiate" => serde_json::json!({
+                "jsonrpc": "2.0", "id": id,
+                "result": { "cipher": "null", "accepted": true }
+            }),
+            _ => serde_json::json!({
+                "jsonrpc": "2.0", "id": id,
+                "error": { "code": -32601, "message": "method not found" }
+            }),
+        };
+
+        let mut bytes = serde_json::to_vec(&response).unwrap();
+        bytes.push(b'\n');
+        let _ = writer.write_all(&bytes).await;
+        let _ = writer.flush().await;
+    }
 }
 
 /// Spawn a mock BTSP provider and return its socket path.
@@ -527,12 +537,10 @@ async fn spawn_test_btsp_provider(
     let listener = tokio::net::UnixListener::bind(&socket).unwrap();
 
     let handle = tokio::spawn(async move {
-        for _ in 0..3 {
-            let Ok((stream, _)) = listener.accept().await else {
-                break;
-            };
-            tokio::spawn(handle_mock_btsp_provider_conn(stream));
-        }
+        let Ok((stream, _)) = listener.accept().await else {
+            return;
+        };
+        handle_mock_btsp_provider_conn(stream).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(10)).await;

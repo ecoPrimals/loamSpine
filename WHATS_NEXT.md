@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 23, 2026
+**Last Updated**: April 24, 2026
 
 ---
 
@@ -225,6 +225,15 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 BTSP Connection Lifecycle Fix (April 24, 2026)
+
+- **Persistent BearDog connection per handshake**: Replaced per-call `provider_call` (reconnect + `shutdown()`) with `ProviderConn` struct that holds a single UDS connection reused across all three relay calls (create → verify → negotiate). Per SOURDOUGH BTSP Relay Pattern §3.
+- **Removed `writer.shutdown()` (primary bug)**: `provider_roundtrip` called `writer.shutdown()` after writing each request, sending EOF to BearDog. BearDog interpreted this as connection close and dropped the response — a race condition where `create` often succeeded (fast operation) but `verify` failed (slower, EOF propagated before response). Replaced with `flush()` only.
+- **Read timeout added**: 10-second timeout on all provider reads to prevent indefinite hangs if BearDog drops the connection.
+- **`crypto_provider.rs` same fix**: Removed identical `shutdown()` anti-pattern from crypto provider call path. Added read timeout.
+- **Mock providers updated**: Both test mocks (`btsp_tests_integration.rs`, `tests_protocol_transport.rs`) now handle multiple requests per connection (loop-based), matching the persistent connection pattern.
+- **Tests**: 1,503 pass. All gates green (clippy, fmt, deny).
 
 ## v0.9.16 BTSP HandshakeComplete Wire Fix (April 15, 2026)
 
