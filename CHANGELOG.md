@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (April 26, 2026)
+
+- **Minor polish — primalSpring April 26 audit**: `ring` lockfile ghost entry in `KNOWN_ISSUES.md` tightened (hickory-proto's optional `dnssec-ring` feature; explicitly banned in `deny.toml`; never compiled). Computation provenance receipts documented as COVERED — existing `TrioCommitReceipt`, `PipelineResult`, `AnchorReceipt` surfaces cover the collectible composition pattern without new code.
+
 ### Changed (April 24, 2026)
 
 - **BTSP connection lifecycle fix**: Refactored BearDog relay from per-call reconnection to a single persistent `ProviderConn` per handshake, per SOURDOUGH BTSP Relay Pattern §3. Removed `writer.shutdown()` that caused BearDog to drop responses during `btsp.session.verify` (race condition: `create` often succeeds but verify is slower and the EOF propagates before the response is written). Added 10-second read timeout to prevent indefinite hangs if the provider drops. Same `shutdown()` fix applied to `crypto_provider.rs`. Mock providers updated to handle multiple requests per connection. 1,503 tests, all pass.
