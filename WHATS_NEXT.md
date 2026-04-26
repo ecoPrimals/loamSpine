@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 24, 2026
+**Last Updated**: April 26, 2026
 
 ---
 
