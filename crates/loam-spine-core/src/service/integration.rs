@@ -62,6 +62,7 @@ impl CommitAcceptor for LoamSpineService {
         let appended = spine
             .tip_entry()
             .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        let committed_at = appended.timestamp;
         self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
@@ -69,6 +70,7 @@ impl CommitAcceptor for LoamSpineService {
             spine_id,
             entry_hash,
             index,
+            committed_at,
         })
     }
 

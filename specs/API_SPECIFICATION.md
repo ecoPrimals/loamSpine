@@ -460,8 +460,10 @@ pub struct CommitSessionRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommitSessionResponse {
+    pub spine_id: SpineId,
     pub commit_hash: EntryHash,
     pub index: u64,
+    pub committed_at: Timestamp,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (April 27, 2026)
 
+- **PG-52 VERIFIED LIVE**: primalSpring convergence validation confirmed double-BufReader fix working in live composition. Trio lifecycle (`create → append → seal`) operational. Stale plasmidBin confirmed as root cause — rebuilt and reharvested (blake3 `6403449f...`).
+- **Provenance receipt enrichment**: `CommitSessionResponse` now includes `spine_id` and `committed_at` timestamp alongside `commit_hash` and `index`. `LoamCommitRef` (core) likewise carries `committed_at`. This makes session commit responses self-contained provenance receipts for guideStone chain tracing. Backward-compatible (additive fields). Test assertions updated in service tests and provenance trio integration. API specification synchronized.
+- **Remaining gap triage**: `ring` lockfile ghost — Cargo.lock v4 artifact, not compiled, banned in `deny.toml`. NestGate/loamSpine bond wiring — loamSpine side complete (`bonding.ledger.*` implemented), gap is upstream BearDog wire shape alignment.
 - **PG-52: UDS trio lifecycle verified (spine.create / entry.append / spine.seal)**: Investigated primalSpring cross-spring convergence report (4 springs affected). Root cause: **stale plasmidBin binary** — current code handles all three methods correctly over UDS JSON-RPC. Fix: (1) Eliminated double-`BufReader` on post-BTSP paths — `handle_stream_buffered` accepts the existing `BufReader` directly instead of wrapping it in a second layer. (2) Added 3 UDS integration tests: persistent-connection lifecycle, BTSP-config coexistence, one-shot connection pattern (matching socat/nc composition scripts). 1,506 tests, all pass. **plasmidBin rebuild required** for deployed compositions to pick up PG-07/PG-33/PG-52 fixes.
 
 ### Changed (April 26, 2026)

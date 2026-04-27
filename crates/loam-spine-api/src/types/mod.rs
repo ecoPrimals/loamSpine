@@ -311,13 +311,17 @@ pub struct CommitSessionRequest {
     pub committer: Did,
 }
 
-/// Response from committing a session.
+/// Response from committing a session — serves as a provenance receipt.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommitSessionResponse {
+    /// Spine where the commit was recorded
+    pub spine_id: SpineId,
     /// Commit entry hash
     pub commit_hash: EntryHash,
     /// Entry index
     pub index: u64,
+    /// Timestamp of the committed entry
+    pub committed_at: Timestamp,
 }
 
 // ============================================================================

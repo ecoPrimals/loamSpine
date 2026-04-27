@@ -74,6 +74,14 @@ async fn dehydration_flow_native_session_commit() {
         "commit hash should be non-zero"
     );
     assert!(commit_resp.index > 0, "should be after genesis");
+    assert_eq!(
+        commit_resp.spine_id, spine.spine_id,
+        "receipt must include spine_id"
+    );
+    assert!(
+        commit_resp.committed_at.as_nanos() > 0,
+        "receipt must include committed_at timestamp"
+    );
 
     let entry_resp = service
         .get_entry(GetEntryRequest {

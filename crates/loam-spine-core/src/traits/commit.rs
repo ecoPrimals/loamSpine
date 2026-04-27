@@ -13,6 +13,10 @@ use crate::spine::Spine;
 use crate::types::{ContentHash, Did, EntryHash, SessionId, SpineId, Timestamp};
 
 /// Reference to a commit in LoamSpine.
+///
+/// Serves as a provenance receipt: contains enough information
+/// for downstream consumers (guideStone, composition scripts)
+/// to verify and trace the commit chain.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LoamCommitRef {
     /// Spine where the commit resides.
@@ -21,6 +25,8 @@ pub struct LoamCommitRef {
     pub entry_hash: EntryHash,
     /// Entry index in the spine.
     pub index: u64,
+    /// Timestamp of the committed entry.
+    pub committed_at: Timestamp,
 }
 
 /// Summary of a dehydration session from an ephemeral DAG primal.
@@ -279,15 +285,18 @@ mod tests {
     #[test]
     fn loam_commit_ref_equality() {
         let spine_id = SpineId::now_v7();
+        let ts = Timestamp::now();
         let ref1 = LoamCommitRef {
             spine_id,
             entry_hash: [7u8; 32],
             index: 42,
+            committed_at: ts,
         };
         let ref2 = LoamCommitRef {
             spine_id,
             entry_hash: [7u8; 32],
             index: 42,
+            committed_at: ts,
         };
 
         assert_eq!(ref1, ref2);
@@ -296,6 +305,7 @@ mod tests {
             spine_id,
             entry_hash: [8u8; 32],
             index: 42,
+            committed_at: ts,
         };
         assert_ne!(ref1, ref3);
     }

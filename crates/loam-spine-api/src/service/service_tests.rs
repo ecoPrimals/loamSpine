@@ -495,6 +495,8 @@ async fn test_commit_session_success() {
     let resp = result.expect("commit_session should succeed");
     assert_ne!(resp.commit_hash, [0u8; 32]);
     assert!(resp.index >= 1);
+    assert_eq!(resp.spine_id, create_resp.spine_id);
+    assert!(resp.committed_at.as_nanos() > 0);
 }
 
 #[tokio::test]

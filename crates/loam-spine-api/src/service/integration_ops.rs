@@ -131,8 +131,10 @@ impl LoamSpineRpcService {
         };
 
         Ok(CommitSessionResponse {
+            spine_id: commit_ref.spine_id,
             commit_hash: commit_ref.entry_hash,
             index: commit_ref.index,
+            committed_at: commit_ref.committed_at,
         })
     }
 
