@@ -133,7 +133,23 @@ where
     W: tokio::io::AsyncWrite + Unpin,
 {
     let mut buf_reader = BufReader::new(reader);
+    handle_stream_buffered(&handler, &mut buf_reader, &mut writer).await
+}
 
+/// Handle a stream that is already wrapped in a `BufReader`.
+///
+/// Used by the post-BTSP path where the handshake reader must not be
+/// double-wrapped (the inner `BufReader` may hold residual bytes from
+/// the handshake that a second `BufReader` layer could misalign).
+pub(crate) async fn handle_stream_buffered<R, W>(
+    handler: &LoamSpineJsonRpc,
+    buf_reader: &mut BufReader<R>,
+    writer: &mut W,
+) -> Result<(), std::io::Error>
+where
+    R: tokio::io::AsyncRead + Unpin,
+    W: tokio::io::AsyncWrite + Unpin,
+{
     let mut first_line = String::new();
     buf_reader.read_line(&mut first_line).await?;
 
@@ -142,14 +158,9 @@ where
         || first_line.starts_with("HTTP");
 
     if is_http {
-        handle_http_request(&handler, &mut buf_reader, &mut writer, &first_line).await?;
+        handle_http_request(handler, buf_reader, writer, &first_line).await?;
     } else {
-        // Newline-delimited JSON-RPC: process the first line, then keep
-        // reading until the peer closes the connection. Persistent connections
-        // are critical for trio IPC stability — ecosystem partners hold
-        // long-lived UDS connections and send multiple requests without
-        // reconnecting.
-        if let Some(resp) = process_ndjson_line(&handler, &first_line).await {
+        if let Some(resp) = process_ndjson_line(handler, &first_line).await {
             writer.write_all(&resp).await?;
             writer.write_all(b"\n").await?;
             writer.flush().await?;
@@ -162,7 +173,7 @@ where
             if n == 0 {
                 break;
             }
-            if let Some(resp) = process_ndjson_line(&handler, &line).await {
+            if let Some(resp) = process_ndjson_line(handler, &line).await {
                 writer.write_all(&resp).await?;
                 writer.write_all(b"\n").await?;
                 writer.flush().await?;

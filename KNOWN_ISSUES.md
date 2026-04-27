@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: April 26, 2026
+**Last Updated**: April 27, 2026
 
 ---
 
@@ -41,6 +41,7 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 | BTSP Phase 2 — `BTSP_NULL` cipher only | BTSP handshake authenticates connections but `BTSP_NULL` is the only functional cipher. Encrypted framing (ChaCha20-Poly1305, HMAC-Plain) requires the BTSP provider's session key propagation, which is Phase 3. | Authentication is complete. Encryption is the BTSP provider's responsibility — LoamSpine will adopt encrypted framing when the provider exposes `btsp.encrypt`/`btsp.decrypt` over session keys. |
 | BTSP challenge generation | **RESOLVED (v0.9.16)** — `generate_challenge()` removed; BearDog (BTSP provider) is the sole challenge authority via `btsp.session.create`. LoamSpine sends `family_seed` and receives the challenge in the response. |
 | Computation provenance receipts | **COVERED** — `TrioCommitReceipt` (`trio_types.rs`) returned by `session.commit` / `provenance.commit`. `PipelineResult` wraps the full pipeline output (dehydration root, commit ref, braid ref, signature, content ref). `AnchorReceipt` for public-chain anchoring. The collectible composition pattern (`wateringHole/handoffs/COLLECTIBLE_COMPOSITION_PATTERN_APR26_2026.md`) uses these existing surfaces — no new primal code needed. |
+| PG-52 UDS trio empty responses | **RESOLVED (v0.9.16)** — `spine.create`, `entry.append`, `spine.seal` all work correctly over UDS JSON-RPC (with and without BTSP config). Root cause: stale plasmidBin binary + double-`BufReader` on post-BTSP path (now cleaned up). 3 UDS transport integration tests added. plasmidBin rebuild required. |
 
 ---
 

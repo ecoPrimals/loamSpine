@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (April 27, 2026)
+
+- **PG-52: UDS trio lifecycle verified (spine.create / entry.append / spine.seal)**: Investigated primalSpring cross-spring convergence report (4 springs affected). Root cause: **stale plasmidBin binary** — current code handles all three methods correctly over UDS JSON-RPC. Fix: (1) Eliminated double-`BufReader` on post-BTSP paths — `handle_stream_buffered` accepts the existing `BufReader` directly instead of wrapping it in a second layer. (2) Added 3 UDS integration tests: persistent-connection lifecycle, BTSP-config coexistence, one-shot connection pattern (matching socat/nc composition scripts). 1,506 tests, all pass. **plasmidBin rebuild required** for deployed compositions to pick up PG-07/PG-33/PG-52 fixes.
+
 ### Changed (April 26, 2026)
 
 - **Minor polish — primalSpring April 26 audit**: `ring` lockfile ghost entry in `KNOWN_ISSUES.md` tightened (hickory-proto's optional `dnssec-ring` feature; explicitly banned in `deny.toml`; never compiled). Computation provenance receipts documented as COVERED — existing `TrioCommitReceipt`, `PipelineResult`, `AnchorReceipt` surfaces cover the collectible composition pattern without new code.
@@ -139,7 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dyn audit**: 72 total `dyn` usages — 28 in doc examples/comments, 37 `Pin<Box<dyn Future>>` for object safety, 7 `Arc<dyn Trait>` for finite-implementor traits; all non-blocking per stadial gate.
 
 ### Metrics
-- Tests: **1,503** (all concurrent, ~3s, zero flaky; `--all-features`)
+- Tests: **1,506** (all concurrent, ~3s, zero flaky; `--all-features`)
 - `#[serial]`: **0** (was 121)
 - JSON-RPC methods: **37** (was 32)
 - Source files: **179** `.rs` (+ 3 fuzz targets)

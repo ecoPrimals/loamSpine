@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 26, 2026
+**Last Updated**: April 27, 2026
 
 ---
 
@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,503 (179 source files) |
+| Tests | — | 1,506 (179 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |

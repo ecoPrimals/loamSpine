@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 26, 2026
+**Last Updated**: April 27, 2026
 
 ---
 
@@ -225,6 +225,14 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 PG-52 UDS Trio Lifecycle Verification (April 27, 2026)
+
+- **Trio UDS transport verified**: `spine.create`, `entry.append`, `spine.seal` confirmed working over UDS JSON-RPC. Investigated primalSpring cross-spring convergence report (4 springs affected). Root cause: **stale plasmidBin binary** — current code handles all three methods correctly.
+- **Double-`BufReader` eliminated on post-BTSP path**: New `handle_stream_buffered` function accepts the existing `BufReader` directly instead of wrapping it in a second layer (previously `BufReader<BufReader<OwnedReadHalf>>`). Prevents potential residual-byte misalignment after BTSP handshake.
+- **3 new UDS integration tests**: Persistent-connection trio lifecycle, BTSP-config coexistence, one-shot connection pattern (socat/nc composition script pattern).
+- **Tests**: 1,506 pass (+3). All gates green (clippy, fmt, deny).
+- **Action required**: plasmidBin binary rebuild for deployed compositions to pick up PG-07/PG-33/PG-52 fixes.
 
 ## v0.9.16 BTSP Connection Lifecycle Fix (April 24, 2026)
 

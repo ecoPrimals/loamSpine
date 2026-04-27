@@ -211,7 +211,7 @@ async fn handle_uds_connection(
                         return Ok(());
                     }
                 }
-                super::server::handle_stream(handler, buf_reader, writer).await
+                super::server::handle_stream_buffered(&handler, &mut buf_reader, &mut writer).await
             } else {
                 warn!(
                     "BTSP NDJSON handshake requested but no provider available; \
@@ -242,7 +242,7 @@ async fn handle_uds_connection(
                 return Ok(());
             }
         }
-        super::server::handle_stream(handler, buf_reader, writer).await
+        super::server::handle_stream_buffered(&handler, &mut buf_reader, &mut writer).await
     } else {
         debug!("UDS connection starts with non-JSON byte and no BTSP config; closing");
         Ok(())

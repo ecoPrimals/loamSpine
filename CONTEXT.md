@@ -26,7 +26,7 @@ when they need to commit, verify, or query permanent records.
 - **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,503 (all concurrent, ~3s, zero flaky)
+- **Tests:** 1,506 (all concurrent, ~3s, zero flaky)
 - **Coverage:** 90.92% line / 89.09% branch / 92.92% region
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
