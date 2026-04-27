@@ -208,7 +208,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
-| **cargo deny** | advisories, bans, licenses, sources all pass (1 tarpc upstream advisory tracked in `deny.toml`) |
+| **cargo deny** | advisories, bans, licenses, sources all pass |
 | **UniBin** | `server`, `capabilities`, `socket` subcommands |
 | **Mock isolation** | All mocks cfg-gated out of production |
 

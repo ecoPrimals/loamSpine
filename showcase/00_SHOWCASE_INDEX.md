@@ -15,7 +15,7 @@
 | **Quick Demo** | 5 min | Everyone | `./QUICK_DEMO.sh` |
 | **Complete Walkthrough** | 2.5 hours | Beginners | `./RUN_ME_FIRST.sh` |
 | **Full Navigation** | - | All | Read this file |
-| **Level 1 Only** | 60 min | Developers | `cd 01-local-primal && ./RUN_ALL.sh` |
+| **Level 1 Only** | 60 min | Developers | `cd 01-local-primal && ./RUN_ALL.sh` (Level 1 only) |
 
 **Pro Tip**: Start with `00_START_HERE.md` for orientation!
 
@@ -51,16 +51,14 @@ showcase/
 │   ├── 02-jsonrpc-basics/         ✅ Ready
 │   ├── 03-health-monitoring/      ✅ Ready
 │   ├── 04-concurrent-ops/         ✅ Ready
-│   ├── 05-error-handling/         ✅ Ready
-│   └── RUN_ALL.sh
+│   └── 05-error-handling/         ✅ Ready
 │
 └── 03-inter-primal/               # Level 3: Ecosystem Integration (45 min)
     ├── 01-beardog-signing/        ✅ Ready (NO MOCKS, uses ../bins/)
     ├── 02-nestgate-storage/       ✅ Ready (NO MOCKS)
     ├── 03-squirrel-sessions/      ✅ Ready (NO MOCKS)
     ├── 04-toadstool-compute/      ✅ Ready (NO MOCKS)
-    ├── 05-full-ecosystem/         ✅ Ready (NO MOCKS)
-    └── RUN_ALL.sh
+    └── 05-full-ecosystem/         ✅ Ready (NO MOCKS)
 ```
 
 ---
@@ -85,17 +83,13 @@ Interactive menu with all 4 levels
 
 ### Option C: Individual Level
 ```bash
-# Level 1: Local primal capabilities
+# Level 1: Local primal capabilities (has RUN_ALL.sh)
 cd showcase/01-local-primal
 ./RUN_ALL.sh
 
-# Level 2: RPC API
-cd showcase/02-rpc-api
-./RUN_ALL.sh
-
-# Level 3: Inter-primal integration
-cd showcase/03-inter-primal
-./RUN_ALL.sh
+# Level 2 & 3: Run individual demos directly
+cd showcase/02-rpc-api/01-tarpc-basics
+cargo run --example demo_rpc_service
 ```
 
 ### Option D: Specific Demo

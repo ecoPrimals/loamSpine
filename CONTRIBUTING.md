@@ -66,8 +66,8 @@ cargo build-arm64  # aarch64-unknown-linux-musl
 # Build
 cargo build
 
-# Test (1,506 tests, all concurrent)
-cargo test --workspace
+# Test (1,506 tests with --all-features, all concurrent)
+cargo test --workspace --all-features
 
 # Linting (must pass, zero warnings)
 cargo clippy --workspace --all-targets -- -D warnings
@@ -195,7 +195,7 @@ async fn concurrent_commits_succeed() { ... }
 ## 🔄 Pull Request Process
 
 ### Before Submitting
-1. ✅ All tests pass: `cargo test`
+1. ✅ All tests pass: `cargo test --workspace --all-features`
 2. ✅ Clippy clean: `cargo clippy --all-targets -- -D warnings`
 3. ✅ Formatted: `cargo fmt`
 4. ✅ Docs build: `cargo doc --no-deps`
