@@ -202,7 +202,24 @@ async fn run_server(
         .await
         .or_exit("Failed to start lifecycle manager");
 
-    let rpc_service = LoamSpineRpcService::new(service);
+    let rpc_service = {
+        let svc = LoamSpineRpcService::new(service);
+        if let Ok(beardog_socket) = std::env::var("BEARDOG_SOCKET") {
+            let socket_path = std::path::PathBuf::from(&beardog_socket);
+            info!("Tower signing enabled via BEARDOG_SOCKET={beardog_socket}");
+            let signer = std::sync::Arc::new(
+                loam_spine_core::traits::crypto_provider::JsonRpcCryptoSigner::new(
+                    socket_path,
+                    loam_spine_core::types::Did::new("did:key:tower"),
+                    None,
+                ),
+            );
+            svc.with_tower_signer(signer)
+        } else {
+            info!("Tower signing disabled (BEARDOG_SOCKET not set)");
+            svc
+        }
+    };
 
     // Only start TCP servers when explicitly requested.
     let tarpc_handle = if tcp_requested {

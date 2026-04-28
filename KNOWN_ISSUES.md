@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: April 27, 2026
+**Last Updated**: April 28, 2026
 
 ---
 
@@ -42,6 +42,8 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 | BTSP challenge generation | **RESOLVED (v0.9.16)** — `generate_challenge()` removed; BearDog (BTSP provider) is the sole challenge authority via `btsp.session.create`. LoamSpine sends `family_seed` and receives the challenge in the response. |
 | Computation provenance receipts | **COVERED** — `TrioCommitReceipt` (`trio_types.rs`) returned by `session.commit` / `provenance.commit`. `PipelineResult` wraps the full pipeline output (dehydration root, commit ref, braid ref, signature, content ref). `AnchorReceipt` for public-chain anchoring. The collectible composition pattern (`wateringHole/handoffs/COLLECTIBLE_COMPOSITION_PATTERN_APR26_2026.md`) uses these existing surfaces — no new primal code needed. |
 | PG-52 UDS trio empty responses | **RESOLVED (v0.9.16)** — `spine.create`, `entry.append`, `spine.seal` all work correctly over UDS JSON-RPC (with and without BTSP config). Root cause: stale plasmidBin binary + double-`BufReader` on post-BTSP path (now cleaned up). 3 UDS transport integration tests added. plasmidBin rebuild required. |
+| Tower signing of ledger entries | **IMPLEMENTED (v0.9.16)** — `entry.append` and `session.commit` sign entries via BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set. Signature stored in entry metadata (`tower_signature`, `tower_signature_alg`). Standalone mode produces unsigned entries (backward-compatible). |
+| BTSP encrypted tunnels | No primal in the ecosystem establishes persistent BTSP tunnels for encrypted data replication (per NUCLEUS Two-Tier Crypto Model). loamSpine declares BTSP consumed and completes the 4-step handshake, but tunnel-mode encrypted ledger replication is a future evolution target. |
 
 ---
 

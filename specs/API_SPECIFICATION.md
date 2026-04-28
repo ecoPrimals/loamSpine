@@ -57,7 +57,7 @@ pub trait LoamSpineRpc {
     
     // ==================== Entry Operations ====================
     
-    /// Append an entry
+    /// Append an entry (Tower-signed via BearDog crypto.sign_ed25519 when BEARDOG_SOCKET is set)
     async fn append_entry(request: AppendEntryRequest) -> Result<AppendEntryResponse, ApiError>;
     
     /// Get entry by hash

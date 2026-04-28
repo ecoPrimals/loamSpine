@@ -22,16 +22,22 @@ mod integration_ops;
 mod proof_ops;
 mod spine_ops;
 
-use crate::error::ApiResult;
+use crate::error::{ApiError, ApiResult};
 use crate::types::*;
 use loam_spine_core::service::LoamSpineService as CoreService;
+use loam_spine_core::traits::crypto_provider::JsonRpcCryptoSigner;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// RPC service implementation backed by the core `LoamSpineService`.
+///
+/// When `tower_signer` is configured (via `BEARDOG_SOCKET`), all entry
+/// appends are signed via `BearDog` `crypto.sign_ed25519` and the signature
+/// is stored in entry metadata (`tower_signature`, `tower_signature_alg`).
 #[derive(Clone)]
 pub struct LoamSpineRpcService {
     core: Arc<RwLock<CoreService>>,
+    tower_signer: Option<Arc<JsonRpcCryptoSigner>>,
 }
 
 impl LoamSpineRpcService {
@@ -40,6 +46,7 @@ impl LoamSpineRpcService {
     pub fn new(core: CoreService) -> Self {
         Self {
             core: Arc::new(RwLock::new(core)),
+            tower_signer: None,
         }
     }
 
@@ -47,6 +54,16 @@ impl LoamSpineRpcService {
     #[must_use]
     pub fn default_service() -> Self {
         Self::new(CoreService::new())
+    }
+
+    /// Set the Tower crypto signer for entry signing delegation.
+    ///
+    /// When set, all `entry.append` and `session.commit` operations will
+    /// sign the entry via `BearDog` `crypto.sign_ed25519` before persisting.
+    #[must_use]
+    pub fn with_tower_signer(mut self, signer: Arc<JsonRpcCryptoSigner>) -> Self {
+        self.tower_signer = Some(signer);
+        self
     }
 
     /// Get read access to the core service.
@@ -125,6 +142,30 @@ impl LoamSpineRpcService {
             ready: true,
             reason: None,
         })
+    }
+
+    /// Sign an entry via Tower delegation (`BearDog` `crypto.sign_ed25519`).
+    ///
+    /// Signs the entry's canonical bytes (with empty metadata at this point)
+    /// and stores the base64-encoded signature in entry metadata. The chain
+    /// hash computed by `Spine::append` will commit to these metadata fields.
+    ///
+    /// Verification: strip `tower_signature` + `tower_signature_alg` from
+    /// metadata, recompute `to_canonical_bytes()`, verify against the stored
+    /// signature.
+    pub(crate) async fn tower_sign_entry(
+        entry: loam_spine_core::entry::Entry,
+        signer: &JsonRpcCryptoSigner,
+    ) -> ApiResult<loam_spine_core::entry::Entry> {
+        use loam_spine_core::traits::Signer;
+
+        let preimage = entry.to_canonical_bytes().map_err(ApiError::from)?;
+        let signature = signer.sign(&preimage).await.map_err(ApiError::from)?;
+        let sig_b64 = signature.to_base64();
+
+        Ok(entry
+            .with_metadata("tower_signature", sig_b64)
+            .with_metadata("tower_signature_alg", "ed25519"))
     }
 }
 

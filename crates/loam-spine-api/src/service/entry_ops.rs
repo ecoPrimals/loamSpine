@@ -8,18 +8,34 @@ use crate::types::*;
 use loam_spine_core::traits::SpineQuery;
 
 impl LoamSpineRpcService {
-    /// Append an entry.
+    /// Append an entry, signing via Tower if `BEARDOG_SOCKET` is configured.
+    ///
+    /// When a tower signer is present, the entry's canonical bytes are signed
+    /// via `BearDog` `crypto.sign_ed25519` and the base64 signature is stored in
+    /// entry metadata (`tower_signature`, `tower_signature_alg`) before the
+    /// entry is appended to the spine chain. The chain hash commits to the
+    /// signed entry.
     ///
     /// # Errors
     ///
-    /// Returns error if append fails.
+    /// Returns error if append fails or Tower signing fails.
     pub async fn append_entry(
         &self,
         request: AppendEntryRequest,
     ) -> ApiResult<AppendEntryResponse> {
         let core = self.core_mut().await;
+
+        let mut entry = core
+            .prepare_entry(request.spine_id, request.entry_type)
+            .await
+            .map_err(ApiError::from)?;
+
+        if let Some(ref signer) = self.tower_signer {
+            entry = Self::tower_sign_entry(entry, signer).await?;
+        }
+
         let entry_hash = core
-            .append_entry(request.spine_id, request.entry_type)
+            .append_prepared_entry(request.spine_id, entry)
             .await
             .map_err(ApiError::from)?;
 

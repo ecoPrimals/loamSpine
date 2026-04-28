@@ -263,13 +263,54 @@ impl LoamSpineService {
         spine_id: SpineId,
         entry_type: EntryType,
     ) -> LoamSpineResult<EntryHash> {
+        let entry = self.prepare_entry(spine_id, entry_type).await?;
+        self.append_prepared_entry(spine_id, entry).await
+    }
+
+    /// Create an entry for a spine without appending it.
+    ///
+    /// The returned entry can be modified (e.g. signed via Tower delegation)
+    /// before being passed to [`append_prepared_entry`](Self::append_prepared_entry).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if spine not found or sealed.
+    pub async fn prepare_entry(
+        &self,
+        spine_id: SpineId,
+        entry_type: EntryType,
+    ) -> LoamSpineResult<crate::entry::Entry> {
+        let spine = self
+            .spine_storage
+            .get_spine(spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
+        if !spine.is_active() {
+            return Err(LoamSpineError::SpineSealed(spine_id));
+        }
+        Ok(spine.create_entry(entry_type))
+    }
+
+    /// Append a pre-built entry to a spine.
+    ///
+    /// Use this after modifying an entry returned by
+    /// [`prepare_entry`](Self::prepare_entry) (e.g. adding Tower signature
+    /// metadata).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if spine not found, sealed, or chain validation fails.
+    pub async fn append_prepared_entry(
+        &self,
+        spine_id: SpineId,
+        entry: crate::entry::Entry,
+    ) -> LoamSpineResult<EntryHash> {
         let mut spine = self
             .spine_storage
             .get_spine(spine_id)
             .await?
             .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
 
-        let entry = spine.create_entry(entry_type);
         let entry_hash = spine.append(entry)?;
         let appended = spine
             .tip_entry()

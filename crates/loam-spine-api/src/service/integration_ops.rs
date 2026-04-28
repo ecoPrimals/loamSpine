@@ -10,7 +10,7 @@ use super::LoamSpineRpcService;
 use crate::error::{ApiError, ApiResult};
 use crate::types::*;
 use loam_spine_core::traits::{
-    BraidAcceptor, BraidSummary, CommitAcceptor, DehydrationSummary, SliceManager,
+    BraidAcceptor, BraidSummary, CommitAcceptor, DehydrationSummary, SliceManager, SpineQuery,
 };
 use tracing::debug;
 
@@ -119,7 +119,10 @@ impl LoamSpineRpcService {
         &self,
         request: CommitSessionRequest,
     ) -> ApiResult<CommitSessionResponse> {
-        // Build dehydration summary from request
+        if self.tower_signer.is_some() {
+            return self.commit_session_signed(request).await;
+        }
+
         let summary = DehydrationSummary::new(request.session_id, "session", request.session_hash)
             .with_vertex_count(request.vertex_count);
 
@@ -135,6 +138,53 @@ impl LoamSpineRpcService {
             commit_hash: commit_ref.entry_hash,
             index: commit_ref.index,
             committed_at: commit_ref.committed_at,
+        })
+    }
+
+    /// Signed variant: prepare → Tower sign → append.
+    async fn commit_session_signed(
+        &self,
+        request: CommitSessionRequest,
+    ) -> ApiResult<CommitSessionResponse> {
+        use loam_spine_core::entry::EntryType;
+
+        let signer = self
+            .tower_signer
+            .as_ref()
+            .ok_or_else(|| ApiError::Internal("tower signer not configured".into()))?;
+        let core = self.core_mut().await;
+
+        let entry_type = EntryType::SessionCommit {
+            session_id: request.session_id,
+            merkle_root: request.session_hash,
+            vertex_count: request.vertex_count,
+            committer: request.committer,
+        };
+
+        let entry = core
+            .prepare_entry(request.spine_id, entry_type)
+            .await
+            .map_err(ApiError::from)?;
+        let entry = Self::tower_sign_entry(entry, signer).await?;
+        let entry_hash = core
+            .append_prepared_entry(request.spine_id, entry)
+            .await
+            .map_err(ApiError::from)?;
+
+        let spine = core
+            .get_spine(request.spine_id)
+            .await
+            .map_err(ApiError::from)?
+            .ok_or_else(|| ApiError::SpineNotFound(format!("{:?}", request.spine_id)))?;
+        let index = spine.height - 1;
+        let committed_at = spine.tip_entry().map(|e| e.timestamp).unwrap_or_default();
+        drop(core);
+
+        Ok(CommitSessionResponse {
+            spine_id: request.spine_id,
+            commit_hash: entry_hash,
+            index,
+            committed_at,
         })
     }
 

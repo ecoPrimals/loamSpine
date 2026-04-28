@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (April 28, 2026)
+
+- **Tower-signed ledger entries**: `entry.append` and `session.commit` now sign entries via BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set, storing `tower_signature` (base64 Ed25519) and `tower_signature_alg` in entry metadata. Chain hash commits to the signed entry. Standalone mode (no `BEARDOG_SOCKET`) continues to produce unsigned entries. Follows NUCLEUS Two-Tier Crypto Model (`wateringHole/NUCLEUS_TWO_TIER_CRYPTO_MODEL.md`) — loamSpine is purpose `ledger`. New core methods: `prepare_entry()` + `append_prepared_entry()` enable signing between entry creation and chain append.
+- **BTSP tunnel consumption**: Documented as evolution target per Two-Tier Crypto Model § BTSP: "no primal actively establishes persistent BTSP tunnels — this is the next evolution frontier." loamSpine declares BTSP consumed and completes the 4-step handshake but does not yet use tunnels for encrypted ledger replication. No other primal does either.
+- 2 new tests (`test_tower_signed_entry_append`, `test_tower_signed_session_commit`). 1,508 total, all pass. Clippy + fmt clean.
+
 ### Changed (April 27, 2026)
 
 - **PG-52 VERIFIED LIVE**: primalSpring convergence validation confirmed double-BufReader fix working in live composition. Trio lifecycle (`create → append → seal`) operational. Stale plasmidBin confirmed as root cause — rebuilt and reharvested (blake3 `6403449f...`).

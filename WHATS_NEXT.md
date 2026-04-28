@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 27, 2026
+**Last Updated**: April 28, 2026
 
 ---
 
@@ -225,6 +225,13 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 Tower-Signed Ledger Entries (April 28, 2026)
+
+- **Tower-signed ledger entries**: `entry.append` and `session.commit` now sign entries via BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set. Signature stored in entry metadata (`tower_signature`, `tower_signature_alg`). Follows NUCLEUS Two-Tier Crypto Model — loamSpine purpose: `ledger`. Standalone mode (no BearDog) unchanged.
+- **Core API**: New `prepare_entry()` + `append_prepared_entry()` on `LoamSpineService` enable signing between entry creation and chain append. `append_entry()` delegates to these when no signing is needed.
+- **BTSP tunnel consumption**: Documented as next evolution frontier per Two-Tier Crypto Model. No primal actively establishes persistent BTSP tunnels yet.
+- **Tests**: 1,508 pass (+2 Tower signing tests). All gates green (clippy, fmt, deny).
 
 ## v0.9.16 PG-52 Verified Live + Provenance Receipt Enrichment (April 27, 2026)
 

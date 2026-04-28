@@ -207,6 +207,13 @@ impl Signature {
         &self.0
     }
 
+    /// Encode the signature as standard base64.
+    #[must_use]
+    pub fn to_base64(&self) -> String {
+        use base64::Engine;
+        base64::engine::general_purpose::STANDARD.encode(&self.0)
+    }
+
     /// Get the underlying ByteBuffer for zero-copy sharing.
     #[must_use]
     pub const fn as_byte_buffer(&self) -> &ByteBuffer {
