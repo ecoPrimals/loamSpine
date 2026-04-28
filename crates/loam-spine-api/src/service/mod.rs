@@ -176,3 +176,11 @@ impl LoamSpineRpcService {
 )]
 #[path = "service_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise error paths"
+)]
+#[path = "service_tests_tower_signing.rs"]
+mod tests_tower_signing;

@@ -307,6 +307,13 @@ mod tests_permanence_cert;
 mod tests_protocol_transport;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise assertions"
+)]
+mod tests_protocol_trio;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_protocol_wire;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
