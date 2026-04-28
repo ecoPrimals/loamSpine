@@ -331,7 +331,7 @@ Federation between towers
 
 ---
 
-**Status**: ⏳ Documentation complete, examples pending  
+**Status**: Documentation complete, demo scripts available  
 **Related**: All `crates/loam-spine-core/src/` integration points
 
 🦴 **LoamSpine: Where memories become permanent.**

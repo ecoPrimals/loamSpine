@@ -13,14 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Tower-signed ledger entries**: `entry.append` and `session.commit` now sign entries via BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set, storing `tower_signature` (base64 Ed25519) and `tower_signature_alg` in entry metadata. Chain hash commits to the signed entry. Standalone mode (no `BEARDOG_SOCKET`) continues to produce unsigned entries. Follows NUCLEUS Two-Tier Crypto Model (`wateringHole/NUCLEUS_TWO_TIER_CRYPTO_MODEL.md`) — loamSpine is purpose `ledger`. New core methods: `prepare_entry()` + `append_prepared_entry()` enable signing between entry creation and chain append.
 - **BTSP tunnel consumption**: Documented as evolution target per Two-Tier Crypto Model § BTSP: "no primal actively establishes persistent BTSP tunnels — this is the next evolution frontier." loamSpine declares BTSP consumed and completes the 4-step handshake but does not yet use tunnels for encrypted ledger replication. No other primal does either.
-- 2 new tests (`test_tower_signed_entry_append`, `test_tower_signed_session_commit`). 1,508 total, all pass. Clippy + fmt clean.
+- 3 new tests (`test_tower_signed_entry_append`, `test_tower_signed_session_commit`, `test_unsigned_entry_when_no_tower_signer`). Test file refactoring: `service_tests.rs` (872→663L) and `tests_protocol_transport.rs` (837→662L) split by domain. Max `.rs` file now 783L. 1,509 total, all pass. Clippy + fmt clean.
 
 ### Changed (April 27, 2026)
 
 - **PG-52 VERIFIED LIVE**: primalSpring convergence validation confirmed double-BufReader fix working in live composition. Trio lifecycle (`create → append → seal`) operational. Stale plasmidBin confirmed as root cause — rebuilt and reharvested (blake3 `6403449f...`).
 - **Provenance receipt enrichment**: `CommitSessionResponse` now includes `spine_id` and `committed_at` timestamp alongside `commit_hash` and `index`. `LoamCommitRef` (core) likewise carries `committed_at`. This makes session commit responses self-contained provenance receipts for guideStone chain tracing. Backward-compatible (additive fields). Test assertions updated in service tests and provenance trio integration. API specification synchronized.
 - **Remaining gap triage**: `ring` lockfile ghost — Cargo.lock v4 artifact, not compiled, banned in `deny.toml`. NestGate/loamSpine bond wiring — loamSpine side complete (`bonding.ledger.*` implemented), gap is upstream BearDog wire shape alignment.
-- **PG-52: UDS trio lifecycle verified (spine.create / entry.append / spine.seal)**: Investigated primalSpring cross-spring convergence report (4 springs affected). Root cause: **stale plasmidBin binary** — current code handles all three methods correctly over UDS JSON-RPC. Fix: (1) Eliminated double-`BufReader` on post-BTSP paths — `handle_stream_buffered` accepts the existing `BufReader` directly instead of wrapping it in a second layer. (2) Added 3 UDS integration tests: persistent-connection lifecycle, BTSP-config coexistence, one-shot connection pattern (matching socat/nc composition scripts). 1,506 tests, all pass. **plasmidBin rebuild required** for deployed compositions to pick up PG-07/PG-33/PG-52 fixes.
+- **PG-52: UDS trio lifecycle verified (spine.create / entry.append / spine.seal)**: Investigated primalSpring cross-spring convergence report (4 springs affected). Root cause: **stale plasmidBin binary** — current code handles all three methods correctly over UDS JSON-RPC. Fix: (1) Eliminated double-`BufReader` on post-BTSP paths — `handle_stream_buffered` accepts the existing `BufReader` directly instead of wrapping it in a second layer. (2) Added 3 UDS integration tests: persistent-connection lifecycle, BTSP-config coexistence, one-shot connection pattern (matching socat/nc composition scripts). 1,509 tests, all pass. **plasmidBin rebuild required** for deployed compositions to pick up PG-07/PG-33/PG-52 fixes.
 
 ### Changed (April 26, 2026)
 
@@ -152,7 +152,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dyn audit**: 72 total `dyn` usages — 28 in doc examples/comments, 37 `Pin<Box<dyn Future>>` for object safety, 7 `Arc<dyn Trait>` for finite-implementor traits; all non-blocking per stadial gate.
 
 ### Metrics
-- Tests: **1,506** (all concurrent, ~3s, zero flaky; `--all-features`)
+- Tests: **1,509** (all concurrent, ~3s, zero flaky; `--all-features`)
 - `#[serial]`: **0** (was 121)
 - JSON-RPC methods: **37** (was 32)
 - Source files: **179** `.rs` (+ 3 fuzz targets)

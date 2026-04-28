@@ -50,20 +50,20 @@ main() {
     log_step "Step 1: Creating a new spine..."
     
     cat > "${DEMO_DATA_DIR}/create_spine.rs" <<'EOF'
-use loam_spine_core::{Spine, SpineConfig};
+use loam_spine_core::{SpineBuilder, types::Did};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a new spine with an owner DID
-    let owner_did = "did:example:alice123";
-    let config = SpineConfig::default();
-    let spine = Spine::new(owner_did, config)?;
-    
-    println!("✅ Spine created!");
-    println!("   Spine ID: {}", spine.id());
-    println!("   Owner: {}", spine.owner());
-    println!("   Created: {}", spine.created_at());
+    let owner = Did::new("did:example:alice123");
+    let spine = SpineBuilder::new(owner)
+        .name("demo-spine")
+        .build()?;
+
+    println!("Spine created!");
+    println!("   Spine ID: {}", spine.id);
+    println!("   Owner: {}", spine.owner);
+    println!("   Created: {}", spine.created_at);
     println!("   Entries: {}", spine.entry_count());
-    
+
     Ok(())
 }
 EOF
@@ -103,51 +103,39 @@ EOF
     log_step "Step 2: Adding entries to the spine..."
     
     cat > "${DEMO_DATA_DIR}/add_entries.rs" <<'EOF'
-use loam_spine_core::{Spine, SpineConfig, Entry, EntryType, EntryPayload};
+use loam_spine_core::{SpineBuilder, EntryType, types::Did};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let owner_did = "did:example:alice123";
-    let config = SpineConfig::default();
-    let mut spine = Spine::new(owner_did, config)?;
-    
-    // Add a simple text entry
-    let entry1 = Entry::new(
-        spine.id().clone(),
-        EntryType::Text,
-        EntryPayload::Text("Hello, LoamSpine!".to_string()),
-        None,
-    )?;
-    spine.append_entry(entry1)?;
-    
-    // Add a metadata entry
-    let entry2 = Entry::new(
-        spine.id().clone(),
-        EntryType::Metadata,
-        EntryPayload::Metadata(
-            vec![
-                ("key".to_string(), "value".to_string()),
-                ("timestamp".to_string(), "2025-12-24T12:00:00Z".to_string()),
-            ]
-            .into_iter()
-            .collect(),
-        ),
-        None,
-    )?;
-    spine.append_entry(entry2)?;
-    
-    println!("✅ Entries added!");
+    let owner = Did::new("did:example:alice123");
+    let mut spine = SpineBuilder::new(owner).build()?;
+
+    // Add a metadata update entry
+    let entry_type = EntryType::MetadataUpdate {
+        field: "description".to_string(),
+        value: "Hello, LoamSpine!".to_string(),
+    };
+    spine.append(entry_type)?;
+
+    // Add a data anchor entry
+    let entry_type = EntryType::DataAnchor {
+        data_hash: [0u8; 32],
+        mime_type: "text/plain".to_string(),
+        size: 42,
+    };
+    spine.append(entry_type)?;
+
+    println!("Entries added!");
     println!("   Total entries: {}", spine.entry_count());
-    println!("   Current hash: {}", spine.current_hash());
-    
+
     Ok(())
 }
 EOF
     
     log_info "Key concepts:"
     log_info "  • Entry: A single record in the spine"
-    log_info "  • EntryType: The type of entry (Text, Metadata, Certificate, etc.)"
-    log_info "  • EntryPayload: The actual data stored in the entry"
+    log_info "  • EntryType: Structured variant (MetadataUpdate, DataAnchor, SessionCommit, etc.)"
     log_info "  • Append-only: Entries can only be added, never modified or deleted"
+    log_info "  • Tower signing: Entries are cryptographically signed when BEARDOG_SOCKET is set"
     echo ""
     
     demo_pause "Press Enter to add entries..."
