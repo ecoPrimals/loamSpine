@@ -311,17 +311,39 @@ pub struct CommitSessionRequest {
     pub committer: Did,
 }
 
-/// Response from committing a session — serves as a provenance receipt.
+/// Response from committing a session — self-contained provenance receipt.
+///
+/// Contains both the ledger anchor (spine + hash + index + time) and the
+/// session binding (`session_id` + `merkle_root` + `vertex_count` + committer)
+/// so downstream consumers can trace computation provenance without
+/// follow-up entry fetches.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommitSessionResponse {
-    /// Spine where the commit was recorded
+    // -- Ledger anchor --
+    /// Spine where the commit was recorded.
     pub spine_id: SpineId,
-    /// Commit entry hash
+    /// Commit entry hash.
     pub commit_hash: EntryHash,
-    /// Entry index
+    /// Entry index in the spine.
     pub index: u64,
-    /// Timestamp of the committed entry
+    /// Timestamp of the committed entry.
     pub committed_at: Timestamp,
+
+    // -- Session binding (echoed from request) --
+    /// Session that was committed.
+    pub session_id: Uuid,
+    /// Merkle root of the session DAG.
+    pub merkle_root: ContentHash,
+    /// Number of vertices in the session.
+    pub vertex_count: u64,
+    /// DID of the committer.
+    pub committer: Did,
+
+    // -- Tower signature (when signing is enabled) --
+    /// Ed25519 signature over the entry's canonical bytes (base64),
+    /// present only when `BEARDOG_SOCKET` is configured.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tower_signature: Option<String>,
 }
 
 // ============================================================================

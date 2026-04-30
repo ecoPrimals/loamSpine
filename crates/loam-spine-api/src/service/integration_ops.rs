@@ -128,7 +128,7 @@ impl LoamSpineRpcService {
 
         let commit_ref = {
             let core = self.core_mut().await;
-            core.commit_session(request.spine_id, request.committer, summary)
+            core.commit_session(request.spine_id, request.committer.clone(), summary)
                 .await
                 .map_err(ApiError::from)?
         };
@@ -138,10 +138,15 @@ impl LoamSpineRpcService {
             commit_hash: commit_ref.entry_hash,
             index: commit_ref.index,
             committed_at: commit_ref.committed_at,
+            session_id: request.session_id,
+            merkle_root: request.session_hash,
+            vertex_count: request.vertex_count,
+            committer: request.committer,
+            tower_signature: None,
         })
     }
 
-    /// Signed variant: prepare → Tower sign → append.
+    /// Signed variant: prepare -> Tower sign -> append.
     async fn commit_session_signed(
         &self,
         request: CommitSessionRequest,
@@ -158,16 +163,19 @@ impl LoamSpineRpcService {
             session_id: request.session_id,
             merkle_root: request.session_hash,
             vertex_count: request.vertex_count,
-            committer: request.committer,
+            committer: request.committer.clone(),
         };
 
         let entry = core
             .prepare_entry(request.spine_id, entry_type)
             .await
             .map_err(ApiError::from)?;
-        let entry = Self::tower_sign_entry(entry, signer).await?;
+        let signed_entry = Self::tower_sign_entry(entry, signer).await?;
+
+        let tower_signature = signed_entry.metadata.get("tower_signature").cloned();
+
         let entry_hash = core
-            .append_prepared_entry(request.spine_id, entry)
+            .append_prepared_entry(request.spine_id, signed_entry)
             .await
             .map_err(ApiError::from)?;
 
@@ -185,6 +193,11 @@ impl LoamSpineRpcService {
             commit_hash: entry_hash,
             index,
             committed_at,
+            session_id: request.session_id,
+            merkle_root: request.session_hash,
+            vertex_count: request.vertex_count,
+            committer: request.committer,
+            tower_signature,
         })
     }
 

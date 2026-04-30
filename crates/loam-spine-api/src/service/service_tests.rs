@@ -483,20 +483,32 @@ async fn test_commit_session_success() {
         .await
         .expect("create should succeed");
 
+    let session_id = uuid::Uuid::now_v7();
+    let merkle_root = [1u8; 32];
+
     let result = service
         .commit_session(CommitSessionRequest {
             spine_id: create_resp.spine_id,
-            session_id: uuid::Uuid::now_v7(),
-            session_hash: [1u8; 32],
+            session_id,
+            session_hash: merkle_root,
             vertex_count: 100,
-            committer: owner,
+            committer: owner.clone(),
         })
         .await;
     let resp = result.expect("commit_session should succeed");
+
+    // Ledger anchor
     assert_ne!(resp.commit_hash, [0u8; 32]);
     assert!(resp.index >= 1);
     assert_eq!(resp.spine_id, create_resp.spine_id);
     assert!(resp.committed_at.as_nanos() > 0);
+
+    // Session binding (provenance receipt)
+    assert_eq!(resp.session_id, session_id);
+    assert_eq!(resp.merkle_root, merkle_root);
+    assert_eq!(resp.vertex_count, 100);
+    assert_eq!(resp.committer, owner);
+    assert!(resp.tower_signature.is_none());
 }
 
 #[tokio::test]

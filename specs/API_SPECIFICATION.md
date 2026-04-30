@@ -101,7 +101,7 @@ pub trait LoamSpineRpc {
     
     // ==================== Integration ====================
     
-    /// Commit RhizoCrypt session
+    /// Commit session — returns self-contained provenance receipt with session binding + tower signature
     async fn commit_session(request: CommitSessionRequest) -> Result<CommitSessionResponse, ApiError>;
     
     /// Commit SweetGrass braid
@@ -460,10 +460,18 @@ pub struct CommitSessionRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommitSessionResponse {
+    // Ledger anchor
     pub spine_id: SpineId,
     pub commit_hash: EntryHash,
     pub index: u64,
     pub committed_at: Timestamp,
+    // Session binding (echoed from request)
+    pub session_id: Uuid,
+    pub merkle_root: ContentHash,
+    pub vertex_count: u64,
+    pub committer: Did,
+    // Tower signature (when BEARDOG_SOCKET is set)
+    pub tower_signature: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -144,17 +144,44 @@ async fn test_tower_signed_session_commit() {
         .await
         .expect("create should succeed");
 
+    let session_id = uuid::Uuid::now_v7();
+    let merkle_root = [2u8; 32];
+
     let commit_resp = service
         .commit_session(CommitSessionRequest {
             spine_id: create_resp.spine_id,
-            session_id: uuid::Uuid::now_v7(),
-            session_hash: [2u8; 32],
+            session_id,
+            session_hash: merkle_root,
             vertex_count: 50,
-            committer: owner,
+            committer: owner.clone(),
         })
         .await
         .expect("commit_session should succeed");
 
+    // Ledger anchor
+    assert!(commit_resp.committed_at.as_nanos() > 0);
+
+    // Session binding echoed in receipt
+    assert_eq!(commit_resp.session_id, session_id);
+    assert_eq!(commit_resp.merkle_root, merkle_root);
+    assert_eq!(commit_resp.vertex_count, 50);
+    assert_eq!(commit_resp.committer, owner);
+
+    // Tower signature present in receipt
+    assert!(
+        commit_resp.tower_signature.is_some(),
+        "signed commit should include tower_signature in receipt"
+    );
+    assert!(
+        !commit_resp
+            .tower_signature
+            .as_ref()
+            .expect("checked")
+            .is_empty(),
+        "signature should be non-empty base64"
+    );
+
+    // Verify it's also on the stored entry
     let entry_resp = service
         .get_entry(GetEntryRequest {
             spine_id: create_resp.spine_id,
@@ -176,7 +203,6 @@ async fn test_tower_signed_session_commit() {
             .map(String::as_str),
         Some("ed25519")
     );
-    assert!(commit_resp.committed_at.as_nanos() > 0);
 
     mock_handle.abort();
 }

@@ -543,6 +543,11 @@ impl ProvenanceSource for LoamSpineService {
                     {
                         Some("attributed-to")
                     }
+                    EntryType::SessionCommit { merkle_root, .. }
+                        if *merkle_root == content_hash =>
+                    {
+                        Some("committed-from")
+                    }
                     _ => None,
                 };
                 if let Some(rel) = relationship {

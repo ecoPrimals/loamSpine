@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: April 28, 2026
+**Last Updated**: April 30, 2026
 
 ---
 
@@ -40,7 +40,7 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 | blake3 SIMD performance | Switched to `pure` Rust mode (no C/asm) for ecoBin compliance. Performance impact is ~2-3x slower hashing vs. SIMD, acceptable for LoamSpine's workload. | Can be feature-gated back to SIMD if performance-critical deployment needs it. |
 | BTSP Phase 2 — `BTSP_NULL` cipher only | BTSP handshake authenticates connections but `BTSP_NULL` is the only functional cipher. Encrypted framing (ChaCha20-Poly1305, HMAC-Plain) requires the BTSP provider's session key propagation, which is Phase 3. | Authentication is complete. Encryption is the BTSP provider's responsibility — LoamSpine will adopt encrypted framing when the provider exposes `btsp.encrypt`/`btsp.decrypt` over session keys. |
 | BTSP challenge generation | **RESOLVED (v0.9.16)** — `generate_challenge()` removed; BearDog (BTSP provider) is the sole challenge authority via `btsp.session.create`. LoamSpine sends `family_seed` and receives the challenge in the response. |
-| Computation provenance receipts | **COVERED** — `TrioCommitReceipt` (`trio_types.rs`) returned by `session.commit` / `provenance.commit`. `PipelineResult` wraps the full pipeline output (dehydration root, commit ref, braid ref, signature, content ref). `AnchorReceipt` for public-chain anchoring. The collectible composition pattern (`wateringHole/handoffs/COLLECTIBLE_COMPOSITION_PATTERN_APR26_2026.md`) uses these existing surfaces — no new primal code needed. |
+| Computation provenance receipts | **IMPLEMENTED** — `CommitSessionResponse` is a self-contained provenance receipt: ledger anchor (`spine_id`, `commit_hash`, `index`, `committed_at`) + session binding (`session_id`, `merkle_root`, `vertex_count`, `committer`) + optional `tower_signature` (base64 Ed25519, present when `BEARDOG_SOCKET` is set). `get_provenance_chain()` now matches `SessionCommit` entries on `merkle_root` (relationship: `committed-from`). Downstream consumers (guideStone, composition scripts) can trace DAG-to-ledger provenance from the receipt alone without follow-up entry fetches. `TrioCommitReceipt` (`trio_types.rs`) is an orchestration-level type with the same fields. |
 | PG-52 UDS trio empty responses | **RESOLVED (v0.9.16)** — `spine.create`, `entry.append`, `spine.seal` all work correctly over UDS JSON-RPC (with and without BTSP config). Root cause: stale plasmidBin binary + double-`BufReader` on post-BTSP path (now cleaned up). 3 UDS transport integration tests added. plasmidBin rebuild required. |
 | Tower signing of ledger entries | **IMPLEMENTED (v0.9.16)** — `entry.append` and `session.commit` sign entries via BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set. Signature stored in entry metadata (`tower_signature`, `tower_signature_alg`). Standalone mode produces unsigned entries (backward-compatible). |
 | BTSP encrypted tunnels | No primal in the ecosystem establishes persistent BTSP tunnels for encrypted data replication (per NUCLEUS Two-Tier Crypto Model). loamSpine declares BTSP consumed and completes the 4-step handshake, but tunnel-mode encrypted ledger replication is a future evolution target. |

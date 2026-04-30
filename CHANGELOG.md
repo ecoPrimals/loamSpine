@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (April 30, 2026)
+
+- **Self-contained provenance receipts**: `CommitSessionResponse` now echoes the full session binding (`session_id`, `merkle_root`, `vertex_count`, `committer`) alongside the ledger anchor (`spine_id`, `commit_hash`, `index`, `committed_at`). When Tower signing is enabled, `tower_signature` (base64 Ed25519) is included in the receipt. Downstream consumers (guideStone, composition scripts) can trace DAG-to-ledger computation provenance from the receipt alone without follow-up entry fetches. Resolves Phase 56c "provenance chain for guideStone receipts" gap.
+- **`get_provenance_chain()` matches `SessionCommit`**: Provenance chain queries now recognize `SessionCommit` entries by `merkle_root`, returning relationship `committed-from`. Previously only `DataAnchor` and `BraidCommit` entries were matched.
+
 ### Changed (April 28, 2026)
 
 - **Tower-signed ledger entries**: `entry.append` and `session.commit` now sign entries via BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set, storing `tower_signature` (base64 Ed25519) and `tower_signature_alg` in entry metadata. Chain hash commits to the signed entry. Standalone mode (no `BEARDOG_SOCKET`) continues to produce unsigned entries. Follows NUCLEUS Two-Tier Crypto Model (`wateringHole/NUCLEUS_TWO_TIER_CRYPTO_MODEL.md`) — loamSpine is purpose `ledger`. New core methods: `prepare_entry()` + `append_prepared_entry()` enable signing between entry creation and chain append.

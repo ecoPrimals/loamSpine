@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 28, 2026
+**Last Updated**: April 30, 2026
 
 ---
 
@@ -225,6 +225,12 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 Self-Contained Provenance Receipts (April 30, 2026)
+
+- **Self-contained provenance receipts**: `CommitSessionResponse` now echoes the full session binding (`session_id`, `merkle_root`, `vertex_count`, `committer`) alongside the ledger anchor. When Tower signing is enabled, `tower_signature` is included in the receipt. Downstream consumers can trace DAG-to-ledger computation provenance from the receipt alone. Resolves Phase 56c "provenance chain for guideStone receipts."
+- **`get_provenance_chain()` extended**: Now matches `SessionCommit` entries on `merkle_root` (relationship: `committed-from`), enabling provenance chain queries to traverse DAG session commits alongside data anchors and braid commits.
+- **Tests**: 1,509 pass. All gates green (clippy, fmt, deny).
 
 ## v0.9.16 Tower-Signed Ledger Entries (April 28, 2026)
 
