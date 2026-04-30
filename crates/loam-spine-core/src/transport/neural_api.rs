@@ -76,8 +76,9 @@ impl NeuralApiTransport {
 
         let runtime_dir = std::env::var("XDG_RUNTIME_DIR").ok()?;
         let family_id = std::env::var("BIOMEOS_FAMILY_ID").unwrap_or_else(|_| "default".into());
+        let dir = crate::primal_names::BIOMEOS_SOCKET_DIR;
         Some(PathBuf::from(format!(
-            "{runtime_dir}/biomeos/neural-api-{family_id}.sock"
+            "{runtime_dir}/{dir}/neural-api-{family_id}.sock"
         )))
     }
 

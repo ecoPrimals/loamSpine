@@ -66,7 +66,7 @@ cargo build-arm64  # aarch64-unknown-linux-musl
 # Build
 cargo build
 
-# Test (1,506 tests with --all-features, all concurrent)
+# Test (1,509 tests with --all-features, all concurrent)
 cargo test --workspace --all-features
 
 # Linting (must pass, zero warnings)

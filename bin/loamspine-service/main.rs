@@ -81,7 +81,7 @@ enum Command {
         ///
         /// Explicit socket path for launcher/orchestrator wiring.
         /// When omitted, resolved from `LOAMSPINE_SOCKET` env, then
-        /// `$XDG_RUNTIME_DIR/biomeos/loamspine.sock`, then platform default.
+        /// `$XDG_RUNTIME_DIR/$BIOMEOS_SOCKET_DIR/loamspine.sock`, then platform default.
         #[arg(long)]
         socket: Option<String>,
 

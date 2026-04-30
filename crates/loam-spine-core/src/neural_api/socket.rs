@@ -169,7 +169,8 @@ pub fn resolve_neural_api_socket_with(
     }
     let rd = runtime_dir?;
     let fid = family_id.unwrap_or("default");
-    Some(PathBuf::from(format!("{rd}/biomeos/neural-api-{fid}.sock")))
+    let dir = crate::primal_names::BIOMEOS_SOCKET_DIR;
+    Some(PathBuf::from(format!("{rd}/{dir}/neural-api-{fid}.sock")))
 }
 
 /// Resolve the NeuralAPI socket path for connecting to the orchestration layer (reads env).
