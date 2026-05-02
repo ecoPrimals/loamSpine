@@ -3,7 +3,7 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: April 30, 2026
+**Last Updated**: May 2, 2026
 
 ---
 
@@ -225,6 +225,12 @@
 - **Smart refactor `jsonrpc/tests.rs`** — Split into `tests.rs` (610) + `tests_protocol.rs` (526)
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
+
+## v0.9.16 BTSP Phase 3 Negotiate Handler (May 2, 2026)
+
+- **`btsp.negotiate` JSON-RPC method**: Returns `cipher: "null"` (plaintext fallback). primalSpring Phase 3 clients can negotiate cipher suites without `METHOD_NOT_FOUND`. Full encrypted framing (ChaCha20-Poly1305 AEAD + HKDF key derivation) deferred until BTSP provider exports session key material.
+- **Zero new crypto deps**: Follows "delegate to Tower" philosophy — no `chacha20poly1305`, `hkdf`, or `sha2` added.
+- **Tests**: 1,513 pass (+4). All gates green (clippy, fmt, deny).
 
 ## v0.9.16 Self-Contained Provenance Receipts (April 30, 2026)
 

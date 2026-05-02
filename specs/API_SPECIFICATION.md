@@ -188,6 +188,7 @@ Methods follow the `{domain}.{operation}` semantic naming standard
 | `health.liveness` | Liveness probe |
 | `health.readiness` | Readiness probe |
 | `capability.list` | List capabilities |
+| `btsp.negotiate` | BTSP Phase 3 cipher negotiation (returns null cipher fallback) |
 | `permanence.commit_session` | Commit session (permanence alias) |
 | `permanence.verify_commit` | Verify a commit |
 | `permanence.get_commit` | Get a commit |

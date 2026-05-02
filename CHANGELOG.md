@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 2, 2026)
+
+- **BTSP Phase 3 `btsp.negotiate` handler**: New JSON-RPC method `btsp.negotiate` returns `cipher: "null"` (plaintext fallback). primalSpring Phase 3 clients can now negotiate cipher suites without getting `METHOD_NOT_FOUND`. Full encrypted framing (ChaCha20-Poly1305) deferred until the BTSP provider API exports session key material. Zero new crypto dependencies — follows the "delegate to Tower" philosophy. 4 new tests (2 service, 2 JSON-RPC wire). 1,513 total, all pass.
+
 ### Changed (April 30, 2026)
 
 - **Self-contained provenance receipts**: `CommitSessionResponse` now echoes the full session binding (`session_id`, `merkle_root`, `vertex_count`, `committer`) alongside the ledger anchor (`spine_id`, `commit_hash`, `index`, `committed_at`). When Tower signing is enabled, `tower_signature` (base64 Ed25519) is included in the receipt. Downstream consumers (guideStone, composition scripts) can trace DAG-to-ledger computation provenance from the receipt alone without follow-up entry fetches. Resolves Phase 56c "provenance chain for guideStone receipts" gap.

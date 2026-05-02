@@ -673,3 +673,40 @@ async fn test_permanent_storage_get_commit_not_found() {
         .expect("get_commit should succeed");
     assert!(value.is_null());
 }
+
+// ========================================================================
+// btsp_ops: BTSP Phase 3 negotiation
+// ========================================================================
+
+#[tokio::test]
+async fn test_btsp_negotiate_returns_null_cipher() {
+    let service = LoamSpineRpcService::default_service();
+    let resp = service
+        .negotiate_btsp(BtspNegotiateRequest {
+            session_id: "abc123".to_string(),
+            preferred_cipher: "chacha20-poly1305".to_string(),
+            ciphers: vec!["chacha20-poly1305".to_string()],
+            client_nonce: Some("dGVzdA==".to_string()),
+            bond_type: Some("Covalent".to_string()),
+        })
+        .await
+        .expect("negotiate should succeed");
+    assert_eq!(resp.cipher, "null");
+    assert!(resp.server_nonce.is_none());
+}
+
+#[tokio::test]
+async fn test_btsp_negotiate_with_minimal_params() {
+    let service = LoamSpineRpcService::default_service();
+    let resp = service
+        .negotiate_btsp(BtspNegotiateRequest {
+            session_id: "session-xyz".to_string(),
+            preferred_cipher: "chacha20-poly1305".to_string(),
+            ciphers: vec![],
+            client_nonce: None,
+            bond_type: None,
+        })
+        .await
+        .expect("negotiate should succeed");
+    assert_eq!(resp.cipher, "null");
+}

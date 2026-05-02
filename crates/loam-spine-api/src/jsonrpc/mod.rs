@@ -178,6 +178,8 @@ impl LoamSpineJsonRpc {
             "bonding.ledger.retrieve" => rpc!(params, bond_ledger_retrieve),
             "bonding.ledger.list" => rpc!(params, bond_ledger_list),
 
+            "btsp.negotiate" => rpc!(params, negotiate_btsp),
+
             "permanence.commit_session" => rpc!(params, permanent_storage_commit_session),
             "permanence.verify_commit" => rpc!(params, permanent_storage_verify_commit),
             "permanence.get_commit" => rpc!(params, permanent_storage_get_commit),

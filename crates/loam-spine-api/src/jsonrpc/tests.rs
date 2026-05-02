@@ -739,4 +739,43 @@ async fn anchor_verify_latest_dispatch() {
     assert_eq!(verify_resp.block_height, 42);
 }
 
+// ========================================================================
+// BTSP Phase 3 negotiation (JSON-RPC wire level)
+// ========================================================================
+
+#[tokio::test]
+async fn jsonrpc_btsp_negotiate_returns_null_cipher() {
+    let server = LoamSpineJsonRpc::default_server();
+    let resp: crate::types::BtspNegotiateResponse = rpc_call(
+        &server,
+        "btsp.negotiate",
+        &crate::types::BtspNegotiateRequest {
+            session_id: "test-session-001".into(),
+            preferred_cipher: "chacha20-poly1305".into(),
+            ciphers: vec!["chacha20-poly1305".into()],
+            client_nonce: Some("dGVzdA==".into()),
+            bond_type: Some("Covalent".into()),
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(resp.cipher, "null");
+    assert!(resp.server_nonce.is_none());
+}
+
+#[tokio::test]
+async fn jsonrpc_btsp_negotiate_minimal_params() {
+    let server = LoamSpineJsonRpc::default_server();
+    let resp: crate::types::BtspNegotiateResponse = rpc_call(
+        &server,
+        "btsp.negotiate",
+        &serde_json::json!({ "session_id": "minimal-session" }),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(resp.cipher, "null");
+}
+
 // Protocol-level, UDS, TCP, and infrastructure tests split into tests_protocol.rs

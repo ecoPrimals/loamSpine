@@ -374,6 +374,48 @@ pub struct CommitBraidResponse {
     pub index: u64,
 }
 
+// ============================================================================
+// BTSP Phase 3 Negotiation
+// ============================================================================
+
+/// BTSP Phase 3 cipher negotiation request.
+///
+/// Sent by the client after a successful Phase 1 handshake to negotiate
+/// an encrypted post-handshake channel. If the server cannot support the
+/// requested cipher, it returns `cipher: "null"` and the connection
+/// continues on plaintext.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BtspNegotiateRequest {
+    /// Session ID from the completed handshake.
+    pub session_id: String,
+    /// Client's preferred cipher suite.
+    #[serde(default = "default_preferred_cipher")]
+    pub preferred_cipher: String,
+    /// Ciphers the client supports (Phase 3 extended format).
+    #[serde(default)]
+    pub ciphers: Vec<String>,
+    /// Client nonce for key derivation (base64, Phase 3).
+    #[serde(default)]
+    pub client_nonce: Option<String>,
+    /// Bond type hint.
+    #[serde(default)]
+    pub bond_type: Option<String>,
+}
+
+fn default_preferred_cipher() -> String {
+    "chacha20-poly1305".into()
+}
+
+/// BTSP Phase 3 cipher negotiation response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BtspNegotiateResponse {
+    /// Selected cipher (`"null"` for plaintext fallback).
+    pub cipher: String,
+    /// Server nonce for key derivation (hex, present when cipher != "null").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_nonce: Option<String>,
+}
+
 #[cfg(test)]
 #[expect(
     clippy::expect_used,
