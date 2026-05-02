@@ -161,7 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dyn audit**: 72 total `dyn` usages — 28 in doc examples/comments, 37 `Pin<Box<dyn Future>>` for object safety, 7 `Arc<dyn Trait>` for finite-implementor traits; all non-blocking per stadial gate.
 
 ### Metrics
-- Tests: **1,509** (all concurrent, ~3s, zero flaky; `--all-features`)
+- Tests: **1,513** (all concurrent, ~3s, zero flaky; `--all-features`)
 - `#[serial]`: **0** (was 121)
 - JSON-RPC methods: **37** (was 32)
 - Source files: **179** `.rs` (+ 3 fuzz targets)

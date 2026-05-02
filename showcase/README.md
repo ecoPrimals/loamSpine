@@ -210,7 +210,7 @@ cd showcase
 
 | Metric | Value |
 |--------|-------|
-| **Tests** | 1,509 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,513 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | ~91% line (llvm-cov) |
 | **JSON-RPC Methods** | 37 (semantic naming) |
 | **Entry Types** | 15+ |
