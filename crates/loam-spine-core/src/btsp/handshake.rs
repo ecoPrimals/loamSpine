@@ -181,6 +181,8 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     }
     debug!("BTSP: client verified");
 
+    let handshake_key = decode_session_key(verify.session_key.as_ref());
+
     let session_id = verify
         .session_id
         .unwrap_or_else(|| create_result.session_token.clone());
@@ -218,13 +220,19 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     write_frame(writer, &bytes).await?;
 
     debug!(
-        "BTSP: handshake complete (session={session_id}, cipher={})",
-        negotiate.cipher
+        "BTSP: handshake complete (session={session_id}, cipher={}, key={})",
+        negotiate.cipher,
+        if handshake_key.is_some() {
+            "tower-provided"
+        } else {
+            "none"
+        }
     );
 
     Ok(BtspSession {
         session_id,
         cipher: negotiate.cipher,
+        handshake_key,
     })
 }
 
@@ -367,6 +375,8 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     }
     debug!("BTSP NDJSON: client verified");
 
+    let handshake_key = decode_session_key(verify.session_key.as_ref());
+
     let session_id = verify
         .session_id
         .unwrap_or_else(|| create_result.session_token.clone());
@@ -403,13 +413,19 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     ndjson_send(writer, &complete, "HandshakeComplete").await?;
 
     debug!(
-        "BTSP NDJSON: handshake complete (session={session_id}, cipher={})",
-        negotiate.cipher
+        "BTSP NDJSON: handshake complete (session={session_id}, cipher={}, key={})",
+        negotiate.cipher,
+        if handshake_key.is_some() {
+            "tower-provided"
+        } else {
+            "none"
+        }
     );
 
     Ok(BtspSession {
         session_id,
         cipher: negotiate.cipher,
+        handshake_key,
     })
 }
 
@@ -456,6 +472,22 @@ async fn ndjson_send_error<W: AsyncWriteExt + Unpin + Send>(
         "HandshakeError",
     )
     .await
+}
+
+/// Decode the Tower-provided `session_key` (base64, 32 bytes) into a
+/// fixed-size array for HKDF derivation.
+///
+/// Returns `None` if the key is absent, decode fails, or length is wrong.
+/// Graceful degradation: missing key = null cipher fallback.
+fn decode_session_key(session_key: Option<&String>) -> Option<[u8; 32]> {
+    use base64::Engine;
+
+    let encoded = session_key?.as_str();
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .ok()?;
+
+    <[u8; 32]>::try_from(decoded.as_slice()).ok()
 }
 
 /// Read the family seed from the environment and base64-encode it for

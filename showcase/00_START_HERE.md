@@ -5,7 +5,7 @@
 **Version**: 0.9.16  
 **Status**: Production Ready  
 **Date**: April 11, 2026  
-**Latest**: BTSP Phase 3 negotiate, Tower-signed ledger entries, self-contained provenance receipts, deep debt overhaul — 1,513 tests, 92% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
+**Latest**: BTSP Phase 3 negotiate, Tower-signed ledger entries, self-contained provenance receipts, deep debt overhaul — 1,486 tests, 92% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
 
 ---
 
@@ -444,7 +444,7 @@ cat 00_SHOWCASE_INDEX.md
 - 🔐 **Provable**: Cryptographic proofs of everything
 - 🚀 **Fast**: Pure Rust, zero-copy, optimized
 - 🤝 **Composable**: Seamlessly integrates with ecosystem
-- 🏆 **World-Class**: A+ grade, 1,513 tests passing, 92% line coverage
+- 🏆 **World-Class**: A+ grade, 1,486 tests passing, 92% line coverage
 - 🌍 **Universal**: tarpc + JSON-RPC for any client
 
 ---

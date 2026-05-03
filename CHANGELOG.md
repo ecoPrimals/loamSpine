@@ -9,9 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
-### Changed (May 2, 2026)
+### Changed (May 2, 2026 — BTSP Phase 3 FULL)
 
-- **BTSP Phase 3 `btsp.negotiate` handler**: New JSON-RPC method `btsp.negotiate` returns `cipher: "null"` (plaintext fallback). primalSpring Phase 3 clients can now negotiate cipher suites without getting `METHOD_NOT_FOUND`. Full encrypted framing (ChaCha20-Poly1305) deferred until the BTSP provider API exports session key material. Zero new crypto dependencies — follows the "delegate to Tower" philosophy. 4 new tests (2 service, 2 JSON-RPC wire). 1,513 total, all pass.
+- **BTSP Phase 3 ChaCha20-Poly1305 AEAD**: Upgraded from null cipher to full encrypted framing. `btsp.negotiate` now returns `cipher: "chacha20-poly1305"` with a base64 server nonce when the Tower-provided handshake key is available (Pattern B — key from `BearDog` `btsp.session.verify` response). Falls back to `cipher: "null"` for covalent same-family bonds where BTSP was not authenticated. Resolves ionic-bond-blocking classification from `CRYPTO_CONSUMPTION_HIERARCHY.md`.
+- **`btsp/phase3.rs`**: New module with `SessionKeys` (HKDF-SHA256 key derivation, ChaCha20-Poly1305 AEAD encrypt/decrypt), `generate_nonce()`, `read_encrypted_frame()` / `write_encrypted_frame()` async I/O helpers. Keys zeroed on drop via `zeroize`.
+- **Tower-provided key acquisition (Pattern B)**: `SessionVerifyResult` now parses `session_key` from BearDog verify response. `BtspSession` carries `handshake_key: Option<[u8; 32]>`. Both length-prefixed and NDJSON handshake paths store the key. Ed25519 delegation stays with BearDog — only symmetric transport crypto (HKDF + AEAD) runs locally.
+- **Session registry**: `LoamSpineRpcService` tracks BTSP sessions via `register_btsp_session()` / `get_btsp_handshake_key()` for Phase 3 negotiate dispatch.
+- **New dependencies**: `chacha20poly1305 0.10`, `hkdf 0.13`, `sha2 0.11`, `zeroize 1.8.2`, `getrandom 0.4.2` — all RustCrypto pure Rust, pass `cargo deny check`, match primalSpring versions.
+- **16 new tests** (12 Phase 3 unit: derivation, mirror, round-trip, tamper, wrong-key, short-frame, nonce, debug redaction, async frame; 3 service: keyed negotiate, unknown session fallback, interop; 1 JSON-RPC wire: keyed negotiate). 1,486 total, all pass.
+
+### Changed (May 2, 2026 — btsp.negotiate handler + hickory fix)
+
+- **BTSP Phase 3 `btsp.negotiate` handler**: New JSON-RPC method `btsp.negotiate` returns `cipher: "null"` (plaintext fallback). primalSpring Phase 3 clients can now negotiate cipher suites without getting `METHOD_NOT_FOUND`. 4 initial tests (2 service, 2 JSON-RPC wire).
+- **Dependency security fix**: `hickory-proto` 0.26.0 → 0.26.1 (RUSTSEC-2026-0119), `hickory-net` 0.26.0 → 0.26.1 (RUSTSEC-2026-0120).
 
 ### Changed (April 30, 2026)
 
@@ -161,11 +171,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dyn audit**: 72 total `dyn` usages — 28 in doc examples/comments, 37 `Pin<Box<dyn Future>>` for object safety, 7 `Arc<dyn Trait>` for finite-implementor traits; all non-blocking per stadial gate.
 
 ### Metrics
-- Tests: **1,513** (all concurrent, ~3s, zero flaky; `--all-features`)
+- Tests: **1,486** (all concurrent, ~3s, zero flaky; `--all-features`)
 - `#[serial]`: **0** (was 121)
-- JSON-RPC methods: **37** (was 32)
-- Source files: **179** `.rs` (+ 3 fuzz targets)
-- Max file: **605** lines production; **783** max test file
+- JSON-RPC methods: **38** (was 32)
+- Source files: **180+** `.rs` (+ 3 fuzz targets)
+- Max file: **605** lines production; **807** max test file
 - `#[allow]` in production: **4** (2× tarpc `wildcard_imports`, 2× feature-conditional `unused_async`)
 - Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
 - Doc warnings: **0**

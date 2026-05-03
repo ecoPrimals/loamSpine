@@ -778,4 +778,30 @@ async fn jsonrpc_btsp_negotiate_minimal_params() {
     assert_eq!(resp.cipher, "null");
 }
 
+#[tokio::test]
+async fn jsonrpc_btsp_negotiate_returns_chacha20_with_registered_key() {
+    let server = LoamSpineJsonRpc::default_server();
+    server
+        .service
+        .register_btsp_session("keyed-session".to_string(), [0xAA; 32])
+        .await;
+
+    let resp: crate::types::BtspNegotiateResponse = rpc_call(
+        &server,
+        "btsp.negotiate",
+        &crate::types::BtspNegotiateRequest {
+            session_id: "keyed-session".into(),
+            preferred_cipher: "chacha20-poly1305".into(),
+            ciphers: vec!["chacha20-poly1305".into()],
+            client_nonce: Some("dGVzdA==".into()),
+            bond_type: Some("Ionic".into()),
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(resp.cipher, "chacha20-poly1305");
+    assert!(resp.server_nonce.is_some());
+}
+
 // Protocol-level, UDS, TCP, and infrastructure tests split into tests_protocol.rs

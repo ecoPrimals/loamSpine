@@ -77,9 +77,18 @@ pub(crate) struct SessionVerifyResult {
     pub verified: bool,
     /// Session ID assigned by BearDog on successful verification.
     pub session_id: Option<String>,
-    /// Negotiated cipher (set on success).
-    #[expect(dead_code, reason = "reserved for Phase 3 encrypted framing")]
+    /// Negotiated cipher (set on success). Read from BearDog response
+    /// but not directly consumed — Phase 3 cipher is determined by
+    /// `btsp.negotiate` result, not the verify response.
+    #[expect(
+        dead_code,
+        reason = "deserialized from BearDog, used for protocol logging"
+    )]
     pub cipher: Option<String>,
+    /// Tower-provided session key (base64, 32 bytes) for Phase 3 HKDF.
+    /// Pattern B: loamSpine receives key material from BearDog rather
+    /// than self-deriving from `FAMILY_SEED`.
+    pub session_key: Option<String>,
 }
 
 /// BTSP provider `btsp.negotiate` response per `beardog_types::btsp::rpc`.
@@ -94,8 +103,11 @@ pub(crate) struct NegotiateResult {
 pub struct BtspSession {
     /// Unique session identifier (hex).
     pub session_id: String,
-    /// Negotiated cipher suite (e.g. `"null"`, `"chacha20_poly1305"`).
+    /// Negotiated cipher suite (e.g. `"null"`, `"chacha20-poly1305"`).
     pub cipher: String,
+    /// Tower-provided handshake key for Phase 3 session key derivation.
+    /// Present when BearDog returns `session_key` in the verify response.
+    pub handshake_key: Option<[u8; 32]>,
 }
 
 // --- NDJSON wire types (primalSpring-compatible) ---

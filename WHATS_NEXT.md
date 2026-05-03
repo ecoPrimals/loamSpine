@@ -226,11 +226,13 @@
 - **Dependency evolution documented** — `specs/DEPENDENCY_EVOLUTION.md` tracks completed storage serialization (MessagePack via `rmp-serde`, superseding bincode v1), mdns evolution, sled deprecation/removal
 - **Tests**: 1,397 (+85). Source files: 129. All under 1000 lines (max: 899). Coverage: 93.96% line / 92.60% region.
 
-## v0.9.16 BTSP Phase 3 Negotiate Handler (May 2, 2026)
+## v0.9.16 BTSP Phase 3 FULL — ChaCha20-Poly1305 AEAD (May 2, 2026)
 
-- **`btsp.negotiate` JSON-RPC method**: Returns `cipher: "null"` (plaintext fallback). primalSpring Phase 3 clients can negotiate cipher suites without `METHOD_NOT_FOUND`. Full encrypted framing (ChaCha20-Poly1305 AEAD + HKDF key derivation) deferred until BTSP provider exports session key material.
-- **Zero new crypto deps**: Follows "delegate to Tower" philosophy — no `chacha20poly1305`, `hkdf`, or `sha2` added.
-- **Tests**: 1,513 pass (+4). All gates green (clippy, fmt, deny).
+- **BTSP Phase 3 encrypted framing**: `btsp.negotiate` returns `cipher: "chacha20-poly1305"` + base64 server nonce when Tower-provided handshake key is available. `SessionKeys` derived via HKDF-SHA256, encrypted framing via ChaCha20-Poly1305 AEAD. Falls back to `cipher: "null"` for unauthenticated covalent bonds. Resolves ionic-bond-blocking classification from `CRYPTO_CONSUMPTION_HIERARCHY.md`.
+- **Pattern B key acquisition**: `SessionVerifyResult` parses `session_key` from BearDog verify response. `BtspSession` carries `handshake_key`. Ed25519 stays with BearDog — only symmetric transport crypto runs locally.
+- **New `btsp/phase3.rs`**: `SessionKeys` (HKDF derivation + encrypt/decrypt), `generate_nonce()`, `read_encrypted_frame()` / `write_encrypted_frame()`. Keys zeroed via `zeroize`.
+- **5 new deps**: `chacha20poly1305 0.10`, `hkdf 0.13`, `sha2 0.11`, `zeroize 1.8.2`, `getrandom 0.4.2` — all RustCrypto pure Rust.
+- **Tests**: 1,486 (+16 Phase 3). All gates green (clippy, fmt, deny). Deep debt audit: zero findings across all 10 dimensions.
 
 ## v0.9.16 Self-Contained Provenance Receipts (April 30, 2026)
 

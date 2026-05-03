@@ -34,6 +34,7 @@
 pub mod config;
 pub mod frame;
 pub mod handshake;
+pub mod phase3;
 pub mod wire;
 
 mod provider_client;
@@ -44,6 +45,10 @@ pub use config::{
 };
 pub use frame::{read_frame, write_frame};
 pub use handshake::{perform_ndjson_server_handshake, perform_server_handshake};
+pub use phase3::{
+    CIPHER_CHACHA20_POLY1305, CIPHER_NULL, SessionKeys, generate_nonce, read_encrypted_frame,
+    write_encrypted_frame,
+};
 pub use wire::{
     BtspSession, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError,
     NdjsonClientHello, NdjsonServerHello, ServerHello,

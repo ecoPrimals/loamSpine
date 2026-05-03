@@ -27,6 +27,7 @@ use crate::error::{ApiError, ApiResult};
 use crate::types::*;
 use loam_spine_core::service::LoamSpineService as CoreService;
 use loam_spine_core::traits::crypto_provider::JsonRpcCryptoSigner;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -35,10 +36,15 @@ use tokio::sync::RwLock;
 /// When `tower_signer` is configured (via `BEARDOG_SOCKET`), all entry
 /// appends are signed via `BearDog` `crypto.sign_ed25519` and the signature
 /// is stored in entry metadata (`tower_signature`, `tower_signature_alg`).
+///
+/// BTSP Phase 3: `btsp_sessions` stores handshake keys keyed by session ID.
+/// When a `btsp.negotiate` request arrives, the handler looks up the key,
+/// derives `SessionKeys` via HKDF, and returns `cipher: "chacha20-poly1305"`.
 #[derive(Clone)]
 pub struct LoamSpineRpcService {
     core: Arc<RwLock<CoreService>>,
     tower_signer: Option<Arc<JsonRpcCryptoSigner>>,
+    btsp_sessions: Arc<RwLock<HashMap<String, [u8; 32]>>>,
 }
 
 impl LoamSpineRpcService {
@@ -48,6 +54,7 @@ impl LoamSpineRpcService {
         Self {
             core: Arc::new(RwLock::new(core)),
             tower_signer: None,
+            btsp_sessions: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -65,6 +72,22 @@ impl LoamSpineRpcService {
     pub fn with_tower_signer(mut self, signer: Arc<JsonRpcCryptoSigner>) -> Self {
         self.tower_signer = Some(signer);
         self
+    }
+
+    /// Register a BTSP session's handshake key for Phase 3 negotiation.
+    ///
+    /// Called after a successful BTSP handshake when the verify response
+    /// includes a Tower-provided `session_key`.
+    pub async fn register_btsp_session(&self, session_id: String, handshake_key: [u8; 32]) {
+        self.btsp_sessions
+            .write()
+            .await
+            .insert(session_id, handshake_key);
+    }
+
+    /// Look up a BTSP session's handshake key by session ID.
+    pub(crate) async fn get_btsp_handshake_key(&self, session_id: &str) -> Option<[u8; 32]> {
+        self.btsp_sessions.read().await.get(session_id).copied()
     }
 
     /// Get read access to the core service.
