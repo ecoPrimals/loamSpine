@@ -4,8 +4,8 @@
 
 **Version**: 0.9.16  
 **Status**: Production Ready  
-**Date**: April 11, 2026  
-**Latest**: BTSP Phase 3 negotiate, Tower-signed ledger entries, self-contained provenance receipts, deep debt overhaul — 1,490 tests, 92% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
+**Date**: May 3, 2026  
+**Latest**: BTSP Phase 3 transport switch verified (encrypted framing wired into UDS accept loop), Tower-signed ledger entries, self-contained provenance receipts, deep debt overhaul — 1,490 tests, ~91% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
 
 ---
 
@@ -61,7 +61,7 @@ This showcase is organized into **4 progressive levels**:
 - Certificate lifecycle (mint, transfer, loan, return)
 - Cryptographic proofs (inclusion, provenance)
 - Backup and restore with verification
-- Storage backends (InMemory + redb + Sled)
+- Storage backends (InMemory + redb)
 - Concurrent operations
 
 **Path**: `01-local-primal/`  
@@ -73,7 +73,7 @@ This showcase is organized into **4 progressive levels**:
 **Goal**: See Pure Rust RPC (no gRPC, no protobuf!)
 
 **What you'll see**:
-- tarpc basics (primal-to-primal binary RPC)
+- tarpc basics (primal-to-primal structured RPC)
 - JSON-RPC 2.0 (external client API)
 - Health monitoring and metrics
 - Concurrent RPC operations
@@ -226,7 +226,7 @@ cd 02-rpc-api/01-tarpc-basics
 
 **What you'll see**:
 - Start LoamSpine service
-- Make tarpc calls (binary RPC)
+- Make tarpc calls (structured RPC)
 - Make JSON-RPC calls (curl)
 - See performance benefits
 
@@ -444,7 +444,7 @@ cat 00_SHOWCASE_INDEX.md
 - 🔐 **Provable**: Cryptographic proofs of everything
 - 🚀 **Fast**: Pure Rust, zero-copy, optimized
 - 🤝 **Composable**: Seamlessly integrates with ecosystem
-- 🏆 **World-Class**: A+ grade, 1,490 tests passing, 92% line coverage
+- 🏆 **World-Class**: A+ grade, 1,490 tests passing, ~91% line coverage
 - 🌍 **Universal**: tarpc + JSON-RPC for any client
 
 ---
@@ -490,5 +490,5 @@ cat 00_SHOWCASE_INDEX.md
 ---
 
 *LoamSpine v0.9.16 - ecoPrimals Ecosystem*  
-*April 11, 2026*
+*May 3, 2026*
 

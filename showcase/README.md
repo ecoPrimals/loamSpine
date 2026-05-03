@@ -31,14 +31,14 @@ showcase/
 │   ├── 03-certificate-lifecycle/# Mint → Transfer → Loan → Return
 │   ├── 04-proofs/              # Inclusion and provenance proofs
 │   ├── 05-backup-restore/      # Binary + JSON backup
-│   ├── 06-storage-backends/    # InMemory + redb + Sled
+│   ├── 06-storage-backends/    # InMemory + redb
 │   ├── 07-concurrent-ops/      # Thread-safe operations
 │   ├── 08-temporal-moments/    # Temporal moment recording
 │   ├── 09-waypoint-anchoring/  # Waypoint slice anchoring
 │   └── 10-recursive-spines/    # Recursive spine operations
 │
 ├── 02-rpc-api/                 # Pure Rust RPC Demos
-│   ├── 01-tarpc-basics/        # Binary RPC (primal-to-primal)
+│   ├── 01-tarpc-basics/        # Structured RPC (primal-to-primal)
 │   ├── 02-jsonrpc-basics/      # JSON-RPC 2.0 (external clients)
 │   ├── 03-health-monitoring/   # Health checks and metrics
 │   ├── 04-concurrent-ops/      # Parallel operations
@@ -92,7 +92,7 @@ cd showcase
 | Certificate Lifecycle | Mint, transfer, loan, return | 20 min |
 | Proofs | Inclusion and provenance proofs | 15 min |
 | Backup/Restore | Export and import spines | 10 min |
-| Storage Backends | InMemory vs redb vs Sled | 10 min |
+| Storage Backends | InMemory vs redb | 10 min |
 
 ### Phase 2: RPC API (30-45 min)
 
@@ -100,7 +100,7 @@ cd showcase
 
 | Demo | Description | Time |
 |------|-------------|------|
-| tarpc Basics | High-performance binary RPC | 10 min |
+| tarpc Basics | High-performance structured RPC (JSON-over-TCP) | 10 min |
 | JSON-RPC 2.0 | Language-agnostic external API | 10 min |
 | Health Monitoring | Service health and metrics | 5 min |
 | Concurrent Ops | Parallel spine operations | 10 min |
@@ -201,7 +201,7 @@ cd showcase
 | Complex build process | Standard `cargo build` |
 
 **Dual Protocol Strategy:**
-- **tarpc** — High-performance binary RPC for primal-to-primal
+- **tarpc** — High-performance structured RPC (JSON-over-TCP) for primal-to-primal
 - **JSON-RPC 2.0** — Universal, language-agnostic for external clients
 
 ---

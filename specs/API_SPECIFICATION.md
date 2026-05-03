@@ -4,7 +4,7 @@
 
 **Version**: 1.0.0  
 **Status**: Active  
-**Last Updated**: December 22, 2025
+**Last Updated**: May 3, 2026
 
 ---
 
@@ -188,7 +188,7 @@ Methods follow the `{domain}.{operation}` semantic naming standard
 | `health.liveness` | Liveness probe |
 | `health.readiness` | Readiness probe |
 | `capability.list` | List capabilities |
-| `btsp.negotiate` | BTSP Phase 3 cipher negotiation (returns `chacha20-poly1305` when keyed, `null` fallback) |
+| `btsp.negotiate` | BTSP Phase 3 cipher negotiation. Returns `chacha20-poly1305` + server nonce when Tower-provided handshake key is available; `null` fallback otherwise. On UDS, if `chacha20-poly1305` is selected, the server switches to encrypted framing (`[4B len][12B nonce][ciphertext + tag]`) for all subsequent messages on that connection. |
 | `permanence.commit_session` | Commit session (permanence alias) |
 | `permanence.verify_commit` | Verify a commit |
 | `permanence.get_commit` | Get a commit |
