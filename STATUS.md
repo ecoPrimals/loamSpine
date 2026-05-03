@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,486 (180 source files) |
+| Tests | — | 1,490 (180 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -143,7 +143,7 @@ This document tracks implementation progress against the specification suite in 
 - **`provenance.commit` alias (primalSpring benchScale audit)**: `normalize_method` now maps `provenance.commit` → `session.commit`. primalSpring exp084 replay attack scenario can now reach LoamSpine's session commit handler instead of getting `-32601 Method not found`. 1 new integration test.
 - **BTSP provider decoupling**: `beardog_client.rs` → `provider_client.rs`. `beardog_call` → `provider_call`. `beardog_socket` params → `provider_socket`. All "BearDog" error messages and doc comments evolved to "BTSP provider". `BEARDOG_SOCKET` env → `BTSP_PROVIDER_SOCKET` (backward compat preserved). `beardog_socket()` accessor removed (was unused). Zero compile-time coupling to BearDog identity.
 - **`.into()` modernization**: `DEFAULT_BTSP_PROVIDER_PREFIX.to_string()` → `.into()`. `"LoamSpine".to_string()` → `.into()` in config default. `"Storage backend unavailable".to_string()` → `.into()` in health readiness.
-- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,486 tests, 0 failures), `cargo deny check` PASS.
+- **All gates green**: `cargo fmt` PASS, `cargo clippy --all-targets --all-features -D warnings` PASS (0 warnings), `cargo doc` PASS (0 warnings), `cargo test` PASS (1,490 tests, 0 failures), `cargo deny check` PASS.
 
 ## v0.9.16 Deep Debt Overhaul & Dependency Evolution (April 11, 2026)
 

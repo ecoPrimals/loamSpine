@@ -75,6 +75,11 @@ impl LoamSpineJsonRpc {
         Self::new(LoamSpineRpcService::default_service())
     }
 
+    /// Access the inner RPC service.
+    pub(crate) const fn service(&self) -> &LoamSpineRpcService {
+        &self.service
+    }
+
     /// Handle a single JSON-RPC request and return a response.
     pub async fn handle_request(&self, request: JsonRpcRequest) -> JsonRpcResponse {
         let canonical = normalize_method(&request.method);
@@ -304,6 +309,12 @@ mod tests_bond_ledger;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_permanence_cert;
+#[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise assertions"
+)]
+mod tests_phase3_transport;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_protocol_transport;

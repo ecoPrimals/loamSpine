@@ -333,7 +333,7 @@ where
 
 /// Process a single newline-delimited JSON-RPC line.
 /// Returns `None` for empty/whitespace-only lines (no response needed).
-async fn process_ndjson_line(handler: &LoamSpineJsonRpc, line: &str) -> Option<Vec<u8>> {
+pub(crate) async fn process_ndjson_line(handler: &LoamSpineJsonRpc, line: &str) -> Option<Vec<u8>> {
     let trimmed = line.trim();
     if trimmed.is_empty() {
         return None;

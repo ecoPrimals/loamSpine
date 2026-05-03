@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 3, 2026 — BTSP Phase 3 Transport Switch VERIFIED)
+
+- **Phase 3 transport switch wired into UDS accept loop**: After `btsp.negotiate` returns `cipher: "chacha20-poly1305"`, the connection now enters `handle_encrypted_stream` — a frame-encrypted message loop using `read_encrypted_frame`/`write_encrypted_frame`. Previously, the negotiate handler returned the correct cipher but the accept loop fell through to plaintext. This was the audit's "ionic-bond-blocking" transport verification gap.
+- **Post-handshake key registration**: Both NDJSON and length-prefixed BTSP handshake paths now call `register_btsp_session()` with the Tower-provided `handshake_key` immediately after authentication succeeds, feeding the application-layer `btsp.negotiate` handler.
+- **Server-side key derivation**: `try_derive_phase3_keys()` extracts the server nonce from the JSON-RPC response and derives `SessionKeys` via HKDF-SHA256 (`is_server=true`), matching primalSpring's client-side derivation (`is_client=true`).
+- **4 new tests** (`phase3_transport_switch_encrypted_roundtrip`, `phase3_multiple_encrypted_requests`, `phase3_no_key_stays_plaintext`, `phase3_negotiate_null_stays_plaintext`). 1,490 total, all pass.
+
 ### Changed (May 2, 2026 — BTSP Phase 3 FULL)
 
 - **BTSP Phase 3 ChaCha20-Poly1305 AEAD**: Upgraded from null cipher to full encrypted framing. `btsp.negotiate` now returns `cipher: "chacha20-poly1305"` with a base64 server nonce when the Tower-provided handshake key is available (Pattern B — key from `BearDog` `btsp.session.verify` response). Falls back to `cipher: "null"` for covalent same-family bonds where BTSP was not authenticated. Resolves ionic-bond-blocking classification from `CRYPTO_CONSUMPTION_HIERARCHY.md`.

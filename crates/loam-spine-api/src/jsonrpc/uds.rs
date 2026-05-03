@@ -10,6 +10,7 @@
 use super::LoamSpineJsonRpc;
 use crate::error::ServerError;
 use crate::service::LoamSpineRpcService;
+use loam_spine_core::btsp::{CIPHER_CHACHA20_POLY1305, SessionKeys};
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tracing::{debug, info, warn};
@@ -192,7 +193,7 @@ async fn handle_uds_connection(
                 .or_else(resolve_btsp_provider);
 
             if let Some(provider_path) = provider_path {
-                match loam_spine_core::btsp::perform_ndjson_server_handshake(
+                let session = match loam_spine_core::btsp::perform_ndjson_server_handshake(
                     &mut buf_reader,
                     &mut writer,
                     &provider_path,
@@ -205,13 +206,14 @@ async fn handle_uds_connection(
                             "BTSP NDJSON authenticated: session={}, cipher={}",
                             session.session_id, session.cipher
                         );
+                        session
                     }
                     Err(e) => {
                         warn!("BTSP NDJSON handshake failed: {e}");
                         return Ok(());
                     }
-                }
-                super::server::handle_stream_buffered(&handler, &mut buf_reader, &mut writer).await
+                };
+                handle_post_handshake(&handler, &mut buf_reader, &mut writer, session).await
             } else {
                 warn!(
                     "BTSP NDJSON handshake requested but no provider available; \
@@ -224,7 +226,7 @@ async fn handle_uds_connection(
                 .await
         }
     } else if let Some(ref btsp) = btsp_config {
-        match loam_spine_core::btsp::perform_server_handshake(
+        let session = match loam_spine_core::btsp::perform_server_handshake(
             &mut buf_reader,
             &mut writer,
             &btsp.provider_socket,
@@ -236,16 +238,185 @@ async fn handle_uds_connection(
                     "BTSP authenticated: session={}, cipher={}",
                     session.session_id, session.cipher
                 );
+                session
             }
             Err(e) => {
                 warn!("BTSP handshake failed, refusing connection: {e}");
                 return Ok(());
             }
-        }
-        super::server::handle_stream_buffered(&handler, &mut buf_reader, &mut writer).await
+        };
+        handle_post_handshake(&handler, &mut buf_reader, &mut writer, session).await
     } else {
         debug!("UDS connection starts with non-JSON byte and no BTSP config; closing");
         Ok(())
+    }
+}
+
+/// Post-handshake path: read the first JSON-RPC line, which may be
+/// `btsp.negotiate`. If the negotiate selects `chacha20-poly1305`, derive
+/// session keys and switch to encrypted framing for all subsequent messages.
+/// Otherwise, continue in plaintext.
+pub(crate) async fn handle_post_handshake<R, W>(
+    handler: &LoamSpineJsonRpc,
+    buf_reader: &mut tokio::io::BufReader<R>,
+    writer: &mut W,
+    session: loam_spine_core::btsp::BtspSession,
+) -> Result<(), std::io::Error>
+where
+    R: tokio::io::AsyncRead + Unpin,
+    W: tokio::io::AsyncWrite + Unpin,
+{
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+
+    if session.handshake_key.is_none() {
+        return super::server::handle_stream_buffered(handler, buf_reader, writer).await;
+    }
+    let handshake_key = session.handshake_key.unwrap_or([0u8; 32]);
+
+    handler
+        .service()
+        .register_btsp_session(session.session_id.clone(), handshake_key)
+        .await;
+
+    let mut first_line = String::new();
+    let n = buf_reader.read_line(&mut first_line).await?;
+    if n == 0 {
+        return Ok(());
+    }
+
+    let trimmed = first_line.trim();
+    if trimmed.is_empty() {
+        return Ok(());
+    }
+
+    let client_nonce = extract_negotiate_client_nonce(trimmed);
+
+    let resp_bytes = super::server::process_request(handler, trimmed.as_bytes()).await;
+    if !resp_bytes.is_empty() {
+        writer.write_all(&resp_bytes).await?;
+        writer.write_all(b"\n").await?;
+        writer.flush().await?;
+    }
+
+    if let Some(ref client_nonce) = client_nonce
+        && let Some(keys) = try_derive_phase3_keys(&resp_bytes, &handshake_key, client_nonce)?
+    {
+        debug!("BTSP Phase 3: switching to encrypted framing");
+        return handle_encrypted_stream(handler, buf_reader, writer, keys).await;
+    }
+
+    let mut line = String::new();
+    loop {
+        line.clear();
+        let n = buf_reader.read_line(&mut line).await?;
+        if n == 0 {
+            break;
+        }
+        if let Some(resp) = super::server::process_ndjson_line(handler, &line).await {
+            writer.write_all(&resp).await?;
+            writer.write_all(b"\n").await?;
+            writer.flush().await?;
+        }
+    }
+    Ok(())
+}
+
+/// If the line is a `btsp.negotiate` request, extract the `client_nonce`.
+pub(crate) fn extract_negotiate_client_nonce(line: &str) -> Option<Vec<u8>> {
+    use base64::Engine;
+    let parsed: serde_json::Value = serde_json::from_str(line).ok()?;
+    if parsed.get("method")?.as_str()? != "btsp.negotiate" {
+        return None;
+    }
+    let nonce_b64 = parsed.get("params")?.get("client_nonce")?.as_str()?;
+    base64::engine::general_purpose::STANDARD
+        .decode(nonce_b64)
+        .ok()
+}
+
+/// After the `btsp.negotiate` JSON-RPC response has been generated,
+/// extract the `server_nonce` from it and derive `SessionKeys`.
+/// Returns `None` if the cipher was `null` or parsing failed.
+pub(crate) fn try_derive_phase3_keys(
+    response_bytes: &[u8],
+    handshake_key: &[u8; 32],
+    client_nonce: &[u8],
+) -> Result<Option<SessionKeys>, std::io::Error> {
+    use base64::Engine;
+
+    let resp: serde_json::Value = match serde_json::from_slice(response_bytes) {
+        Ok(v) => v,
+        Err(_) => return Ok(None),
+    };
+
+    let Some(result) = resp.get("result") else {
+        return Ok(None);
+    };
+
+    let cipher = result.get("cipher").and_then(|c| c.as_str());
+    if cipher != Some(CIPHER_CHACHA20_POLY1305) {
+        return Ok(None);
+    }
+
+    let Some(server_nonce_b64) = result.get("server_nonce").and_then(|n| n.as_str()) else {
+        return Ok(None);
+    };
+
+    let server_nonce = base64::engine::general_purpose::STANDARD
+        .decode(server_nonce_b64)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+
+    let keys = SessionKeys::derive(handshake_key, client_nonce, &server_nonce, true)
+        .map_err(std::io::Error::other)?;
+
+    Ok(Some(keys))
+}
+
+/// Frame-encrypted message loop (Phase 3 transport).
+///
+/// Reads length-prefixed encrypted frames, decrypts, dispatches as JSON-RPC,
+/// encrypts the response, and writes it back as a length-prefixed frame.
+/// Frame format: `[4B big-endian length][12B nonce][ciphertext + 16B Poly1305 tag]`.
+///
+/// An 8 MiB guard prevents amplification from oversized frames.
+pub(crate) async fn handle_encrypted_stream<R, W>(
+    handler: &LoamSpineJsonRpc,
+    reader: &mut tokio::io::BufReader<R>,
+    writer: &mut W,
+    keys: SessionKeys,
+) -> Result<(), std::io::Error>
+where
+    R: tokio::io::AsyncRead + Unpin,
+    W: tokio::io::AsyncWrite + Unpin,
+{
+    use loam_spine_core::btsp::{read_encrypted_frame, write_encrypted_frame};
+
+    loop {
+        let plaintext = match read_encrypted_frame(reader, &keys).await {
+            Ok(pt) => pt,
+            Err(e) => {
+                let msg = e.to_string();
+                let lower = msg.to_ascii_lowercase();
+                if lower.contains("unexpected eof")
+                    || lower.contains("unexpectedeof")
+                    || lower.contains("end of file")
+                {
+                    debug!("BTSP Phase 3: client closed encrypted connection");
+                    return Ok(());
+                }
+                warn!("BTSP Phase 3 read error: {e}");
+                return Err(std::io::Error::other(msg));
+            }
+        };
+
+        let response = super::server::process_request(handler, &plaintext).await;
+        if response.is_empty() {
+            continue;
+        }
+
+        write_encrypted_frame(writer, &keys, &response)
+            .await
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
     }
 }
 
