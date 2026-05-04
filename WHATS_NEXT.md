@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 2, 2026
+**Last Updated**: May 4, 2026
 
 ---
 
 ## Documentation changelog
+
+- **May 4, 2026** — **primalSpring Phase 58 audit response**: All 3 items resolved. (1) Phase 3 transport encryption HIGH — already VERIFIED and wired in `45de0cd`, doc comment fixed (8→16 MiB guard). (2) `ring` lockfile ghost — confirmed cosmetic-only (`cargo tree -i ring` returns nothing, `cargo deny` passes, `ring` never compiled); `sled` is absent from Cargo.lock entirely (false positive). (3) 178→182 source files = 97 production + 73 test + 12 examples/benches — no consolidation needed, zero files under 30 lines.
 
 - **April 16, 2026** — **bincode → rmp-serde (MessagePack)**: Storage and backup serialization migrated from `bincode` v1 to **`rmp-serde`**, eliminating **RUSTSEC-2025-0141**. The prior **bincode v1 → v2** migration plan is complete in spirit but **not** via bincode v2 — MessagePack is the chosen on-disk format.
 - **April 16, 2026** — **biomeOS doc comments**: Literal **biomeOS** references in **production** doc comments genericized (**29 → 0**) for self-knowledge compliance.

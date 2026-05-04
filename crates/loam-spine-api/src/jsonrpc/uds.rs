@@ -378,7 +378,7 @@ pub(crate) fn try_derive_phase3_keys(
 /// encrypts the response, and writes it back as a length-prefixed frame.
 /// Frame format: `[4B big-endian length][12B nonce][ciphertext + 16B Poly1305 tag]`.
 ///
-/// An 8 MiB guard prevents amplification from oversized frames.
+/// A 16 MiB guard (`MAX_FRAME_SIZE`) prevents amplification from oversized frames.
 pub(crate) async fn handle_encrypted_stream<R, W>(
     handler: &LoamSpineJsonRpc,
     reader: &mut tokio::io::BufReader<R>,
