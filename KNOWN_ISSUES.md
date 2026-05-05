@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: May 2, 2026
+**Last Updated**: May 5, 2026
 
 ---
 
@@ -44,6 +44,7 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 | PG-52 UDS trio empty responses | **RESOLVED (v0.9.16)** — `spine.create`, `entry.append`, `spine.seal` all work correctly over UDS JSON-RPC (with and without BTSP config). Root cause: stale plasmidBin binary + double-`BufReader` on post-BTSP path (now cleaned up). 3 UDS transport integration tests added. plasmidBin rebuild required. |
 | Tower signing of ledger entries | **IMPLEMENTED (v0.9.16)** — `entry.append` and `session.commit` sign entries via BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set. Signature stored in entry metadata (`tower_signature`, `tower_signature_alg`). Standalone mode produces unsigned entries (backward-compatible). |
 | BTSP encrypted tunnels | loamSpine now implements Phase 3 encrypted framing (ChaCha20-Poly1305). Persistent BTSP tunnel-mode ledger replication (long-lived encrypted channels beyond per-session negotiate) remains a future evolution target — same as all other primals. |
+| Hex string acceptance (Gap 9) | **RESOLVED (v0.9.16)** — All `ContentHash`/`EntryHash` fields (`[u8; 32]`) accept both JSON byte arrays and 64-char hex strings. `AppendEntryRequest.committer` made `Option<Did>` (was required but unused). 14 new tests. |
 
 ---
 

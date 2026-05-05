@@ -2,7 +2,7 @@
 
 # 🦴 LoamSpine — Specifications Index
 
-**Last Updated**: April 20, 2026  
+**Last Updated**: May 5, 2026  
 **Version**: 1.2.1  
 **Status**: Active
 
