@@ -18,12 +18,14 @@ pub struct InclusionProof {
     pub entry: Entry,
 
     /// Entry hash.
+    #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
     pub entry_hash: EntryHash,
 
     /// Path from entry to tip (chain of hashes).
     pub path: Vec<EntryHash>,
 
     /// Current tip.
+    #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
     pub tip: EntryHash,
 
     /// Spine ID.
@@ -190,6 +192,7 @@ pub struct CertificateOwnershipProof {
     /// Certificate ID.
     pub certificate_id: crate::types::CertificateId,
     /// Merkle root of the ownership chain.
+    #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
     pub chain_root: crate::types::ContentHash,
     /// Number of entries in the chain.
     pub chain_length: u64,
@@ -262,6 +265,7 @@ pub struct HistorySummary {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProvenanceProof {
     /// Data hash.
+    #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
     pub data_hash: EntryHash,
 
     /// Chain of custody entries.

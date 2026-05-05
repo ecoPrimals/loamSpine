@@ -176,7 +176,7 @@ async fn test_tarpc_generate_and_verify_inclusion_proof() {
             mime_type: Some("text/plain".to_string()),
             size: 10,
         },
-        committer: owner.clone(),
+        committer: Some(owner.clone()),
         payload: None,
     };
     let append_response = LoamSpineRpc::append_entry(server.clone(), ctx, append_request)
@@ -318,7 +318,7 @@ async fn test_tarpc_append_to_nonexistent_spine() {
             mime_type: Some("text/plain".to_string()),
             size: 10,
         },
-        committer: Did::new("did:key:z6MkTest"),
+        committer: Some(Did::new("did:key:z6MkTest")),
         payload: None,
     };
 
@@ -452,7 +452,7 @@ async fn test_tarpc_verify_invalid_proof() {
             mime_type: Some("text/plain".to_string()),
             size: 10,
         },
-        committer: owner.clone(),
+        committer: Some(owner.clone()),
         payload: None,
     };
     let append_response = LoamSpineRpc::append_entry(server.clone(), ctx, append_request)

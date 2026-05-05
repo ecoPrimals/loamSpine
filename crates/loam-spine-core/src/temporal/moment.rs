@@ -20,6 +20,7 @@ use crate::types::{ContentHash, Signature};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Moment {
     /// Unique identifier for this moment
+    #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
     pub id: MomentId,
 
     /// When this moment occurred
@@ -29,6 +30,7 @@ pub struct Moment {
     pub agent: String, // DID
 
     /// State hash at this moment (from content-addressed or ephemeral storage)
+    #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
     pub state_hash: ContentHash,
 
     /// Cryptographic signature
@@ -61,6 +63,7 @@ pub enum MomentContext {
         /// Commit message describing the change
         message: String,
         /// Tree hash representing the code state (from content-addressed storage)
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         tree_hash: ContentHash,
     },
 
@@ -71,6 +74,7 @@ pub enum MomentContext {
         /// Medium used (oil, digital, sculpture, etc.)
         medium: String,
         /// Content hash from content-addressed storage
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         content_hash: ContentHash,
     },
 
@@ -91,6 +95,10 @@ pub enum MomentContext {
         /// Duration of the performance in seconds
         duration_seconds: u64,
         /// Optional hash of recording/video
+        #[serde(
+            default,
+            deserialize_with = "crate::types::serde_opt_content_hash::deserialize"
+        )]
         recording_hash: Option<ContentHash>,
     },
 
@@ -101,6 +109,7 @@ pub enum MomentContext {
         /// Result of the experiment
         result: String,
         /// Hash of experimental data
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         data_hash: ContentHash,
     },
 
@@ -119,6 +128,10 @@ pub enum MomentContext {
         /// Arbitrary metadata key-value pairs
         metadata: HashMap<String, String>,
         /// Optional content hash
+        #[serde(
+            default,
+            deserialize_with = "crate::types::serde_opt_content_hash::deserialize"
+        )]
         content_hash: Option<ContentHash>,
     },
 }

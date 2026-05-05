@@ -120,7 +120,7 @@ async fn test_tarpc_append_entry() {
             mime_type: Some("text/plain".to_string()),
             size: 100,
         },
-        committer: owner,
+        committer: Some(owner),
         payload: None,
     };
 
@@ -234,7 +234,7 @@ async fn test_tarpc_get_entry() {
             mime_type: Some("text/plain".to_string()),
             size: 50,
         },
-        committer: owner.clone(),
+        committer: Some(owner.clone()),
         payload: None,
     };
     let append_response = LoamSpineRpc::append_entry(server.clone(), ctx, append_request)

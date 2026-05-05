@@ -41,6 +41,7 @@ pub struct EphemeralProvenance {
     pub session_id: String,
 
     /// Merkle root from the ephemeral DAG
+    #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
     pub merkle_root: crate::types::ContentHash,
 
     /// Attestations from all agents involved

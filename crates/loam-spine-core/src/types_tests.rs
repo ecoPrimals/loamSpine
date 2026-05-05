@@ -131,6 +131,92 @@ fn byte_buffer_from_str_slice() {
     assert_eq!(&buffer[..], b"hello");
 }
 
+// ============================================================================
+// serde_content_hash / serde_opt_content_hash tests
+// ============================================================================
+
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod serde_hash_tests {
+    use super::*;
+
+    #[test]
+    fn content_hash_from_byte_array() {
+        let arr: [u8; 32] = [0xAB; 32];
+        let json = serde_json::to_string(&arr).unwrap();
+        let parsed: ContentHash =
+            serde_content_hash::deserialize(&mut serde_json::Deserializer::from_str(&json))
+                .unwrap();
+        assert_eq!(parsed, arr);
+    }
+
+    #[test]
+    fn content_hash_from_hex_string() {
+        let hex = "\"".to_string() + &"ab".repeat(32) + "\"";
+        let parsed: ContentHash =
+            serde_content_hash::deserialize(&mut serde_json::Deserializer::from_str(&hex)).unwrap();
+        assert_eq!(parsed, [0xAB; 32]);
+    }
+
+    #[test]
+    fn content_hash_from_0x_hex_string() {
+        let hex = "\"0x".to_string() + &"01".repeat(32) + "\"";
+        let parsed: ContentHash =
+            serde_content_hash::deserialize(&mut serde_json::Deserializer::from_str(&hex)).unwrap();
+        assert_eq!(parsed, [0x01; 32]);
+    }
+
+    #[test]
+    fn content_hash_rejects_wrong_length_hex() {
+        let hex = "\"abcd\"";
+        let result: Result<ContentHash, _> =
+            serde_content_hash::deserialize(&mut serde_json::Deserializer::from_str(hex));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn content_hash_rejects_invalid_hex_chars() {
+        let hex = "\"".to_string() + &"zz".repeat(32) + "\"";
+        let result: Result<ContentHash, _> =
+            serde_content_hash::deserialize(&mut serde_json::Deserializer::from_str(&hex));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn opt_content_hash_from_null() {
+        let parsed: Option<ContentHash> =
+            serde_opt_content_hash::deserialize(&mut serde_json::Deserializer::from_str("null"))
+                .unwrap();
+        assert!(parsed.is_none());
+    }
+
+    #[test]
+    fn opt_content_hash_from_hex_string() {
+        let hex = "\"".to_string() + &"ff".repeat(32) + "\"";
+        let parsed: Option<ContentHash> =
+            serde_opt_content_hash::deserialize(&mut serde_json::Deserializer::from_str(&hex))
+                .unwrap();
+        assert_eq!(parsed, Some([0xFF; 32]));
+    }
+
+    #[test]
+    fn opt_content_hash_from_byte_array() {
+        let arr: [u8; 32] = [0x42; 32];
+        let json = serde_json::to_string(&arr).unwrap();
+        let parsed: Option<ContentHash> =
+            serde_opt_content_hash::deserialize(&mut serde_json::Deserializer::from_str(&json))
+                .unwrap();
+        assert_eq!(parsed, Some(arr));
+    }
+
+    #[test]
+    fn content_hash_mixed_case_hex() {
+        let hex = "\"".to_string() + &"Ab".repeat(32) + "\"";
+        let parsed: ContentHash =
+            serde_content_hash::deserialize(&mut serde_json::Deserializer::from_str(&hex)).unwrap();
+        assert_eq!(parsed, [0xAB; 32]);
+    }
+}
+
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod proptest_roundtrips {
     use crate::types::*;

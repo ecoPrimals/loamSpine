@@ -91,7 +91,7 @@ async fn test_tower_signed_entry_append() {
                 field: "test".to_string(),
                 value: "signed-value".to_string(),
             },
-            committer: Did::new("did:key:z6MkOwner"),
+            committer: Some(Did::new("did:key:z6MkOwner")),
             payload: None,
         })
         .await
@@ -227,7 +227,7 @@ async fn test_unsigned_entry_when_no_tower_signer() {
                 field: "test".to_string(),
                 value: "unsigned-value".to_string(),
             },
-            committer: Did::new("did:key:z6MkOwner"),
+            committer: Some(Did::new("did:key:z6MkOwner")),
             payload: None,
         })
         .await

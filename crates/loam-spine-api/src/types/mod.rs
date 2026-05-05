@@ -88,6 +88,7 @@ pub struct CreateSpineResponse {
     /// The created spine ID
     pub spine_id: SpineId,
     /// Genesis entry hash
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub genesis_hash: EntryHash,
 }
 
@@ -122,6 +123,10 @@ pub struct SealSpineResponse {
     /// Whether the seal was successful
     pub success: bool,
     /// Seal entry hash
+    #[serde(
+        default,
+        deserialize_with = "loam_spine_core::types::serde_opt_content_hash::deserialize"
+    )]
     pub seal_hash: Option<EntryHash>,
 }
 
@@ -136,8 +141,10 @@ pub struct AppendEntryRequest {
     pub spine_id: SpineId,
     /// Entry type
     pub entry_type: EntryType,
-    /// Committer DID
-    pub committer: Did,
+    /// Committer DID (optional — `Entry.committer` is set from spine owner,
+    /// and `SessionCommit` carries its own inner `committer`).
+    #[serde(default)]
+    pub committer: Option<Did>,
     /// Optional payload (zero-copy via `bytes::Bytes`)
     #[serde(with = "serde_opt_bytes", default)]
     pub payload: Option<ByteBuffer>,
@@ -147,6 +154,7 @@ pub struct AppendEntryRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppendEntryResponse {
     /// Entry hash
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub entry_hash: EntryHash,
     /// Entry index
     pub index: u64,
@@ -158,6 +166,7 @@ pub struct GetEntryRequest {
     /// Spine ID
     pub spine_id: SpineId,
     /// Entry hash
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub entry_hash: EntryHash,
 }
 
@@ -181,6 +190,7 @@ pub struct GetTipRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetTipResponse {
     /// Tip entry hash
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub tip_hash: EntryHash,
     /// Tip entry
     pub entry: Entry,
@@ -209,6 +219,7 @@ pub struct AnchorSliceRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnchorSliceResponse {
     /// Anchor entry hash
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub anchor_hash: EntryHash,
 }
 
@@ -229,6 +240,10 @@ pub struct CheckoutSliceResponse {
     /// Whether checkout succeeded
     pub success: bool,
     /// Checkout entry hash
+    #[serde(
+        default,
+        deserialize_with = "loam_spine_core::types::serde_opt_content_hash::deserialize"
+    )]
     pub checkout_hash: Option<EntryHash>,
 }
 
@@ -242,6 +257,7 @@ pub struct GenerateInclusionProofRequest {
     /// Spine ID
     pub spine_id: SpineId,
     /// Entry hash to prove
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub entry_hash: EntryHash,
 }
 
@@ -304,6 +320,7 @@ pub struct CommitSessionRequest {
     /// Session ID
     pub session_id: Uuid,
     /// Session hash (DAG root)
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub session_hash: ContentHash,
     /// Vertex count in session
     pub vertex_count: u64,
@@ -323,6 +340,7 @@ pub struct CommitSessionResponse {
     /// Spine where the commit was recorded.
     pub spine_id: SpineId,
     /// Commit entry hash.
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub commit_hash: EntryHash,
     /// Entry index in the spine.
     pub index: u64,
@@ -333,6 +351,7 @@ pub struct CommitSessionResponse {
     /// Session that was committed.
     pub session_id: Uuid,
     /// Merkle root of the session DAG.
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub merkle_root: ContentHash,
     /// Number of vertices in the session.
     pub vertex_count: u64,
@@ -358,6 +377,7 @@ pub struct CommitBraidRequest {
     /// Braid ID
     pub braid_id: Uuid,
     /// Braid hash
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub braid_hash: ContentHash,
     /// Subjects referenced
     pub subjects: Vec<Did>,
@@ -369,6 +389,7 @@ pub struct CommitBraidRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommitBraidResponse {
     /// Commit entry hash
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
     pub commit_hash: EntryHash,
     /// Entry index
     pub index: u64,

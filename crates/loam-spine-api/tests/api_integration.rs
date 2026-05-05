@@ -92,7 +92,7 @@ async fn append_and_get_entry() {
             mime_type: Some("application/json".to_string()),
             size: KB,
         },
-        committer: owner.clone(),
+        committer: Some(owner.clone()),
         payload: None,
     };
     let append_resp = service
@@ -139,7 +139,7 @@ async fn get_tip_entry() {
                     mime_type: None,
                     size: (i + 1) * 100,
                 },
-                committer: owner.clone(),
+                committer: Some(owner.clone()),
                 payload: None,
             })
             .await
@@ -416,7 +416,7 @@ async fn inclusion_proof_lifecycle() {
                 mime_type: Some("text/plain".to_string()),
                 size: 256,
             },
-            committer: owner.clone(),
+            committer: Some(owner.clone()),
             payload: None,
         })
         .await

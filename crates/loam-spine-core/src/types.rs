@@ -427,6 +427,122 @@ impl IntoByteBuffer for &str {
     }
 }
 
+// ============================================================================
+// Serde helpers for ContentHash / EntryHash — accept hex strings or byte arrays
+// ============================================================================
+
+/// Deserialize a `[u8; 32]` from either a JSON byte array or a hex string.
+///
+/// Use via `#[serde(deserialize_with = "serde_content_hash::deserialize")]`.
+pub mod serde_content_hash {
+    use serde::de::{self, Deserializer, SeqAccess, Visitor};
+    use std::fmt;
+
+    pub(crate) struct ContentHashVisitor;
+
+    impl<'de> Visitor<'de> for ContentHashVisitor {
+        type Value = [u8; 32];
+
+        fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str("a 32-byte array or 64-character hex string")
+        }
+
+        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<[u8; 32], A::Error> {
+            let mut arr = [0u8; 32];
+            for (i, byte) in arr.iter_mut().enumerate() {
+                *byte = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(i, &"32 bytes"))?;
+            }
+            Ok(arr)
+        }
+
+        fn visit_str<E: de::Error>(self, s: &str) -> Result<[u8; 32], E> {
+            parse_hex(s).map_err(de::Error::custom)
+        }
+
+        fn visit_bytes<E: de::Error>(self, v: &[u8]) -> Result<[u8; 32], E> {
+            <[u8; 32]>::try_from(v).map_err(|_| de::Error::invalid_length(v.len(), &"32 bytes"))
+        }
+    }
+
+    /// Deserialize `[u8; 32]` from a byte array or hex string.
+    ///
+    /// # Errors
+    ///
+    /// Returns a deserialization error for invalid hex or wrong length.
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<[u8; 32], D::Error> {
+        deserializer.deserialize_any(ContentHashVisitor)
+    }
+
+    fn parse_hex(s: &str) -> Result<[u8; 32], String> {
+        let hex = s.strip_prefix("0x").unwrap_or(s);
+        if hex.len() != 64 {
+            return Err(format!("expected 64 hex chars, got {}", hex.len()));
+        }
+        let mut arr = [0u8; 32];
+        for (i, byte) in arr.iter_mut().enumerate() {
+            *byte = u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16)
+                .map_err(|e| format!("invalid hex at byte {i}: {e}"))?;
+        }
+        Ok(arr)
+    }
+}
+
+/// Deserialize an `Option<[u8; 32]>` from either a JSON byte array, hex string, or null.
+///
+/// Use via `#[serde(default, deserialize_with = "serde_opt_content_hash::deserialize")]`.
+pub mod serde_opt_content_hash {
+    use serde::de::{self, Deserializer, SeqAccess, Visitor};
+    use std::fmt;
+
+    struct OptContentHashVisitor;
+
+    impl<'de> Visitor<'de> for OptContentHashVisitor {
+        type Value = Option<[u8; 32]>;
+
+        fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str("null, a 32-byte array, or a 64-character hex string")
+        }
+
+        fn visit_none<E: de::Error>(self) -> Result<Option<[u8; 32]>, E> {
+            Ok(None)
+        }
+
+        fn visit_unit<E: de::Error>(self) -> Result<Option<[u8; 32]>, E> {
+            Ok(None)
+        }
+
+        fn visit_some<D: Deserializer<'de>>(
+            self,
+            deserializer: D,
+        ) -> Result<Option<[u8; 32]>, D::Error> {
+            super::serde_content_hash::deserialize(deserializer).map(Some)
+        }
+
+        fn visit_seq<A: SeqAccess<'de>>(self, seq: A) -> Result<Option<[u8; 32]>, A::Error> {
+            use super::serde_content_hash::ContentHashVisitor;
+            ContentHashVisitor.visit_seq(seq).map(Some)
+        }
+
+        fn visit_str<E: de::Error>(self, s: &str) -> Result<Option<[u8; 32]>, E> {
+            use super::serde_content_hash::ContentHashVisitor;
+            ContentHashVisitor.visit_str(s).map(Some)
+        }
+    }
+
+    /// Deserialize `Option<[u8; 32]>` from null, a byte array, or hex string.
+    ///
+    /// # Errors
+    ///
+    /// Returns a deserialization error for invalid hex or wrong length.
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<[u8; 32]>, D::Error> {
+        deserializer.deserialize_option(OptContentHashVisitor)
+    }
+}
+
 #[cfg(test)]
 #[path = "types_tests.rs"]
 mod tests;

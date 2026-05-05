@@ -43,6 +43,10 @@ pub struct Entry {
     pub index: u64,
 
     /// Hash of the previous entry (None for genesis).
+    #[serde(
+        default,
+        deserialize_with = "crate::types::serde_opt_content_hash::deserialize"
+    )]
     pub previous: Option<EntryHash>,
 
     /// Spine this entry belongs to.
@@ -267,6 +271,7 @@ pub enum EntryType {
         /// Session identifier.
         session_id: SessionId,
         /// Merkle root of session data.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         merkle_root: ContentHash,
         /// Number of vertices in the session.
         vertex_count: u64,
@@ -279,6 +284,7 @@ pub enum EntryType {
         /// Slice identifier.
         slice_id: SliceId,
         /// Source entry being sliced.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         source_entry: EntryHash,
         /// Session ID receiving the slice.
         session_id: SessionId,
@@ -291,10 +297,15 @@ pub enum EntryType {
         /// Slice identifier.
         slice_id: SliceId,
         /// Original checkout entry.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         checkout_entry: EntryHash,
         /// Whether resolution was successful.
         success: bool,
         /// Summary hash (if merged).
+        #[serde(
+            default,
+            deserialize_with = "crate::types::serde_opt_content_hash::deserialize"
+        )]
         summary: Option<ContentHash>,
     },
 
@@ -302,6 +313,7 @@ pub enum EntryType {
     /// Anchor a content hash.
     DataAnchor {
         /// Content hash.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         data_hash: ContentHash,
         /// MIME type.
         mime_type: Option<String>,
@@ -314,8 +326,10 @@ pub enum EntryType {
         /// Braid identifier.
         braid_id: BraidId,
         /// Braid hash.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         braid_hash: ContentHash,
         /// Subject hash.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         subject_hash: ContentHash,
     },
 
@@ -359,6 +373,7 @@ pub enum EntryType {
         /// Certificate identifier.
         cert_id: CertificateId,
         /// Original loan entry.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         loan_entry: EntryHash,
         /// Usage summary from the loan period.
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -373,6 +388,7 @@ pub enum EntryType {
         /// Origin spine.
         origin_spine: SpineId,
         /// Origin entry.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         origin_entry: EntryHash,
     },
 
@@ -396,6 +412,7 @@ pub enum EntryType {
     /// Temporal moment (universal time tracking).
     TemporalMoment {
         /// Unique moment identifier.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         moment_id: MomentId,
         /// Moment data (boxed to reduce enum size).
         moment: Box<Moment>,
@@ -412,6 +429,7 @@ pub enum EntryType {
         /// Which chain or anchor system was used.
         anchor_target: AnchorTarget,
         /// The spine state hash that was anchored (Blake3 of tip entry).
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
         state_hash: ContentHash,
         /// Transaction hash or proof reference on the external system.
         tx_ref: String,

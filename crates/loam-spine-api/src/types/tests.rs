@@ -54,7 +54,7 @@ fn append_entry_request_roundtrip() {
     let req = AppendEntryRequest {
         spine_id: uuid::Uuid::now_v7(),
         entry_type: EntryType::SpineSealed { reason: None },
-        committer: Did::new("did:key:z6Mk1"),
+        committer: Some(Did::new("did:key:z6Mk1")),
         payload: None,
     };
     let json = serde_json::to_string(&req).expect("serialize");
@@ -149,7 +149,7 @@ fn serde_opt_bytes_none_roundtrip() {
     let req = AppendEntryRequest {
         spine_id: uuid::Uuid::now_v7(),
         entry_type: EntryType::SpineSealed { reason: None },
-        committer: Did::new("did:key:z6Mk1"),
+        committer: Some(Did::new("did:key:z6Mk1")),
         payload: None,
     };
     let json = serde_json::to_string(&req).expect("serialize");
@@ -163,7 +163,7 @@ fn serde_opt_bytes_some_roundtrip() {
     let req = AppendEntryRequest {
         spine_id: uuid::Uuid::now_v7(),
         entry_type: EntryType::SpineSealed { reason: None },
-        committer: Did::new("did:key:z6Mk1"),
+        committer: Some(Did::new("did:key:z6Mk1")),
         payload: Some(ByteBuffer::from(payload_data)),
     };
     let json = serde_json::to_string(&req).expect("serialize");
@@ -314,4 +314,87 @@ fn permanent_storage_commit_response_rejected_roundtrip() {
         Some("commit rejected: bad merkle root")
     );
     assert!(parsed.commit_id.is_none());
+}
+
+// ============================================================================
+// Hex string acceptance (Gap 9)
+// ============================================================================
+
+#[test]
+fn append_entry_data_anchor_hex_data_hash() {
+    let json = serde_json::json!({
+        "spine_id": uuid::Uuid::now_v7(),
+        "entry_type": {
+            "DataAnchor": {
+                "data_hash": "ab".repeat(32),
+                "mime_type": "text/plain",
+                "size": 100
+            }
+        },
+        "payload": null
+    });
+    let req: AppendEntryRequest = serde_json::from_value(json).expect("hex data_hash should work");
+    assert!(req.committer.is_none());
+    assert!(matches!(
+        req.entry_type,
+        EntryType::DataAnchor { data_hash, .. } if data_hash == [0xAB; 32]
+    ));
+}
+
+#[test]
+fn commit_session_request_hex_session_hash() {
+    let json = serde_json::json!({
+        "spine_id": uuid::Uuid::now_v7(),
+        "session_id": uuid::Uuid::now_v7(),
+        "session_hash": "0x".to_string() + &"01".repeat(32),
+        "vertex_count": 7,
+        "committer": "did:key:z6MkTest"
+    });
+    let req: CommitSessionRequest = serde_json::from_value(json).expect("hex session_hash");
+    assert_eq!(req.session_hash, [0x01; 32]);
+}
+
+#[test]
+fn get_entry_request_hex_entry_hash() {
+    let json = serde_json::json!({
+        "spine_id": uuid::Uuid::now_v7(),
+        "entry_hash": "ff".repeat(32)
+    });
+    let req: GetEntryRequest = serde_json::from_value(json).expect("hex entry_hash");
+    assert_eq!(req.entry_hash, [0xFF; 32]);
+}
+
+#[test]
+fn append_entry_without_committer_succeeds() {
+    let hash = [42u8; 32];
+    let json = serde_json::json!({
+        "spine_id": uuid::Uuid::now_v7(),
+        "entry_type": {
+            "DataAnchor": {
+                "data_hash": hash,
+                "mime_type": "text/plain",
+                "size": 50
+            }
+        },
+        "payload": null
+    });
+    let req: AppendEntryRequest =
+        serde_json::from_value(json).expect("omitted committer should work");
+    assert!(req.committer.is_none());
+}
+
+#[test]
+fn append_entry_with_committer_still_works() {
+    let json = serde_json::json!({
+        "spine_id": uuid::Uuid::now_v7(),
+        "entry_type": { "SpineSealed": { "reason": null } },
+        "committer": "did:key:z6MkBackCompat",
+        "payload": null
+    });
+    let req: AppendEntryRequest =
+        serde_json::from_value(json).expect("explicit committer should still work");
+    assert_eq!(
+        req.committer.as_ref().map(Did::as_str),
+        Some("did:key:z6MkBackCompat")
+    );
 }

@@ -278,7 +278,7 @@ async fn test_append_entry() {
                 mime_type: Some("application/json".into()),
                 size: KB,
             },
-            committer: owner.clone(),
+            committer: Some(owner.clone()),
             payload: None,
         })
         .await
@@ -364,7 +364,7 @@ async fn test_generate_inclusion_proof() {
                 mime_type: Some("text/plain".into()),
                 size: 512,
             },
-            committer: owner,
+            committer: Some(owner),
             payload: None,
         })
         .await

@@ -4,7 +4,7 @@
 
 **Version**: 1.0.0  
 **Status**: Active  
-**Last Updated**: May 3, 2026
+**Last Updated**: May 5, 2026
 
 ---
 
@@ -298,8 +298,8 @@ curl -X POST http://localhost:8080/rpc \
 ```rust
 // Identifiers (native Rust types)
 pub type SpineId = Uuid;           // UUIDv7
-pub type EntryHash = [u8; 32];     // Blake3 hash
-pub type ContentHash = [u8; 32];   // Blake3 hash
+pub type EntryHash = [u8; 32];     // Blake3 hash — JSON: byte array OR 64-char hex string
+pub type ContentHash = [u8; 32];   // Blake3 hash — JSON: byte array OR 64-char hex string
 pub type CertificateId = Uuid;
 pub type SliceId = [u8; 32];
 
@@ -358,7 +358,7 @@ pub struct SealSpineResponse {
 pub struct AppendEntryRequest {
     pub spine_id: SpineId,
     pub entry_type: EntryType,
-    pub committer: Did,
+    pub committer: Option<Did>,  // optional — Entry.committer derived from spine owner
     pub payload: Option<Vec<u8>>,
 }
 

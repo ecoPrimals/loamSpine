@@ -211,7 +211,7 @@ async fn test_jsonrpc_append_entry() {
             mime_type: Some("text/plain".to_string()),
             size: 50,
         },
-        committer: owner.clone(),
+        committer: Some(owner.clone()),
         payload: None,
     };
     let response: crate::types::AppendEntryResponse =
@@ -243,7 +243,7 @@ async fn test_jsonrpc_get_entry_and_tip() {
             mime_type: Some("text/plain".to_string()),
             size: 10,
         },
-        committer: owner.clone(),
+        committer: Some(owner.clone()),
         payload: None,
     };
     let append_response: crate::types::AppendEntryResponse =
@@ -369,7 +369,7 @@ async fn test_jsonrpc_generate_and_verify_inclusion_proof() {
             mime_type: Some("text/plain".to_string()),
             size: 20,
         },
-        committer: owner,
+        committer: Some(owner),
         payload: None,
     };
     let append_response: crate::types::AppendEntryResponse =

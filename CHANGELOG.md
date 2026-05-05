@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 5, 2026 — Gap 9: Hex String Acceptance + Redundant Committer)
+
+- **Hex string acceptance for all `ContentHash`/`EntryHash` fields**: JSON-RPC callers can now send `data_hash`, `merkle_root`, `entry_hash`, `session_hash`, and all other 32-byte hash fields as either the native JSON byte array (`[1,2,3,...,32]`) or a 64-character hex string (`"0102..."`, with optional `0x` prefix). Serialization is unchanged (byte array for JSON, bytes for MessagePack). Non-Rust callers no longer need to construct byte arrays. Custom `serde_content_hash` and `serde_opt_content_hash` deserialize modules in `loam-spine-core/src/types.rs` with `#[serde(deserialize_with)]` on all wire-facing hash fields across `Entry`, `EntryType` variants, API request/response types, temporal types, and proof types.
+- **`AppendEntryRequest.committer` made optional**: The `committer` field was required but never read — `Entry.committer` is always derived from `spine.owner`. Now `Option<Did>` with `#[serde(default)]`. Old callers sending `committer` still work; new callers can omit it. No behavioral change.
+- **14 new tests**: 9 serde hash unit tests (byte array, hex, `0x`-hex, mixed case, wrong length, invalid chars, null option, option byte array, option hex), 5 API wire tests (hex DataAnchor, hex session_hash, hex entry_hash, omitted committer, explicit committer backward compat). 1,504 total, all pass.
+
 ### Changed (May 3, 2026 — BTSP Phase 3 Transport Switch VERIFIED)
 
 - **Phase 3 transport switch wired into UDS accept loop**: After `btsp.negotiate` returns `cipher: "chacha20-poly1305"`, the connection now enters `handle_encrypted_stream` — a frame-encrypted message loop using `read_encrypted_frame`/`write_encrypted_frame`. Previously, the negotiate handler returned the correct cipher but the accept loop fell through to plaintext. This was the audit's "ionic-bond-blocking" transport verification gap.
