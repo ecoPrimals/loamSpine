@@ -272,7 +272,24 @@ curl -X POST http://localhost:8080/rpc \
 ```
 
 **Commit Session (RhizoCrypt Integration):**
+
+> **Prerequisite:** A spine must exist before committing. Call `spine.create` first
+> to obtain a `spine_id`, or use the compat method `permanence.commit_session`
+> which auto-creates a spine per committer DID.
+
 ```bash
+# Step 1: Create a spine (once per owner)
+curl -X POST http://localhost:8080/rpc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "spine.create",
+    "params": { "name": "rootpulse", "owner": { "value": "did:key:z6MkOwner" } },
+    "id": 1
+  }'
+# → { "spine_id": "...", "genesis_hash": [...] }
+
+# Step 2: Commit session to the spine
 curl -X POST http://localhost:8080/rpc \
   -H "Content-Type: application/json" \
   -d '{
@@ -285,9 +302,33 @@ curl -X POST http://localhost:8080/rpc \
       "vertex_count": 100,
       "committer": { "value": "did:key:z6MkCommitter" }
     },
-    "id": 4
+    "id": 2
   }'
 ```
+
+> **Alternative:** `permanence.commit_session` auto-creates a spine for the
+> committer if one doesn't exist, without a separate `spine.create` call.
+> Use this for workflows that don't need explicit spine management.
+
+---
+
+## 3.4 Entry Signing Contract
+
+Callers do **not** provide entry signatures. Signing is handled internally:
+
+| Aspect | Behavior |
+|--------|----------|
+| **Who signs** | LoamSpine calls BearDog `crypto.sign_ed25519` internally when `BEARDOG_SOCKET` is set |
+| **What is signed** | The entry's canonical bytes (`entry.to_canonical_bytes()`) — includes all fields except metadata |
+| **Where stored** | `entry.metadata["tower_signature"]` (base64 Ed25519) and `entry.metadata["tower_signature_alg"]` |
+| **No Tower** | When `BEARDOG_SOCKET` is not set, entries are unsigned (standalone mode) |
+| **`committer` field** | `Entry.committer` is always derived from `spine.owner`, **not** from the request. The `committer` field in `AppendEntryRequest` is optional and ignored. For `session.commit`, the request `committer` is embedded in the `SessionCommit` entry type. |
+| **`committer` format** | DID string, e.g. `"did:key:z6MkOwner..."`. Set when creating the spine via `spine.create`. |
+| **Hash fields** | All `ContentHash`/`EntryHash` fields accept both JSON byte arrays (`[1,2,...,32]`) and 64-char hex strings (`"0102..."` or `"0x0102..."`). |
+
+The graph orchestrator (biomeOS/RootPulse) does **not** need to sign entries or
+obtain signatures — LoamSpine handles this via Tower delegation. The orchestrator
+only needs to call `spine.create` (once) and then `session.commit` or `entry.append`.
 
 ---
 

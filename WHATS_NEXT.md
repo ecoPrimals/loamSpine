@@ -9,6 +9,8 @@
 
 ## Documentation changelog
 
+- **May 7, 2026** — **RootPulse audit response (RP-2, RP-3, RP-5)**: Entry signing contract documented in API spec §3.4 (callers don't sign, Tower does it internally). `spine.create` prerequisite for `session.commit` documented with examples. RP-3 (hex strings) already resolved by Gap 9. No code changes — documentation only.
+
 - **May 5, 2026** — **Gap 9: Hex string acceptance + redundant committer fix**: All `ContentHash`/`EntryHash` fields now accept both JSON byte arrays and 64-char hex strings on deserialization. `AppendEntryRequest.committer` made optional (`Option<Did>`, `#[serde(default)]`). 14 new tests. 1,504 total.
 
 - **May 4, 2026** — **primalSpring Phase 58 audit response**: All 3 items resolved. (1) Phase 3 transport encryption HIGH — already VERIFIED and wired in `45de0cd`, doc comment fixed (8→16 MiB guard). (2) `ring` lockfile ghost — confirmed cosmetic-only (`cargo tree -i ring` returns nothing, `cargo deny` passes, `ring` never compiled); `sled` is absent from Cargo.lock entirely (false positive). (3) 178→182 source files = 97 production + 73 test + 12 examples/benches — no consolidation needed, zero files under 30 lines.

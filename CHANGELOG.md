@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 7, 2026 — RootPulse Audit Response: RP-2, RP-3, RP-5)
+
+- **Entry signing contract documented (RP-5)**: `API_SPECIFICATION.md` §3.4 now explicitly documents that entry signing is internal (LoamSpine calls BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set), callers do not provide signatures, `committer` format is DID string derived from spine owner, and the orchestrator does not need to handle signing. Resolves the RootPulse Phase 3/5 ambiguity about who signs what.
+- **`spine.create` prerequisite documented (RP-2)**: `session.commit` examples now include explicit `spine.create` step and document `permanence.commit_session` as the auto-creating alternative. Resolves the RootPulse Phase 5 "missing spine" failure.
+- **RP-3 (hex strings) already resolved**: Gap 9 (`d5ed0c6`, May 5) added hex string acceptance for all hash fields. biomeOS graph schemas can now send hex strings instead of `[u8; 32]` byte arrays.
+
 ### Changed (May 5, 2026 — Gap 9: Hex String Acceptance + Redundant Committer)
 
 - **Hex string acceptance for all `ContentHash`/`EntryHash` fields**: JSON-RPC callers can now send `data_hash`, `merkle_root`, `entry_hash`, `session_hash`, and all other 32-byte hash fields as either the native JSON byte array (`[1,2,3,...,32]`) or a 64-character hex string (`"0102..."`, with optional `0x` prefix). Serialization is unchanged (byte array for JSON, bytes for MessagePack). Non-Rust callers no longer need to construct byte arrays. Custom `serde_content_hash` and `serde_opt_content_hash` deserialize modules in `loam-spine-core/src/types.rs` with `#[serde(deserialize_with)]` on all wire-facing hash fields across `Entry`, `EntryType` variants, API request/response types, temporal types, and proof types.
