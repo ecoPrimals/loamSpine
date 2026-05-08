@@ -8,11 +8,13 @@
 //! Zero C dependencies — replaces jsonrpsee (which pulled ring/C-asm)
 //! with a hand-rolled JSON-RPC dispatcher over raw HTTP/TCP.
 
+pub(crate) mod method_gate;
 mod server;
 #[cfg(unix)]
 mod uds;
 mod wire;
 
+pub use method_gate::{AuthMode, MethodGate};
 pub use server::{ServerHandle, run_jsonrpc_server};
 #[cfg(unix)]
 pub use uds::{UdsServerHandle, run_jsonrpc_uds_server};
@@ -60,19 +62,23 @@ pub fn normalize_method(method: &str) -> &str {
 /// The JSON-RPC dispatch handler wrapping a `LoamSpineRpcService`.
 pub struct LoamSpineJsonRpc {
     pub(crate) service: LoamSpineRpcService,
+    gate: MethodGate,
 }
 
 impl LoamSpineJsonRpc {
-    /// Create a new handler from a service.
+    /// Create a new handler from a service with the given method gate.
     #[must_use]
-    pub const fn new(service: LoamSpineRpcService) -> Self {
-        Self { service }
+    pub fn new(service: LoamSpineRpcService, gate: MethodGate) -> Self {
+        Self { service, gate }
     }
 
-    /// Create a handler with default service (in-memory storage).
+    /// Create a handler with default service (in-memory storage, permissive gate).
     #[must_use]
     pub fn default_server() -> Self {
-        Self::new(LoamSpineRpcService::default_service())
+        Self::new(
+            LoamSpineRpcService::default_service(),
+            MethodGate::new(AuthMode::Permissive),
+        )
     }
 
     /// Access the inner RPC service.
@@ -132,11 +138,56 @@ impl LoamSpineJsonRpc {
         Box::pin(self.dispatch_inner(method, params))
     }
 
+    fn dispatch_auth(
+        &self,
+        method: &str,
+        params: &serde_json::Value,
+    ) -> Result<serde_json::Value, wire::JsonRpcError> {
+        match method {
+            "auth.check" => {
+                let method_name = params
+                    .get("method")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("");
+                let access = method_gate::classify_method(method_name);
+                let allowed = matches!(
+                    (self.gate.current_mode(), access),
+                    (_, method_gate::MethodAccess::Public)
+                        | (method_gate::AuthMode::Permissive, _)
+                );
+                ser(serde_json::json!({
+                    "method": method_name,
+                    "access": if access == method_gate::MethodAccess::Public { "public" } else { "protected" },
+                    "allowed": allowed,
+                    "mode": self.gate.current_mode().as_str(),
+                }))
+            }
+            "auth.mode" => ser(serde_json::json!({
+                "mode": self.gate.current_mode().as_str(),
+                "public_prefixes": ["health.*", "auth.*"],
+                "public_methods": ["identity.get", "capabilities.list", "tools.list"],
+            })),
+            "auth.peer_info" => ser(serde_json::json!({
+                "authenticated": false,
+                "peer_id": serde_json::Value::Null,
+                "transport": "unknown",
+            })),
+            _ => Err(wire::JsonRpcError {
+                code: METHOD_NOT_FOUND,
+                message: format!("method not found: {method}"),
+                data: None,
+            }),
+        }
+    }
+
     async fn dispatch_inner(
         &self,
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, wire::JsonRpcError> {
+        // JH-0 pre-dispatch gate: check access before executing any handler
+        self.gate.check(method)?;
+
         macro_rules! rpc {
             ($params:expr, $method:ident) => {{
                 let req = deser($params)?;
@@ -166,6 +217,8 @@ impl LoamSpineJsonRpc {
                 let probe = self.service.readiness().await.map_err(app_err)?;
                 ser(probe)
             }
+
+            "auth.check" | "auth.mode" | "auth.peer_info" => self.dispatch_auth(method, &params),
 
             "session.commit" => rpc!(params, commit_session),
             "braid.commit" => rpc!(params, commit_braid),

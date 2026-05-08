@@ -55,6 +55,19 @@ pub async fn run_jsonrpc_server(
     addr: SocketAddr,
     service: LoamSpineRpcService,
 ) -> Result<ServerHandle, ServerError> {
+    run_jsonrpc_server_with_gate(addr, service, super::MethodGate::from_env()).await
+}
+
+/// Start a TCP JSON-RPC server with an explicit method gate.
+///
+/// # Errors
+///
+/// Returns error if server fails to bind.
+pub async fn run_jsonrpc_server_with_gate(
+    addr: SocketAddr,
+    service: LoamSpineRpcService,
+    gate: super::MethodGate,
+) -> Result<ServerHandle, ServerError> {
     let listener = TcpListener::bind(addr)
         .await
         .map_err(|e| ServerError::Bind {
@@ -67,7 +80,7 @@ pub async fn run_jsonrpc_server(
         source: e,
     })?;
 
-    let handler = Arc::new(LoamSpineJsonRpc::new(service));
+    let handler = Arc::new(LoamSpineJsonRpc::new(service, gate));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let (done_tx, done_rx) = tokio::sync::watch::channel(false);
 

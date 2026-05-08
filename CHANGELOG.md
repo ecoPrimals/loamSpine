@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (May 8, 2026 — JH-0 Method Gate Adoption)
+
+- **JH-0 method gate**: Pre-dispatch access control for all JSON-RPC methods per `wateringHole/METHOD_GATE_STANDARD.md`. Methods classified as Public (`health.*`, `identity.get`, `capabilities.list`, `auth.*`, `tools.list`) or Protected (everything else). New `MethodGate` struct with `AuthMode::Permissive` (default, all allowed) and `AuthMode::Enforced` (protected methods return `-32001`).
+- **`auth.check`**: Introspect whether a specific method is allowed under the current mode. Returns `{ method, access, allowed, mode }`.
+- **`auth.mode`**: Returns the current auth mode and lists public method prefixes/names.
+- **`auth.peer_info`**: Returns peer authentication status (currently `authenticated: false` — placeholder for future BTSP-authenticated peers).
+- **`LOAMSPINE_AUTH_MODE` env var**: Set to `permissive` (default) or `enforced` to control method gate behavior at startup.
+- **Error code `-32001`**: Unauthorized error when protected methods are called in enforced mode.
+- **18 new tests**: 11 unit tests for classification/gate logic + 7 integration tests for auth methods through JSON-RPC dispatch. Total: 1,522.
+
 ### Changed (May 7, 2026 — RootPulse Audit Response: RP-2, RP-3, RP-5)
 
 - **Entry signing contract documented (RP-5)**: `API_SPECIFICATION.md` §3.4 now explicitly documents that entry signing is internal (LoamSpine calls BearDog `crypto.sign_ed25519` when `BEARDOG_SOCKET` is set), callers do not provide signatures, `committer` format is DID string derived from spine owner, and the orchestrator does not need to handle signing. Resolves the RootPulse Phase 3/5 ambiguity about who signs what.

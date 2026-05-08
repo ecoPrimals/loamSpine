@@ -55,6 +55,9 @@ pub const CAPABILITIES: &[&str] = &[
     "bonding.ledger.list",
     "health.check",
     "capability.list",
+    "auth.check",
+    "auth.mode",
+    "auth.peer_info",
 ];
 
 /// Register LoamSpine with the ecosystem NeuralAPI.
@@ -326,6 +329,7 @@ fn capability_list_inner() -> serde_json::Value {
             { "type": "slice", "methods": ["anchor", "checkout", "record_operation", "depart"], "version": env!("CARGO_PKG_VERSION"), "description": "Waypoint slice operations" },
             { "type": "bonding", "methods": ["ledger.store", "ledger.retrieve", "ledger.list"], "version": env!("CARGO_PKG_VERSION"), "description": "Ionic bond contract ledger persistence" },
             { "type": "health", "methods": ["check", "liveness", "readiness"], "version": env!("CARGO_PKG_VERSION"), "description": "Health probes" },
+            { "type": "auth", "methods": ["check", "mode", "peer_info"], "version": env!("CARGO_PKG_VERSION"), "description": "JH-0 method gate introspection" },
         ],
         // Wire Standard L3: consumed capabilities for composition completeness validation
         "consumed_capabilities": crate::niche::CONSUMED_CAPABILITIES,
@@ -357,6 +361,9 @@ fn capability_list_inner() -> serde_json::Value {
             "bonding.ledger.list":       { "latency_ms": 1, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
             "capability.list":           { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
             "identity.get":              { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
+            "auth.check":                { "latency_ms": 1, "cpu": "low", "memory_bytes": 512, "gpu_eligible": false },
+            "auth.mode":                 { "latency_ms": 1, "cpu": "low", "memory_bytes": 512, "gpu_eligible": false },
+            "auth.peer_info":            { "latency_ms": 1, "cpu": "low", "memory_bytes": 512, "gpu_eligible": false },
         },
         // Wire Standard L3: method dependency DAG for execution planners
         "operation_dependencies": {

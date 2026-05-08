@@ -607,7 +607,10 @@ async fn jsonrpc_with_explicit_service_construction() {
 
     let core = CoreService::new();
     let rpc_service = LoamSpineRpcService::new(core);
-    let server = LoamSpineJsonRpc::new(rpc_service);
+    let server = LoamSpineJsonRpc::new(
+        rpc_service,
+        super::MethodGate::new(super::AuthMode::Permissive),
+    );
 
     let request = CreateSpineRequest {
         owner: Did::new("did:key:z6MkExplicit"),

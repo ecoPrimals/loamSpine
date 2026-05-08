@@ -55,7 +55,10 @@ fn test_jsonrpc_creation() {
 #[test]
 fn test_jsonrpc_with_service() {
     let service = LoamSpineRpcService::default_service();
-    let _server = LoamSpineJsonRpc::new(service);
+    let _server = LoamSpineJsonRpc::new(
+        service,
+        super::MethodGate::new(super::AuthMode::Permissive),
+    );
 }
 
 #[tokio::test]
@@ -802,6 +805,164 @@ async fn jsonrpc_btsp_negotiate_returns_chacha20_with_registered_key() {
 
     assert_eq!(resp.cipher, "chacha20-poly1305");
     assert!(resp.server_nonce.is_some());
+}
+
+// ============================================================================
+// JH-0 Method Gate tests
+// ============================================================================
+
+#[tokio::test]
+async fn auth_mode_returns_current_mode() {
+    let server = LoamSpineJsonRpc::default_server();
+    let resp: serde_json::Value = rpc_call_no_params(&server, "auth.mode").await.unwrap();
+    assert_eq!(resp["mode"], "permissive");
+    assert!(resp["public_prefixes"].is_array());
+    assert!(resp["public_methods"].is_array());
+}
+
+#[tokio::test]
+async fn auth_check_public_method() {
+    let server = LoamSpineJsonRpc::default_server();
+    let resp: serde_json::Value = rpc_call(
+        &server,
+        "auth.check",
+        &serde_json::json!({"method": "health.check"}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(resp["access"], "public");
+    assert_eq!(resp["allowed"], true);
+}
+
+#[tokio::test]
+async fn auth_check_protected_method_permissive() {
+    let server = LoamSpineJsonRpc::default_server();
+    let resp: serde_json::Value = rpc_call(
+        &server,
+        "auth.check",
+        &serde_json::json!({"method": "spine.create"}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(resp["access"], "protected");
+    assert_eq!(resp["allowed"], true);
+    assert_eq!(resp["mode"], "permissive");
+}
+
+#[tokio::test]
+async fn auth_check_protected_method_enforced() {
+    let service = LoamSpineRpcService::default_service();
+    let server = LoamSpineJsonRpc::new(
+        service,
+        super::MethodGate::new(super::AuthMode::Enforced),
+    );
+    let resp: serde_json::Value = rpc_call(
+        &server,
+        "auth.check",
+        &serde_json::json!({"method": "spine.create"}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(resp["access"], "protected");
+    assert_eq!(resp["allowed"], false);
+    assert_eq!(resp["mode"], "enforced");
+}
+
+#[tokio::test]
+async fn auth_peer_info_returns_unauthenticated() {
+    let server = LoamSpineJsonRpc::default_server();
+    let resp: serde_json::Value = rpc_call_no_params(&server, "auth.peer_info").await.unwrap();
+    assert_eq!(resp["authenticated"], false);
+    assert!(resp["peer_id"].is_null());
+}
+
+#[tokio::test]
+async fn enforced_gate_blocks_protected_method() {
+    let service = LoamSpineRpcService::default_service();
+    let server = LoamSpineJsonRpc::new(
+        service,
+        super::MethodGate::new(super::AuthMode::Enforced),
+    );
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "spine.create".to_string(),
+        params: serde_json::json!({"owner": {"value": "did:key:z6Mk"}, "name": "test"}),
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(rpc_req).await;
+    let err = resp.error.unwrap();
+    assert_eq!(err.code, super::method_gate::AUTH_UNAUTHORIZED);
+    assert!(err.message.contains("requires authentication"));
+}
+
+#[tokio::test]
+async fn enforced_gate_allows_health_check() {
+    let service = LoamSpineRpcService::default_service();
+    let server = LoamSpineJsonRpc::new(
+        service,
+        super::MethodGate::new(super::AuthMode::Enforced),
+    );
+    let resp: serde_json::Value = rpc_call_no_params(&server, "health.check").await.unwrap();
+    assert!(resp["status"].is_string());
+}
+
+#[tokio::test]
+async fn enforced_gate_allows_auth_methods() {
+    let service = LoamSpineRpcService::default_service();
+    let server = LoamSpineJsonRpc::new(
+        service,
+        super::MethodGate::new(super::AuthMode::Enforced),
+    );
+    let resp: serde_json::Value = rpc_call_no_params(&server, "auth.mode").await.unwrap();
+    assert_eq!(resp["mode"], "enforced");
+}
+
+#[tokio::test]
+async fn enforced_gate_allows_capabilities_list() {
+    let service = LoamSpineRpcService::default_service();
+    let server = LoamSpineJsonRpc::new(
+        service,
+        super::MethodGate::new(super::AuthMode::Enforced),
+    );
+    let resp: serde_json::Value =
+        rpc_call_no_params(&server, "capabilities.list").await.unwrap();
+    assert!(resp["methods"].is_array());
+}
+
+#[tokio::test]
+async fn enforced_gate_blocks_entry_append() {
+    let service = LoamSpineRpcService::default_service();
+    let server = LoamSpineJsonRpc::new(
+        service,
+        super::MethodGate::new(super::AuthMode::Enforced),
+    );
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "entry.append".to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(rpc_req).await;
+    let err = resp.error.unwrap();
+    assert_eq!(err.code, -32001);
+}
+
+#[tokio::test]
+async fn enforced_gate_blocks_session_commit() {
+    let service = LoamSpineRpcService::default_service();
+    let server = LoamSpineJsonRpc::new(
+        service,
+        super::MethodGate::new(super::AuthMode::Enforced),
+    );
+    let rpc_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "session.commit".to_string(),
+        params: serde_json::Value::Null,
+        id: serde_json::Value::Number(1.into()),
+    };
+    let resp = server.handle_request(rpc_req).await;
+    let err = resp.error.unwrap();
+    assert_eq!(err.code, -32001);
 }
 
 // Protocol-level, UDS, TCP, and infrastructure tests split into tests_protocol.rs

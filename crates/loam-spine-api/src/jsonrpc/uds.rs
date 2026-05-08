@@ -72,6 +72,21 @@ pub async fn run_jsonrpc_uds_server(
     service: LoamSpineRpcService,
     btsp_config: Option<loam_spine_core::btsp::BtspHandshakeConfig>,
 ) -> Result<UdsServerHandle, ServerError> {
+    run_jsonrpc_uds_server_with_gate(path, service, btsp_config, super::MethodGate::from_env())
+        .await
+}
+
+/// Start a UDS JSON-RPC server with an explicit method gate.
+///
+/// # Errors
+///
+/// Returns error if the socket cannot be bound.
+pub async fn run_jsonrpc_uds_server_with_gate(
+    path: impl Into<std::path::PathBuf>,
+    service: LoamSpineRpcService,
+    btsp_config: Option<loam_spine_core::btsp::BtspHandshakeConfig>,
+    gate: super::MethodGate,
+) -> Result<UdsServerHandle, ServerError> {
     let path = path.into();
 
     if let Some(parent) = path.parent() {
@@ -93,7 +108,7 @@ pub async fn run_jsonrpc_uds_server(
         source: e,
     })?;
 
-    let handler = Arc::new(LoamSpineJsonRpc::new(service));
+    let handler = Arc::new(LoamSpineJsonRpc::new(service, gate));
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let (done_tx, done_rx) = tokio::sync::watch::channel(false);
     let btsp_config = btsp_config.map(Arc::new);

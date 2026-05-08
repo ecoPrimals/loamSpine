@@ -111,6 +111,17 @@ pub trait LoamSpineRpc {
     
     /// Health check
     async fn health_check(request: HealthCheckRequest) -> Result<HealthCheckResponse, ApiError>;
+
+    // ==================== Auth (JH-0 Method Gate) ====================
+
+    /// Check whether a method is allowed under the current auth mode
+    async fn auth_check(params: { method: String }) -> Result<AuthCheckResponse, ApiError>;
+    
+    /// Return the current auth mode and public method classification
+    async fn auth_mode() -> Result<AuthModeResponse, ApiError>;
+    
+    /// Return peer authentication status
+    async fn auth_peer_info() -> Result<AuthPeerInfoResponse, ApiError>;
 }
 ```
 

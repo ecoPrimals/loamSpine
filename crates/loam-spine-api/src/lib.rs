@@ -60,7 +60,8 @@ pub mod types;
 
 pub use error::{ApiError, ApiResult, ServerError};
 pub use jsonrpc::{
-    JsonRpcRequest, JsonRpcResponse, LoamSpineJsonRpc, ServerHandle, run_jsonrpc_server,
+    AuthMode, JsonRpcRequest, JsonRpcResponse, LoamSpineJsonRpc, MethodGate, ServerHandle,
+    run_jsonrpc_server,
 };
 #[cfg(unix)]
 pub use jsonrpc::{UdsServerHandle, run_jsonrpc_uds_server};
