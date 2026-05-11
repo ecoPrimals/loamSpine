@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Verified (May 11, 2026 — Stadial Gate: API Contract Reconciliation)
+
+- **API contract mismatch — ALREADY RESOLVED**: primalSpring stadial audit flagged `session.commit` contract mismatch with RootPulse Phase 5. Verified all three resolution layers are in place: (1) method name aliases `commit.session`/`provenance.commit` → `session.commit` (since v0.9.16), (2) hex string acceptance for `session_hash` and all hash fields (Gap 9, May 5), (3) entry signing contract documented in API spec §3.4 (RP-5, May 7). Provenance trio pipeline (rhizoCrypt → loamSpine → sweetGrass) confirmed working via 10 integration tests including `full_provenance_trio_flow`. Both native (`session.commit` with explicit `spine_id`) and compat (`permanence.commit_session` with auto-create) paths verified. No code changes — verification only.
+
 ### Added (May 8, 2026 — JH-0 Method Gate Adoption)
 
 - **JH-0 method gate**: Pre-dispatch access control for all JSON-RPC methods per `wateringHole/METHOD_GATE_STANDARD.md`. Methods classified as Public (`health.*`, `identity.get`, `capabilities.list`, `auth.*`, `tools.list`) or Protected (everything else). New `MethodGate` struct with `AuthMode::Permissive` (default, all allowed) and `AuthMode::Enforced` (protected methods return `-32001`).

@@ -9,6 +9,8 @@
 
 ## Documentation changelog
 
+- **May 11, 2026** — **Stadial gate: API contract reconciliation**: primalSpring flagged `session.commit` contract mismatch with RootPulse Phase 5 — verified already resolved across 3 prior changes (aliases, hex strings, signing contract). 10 provenance trio integration tests confirm end-to-end pipeline. No code changes.
+
 - **May 8, 2026** — **JH-0 method gate adoption**: Pre-dispatch access control with Public/Protected classification. 3 new `auth.*` methods, `LOAMSPINE_AUTH_MODE` env var, error code `-32001`. Starts permissive. 18 new tests (1,522 total). loamSpine is now JH-0 compliant (8/13 primals adopted).
 
 - **May 7, 2026** — **RootPulse audit response (RP-2, RP-3, RP-5)**: Entry signing contract documented in API spec §3.4 (callers don't sign, Tower does it internally). `spine.create` prerequisite for `session.commit` documented with examples. RP-3 (hex strings) already resolved by Gap 9. No code changes — documentation only.
