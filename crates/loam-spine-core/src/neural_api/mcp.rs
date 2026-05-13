@@ -115,20 +115,6 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 },
                 "required": ["certificate_id", "returner"]
             })),
-            mcp_tool("certificate_verify", "Verify a certificate's chain of custody", &serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "certificate_id": { "type": "string", "description": "Certificate ID to verify" }
-                },
-                "required": ["certificate_id"]
-            })),
-            mcp_tool("certificate_lifecycle", "Get full lifecycle history of a certificate", &serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "certificate_id": { "type": "string", "description": "Certificate ID" }
-                },
-                "required": ["certificate_id"]
-            })),
             mcp_tool("slice_anchor", "Anchor a slice on a waypoint spine", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -147,23 +133,6 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                     "requester": { "type": "string", "description": "Requester DID" }
                 },
                 "required": ["waypoint_spine_id", "slice_id", "requester"]
-            })),
-            mcp_tool("slice_record_operation", "Record an operation on a checked-out slice", &serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "waypoint_spine_id": { "type": "integer", "description": "Waypoint spine ID" },
-                    "slice_id": { "type": "string", "description": "Slice ID" },
-                    "operation": { "type": "string", "description": "Operation payload (JSON)" }
-                },
-                "required": ["waypoint_spine_id", "slice_id", "operation"]
-            })),
-            mcp_tool("slice_depart", "Depart (close) a slice and finalize waypoint entry", &serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "waypoint_spine_id": { "type": "integer", "description": "Waypoint spine ID" },
-                    "slice_id": { "type": "string", "description": "Slice ID" }
-                },
-                "required": ["waypoint_spine_id", "slice_id"]
             })),
             mcp_tool("proof_generate_inclusion", "Generate an inclusion proof for an entry", &serde_json::json!({
                 "type": "object",
@@ -291,12 +260,8 @@ pub fn mcp_tool_to_rpc(
         "certificate_transfer" => "certificate.transfer",
         "certificate_loan" => "certificate.loan",
         "certificate_return" => "certificate.return",
-        "certificate_verify" => "certificate.verify",
-        "certificate_lifecycle" => "certificate.lifecycle",
         "slice_anchor" => "slice.anchor",
         "slice_checkout" => "slice.checkout",
-        "slice_record_operation" => "slice.record_operation",
-        "slice_depart" => "slice.depart",
         "proof_generate_inclusion" => "proof.generate_inclusion",
         "proof_verify_inclusion" => "proof.verify_inclusion",
         "session_commit" => "session.commit",

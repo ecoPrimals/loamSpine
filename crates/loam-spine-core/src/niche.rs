@@ -46,35 +46,43 @@ pub const DOMAINS: &[&str] = &[
 /// Each string is a fully qualified method name (`{domain}.{operation}`)
 /// that the ecosystem orchestrator can route via `capability.call`.
 pub const METHODS: &[&str] = &[
+    // Spine lifecycle
     "spine.create",
     "spine.get",
     "spine.seal",
+    // Entry CRUD
     "entry.append",
     "entry.get",
     "entry.get_tip",
+    // Certificate lifecycle
     "certificate.mint",
     "certificate.transfer",
     "certificate.loan",
     "certificate.return",
     "certificate.get",
-    "certificate.verify",
-    "certificate.lifecycle",
+    // Waypoint slices
     "slice.anchor",
     "slice.checkout",
-    "slice.record_operation",
-    "slice.depart",
+    // Proofs
     "proof.generate_inclusion",
     "proof.verify_inclusion",
+    // Provenance trio integration
     "session.commit",
     "braid.commit",
+    // Public chain anchoring
     "anchor.publish",
     "anchor.verify",
+    // Ionic bond ledger
     "bonding.ledger.store",
     "bonding.ledger.retrieve",
     "bonding.ledger.list",
+    // BTSP Phase 3
+    "btsp.negotiate",
+    // Infrastructure (public)
     "health.check",
     "health.liveness",
     "health.readiness",
+    "lifecycle.status",
     "capabilities.list",
     "tools.list",
     "tools.call",
@@ -82,6 +90,7 @@ pub const METHODS: &[&str] = &[
     "auth.check",
     "auth.mode",
     "auth.peer_info",
+    // Permanence compat layer
     "permanence.commit_session",
     "permanence.verify_commit",
     "permanence.get_commit",
@@ -105,12 +114,8 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
     ("loan_certificate", "certificate.loan"),
     ("return_certificate", "certificate.return"),
     ("get_certificate", "certificate.get"),
-    ("verify_certificate", "certificate.verify"),
-    ("certificate_lifecycle", "certificate.lifecycle"),
     ("anchor_slice", "slice.anchor"),
     ("checkout_slice", "slice.checkout"),
-    ("record_operation", "slice.record_operation"),
-    ("depart_slice", "slice.depart"),
     ("generate_inclusion_proof", "proof.generate_inclusion"),
     ("verify_inclusion_proof", "proof.verify_inclusion"),
     ("commit_session", "session.commit"),
@@ -195,8 +200,6 @@ pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
     ("certificate.loan", 2, false),
     ("certificate.return", 2, false),
     ("certificate.get", 1, false),
-    ("certificate.verify", 5, false),
-    ("certificate.lifecycle", 3, false),
     ("slice.anchor", 2, false),
     ("slice.checkout", 1, false),
     ("proof.generate_inclusion", 10, false),

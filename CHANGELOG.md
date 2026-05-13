@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 13, 2026 — GAP-36: Provenance Trio Wire Reconciliation)
+
+- **Session aliases for ledger capability**: `session.create` → `spine.create` and `session.state`/`session.get`/`ledger.create`/`ledger.get`/`ledger.state` → `spine.get` now routed via `normalize_method`. Downstream Nest sweeps (healthSpring) calling `session.create`/`session.state` on the `ledger` capability now reach the correct handlers instead of receiving `-32601 method not found`.
+- **`lifecycle.status` handler**: New public method returning primal name, version, status, and auth mode. Classified as Public in the JH-0 gate.
+- **METHODS drift fixed**: Removed 4 methods from `METHODS`/`provided_capabilities`/MCP tools that were advertised but had no dispatch handler (`certificate.verify`, `certificate.lifecycle`, `slice.record_operation`, `slice.depart`). Added `btsp.negotiate` and `lifecycle.status` which were dispatched but not registered. 38 methods, all backed by live dispatch.
+- **Capability registration aligned**: `CAPABILITIES` array now uses actual RPC names (`spine.get` not `spine.query`, `certificate.mint` not `certificate.issue`, `capabilities.list` not `capability.list`). `cost_estimates` key fixed from `capability.list` to `capabilities.list`. `operation_dependencies` pruned of references to unimplemented methods.
+
 ### Verified (May 11, 2026 — Stadial Gate: API Contract Reconciliation)
 
 - **API contract mismatch — ALREADY RESOLVED**: primalSpring stadial audit flagged `session.commit` contract mismatch with RootPulse Phase 5. Verified all three resolution layers are in place: (1) method name aliases `commit.session`/`provenance.commit` → `session.commit` (since v0.9.16), (2) hex string acceptance for `session_hash` and all hash fields (Gap 9, May 5), (3) entry signing contract documented in API spec §3.4 (RP-5, May 7). Provenance trio pipeline (rhizoCrypt → loamSpine → sweetGrass) confirmed working via 10 integration tests including `full_provenance_trio_flow`. Both native (`session.commit` with explicit `spine_id`) and compat (`permanence.commit_session` with auto-create) paths verified. No code changes — verification only.

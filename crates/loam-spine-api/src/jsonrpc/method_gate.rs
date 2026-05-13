@@ -82,6 +82,7 @@ impl AuthMode {
 /// - `health.*`          — liveness / readiness / health check
 /// - `identity.get`      — primal identity discovery
 /// - `capabilities.list` — capability discovery
+/// - `lifecycle.status`  — service lifecycle status
 /// - `auth.*`            — auth introspection
 /// - `tools.list`        — MCP tool discovery
 ///
@@ -92,7 +93,9 @@ pub fn classify_method(method: &str) -> MethodAccess {
         return MethodAccess::Public;
     }
     match method {
-        "identity.get" | "capabilities.list" | "tools.list" => MethodAccess::Public,
+        "identity.get" | "capabilities.list" | "lifecycle.status" | "tools.list" => {
+            MethodAccess::Public
+        }
         _ => MethodAccess::Protected,
     }
 }

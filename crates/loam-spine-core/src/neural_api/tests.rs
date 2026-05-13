@@ -228,7 +228,7 @@ fn capability_list_includes_all_expected() {
     let caps = list["capabilities"].as_array().expect("capabilities array");
     assert!(caps.contains(&serde_json::json!("permanence")));
     assert!(caps.contains(&serde_json::json!("spine.create")));
-    assert!(caps.contains(&serde_json::json!("capability.list")));
+    assert!(caps.contains(&serde_json::json!("capabilities.list")));
     assert_eq!(caps.len(), CAPABILITIES.len());
 
     let methods = list["methods"].as_array().expect("methods array");
@@ -267,9 +267,9 @@ fn capabilities_contains_expected_entries() {
     assert!(CAPABILITIES.contains(&"permanence"));
     assert!(CAPABILITIES.contains(&"ledger"));
     assert!(CAPABILITIES.contains(&"spine.create"));
-    assert!(CAPABILITIES.contains(&"spine.query"));
-    assert!(CAPABILITIES.contains(&"certificate.issue"));
-    assert!(CAPABILITIES.contains(&"capability.list"));
+    assert!(CAPABILITIES.contains(&"spine.get"));
+    assert!(CAPABILITIES.contains(&"certificate.mint"));
+    assert!(CAPABILITIES.contains(&"capabilities.list"));
 }
 
 #[test]
@@ -531,6 +531,7 @@ fn mcp_tools_cover_all_methods_in_capability_list() {
     let meta_methods = [
         "health.liveness",
         "health.readiness",
+        "lifecycle.status",
         "capabilities.list",
         "tools.list",
         "tools.call",
@@ -538,6 +539,7 @@ fn mcp_tools_cover_all_methods_in_capability_list() {
         "auth.check",
         "auth.mode",
         "auth.peer_info",
+        "btsp.negotiate",
         "permanence.commit_session",
         "permanence.verify_commit",
         "permanence.get_commit",
@@ -601,12 +603,8 @@ fn mcp_tool_to_rpc_covers_all_known_tools() {
         ("certificate_transfer", "certificate.transfer"),
         ("certificate_loan", "certificate.loan"),
         ("certificate_return", "certificate.return"),
-        ("certificate_verify", "certificate.verify"),
-        ("certificate_lifecycle", "certificate.lifecycle"),
         ("slice_anchor", "slice.anchor"),
         ("slice_checkout", "slice.checkout"),
-        ("slice_record_operation", "slice.record_operation"),
-        ("slice_depart", "slice.depart"),
         ("proof_generate_inclusion", "proof.generate_inclusion"),
         ("proof_verify_inclusion", "proof.verify_inclusion"),
         ("session_commit", "session.commit"),

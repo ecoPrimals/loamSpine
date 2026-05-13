@@ -46,6 +46,10 @@ use wire::{INVALID_PARAMS, LOAMSPINE_ERROR, METHOD_NOT_FOUND};
 pub fn normalize_method(method: &str) -> &str {
     match method {
         "commit.session" | "provenance.commit" => "session.commit",
+        // Downstream Nest sweeps call session.create/session.state on the
+        // "ledger" capability — map to loamSpine's native spine methods.
+        "session.create" | "ledger.create" => "spine.create",
+        "session.state" | "ledger.state" | "session.get" | "ledger.get" => "spine.get",
         "permanent-storage.commitSession" => "permanence.commit_session",
         "permanent-storage.verifyCommit" => "permanence.verify_commit",
         "permanent-storage.getCommit" => "permanence.get_commit",
@@ -219,6 +223,13 @@ impl LoamSpineJsonRpc {
             }
 
             "auth.check" | "auth.mode" | "auth.peer_info" => self.dispatch_auth(method, &params),
+
+            "lifecycle.status" => ser(serde_json::json!({
+                "primal": loam_spine_core::primal_names::SELF_ID,
+                "version": env!("CARGO_PKG_VERSION"),
+                "status": "running",
+                "auth_mode": self.gate.current_mode().as_str(),
+            })),
 
             "session.commit" => rpc!(params, commit_session),
             "braid.commit" => rpc!(params, commit_braid),
