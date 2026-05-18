@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 13, 2026
+**Last Updated**: May 17, 2026
 
 ---
 
@@ -52,7 +52,7 @@ This document tracks implementation progress against the specification suite in 
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 800 lines | 605 max production (discovery_client/mod.rs); 807 max test file (jsonrpc/tests.rs) |
+| Max file size | < 800 lines | 605 max production (discovery_client/mod.rs); 745 max test file (jsonrpc/tests.rs) |
 | Source files | — | 184 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 4 | 2× `clippy::wildcard_imports` (tarpc macro; `#[expect]` unfulfilled in test target) + 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |

@@ -5,8 +5,12 @@
 //! Exercises CLI argument parsing, subcommands, capabilities output,
 //! socket path resolution, and server startup/shutdown.
 
-#![allow(missing_docs)]
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![expect(missing_docs, reason = "integration test module — doc coverage not required")]
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "integration tests: panicking on failure is the correct behavior"
+)]
 
 use assert_cmd::Command;
 use predicates::prelude::*;

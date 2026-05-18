@@ -475,15 +475,33 @@ pub mod serde_content_hash {
         deserializer.deserialize_any(ContentHashVisitor)
     }
 
-    fn parse_hex(s: &str) -> Result<[u8; 32], String> {
+    /// Hex-decode error for content hash parsing.
+    #[derive(Debug)]
+    pub(crate) enum HexError {
+        BadLength(usize),
+        InvalidByte { index: usize, source: std::num::ParseIntError },
+    }
+
+    impl std::fmt::Display for HexError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Self::BadLength(n) => write!(f, "expected 64 hex chars, got {n}"),
+                Self::InvalidByte { index, source } => {
+                    write!(f, "invalid hex at byte {index}: {source}")
+                }
+            }
+        }
+    }
+
+    pub(crate) fn parse_hex(s: &str) -> Result<[u8; 32], HexError> {
         let hex = s.strip_prefix("0x").unwrap_or(s);
         if hex.len() != 64 {
-            return Err(format!("expected 64 hex chars, got {}", hex.len()));
+            return Err(HexError::BadLength(hex.len()));
         }
         let mut arr = [0u8; 32];
         for (i, byte) in arr.iter_mut().enumerate() {
             *byte = u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16)
-                .map_err(|e| format!("invalid hex at byte {i}: {e}"))?;
+                .map_err(|e| HexError::InvalidByte { index: i, source: e })?;
         }
         Ok(arr)
     }

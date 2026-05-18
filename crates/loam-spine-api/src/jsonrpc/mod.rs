@@ -426,3 +426,6 @@ mod tests_protocol_wire;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_validation;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_btsp_gate;
