@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (May 17, 2026 — Wave 22: Stadial Gate Readiness)
+
+- **`btsp.capabilities` handler**: New public method returning supported BTSP ciphers (`chacha20-poly1305`, `null`), HKDF algorithm, info labels, frame format, and provider model. Satisfies the stadial security checklist for BTSP capability discovery.
+- **`primal.announce` handler**: New public method for self-registration — returns primal identity, version, domain, capability domain, full method list, and status. Satisfies the stadial discovery checklist.
+- **`count` field in `capabilities.list`**: Response now includes `"count": N` alongside `capabilities` and `primal` per the Capability Wire Standard shape.
+- **Stability tiers on all provided_capabilities**: Each capability group now carries a `"stability"` annotation (`stable`, `evolving`, or `compat`). 36 methods stable, 2 evolving (slice), 4 compat (permanence).
+- **`ecobin_grade` in `identity.get`**: Response now includes `"ecobin_grade": "A+"`, `"edition": "2024"`, and `"capability_domain": "ledger"`.
+- **BTSP security audit trail**: When `btsp_config` is active and a client sends plain JSON-RPC (no BTSP handshake), the server logs a security warning (auditable) while still allowing public methods (health probes, discovery) through.
+- **Stadial readiness documentation**: STATUS.md now includes full universal checklist results, stability tier matrix, degradation behavior runbook, and downstream pairing table.
+- **40 methods**: Added `btsp.capabilities` and `primal.announce`; method gate classifies both as Public.
+
 ### Changed (May 13, 2026 — GAP-36: Provenance Trio Wire Reconciliation)
 
 - **Session aliases for ledger capability**: `session.create` → `spine.create` and `session.state`/`session.get`/`ledger.create`/`ledger.get`/`ledger.state` → `spine.get` now routed via `normalize_method`. Downstream Nest sweeps (healthSpring) calling `session.create`/`session.state` on the `ledger` capability now reach the correct handlers instead of receiving `-32601 method not found`.

@@ -42,6 +42,7 @@
 //! - **Waypoint**: A local spine for borrowed state (slice anchoring)
 //! - **Capability**: A runtime-discovered service (signing, verification, etc.)
 
+#![recursion_limit = "256"]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]

@@ -201,6 +201,8 @@ Methods follow the `{domain}.{operation}` semantic naming standard
 | `lifecycle.status` | Service lifecycle status (primal, version, status, auth_mode) |
 | `capability.list` | List capabilities |
 | `btsp.negotiate` | BTSP Phase 3 cipher negotiation. Returns `chacha20-poly1305` + server nonce when Tower-provided handshake key is available; `null` fallback otherwise. On UDS, if `chacha20-poly1305` is selected, the server switches to encrypted framing (`[4B len][12B nonce][ciphertext + tag]`) for all subsequent messages on that connection. |
+| `btsp.capabilities` | Lists supported BTSP ciphers, HKDF algorithm, info labels, frame format, and provider model |
+| `primal.announce` | Self-registration: returns primal identity, version, domain, full method list, and status |
 | `permanence.commit_session` | Commit session (permanence alias) |
 | `permanence.verify_commit` | Verify a commit |
 | `permanence.get_commit` | Get a commit |

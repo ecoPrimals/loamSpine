@@ -79,12 +79,14 @@ impl AuthMode {
 /// Classify a canonical method name as Public or Protected.
 ///
 /// Public methods (always allowed):
-/// - `health.*`          — liveness / readiness / health check
-/// - `identity.get`      — primal identity discovery
-/// - `capabilities.list` — capability discovery
-/// - `lifecycle.status`  — service lifecycle status
-/// - `auth.*`            — auth introspection
-/// - `tools.list`        — MCP tool discovery
+/// - `health.*`            — liveness / readiness / health check
+/// - `auth.*`              — auth introspection
+/// - `identity.get`        — primal identity discovery
+/// - `capabilities.list`   — capability discovery
+/// - `lifecycle.status`    — service lifecycle status
+/// - `primal.announce`     — self-registration
+/// - `btsp.capabilities`   — BTSP cipher/feature discovery
+/// - `tools.list`          — MCP tool discovery
 ///
 /// Everything else is Protected.
 #[must_use]
@@ -93,9 +95,12 @@ pub fn classify_method(method: &str) -> MethodAccess {
         return MethodAccess::Public;
     }
     match method {
-        "identity.get" | "capabilities.list" | "lifecycle.status" | "tools.list" => {
-            MethodAccess::Public
-        }
+        "identity.get"
+        | "capabilities.list"
+        | "lifecycle.status"
+        | "primal.announce"
+        | "btsp.capabilities"
+        | "tools.list" => MethodAccess::Public,
         _ => MethodAccess::Protected,
     }
 }

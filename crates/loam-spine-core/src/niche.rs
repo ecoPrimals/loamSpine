@@ -78,7 +78,9 @@ pub const METHODS: &[&str] = &[
     "bonding.ledger.list",
     // BTSP Phase 3
     "btsp.negotiate",
+    "btsp.capabilities",
     // Infrastructure (public)
+    "primal.announce",
     "health.check",
     "health.liveness",
     "health.readiness",

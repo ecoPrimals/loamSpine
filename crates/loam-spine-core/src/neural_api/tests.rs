@@ -540,6 +540,8 @@ fn mcp_tools_cover_all_methods_in_capability_list() {
         "auth.mode",
         "auth.peer_info",
         "btsp.negotiate",
+        "btsp.capabilities",
+        "primal.announce",
         "permanence.commit_session",
         "permanence.verify_commit",
         "permanence.get_commit",

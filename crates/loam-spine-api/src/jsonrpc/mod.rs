@@ -142,6 +142,40 @@ impl LoamSpineJsonRpc {
         Box::pin(self.dispatch_inner(method, params))
     }
 
+    fn dispatch_infra(
+        &self,
+        method: &str,
+    ) -> Result<serde_json::Value, wire::JsonRpcError> {
+        match method {
+            "lifecycle.status" => ser(serde_json::json!({
+                "primal": loam_spine_core::primal_names::SELF_ID,
+                "version": env!("CARGO_PKG_VERSION"),
+                "status": "running",
+                "auth_mode": self.gate.current_mode().as_str(),
+            })),
+            "btsp.capabilities" => ser(serde_json::json!({
+                "ciphers": ["chacha20-poly1305", "null"],
+                "hkdf": "sha256",
+                "info_labels": ["btsp-session-v1-c2s", "btsp-session-v1-s2c"],
+                "frame_format": "[4B len][12B nonce][ciphertext + tag]",
+                "provider": "tower-delegated",
+            })),
+            "primal.announce" => ser(serde_json::json!({
+                "primal": loam_spine_core::primal_names::SELF_ID,
+                "version": env!("CARGO_PKG_VERSION"),
+                "domain": loam_spine_core::primal_names::LEGACY_DOMAIN,
+                "capability_domain": loam_spine_core::primal_names::CAPABILITY_DOMAIN,
+                "methods": loam_spine_core::niche::METHODS,
+                "status": "running",
+            })),
+            _ => Err(wire::JsonRpcError {
+                code: METHOD_NOT_FOUND,
+                message: format!("method not found: {method}"),
+                data: None,
+            }),
+        }
+    }
+
     fn dispatch_auth(
         &self,
         method: &str,
@@ -169,7 +203,8 @@ impl LoamSpineJsonRpc {
             "auth.mode" => ser(serde_json::json!({
                 "mode": self.gate.current_mode().as_str(),
                 "public_prefixes": ["health.*", "auth.*"],
-                "public_methods": ["identity.get", "capabilities.list", "tools.list"],
+                "public_methods": ["identity.get", "capabilities.list", "lifecycle.status",
+                                   "primal.announce", "btsp.capabilities", "tools.list"],
             })),
             "auth.peer_info" => ser(serde_json::json!({
                 "authenticated": false,
@@ -223,13 +258,9 @@ impl LoamSpineJsonRpc {
             }
 
             "auth.check" | "auth.mode" | "auth.peer_info" => self.dispatch_auth(method, &params),
-
-            "lifecycle.status" => ser(serde_json::json!({
-                "primal": loam_spine_core::primal_names::SELF_ID,
-                "version": env!("CARGO_PKG_VERSION"),
-                "status": "running",
-                "auth_mode": self.gate.current_mode().as_str(),
-            })),
+            "lifecycle.status" | "btsp.capabilities" | "primal.announce" => {
+                self.dispatch_infra(method)
+            }
 
             "session.commit" => rpc!(params, commit_session),
             "braid.commit" => rpc!(params, commit_braid),

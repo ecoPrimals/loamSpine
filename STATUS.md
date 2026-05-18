@@ -23,7 +23,7 @@ This document tracks implementation progress against the specification suite in 
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
 | [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | COMPLETE | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig` with `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective). `AttestationResult` for capability-discovered attestation providers. `PropagationPolicy`, `SliceTerms`, `SliceOperationType`, `WaypointSummary` types defined. `RelendingChain` with multi-hop sublend/return. `ExpirySweeper` for auto-return. |
 | [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | COMPLETE | Core CRUD + loan/return + sublend + `verify_certificate` + `generate_provenance_proof` + escrow + `UsageSummary` integrated into `CertificateReturn` and `LoanRecord`. `WaypointSummary` re-used from waypoint module. Scyborg license schema. Certificate module: types, lifecycle, metadata, provenance, escrow, usage, tests. |
-| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 38 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
+| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 40 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory and redb (default); sled and SQLite removed (stadial compliance). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,522 (184 source files) |
+| Tests | — | 1,522 (185 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -83,6 +83,68 @@ This document tracks implementation progress against the specification suite in 
 | BTSP Phase 3 | PASS | `btsp.negotiate` returns `cipher: "chacha20-poly1305"` (plus server nonce) when a Tower-provided handshake key is available; falls back to `cipher: "null"` for unauthenticated covalent bonds. **Transport verified**: after negotiate, UDS accept loop enters `handle_encrypted_stream` using `read_encrypted_frame`/`write_encrypted_frame` for all subsequent messages on that connection. |
 | File size limit | PASS | All source files under 1000 lines. |
 | Stadial parity gate | PASS | April 16, 2026 — storage backends reduced to redb (default) + memory; sled and SQLite removed; `hickory-resolver` 0.24→0.26; lockfile cleared of sled/libsqlite3-sys/rusqlite/instant/fxhash; `cargo deny` bans + advisories clean; dyn audit non-blocking (72 total usages). |
+
+---
+
+## Stadial Readiness (May 17, 2026)
+
+### Universal Checklist
+
+| Area | Item | Status |
+|------|------|--------|
+| Runtime | Health triad (liveness/readiness/check) | PASS |
+| Runtime | UDS at `$XDG_RUNTIME_DIR/biomeos/loamspine.sock` | PASS |
+| Runtime | TCP fallback via `LOAMSPINE_JSONRPC_PORT` | PASS |
+| Runtime | `server` subcommand with `--port` | PASS |
+| Runtime | Standalone startup without FAMILY_ID | PASS |
+| Discovery | `capabilities.list` with `count`, `primal`, `capabilities` | PASS |
+| Discovery | `identity.get` canonical response | PASS |
+| Discovery | `primal.announce` self-registration | PASS |
+| Discovery | `{domain}.{operation}` method naming | PASS |
+| Security | BTSP when FAMILY_ID is non-default | PASS |
+| Security | ChaCha20-Poly1305 + HKDF-SHA256 | PASS |
+| Security | BIOMEOS_INSECURE + FAMILY_ID refused | PASS |
+| Security | `btsp.capabilities` registered | PASS |
+| Security | Zero metadata leakage | PASS |
+| Security | UDS-first, TCP opt-in | PASS |
+| Security | deny.toml bans ring/openssl/aws-lc-sys | PASS |
+| Build | `edition = "2024"` | PASS |
+| Build | `notify-plasmidbin.yml` | PASS |
+| Build | musl-static clean | PASS |
+| Docs | README version matches | PASS |
+| Docs | CHANGELOG recent | PASS |
+| Docs | STATUS.md current status | PASS |
+
+### Stability Tiers
+
+All 40 methods have stability annotations in `capabilities.list` response:
+- **stable**: spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, lifecycle, health, auth, primal (36 methods)
+- **evolving**: slice (2 methods)
+- **compat**: permanence (4 methods — legacy naming)
+
+### Degradation Behavior
+
+When loamSpine is unavailable:
+- **Provenance trio** (rhizoCrypt → loamSpine → sweetGrass): DAG sessions can still complete, but permanent certificates cannot be minted. rhizoCrypt retains dehydration summaries for later commit when loamSpine returns. No data loss.
+- **Entry signing**: If BEARDOG_SOCKET is also unavailable, entries are stored unsigned. Signature metadata field is empty. Entries can be signed retroactively.
+- **Health probes**: Downstream discovery marks loamSpine as unhealthy. Composition fallback to cached capability lists.
+- **Bonding ledger**: Ionic bond contracts cannot be persisted. Bond negotiation fails gracefully — bonds are not established until ledger confirms storage.
+- **Slice anchoring**: Waypoint operations fail. Slices remain local and can be anchored when service returns.
+
+### Downstream Pairing
+
+| Consumer | Dependency | Priority |
+|----------|-----------|----------|
+| sweetGrass | Braid permanence — `session.commit` + entry certificates | HIGH |
+| rhizoCrypt | Dehydration target — DAG Merkle roots committed via `permanence.commit_session` | HIGH |
+| primalSpring | Guidestone validation — ledger state via `spine.get` | MEDIUM |
+| healthSpring | Clinical data pipeline — Nest atomic validation via `session.create`/`session.state` aliases | MEDIUM |
+| lithoSpore | Ledger verification — USB deployment evidence chain | STADIAL |
+| projectFOUNDATION | Immutable evidence — thread lineage permanence | STADIAL |
+
+### ecoBin Grade: A+
+
+Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
 
 ---
 

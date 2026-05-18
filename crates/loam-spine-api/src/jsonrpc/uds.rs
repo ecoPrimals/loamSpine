@@ -236,6 +236,18 @@ async fn handle_uds_connection(
                 );
                 Ok(())
             }
+        } else if btsp_config.is_some() {
+            // BTSP is configured (FAMILY_ID is non-default) but the client
+            // sent plain JSON-RPC instead of a BTSP handshake. Allow the
+            // connection (health probes + discovery need to work without
+            // BTSP) but log a security warning for audit. Protected methods
+            // are gated by the JH-0 MethodGate in enforced mode.
+            warn!(
+                "Plain JSON-RPC connection while BTSP is configured — \
+                 client should send BTSP handshake for protected operations"
+            );
+            super::server::handle_stream_with_first_line(handler, buf_reader, writer, &first_line)
+                .await
         } else {
             super::server::handle_stream_with_first_line(handler, buf_reader, writer, &first_line)
                 .await
