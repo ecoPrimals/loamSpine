@@ -39,7 +39,7 @@ use loam_spine_core::config::LoamSpineConfig;
 use loam_spine_core::constants::network;
 use loam_spine_core::error::OrExit;
 use loam_spine_core::service::LifecycleManager;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 /// `LoamSpine` — permanent ledger for the `ecoPrimals` ecosystem.
 #[derive(Parser)]
@@ -292,6 +292,23 @@ async fn run_server(
         }
     };
 
+    // Write PID file alongside the socket for instant liveness checks by
+    // consumers (kill(pid, 0) is faster than a connect-probe).
+    #[cfg(unix)]
+    let pid_path = {
+        let p = socket_path.with_extension("pid");
+        match std::fs::write(&p, std::process::id().to_string()) {
+            Ok(()) => {
+                debug!("PID file written: {}", p.display());
+                Some(p)
+            }
+            Err(e) => {
+                warn!("Could not write PID file {}: {e}", p.display());
+                None
+            }
+        }
+    };
+
     #[cfg(unix)]
     let family_id = std::env::var("BIOMEOS_FAMILY_ID").ok();
 
@@ -407,8 +424,8 @@ async fn run_server(
 
     lifecycle.stop().await?;
 
-    // Clean up sockets and symlinks on graceful shutdown
-    // per PRIMAL_SELF_KNOWLEDGE_STANDARD §3 requirement
+    // Clean up sockets, symlinks, and PID file on graceful shutdown
+    // per PRIMAL_SELF_KNOWLEDGE_STANDARD §3 + STALE_SOCKET_CLEANUP_STANDARD
     #[cfg(unix)]
     {
         drop(uds_handle);
@@ -417,6 +434,9 @@ async fn run_server(
         }
         if let Some(link) = legacy_symlink {
             let _ = std::fs::remove_file(&link);
+        }
+        if let Some(ref p) = pid_path {
+            let _ = std::fs::remove_file(p);
         }
     }
 

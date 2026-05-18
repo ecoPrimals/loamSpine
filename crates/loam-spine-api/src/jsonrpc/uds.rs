@@ -96,11 +96,17 @@ pub async fn run_jsonrpc_uds_server_with_gate(
         })?;
     }
 
-    if path.exists() {
-        std::fs::remove_file(&path).map_err(|e| ServerError::Bind {
-            context: "cannot remove stale socket".into(),
-            source: e,
-        })?;
+    // Remove stale socket from a prior crash/shutdown — unconditional to
+    // avoid TOCTOU between exists() and remove_file(). NotFound is harmless.
+    match std::fs::remove_file(&path) {
+        Ok(()) => debug!("Removed stale socket at {}", path.display()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            return Err(ServerError::Bind {
+                context: "cannot remove stale socket".into(),
+                source: e,
+            });
+        }
     }
 
     let listener = tokio::net::UnixListener::bind(&path).map_err(|e| ServerError::Bind {

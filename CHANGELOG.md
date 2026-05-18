@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 18, 2026 — Stale Socket Cleanup)
+
+- **TOCTOU-safe socket cleanup**: Pre-bind `remove_file` no longer checks `path.exists()` first — unconditional remove with `NotFound` silenced. Eliminates the race window between `exists()` and `remove_file()` per `STALE_SOCKET_CLEANUP_UPSTREAM_MAY18_2026.md`.
+- **PID file**: `loamspine.pid` written alongside the socket after UDS bind succeeds. Enables instant liveness checks by consumers (`kill(pid, 0)`). Cleaned up on graceful shutdown.
+
 ### Added (May 17, 2026 — Wave 22: Stadial Gate Readiness)
 
 - **`btsp.capabilities` handler**: New public method returning supported BTSP ciphers (`chacha20-poly1305`, `null`), HKDF algorithm, info labels, frame format, and provider model. Satisfies the stadial security checklist for BTSP capability discovery.
