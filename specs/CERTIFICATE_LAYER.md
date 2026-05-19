@@ -12,10 +12,11 @@
 
 The **Loam Certificate Layer** defines memory-bound objects—digital assets with verifiable ownership, transferability, and complete provenance history. Certificates are the primary mechanism for representing value in the ecoPrimals ecosystem.
 
-Unlike blockchain NFTs, Loam Certificates:
+Loam Certificates are Novel Ferment Transcripts — value from accumulated history:
 - Are **sovereign** (owned by individuals, not platforms)
 - Are **lendable** (can be temporarily transferred)
 - Have **complete history** (every transfer, loan, and operation is recorded)
+- Are **publicly anchorable** (optional: stamp state hash to Bitcoin/Ethereum for external proof)
 - Support **recursive stacking** (certificates can reference other certificates)
 
 ---

@@ -130,6 +130,47 @@ pub struct SealSpineResponse {
     pub seal_hash: Option<EntryHash>,
 }
 
+/// Request to list all spines.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ListSpinesRequest {}
+
+/// Response listing all spine IDs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListSpinesResponse {
+    /// All spine IDs in the store
+    pub spine_ids: Vec<SpineId>,
+    /// Number of spines
+    pub count: usize,
+}
+
+/// Request to list entries in a spine (paginated).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListEntriesRequest {
+    /// Spine ID to query
+    pub spine_id: SpineId,
+    /// Start index (0-based)
+    #[serde(default)]
+    pub start: u64,
+    /// Maximum entries to return (default 100)
+    #[serde(default = "default_entry_limit")]
+    pub limit: u64,
+}
+
+fn default_entry_limit() -> u64 {
+    100
+}
+
+/// Response containing a page of entries.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListEntriesResponse {
+    /// Entries in the requested range
+    pub entries: Vec<Entry>,
+    /// Number of entries returned
+    pub count: usize,
+    /// Whether more entries exist beyond this page
+    pub has_more: bool,
+}
+
 // ============================================================================
 // Entry Operations
 // ============================================================================

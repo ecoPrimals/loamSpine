@@ -192,7 +192,9 @@ mod tests {
     fn classify_protected_methods() {
         assert_eq!(classify_method("spine.create"), MethodAccess::Protected);
         assert_eq!(classify_method("spine.get"), MethodAccess::Protected);
+        assert_eq!(classify_method("spine.list"), MethodAccess::Protected);
         assert_eq!(classify_method("entry.append"), MethodAccess::Protected);
+        assert_eq!(classify_method("entry.list"), MethodAccess::Protected);
         assert_eq!(classify_method("session.commit"), MethodAccess::Protected);
         assert_eq!(classify_method("certificate.mint"), MethodAccess::Protected);
         assert_eq!(classify_method("braid.commit"), MethodAccess::Protected);

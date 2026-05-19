@@ -200,7 +200,7 @@ cd 01-local-primal/01-hello-loamspine
 ---
 
 ### 2. Certificate Lifecycle (Level 1) 🎫
-**Why it matters**: NFT-like ownership without blockchain
+**Why it matters**: Memory-bound digital ownership — Novel Ferment Transcripts
 
 ```bash
 cd 01-local-primal/03-certificate-lifecycle

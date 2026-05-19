@@ -2,9 +2,10 @@
 
 //! Certificate types for LoamSpine.
 //!
-//! Certificates are memory-bound objects with verifiable ownership,
-//! transferability, and complete provenance history. Unlike blockchain NFTs,
-//! Loam Certificates are sovereign, lendable, and have complete history.
+//! Certificates are memory-bound objects (Novel Ferment Transcripts) with
+//! verifiable ownership, transferability, and complete provenance history.
+//! Value derives from accumulated history, not artificial scarcity.
+//! Sovereign, lendable, publicly anchorable.
 
 mod escrow;
 mod lifecycle;

@@ -140,7 +140,7 @@ main() {
     demo_pause
     
     log_section "5. CertificateMint (Digital Ownership)"
-    log_info "Purpose: Mint a new certificate (like NFT)"
+    log_info "Purpose: Mint a new memory-bound certificate"
     log_info "Used by: Creating digital ownership"
     log_info "Contains: Certificate ID, type, owner, metadata"
     log_info ""

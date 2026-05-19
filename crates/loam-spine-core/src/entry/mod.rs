@@ -209,24 +209,31 @@ impl Entry {
 
 /// Target system for public chain anchoring.
 ///
-/// Follows the spec's philosophy: data commons and federated spines are
-/// preferred over currency chains (zero transaction cost, self-sovereign).
+/// Multi-target by design: different anchors serve different purposes.
+/// Bitcoin/Ethereum are public immutable ledgers — gas cost buys public
+/// verifiability, nothing more. RFC 3161 TSA provides legal-grade timestamps.
+/// Federated spines and data commons serve cross-trust and persistence roles.
 /// Chain-agnostic — any append-only ledger works.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum AnchorTarget {
-    /// Bitcoin (high security, slow, expensive).
+    /// Bitcoin OP_RETURN — strongest public immutability proof.
     Bitcoin,
-    /// Ethereum (programmable, moderate cost).
+    /// Ethereum event log or L2 — faster confirmation, lower cost via rollups.
     Ethereum,
-    /// Federated LoamSpine instance (preferred — zero cost, self-sovereign).
+    /// RFC 3161 TSA — legal-grade timestamp (ISO 18014-2), zero cost, sub-second.
+    Rfc3161Tsa {
+        /// TSA endpoint URL.
+        tsa_url: String,
+    },
+    /// Federated LoamSpine instance — cross-trust-domain verification.
     FederatedSpine {
         /// Peer identifier of the federated spine.
         peer_id: String,
     },
-    /// Data commons (preferred — zero transaction cost).
+    /// Data commons (IPFS, Arweave) — content-addressed persistence.
     DataCommons {
-        /// Commons identifier.
+        /// Commons identifier (e.g. `"ipfs:<cid>"`).
         commons_id: String,
     },
     /// Any other append-only system.

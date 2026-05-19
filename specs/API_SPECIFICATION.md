@@ -180,10 +180,12 @@ Methods follow the `{domain}.{operation}` semantic naming standard
 |--------|-------------|
 | `spine.create` | Create a new spine |
 | `spine.get` | Get spine by ID |
+| `spine.list` | List all spine IDs (paginated) |
 | `spine.seal` | Seal a spine |
 | `entry.append` | Append entry to spine |
 | `entry.get` | Get entry by hash |
 | `entry.get_tip` | Get tip entry |
+| `entry.list` | List entries in a spine (paginated, `start`/`limit`) |
 | `certificate.mint` | Mint certificate |
 | `certificate.get` | Get certificate |
 | `certificate.transfer` | Transfer certificate |
@@ -193,16 +195,25 @@ Methods follow the `{domain}.{operation}` semantic naming standard
 | `slice.checkout` | Checkout slice |
 | `proof.generate_inclusion` | Generate proof |
 | `proof.verify_inclusion` | Verify proof |
+| `anchor.publish` | Record a public chain anchor receipt on a spine |
+| `anchor.verify` | Verify an anchor receipt against the spine state |
 | `session.commit` | Commit session |
 | `braid.commit` | Commit braid |
+| `bonding.ledger.store` | Store a bond in the ionic bond ledger |
+| `bonding.ledger.retrieve` | Retrieve a bond by ID |
+| `bonding.ledger.list` | List all bond IDs |
 | `health.check` | Health check |
 | `health.liveness` | Liveness probe |
 | `health.readiness` | Readiness probe |
+| `identity.get` | Primal identity (name, version, domain, ecobin_grade) |
+| `capabilities.list` | List capabilities with method count, stability tiers, cost estimates |
 | `lifecycle.status` | Service lifecycle status (primal, version, status, auth_mode) |
-| `capability.list` | List capabilities |
-| `btsp.negotiate` | BTSP Phase 3 cipher negotiation. Returns `chacha20-poly1305` + server nonce when Tower-provided handshake key is available; `null` fallback otherwise. On UDS, if `chacha20-poly1305` is selected, the server switches to encrypted framing (`[4B len][12B nonce][ciphertext + tag]`) for all subsequent messages on that connection. |
-| `btsp.capabilities` | Lists supported BTSP ciphers, HKDF algorithm, info labels, frame format, and provider model |
-| `primal.announce` | Self-registration: returns primal identity, version, domain, full method list, and status |
+| `btsp.negotiate` | BTSP Phase 3 cipher negotiation |
+| `btsp.capabilities` | Lists supported BTSP ciphers, HKDF algorithm, info labels, frame format |
+| `primal.announce` | Self-registration: returns primal identity, version, domain, full method list |
+| `auth.check` | Check current auth status |
+| `auth.mode` | Report current auth mode (permissive/enforced) |
+| `auth.peer_info` | Report peer connection info |
 | `permanence.commit_session` | Commit session (permanence alias) |
 | `permanence.verify_commit` | Verify a commit |
 | `permanence.get_commit` | Get a commit |

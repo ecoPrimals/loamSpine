@@ -48,7 +48,7 @@ cat << 'EOF'
 
 This 5-minute demo shows:
   1️⃣  Create your first sovereign spine
-  2️⃣  Mint an NFT-like certificate
+  2️⃣  Mint a memory-bound certificate (Novel Ferment Transcript)
   3️⃣  Generate cryptographic proofs
   4️⃣  See Pure Rust RPC in action
 
@@ -88,12 +88,12 @@ sleep 2
 # Demo 2: Certificates
 # ============================================================================
 
-print_step "Demo 2/4: Minting an NFT-like Certificate..."
+print_step "Demo 2/4: Minting a Memory-Bound Certificate..."
 
 cd ../03-certificate-lifecycle
 
 echo ""
-print_info "Certificates in LoamSpine work like NFTs, but without blockchain..."
+print_info "Certificates in LoamSpine are memory-bound objects — value from accumulated history..."
 sleep 1
 
 # Run certificate example
@@ -211,7 +211,7 @@ EOF
 
 echo -e "${GREEN}What you just saw:${NC}"
 echo "  ✅ Sovereign spine creation (your data, your control)"
-echo "  ✅ NFT-like certificates (without blockchain)"
+echo "  ✅ Memory-bound certificates (Novel Ferment Transcripts)"
 echo "  ✅ Cryptographic proofs (mathematically verifiable)"
 echo "  ✅ Pure Rust RPC (no gRPC, no protobuf)"
 echo ""

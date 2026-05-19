@@ -583,18 +583,69 @@ async fn invalid_params_permanence_get_commit_returns_error() {
 }
 
 #[tokio::test]
-async fn spine_list_method_not_in_dispatch() {
+async fn spine_list_returns_empty_on_fresh_server() {
     let server = LoamSpineJsonRpc::default_server();
     let rpc_req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),
         method: "spine.list".to_string(),
-        params: serde_json::Value::Null,
+        params: serde_json::json!({}),
         id: serde_json::Value::Number(1.into()),
     };
     let resp = server.handle_request(rpc_req).await;
-    assert!(resp.error.is_some());
-    assert_eq!(resp.error.as_ref().unwrap().code, -32601);
-    assert!(resp.error.as_ref().unwrap().message.contains("spine.list"));
+    assert!(resp.error.is_none(), "spine.list should succeed");
+    let result = resp.result.unwrap();
+    assert_eq!(result["count"], 0);
+    assert!(result["spine_ids"].as_array().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn entry_list_returns_entries_for_populated_spine() {
+    use crate::types::{CreateSpineRequest, Did, AppendEntryRequest, EntryType};
+    let server = LoamSpineJsonRpc::default_server();
+
+    let create_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "spine.create".to_string(),
+        params: serde_json::to_value(CreateSpineRequest {
+            name: "test".into(),
+            owner: Did::new("did:key:z6MkTest"),
+            config: None,
+        }).unwrap(),
+        id: serde_json::Value::Number(1.into()),
+    };
+    let create_resp = server.handle_request(create_req).await;
+    let spine_id_str = create_resp.result.as_ref().unwrap()["spine_id"]
+        .as_str()
+        .unwrap();
+
+    let append_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "entry.append".to_string(),
+        params: serde_json::to_value(AppendEntryRequest {
+            spine_id: spine_id_str.parse().unwrap(),
+            entry_type: EntryType::DataAnchor {
+                data_hash: [1u8; 32],
+                mime_type: Some("text/plain".into()),
+                size: 42,
+            },
+            committer: None,
+            payload: None,
+        }).unwrap(),
+        id: serde_json::Value::Number(2.into()),
+    };
+    server.handle_request(append_req).await;
+
+    let list_req = JsonRpcRequest {
+        jsonrpc: "2.0".to_string(),
+        method: "entry.list".to_string(),
+        params: serde_json::json!({"spine_id": spine_id_str}),
+        id: serde_json::Value::Number(3.into()),
+    };
+    let resp = server.handle_request(list_req).await;
+    assert!(resp.error.is_none(), "entry.list should succeed");
+    let result = resp.result.unwrap();
+    assert!(result["count"].as_u64().unwrap() >= 2); // genesis + data anchor
+    assert!(!result["has_more"].as_bool().unwrap());
 }
 
 // ========================================================================

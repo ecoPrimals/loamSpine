@@ -238,11 +238,13 @@ impl LoamSpineJsonRpc {
         match method {
             "spine.create" => rpc!(params, create_spine),
             "spine.get" => rpc!(params, get_spine),
+            "spine.list" => rpc!(params, list_spines),
             "spine.seal" => rpc!(params, seal_spine),
 
             "entry.append" => rpc!(params, append_entry),
             "entry.get" => rpc!(params, get_entry),
             "entry.get_tip" => rpc!(params, get_tip),
+            "entry.list" => rpc!(params, list_entries),
 
             "certificate.mint" => rpc!(params, mint_certificate),
             "certificate.transfer" => rpc!(params, transfer_certificate),

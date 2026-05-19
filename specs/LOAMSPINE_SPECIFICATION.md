@@ -355,13 +355,21 @@ JSON-RPC methods: `anchor.publish` (record receipt), `anchor.verify` (verify sta
 recorded anchor). See `crates/loam-spine-core/src/entry/mod.rs` and
 `crates/loam-spine-core/src/service/anchor.rs` for the implementation.
 
-**Philosophy**: We prefer anchoring to **data commons** (gAIa, federated spines) rather than currency chains (BTC, ETH). This provides:
-- Self-sovereign verification (no external dependency)
-- Zero transaction costs for network participants
-- Alignment with ecoPrimals values (data > currency)
-- Federated trust rather than economic consensus
+**Philosophy**: loamSpine and rhizoCrypt layer and evolve internally with no
+external dependency. "Publishing" a study or provenance milestone means stamping
+its state hash to an established immutable public ledger — Bitcoin, Ethereum, or
+similar. The gas cost is the price of public verifiability; there is explicitly
+**no other interaction with cryptocurrency** (no tokens, no DeFi, no ongoing
+balance). This mirrors the cellMembrane/projectNUCLEUS pattern of using available
+infrastructure (VPS, GitHub, public chains) on the path to full sovereignty.
 
-Currency chains remain an **option** for use cases requiring external witnesses, but are not the default.
+Anchor targets serve different purposes:
+- **Bitcoin/Ethereum** — public immutability proof (gas cost only)
+- **RFC 3161 TSA** — legal-grade timestamp (free, sub-second, ISO compliant)
+- **Data Commons / IPFS** — content-addressed persistence
+- **Federated Spine** — cross-trust-domain verification
+
+See [PUBLIC_TIMESTAMPING.md](PUBLIC_TIMESTAMPING.md) for the full exploration spec.
 
 ---
 
@@ -398,10 +406,11 @@ canonical form specification.
 
 ### Certificate Model
 
-Certificates are "memory-bound objects" -- digital ownership records that carry their
-complete provenance history. Unlike NFTs, they support lending, time-limited access,
-automatic return, and waypoint anchoring. Full lifecycle specification is in
-[CERTIFICATE_LAYER.md](CERTIFICATE_LAYER.md).
+Certificates are memory-bound objects — Novel Ferment Transcripts whose value derives
+from accumulated history, not artificial scarcity. They support lending, time-limited
+access, automatic return, and waypoint anchoring. Optional public chain anchoring
+stamps the spine state to Bitcoin/Ethereum for external verifiability. Full lifecycle
+specification is in [CERTIFICATE_LAYER.md](CERTIFICATE_LAYER.md).
 
 ---
 

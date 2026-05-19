@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Demo: Certificate Lifecycle - Full Mint → Transfer → Loan → Return Flow
-# Shows digital ownership patterns (NFT-like certificates)
+# Shows memory-bound digital ownership (Novel Ferment Transcripts)
 
 set -euo pipefail
 
@@ -32,7 +32,7 @@ main() {
     log_header "🦴 Certificate Lifecycle - Digital Ownership"
     
     log_info "This demo shows:"
-    log_info "  • Minting a certificate (like NFT creation)"
+    log_info "  • Minting a certificate (creating a memory-bound object)"
     log_info "  • Transferring ownership (selling/gifting)"
     log_info "  • Loaning certificate temporarily (lending)"
     log_info "  • Returning loaned certificate"
@@ -120,7 +120,7 @@ EOF
 
 Supported Types:
   • DigitalGameKey - Game license or achievement
-  • DigitalCollectible - NFT-like collectible
+  • DigitalCollectible - Memory-bound collectible (Novel Ferment Transcript)
   • AccessToken - Access rights certificate
   • CredentialProof - Identity/qualification proof
   • Custom - Domain-specific certificates

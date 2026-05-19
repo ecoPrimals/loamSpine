@@ -72,6 +72,35 @@ impl LoamSpineRpcService {
         })
     }
 
+    /// List entries in a spine (paginated).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if spine not found or storage query fails.
+    pub async fn list_entries(
+        &self,
+        request: ListEntriesRequest,
+    ) -> ApiResult<ListEntriesResponse> {
+        let core = self.core().await;
+        let entries = core
+            .get_entries(request.spine_id, request.start, request.limit + 1)
+            .await
+            .map_err(ApiError::from)?;
+        drop(core);
+
+        let has_more = entries.len() as u64 > request.limit;
+        let entries: Vec<_> = entries
+            .into_iter()
+            .take(request.limit as usize)
+            .collect();
+        let count = entries.len();
+        Ok(ListEntriesResponse {
+            entries,
+            count,
+            has_more,
+        })
+    }
+
     /// Get the tip entry.
     ///
     /// # Errors

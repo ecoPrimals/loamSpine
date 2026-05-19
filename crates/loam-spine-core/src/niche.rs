@@ -49,11 +49,13 @@ pub const METHODS: &[&str] = &[
     // Spine lifecycle
     "spine.create",
     "spine.get",
+    "spine.list",
     "spine.seal",
     // Entry CRUD
     "entry.append",
     "entry.get",
     "entry.get_tip",
+    "entry.list",
     // Certificate lifecycle
     "certificate.mint",
     "certificate.transfer",

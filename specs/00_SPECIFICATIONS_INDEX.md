@@ -2,8 +2,8 @@
 
 # 🦴 LoamSpine — Specifications Index
 
-**Last Updated**: May 5, 2026  
-**Version**: 1.2.1  
+**Last Updated**: May 19, 2026  
+**Version**: 1.3.0  
 **Status**: Active
 
 ---
@@ -52,6 +52,7 @@ This directory contains the complete specification suite for LoamSpine, the perm
 | Document | Purpose | Status |
 |----------|---------|--------|
 | [COLLISION_LAYER_ARCHITECTURE.md](./COLLISION_LAYER_ARCHITECTURE.md) | Hash collision layers bridging linear ↔ DAG | 🔬 Proposal |
+| [PUBLIC_TIMESTAMPING.md](./PUBLIC_TIMESTAMPING.md) | WS-3: Public chain anchor — RFC 3161 TSA / data commons exploration | 🔬 Exploration |
 
 ---
 

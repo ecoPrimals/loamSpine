@@ -220,6 +220,15 @@ impl LoamSpineService {
         self.spine_storage.spine_count().await
     }
 
+    /// List all spine IDs.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if storage query fails.
+    pub async fn list_spine_ids(&self) -> LoamSpineResult<Vec<SpineId>> {
+        self.spine_storage.list_spines().await
+    }
+
     /// Get the number of stored entries.
     pub async fn entry_count(&self) -> usize {
         self.entry_storage.entry_count().await

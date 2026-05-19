@@ -40,6 +40,10 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 },
                 "required": ["spine_id"]
             })),
+            mcp_tool("spine_list", "List all spine IDs in the store", &serde_json::json!({
+                "type": "object",
+                "properties": {}
+            })),
             mcp_tool("spine_seal", "Seal a spine (make permanently read-only)", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -69,6 +73,15 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 "type": "object",
                 "properties": {
                     "spine_id": { "type": "integer", "description": "Spine ID" }
+                },
+                "required": ["spine_id"]
+            })),
+            mcp_tool("entry_list", "List entries in a spine (paginated)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "string", "description": "Spine UUID" },
+                    "start": { "type": "integer", "description": "Start index (0-based, default 0)", "default": 0 },
+                    "limit": { "type": "integer", "description": "Max entries to return (default 100)", "default": 100 }
                 },
                 "required": ["spine_id"]
             })),
@@ -251,10 +264,12 @@ pub fn mcp_tool_to_rpc(
     let method = match tool_name {
         "spine_create" => "spine.create",
         "spine_get" => "spine.get",
+        "spine_list" => "spine.list",
         "spine_seal" => "spine.seal",
         "entry_append" => "entry.append",
         "entry_get" => "entry.get",
         "entry_get_tip" => "entry.get_tip",
+        "entry_list" => "entry.list",
         "certificate_mint" => "certificate.mint",
         "certificate_get" => "certificate.get",
         "certificate_transfer" => "certificate.transfer",

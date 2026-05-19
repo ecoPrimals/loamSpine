@@ -278,7 +278,7 @@ EOF
     log_section "Digital Assets"
     cat <<EOF
 
-Scenario: Verify NFT/certificate ownership
+Scenario: Verify certificate ownership
 
 1. Certificate minted (creation proof)
 2. Transfers recorded (history proof)

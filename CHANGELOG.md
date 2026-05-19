@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (May 19, 2026 — WS-2/WS-3: Cross-Spring Query + Public Timestamping)
+
+- **`spine.list` method**: New RPC method listing all spine IDs in the store. Returns `{ spine_ids, count }`. Enables cross-spring enumeration for WS-2 (Cross-Spring Data Exchange).
+- **`entry.list` method**: New RPC method listing entries in a spine with pagination (`start`/`limit`). Returns `{ entries, count, has_more }`. Enables cross-spring provenance queries for WS-2.
+- **MCP tool coverage**: `spine_list` and `entry_list` tools added to MCP `tools/list` with `mcp_tool_to_rpc` mapping.
+- **Public Timestamping exploration spec**: `specs/PUBLIC_TIMESTAMPING.md` — WS-3 analysis of RFC 3161 TSA, blockchain anchors, data commons, and hybrid approaches. Recommends RFC 3161 TSA + data commons hybrid (zero-cost, legally recognized, pure Rust via `sigstore-tsa`).
+- **42 methods**: Added `spine.list` and `entry.list`; method gate classifies both as Protected.
+- **Doc drift resolved**: `API_SPECIFICATION.md` updated with all 42 methods (was missing `anchor.*`, `bonding.ledger.*`, `auth.*`, `identity.get`). `DATA_MODEL.md` updated from stale `ExternalAnchor` type to implemented `PublicChainAnchor`.
+- **3 new tests**: `spine_list_returns_empty_on_fresh_server`, `entry_list_returns_entries_for_populated_spine`, and method_gate coverage for new methods. Total: 1,523.
+
 ### Changed (May 18, 2026 — Stale Socket Cleanup)
 
 - **TOCTOU-safe socket cleanup**: Pre-bind `remove_file` no longer checks `path.exists()` first — unconditional remove with `NotFound` silenced. Eliminates the race window between `exists()` and `remove_file()` per `STALE_SOCKET_CLEANUP_UPSTREAM_MAY18_2026.md`.

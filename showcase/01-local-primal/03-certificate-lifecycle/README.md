@@ -1,4 +1,4 @@
-# 🎫 Certificate Lifecycle - NFT-like Digital Ownership
+# 🎫 Certificate Lifecycle - Memory-Bound Digital Ownership
 
 **Time**: 20 minutes  
 **Difficulty**: Intermediate  
@@ -37,7 +37,7 @@ Complete the loan, return to lender.
 - **Game Keys**: Publishers mint, retailers sell, players loan
 - **Collectibles**: Tournament items with provenance
 - **Achievements**: Certificates for in-game accomplishments
-- **Digital Art**: NFT-like ownership with lending
+- **Digital Art**: Sovereign ownership with lending
 
 ---
 

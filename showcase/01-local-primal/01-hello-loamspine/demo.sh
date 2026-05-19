@@ -183,7 +183,7 @@ EOF
     
     log_info "Next steps:"
     log_info "  • Explore 02-entry-types to see all 15+ entry types"
-    log_info "  • Try 03-certificate-lifecycle for NFT-like certificates"
+    log_info "  • Try 03-certificate-lifecycle for memory-bound certificates"
     log_info "  • Check out 04-proofs for inclusion and provenance proofs"
     echo ""
     

@@ -308,14 +308,16 @@ pub enum EntryType {
         summary: RollupSummary,
     },
     
-    // === External Anchors ===
+    // === External Anchors (Implemented) ===
     
-    /// Anchor to external system
-    ExternalAnchor {
-        entry: EntryHash,
-        anchor_type: ExternalAnchorType,
-        anchor_ref: String,
-        proof: Option<AnchorProof>,
+    /// Anchor spine state to an external verifiable ledger.
+    /// loamSpine records the receipt; submission delegated to a "chain-anchor" primal.
+    PublicChainAnchor {
+        anchor_target: AnchorTarget,
+        state_hash: ContentHash,
+        tx_ref: String,
+        block_height: u64,
+        anchor_timestamp: Timestamp,
     },
     
     // === Attestations ===
@@ -354,7 +356,7 @@ impl EntryType {
             Self::SliceOperation { .. } | Self::SliceDeparture { .. } | 
             Self::SliceReturn { .. } => "slice",
             Self::SpineReference { .. } | Self::Rollup { .. } => "stacking",
-            Self::ExternalAnchor { .. } => "external",
+            Self::PublicChainAnchor { .. } => "external",
             Self::Attestation { .. } | Self::Revocation { .. } => "attestation",
             Self::Custom { .. } => "custom",
         }
