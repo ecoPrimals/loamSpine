@@ -9,6 +9,7 @@
 
 use crate::entry::{AnchorTarget, Entry, EntryType};
 use crate::error::{LoamSpineError, LoamSpineResult};
+use crate::proof::{compute_merkle_root, generate_aggregate_proof};
 use crate::storage::{EntryStorage, SpineStorage};
 use crate::types::{ContentHash, EntryHash, SpineId, Timestamp};
 
@@ -20,6 +21,26 @@ pub struct AnchorReceipt {
     /// Hash of the new `PublicChainAnchor` entry on the spine.
     pub entry_hash: EntryHash,
     /// The spine state hash that was anchored.
+    pub state_hash: ContentHash,
+}
+
+/// Result of recording a batch aggregate anchor across multiple spines.
+#[derive(Clone, Debug)]
+pub struct AnchorBatchReceipt {
+    /// The aggregate Merkle root of all state hashes.
+    pub aggregate_root: ContentHash,
+    /// Per-spine anchor results.
+    pub entries: Vec<AnchorBatchEntry>,
+}
+
+/// Per-spine result within a batch anchor.
+#[derive(Clone, Debug)]
+pub struct AnchorBatchEntry {
+    /// Spine that was anchored.
+    pub spine_id: SpineId,
+    /// Hash of the new `PublicChainAnchor` entry on this spine.
+    pub entry_hash: EntryHash,
+    /// This spine's state hash (leaf in aggregate tree).
     pub state_hash: ContentHash,
 }
 
@@ -39,6 +60,8 @@ pub struct AnchorVerification {
     pub block_height: u64,
     /// When the anchor was confirmed externally.
     pub anchor_timestamp: Timestamp,
+    /// If part of an aggregate batch, whether the inclusion proof verified.
+    pub aggregate_verified: Option<bool>,
 }
 
 impl LoamSpineService {
@@ -78,6 +101,8 @@ impl LoamSpineService {
             tx_ref,
             block_height,
             anchor_timestamp,
+            aggregate_root: None,
+            inclusion_proof: None,
         });
 
         let entry_hash = spine.append(entry)?;
@@ -123,7 +148,7 @@ impl LoamSpineService {
             None => Self::find_latest_anchor(&spine)?,
         };
 
-        let (anchor_target, state_hash, tx_ref, block_height, anchor_timestamp) =
+        let (anchor_target, state_hash, tx_ref, block_height, anchor_timestamp, agg_root, inc_proof) =
             match &anchor_entry.entry_type {
                 EntryType::PublicChainAnchor {
                     anchor_target,
@@ -131,12 +156,16 @@ impl LoamSpineService {
                     tx_ref,
                     block_height,
                     anchor_timestamp,
+                    aggregate_root,
+                    inclusion_proof,
                 } => (
                     anchor_target.clone(),
                     *state_hash,
                     tx_ref.clone(),
                     *block_height,
                     *anchor_timestamp,
+                    *aggregate_root,
+                    inclusion_proof.clone(),
                 ),
                 _ => {
                     return Err(LoamSpineError::InvalidEntryType(
@@ -156,6 +185,11 @@ impl LoamSpineService {
             false
         };
 
+        let aggregate_verified = match (&agg_root, &inc_proof) {
+            (Some(root), Some(proof)) => Some(proof.verify(root)),
+            _ => None,
+        };
+
         Ok(AnchorVerification {
             verified,
             anchor_target,
@@ -163,6 +197,89 @@ impl LoamSpineService {
             tx_ref,
             block_height,
             anchor_timestamp,
+            aggregate_verified,
+        })
+    }
+
+    /// Record an aggregate batch anchor across multiple spines.
+    ///
+    /// Collects each spine's tip state hash, builds an aggregation Merkle tree,
+    /// and appends a `PublicChainAnchor` entry (with `aggregate_root` and
+    /// `inclusion_proof`) to each spine.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any spine is not found, is sealed, has no tip, or
+    /// if there are fewer than 2 spines (use `anchor_to_public_chain` for
+    /// single-spine anchoring).
+    pub async fn anchor_batch(
+        &self,
+        spine_ids: &[SpineId],
+        anchor_target: AnchorTarget,
+        tx_ref: String,
+        block_height: u64,
+        anchor_timestamp: Timestamp,
+    ) -> LoamSpineResult<AnchorBatchReceipt> {
+        if spine_ids.len() < 2 {
+            return Err(LoamSpineError::Internal(
+                "anchor_batch requires at least 2 spines".into(),
+            ));
+        }
+
+        let mut state_hashes = Vec::with_capacity(spine_ids.len());
+        for &sid in spine_ids {
+            let spine = self
+                .spine_storage
+                .get_spine(sid)
+                .await?
+                .ok_or(LoamSpineError::SpineNotFound(sid))?;
+            let hash = spine
+                .tip_entry()
+                .ok_or_else(|| LoamSpineError::Internal("spine has no tip entry".into()))?
+                .compute_hash()?;
+            state_hashes.push(hash);
+        }
+
+        let aggregate_root = compute_merkle_root(&state_hashes);
+
+        let mut entries = Vec::with_capacity(spine_ids.len());
+        for (i, &sid) in spine_ids.iter().enumerate() {
+            let proof = generate_aggregate_proof(&state_hashes, i)
+                .ok_or_else(|| LoamSpineError::Internal("proof generation failed".into()))?;
+
+            let mut spine = self
+                .spine_storage
+                .get_spine(sid)
+                .await?
+                .ok_or(LoamSpineError::SpineNotFound(sid))?;
+
+            let entry = spine.create_entry(EntryType::PublicChainAnchor {
+                anchor_target: anchor_target.clone(),
+                state_hash: state_hashes[i],
+                tx_ref: tx_ref.clone(),
+                block_height,
+                anchor_timestamp,
+                aggregate_root: Some(aggregate_root),
+                inclusion_proof: Some(proof),
+            });
+
+            let entry_hash = spine.append(entry)?;
+            let appended = spine
+                .tip_entry()
+                .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+            self.entry_storage.save_entry(appended).await?;
+            self.spine_storage.save_spine(&spine).await?;
+
+            entries.push(AnchorBatchEntry {
+                spine_id: sid,
+                entry_hash,
+                state_hash: state_hashes[i],
+            });
+        }
+
+        Ok(AnchorBatchReceipt {
+            aggregate_root,
+            entries,
         })
     }
 

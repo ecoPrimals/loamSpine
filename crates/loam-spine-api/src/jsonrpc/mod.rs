@@ -274,6 +274,7 @@ impl LoamSpineJsonRpc {
             "proof.verify_inclusion" => rpc!(params, verify_inclusion_proof),
 
             "anchor.publish" => rpc!(params, publish_anchor),
+            "anchor.publish_batch" => rpc!(params, publish_anchor_batch),
             "anchor.verify" => rpc!(params, verify_anchor),
 
             "bonding.ledger.store" => rpc!(params, bond_ledger_store),

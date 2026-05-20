@@ -1,6 +1,6 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,523 tests, 42 JSON-RPC methods, 186 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring"
+description = "Permanence ledger — 1,523 tests, 43 JSON-RPC methods, 186 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring"
 date = 2026-05-20
 
 [taxonomies]
@@ -11,15 +11,15 @@ springs = []
 ## Status
 
 - **1,523 tests** (all passing), 0 failures, 0 ignored
-- **42 JSON-RPC methods** across 12 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, permanence)
+- **43 JSON-RPC methods** across 12 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, permanence)
 - **186 source files**, ~58,800 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
-- **JH-0 ADOPTED** — method gate classifies all 42 methods as Public or Protected
+- **JH-0 ADOPTED** — method gate classifies all 43 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
 - **Zero DEBT markers**, zero `#[allow]` without `reason`
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
-- **Stability tiers**: 38 stable, 2 evolving (slice), 2 compat (permanence legacy naming)
+- **Stability tiers**: 39 stable, 2 evolving (slice), 2 compat (permanence legacy naming)
 
 ## Key Capabilities
 
@@ -29,7 +29,7 @@ springs = []
 | Entry | `append`, `get`, `get_tip`, `list` | Content-addressed entry management |
 | Certificate | `mint`, `transfer`, `loan`, `return`, `get` | Memory-bound objects (Novel Ferment Transcripts) |
 | Proof | `generate_inclusion`, `verify_inclusion` | Merkle inclusion proofs |
-| Anchor | `publish`, `verify` | Public chain anchoring (Bitcoin, Ethereum, RFC 3161, Data Commons) |
+| Anchor | `publish`, `publish_batch`, `verify` | Public chain anchoring + aggregate batch (Bitcoin, Ethereum, RFC 3161, Data Commons) |
 | Session | `commit` | Provenance trio integration (rhizoCrypt dehydration) |
 | Braid | `commit` | Attribution braid integration (sweetGrass) |
 | Bonding | `ledger.store`, `ledger.retrieve`, `ledger.list` | Ionic bond ledger |
@@ -55,6 +55,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 
 | Wave | What landed |
 |------|-------------|
+| Anchoring Architecture | `anchor.publish_batch`, aggregation Merkle tree, ANCHORING_ARCHITECTURE.md, upstream propagation |
 | Wave 22 (Stadial Gate) | `btsp.capabilities`, `primal.announce`, stability tiers, 40 methods |
 | Stale Socket | TOCTOU-safe `unlink` before `bind`, PID file |
 | River Delta (WS-2/WS-3) | `spine.list`, `entry.list`, `AnchorTarget::Rfc3161Tsa`, PUBLIC_TIMESTAMPING.md spec |
@@ -74,9 +75,10 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Spec | Status |
 |------|--------|
 | [LOAMSPINE_SPECIFICATION.md](../specs/LOAMSPINE_SPECIFICATION.md) | Complete |
-| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (42 methods) |
+| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (43 methods) |
 | [DATA_MODEL.md](../specs/DATA_MODEL.md) | Complete |
 | [CERTIFICATE_LAYER.md](../specs/CERTIFICATE_LAYER.md) | Complete |
+| [ANCHORING_ARCHITECTURE.md](../specs/ANCHORING_ARCHITECTURE.md) | Complete |
 | [PUBLIC_TIMESTAMPING.md](../specs/PUBLIC_TIMESTAMPING.md) | Exploration |
 | [ARCHITECTURE.md](../specs/ARCHITECTURE.md) | Complete |
 

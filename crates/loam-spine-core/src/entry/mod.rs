@@ -444,6 +444,16 @@ pub enum EntryType {
         block_height: u64,
         /// Timestamp when the anchor was confirmed on the external system.
         anchor_timestamp: Timestamp,
+        /// If this anchor was part of an aggregate batch, the batch root.
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "crate::types::serde_opt_content_hash::deserialize"
+        )]
+        aggregate_root: Option<ContentHash>,
+        /// Merkle proof path from this spine's `state_hash` to `aggregate_root`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        inclusion_proof: Option<crate::proof::AggregateInclusionProof>,
     },
 
     // === Bond Ledger ===

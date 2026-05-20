@@ -318,6 +318,8 @@ pub enum EntryType {
         tx_ref: String,
         block_height: u64,
         anchor_timestamp: Timestamp,
+        aggregate_root: Option<ContentHash>,      // batch Merkle root (if aggregated)
+        inclusion_proof: Option<AggregateInclusionProof>,  // Merkle path to aggregate root
     },
     
     // === Attestations ===

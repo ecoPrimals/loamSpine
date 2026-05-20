@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (May 20, 2026 — Public Chain Anchoring Architecture)
+
+- **`anchor.publish_batch` method**: New RPC method for aggregate batch anchoring across multiple spines. Computes an aggregation Merkle tree from N spine state hashes, records a `PublicChainAnchor` entry on each spine with `aggregate_root` and `inclusion_proof` fields. One on-chain transaction covers all N results.
+- **Aggregation Merkle tree**: New `generate_aggregate_proof` and `AggregateInclusionProof` in `proof.rs`. Public `compute_merkle_root` for building aggregate roots from spine state hashes. Blake3 binary Merkle tree, log2(N) proof depth.
+- **`PublicChainAnchor` extension**: Added optional `aggregate_root: Option<ContentHash>` and `inclusion_proof: Option<AggregateInclusionProof>` fields. Backward-compatible — existing anchors default to `None`.
+- **`anchor.verify` aggregate support**: Verification now checks aggregate inclusion proofs when present. Response includes `aggregate_verified: Option<bool>`.
+- **`specs/ANCHORING_ARCHITECTURE.md`**: Comprehensive architecture spec — compression pipeline (GB → 32 bytes), gas economics (community pooling: $0.001/result on BTC), crypto-as-infrastructure stance, multi-chain strategy, `0x6563` namespace, aggregation pattern.
+- **43 methods**: Added `anchor.publish_batch`; method gate classifies as Protected.
+- **MCP tool**: `anchor_publish_batch` tool added to `tools/list` with schema and `mcp_tool_to_rpc` mapping.
+- **Upstream propagation**: Updated `whitePaper/gen4/architecture/ANCHORING_PIPELINE.md` (aggregation economics, crypto stance, L2 strategy, implementation status table) and `gen4/economics/NOVEL_FERMENT_TRANSCRIPTS.md` (updated implementation status). Created `wateringHole/ANCHORING_STANDARD.md` — ecosystem-wide anchoring guidance for springs and primals.
+
 ### Added (May 19, 2026 — WS-2/WS-3: Cross-Spring Query + Public Timestamping)
 
 - **`spine.list` method**: New RPC method listing all spine IDs in the store. Returns `{ spine_ids, count }`. Enables cross-spring enumeration for WS-2 (Cross-Spring Data Exchange).

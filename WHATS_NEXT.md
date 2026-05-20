@@ -3,11 +3,17 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 5, 2026
+**Last Updated**: May 20, 2026
 
 ---
 
 ## Documentation changelog
+
+- **May 20, 2026** — **Public Chain Anchoring Architecture**: `anchor.publish_batch` RPC method for aggregate batch anchoring (Merkle tree of N spine state hashes → one on-chain transaction). `AggregateInclusionProof` and `generate_aggregate_proof` in proof.rs. `PublicChainAnchor` extended with optional `aggregate_root` + `inclusion_proof`. `anchor.verify` now checks aggregate proofs. `specs/ANCHORING_ARCHITECTURE.md` created (compression pipeline, gas economics, community pooling, crypto-as-infrastructure stance). 43 methods total. Upstream propagation: `whitePaper/gen4/ANCHORING_PIPELINE.md` + `NOVEL_FERMENT_TRANSCRIPTS.md` updated, `wateringHole/ANCHORING_STANDARD.md` created. 1,523 tests.
+
+- **May 19, 2026** — **WS-2/WS-3: Cross-Spring Query + Public Timestamping**: `spine.list` and `entry.list` methods. `specs/PUBLIC_TIMESTAMPING.md` exploration spec. Philosophical alignment: crypto as infrastructure (gas is postage), Novel Ferment Transcripts. 42 methods, 1,523 tests.
+
+- **May 18, 2026** — **Stale Socket Cleanup**: TOCTOU-safe `unlink` before `bind`, PID file.
 
 - **May 17, 2026** — **Wave 22: Stadial gate readiness**: Full universal standards checklist passed (23/23 items). Added `btsp.capabilities` and `primal.announce` public handlers (40 methods total). Stability tiers on all provided_capabilities. `count` field in `capabilities.list`. `ecobin_grade: "A+"` in `identity.get`. BTSP security audit trail for plain JSON-RPC connections. Stadial readiness documentation in STATUS.md (degradation runbook, downstream pairing table). `recursion_limit = "256"` for expanded capability JSON.
 

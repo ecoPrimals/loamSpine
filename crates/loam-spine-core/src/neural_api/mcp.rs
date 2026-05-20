@@ -197,6 +197,17 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 },
                 "required": ["spine_id", "anchor_target", "tx_ref", "anchor_timestamp"]
             })),
+            mcp_tool("anchor_publish_batch", "Record an aggregate batch anchor across multiple spines (Merkle aggregation)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_ids": { "type": "array", "items": { "type": "string" }, "description": "Spine IDs (UUIDs) to include in the batch" },
+                    "anchor_target": { "type": "string", "description": "Target system: Bitcoin, Ethereum, FederatedSpine, DataCommons, or Other" },
+                    "tx_ref": { "type": "string", "description": "Transaction hash or proof reference on external system" },
+                    "block_height": { "type": "integer", "description": "Block height or sequence number (0 if N/A)" },
+                    "anchor_timestamp": { "type": "integer", "description": "Anchor confirmation timestamp (epoch ms)" }
+                },
+                "required": ["spine_ids", "anchor_target", "tx_ref", "anchor_timestamp"]
+            })),
             mcp_tool("anchor_verify", "Verify a spine's state against a recorded public chain anchor", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -282,6 +293,7 @@ pub fn mcp_tool_to_rpc(
         "session_commit" => "session.commit",
         "braid_commit" => "braid.commit",
         "anchor_publish" => "anchor.publish",
+        "anchor_publish_batch" => "anchor.publish_batch",
         "anchor_verify" => "anchor.verify",
         "bonding_ledger_store" => "bonding.ledger.store",
         "bonding_ledger_retrieve" => "bonding.ledger.retrieve",

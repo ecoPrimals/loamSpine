@@ -58,4 +58,43 @@ pub struct AnchorVerifyResponse {
     pub block_height: u64,
     /// When the anchor was confirmed externally.
     pub anchor_timestamp: Timestamp,
+    /// If part of an aggregate batch, whether the inclusion proof verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aggregate_verified: Option<bool>,
+}
+
+/// Request to record an aggregate batch anchor across multiple spines.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnchorPublishBatchRequest {
+    /// Spines to include in the aggregate anchor.
+    pub spine_ids: Vec<SpineId>,
+    /// Target system.
+    pub anchor_target: AnchorTarget,
+    /// Transaction hash or proof reference on the external system.
+    pub tx_ref: String,
+    /// Block height or sequence number (0 if not applicable).
+    #[serde(default)]
+    pub block_height: u64,
+    /// Timestamp when the anchor was confirmed externally.
+    pub anchor_timestamp: Timestamp,
+}
+
+/// Per-spine result within a batch anchor response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnchorBatchEntryResponse {
+    /// Spine that was anchored.
+    pub spine_id: SpineId,
+    /// Hash of the `PublicChainAnchor` entry on this spine.
+    pub entry_hash: EntryHash,
+    /// This spine's state hash (leaf in aggregate tree).
+    pub state_hash: ContentHash,
+}
+
+/// Response after recording an aggregate batch anchor.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnchorPublishBatchResponse {
+    /// The aggregate Merkle root of all state hashes.
+    pub aggregate_root: ContentHash,
+    /// Per-spine anchor results.
+    pub anchors: Vec<AnchorBatchEntryResponse>,
 }

@@ -196,7 +196,8 @@ Methods follow the `{domain}.{operation}` semantic naming standard
 | `proof.generate_inclusion` | Generate proof |
 | `proof.verify_inclusion` | Verify proof |
 | `anchor.publish` | Record a public chain anchor receipt on a spine |
-| `anchor.verify` | Verify an anchor receipt against the spine state |
+| `anchor.publish_batch` | Aggregate batch anchor across N spines (Merkle aggregation) |
+| `anchor.verify` | Verify an anchor receipt (single or aggregate) against spine state |
 | `session.commit` | Commit session |
 | `braid.commit` | Commit braid |
 | `bonding.ledger.store` | Store a bond in the ionic bond ledger |

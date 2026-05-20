@@ -511,6 +511,8 @@ fn entry_type_serde_roundtrip_public_chain_anchor() {
         tx_ref: "bafybeihash123".into(),
         block_height: 0,
         anchor_timestamp: Timestamp::now(),
+        aggregate_root: None,
+        inclusion_proof: None,
     };
     let json = serde_json::to_vec(&ty).expect("serialize");
     let restored: EntryType = serde_json::from_slice(&json).expect("deserialize");
@@ -533,6 +535,8 @@ fn public_chain_anchor_domain() {
         tx_ref: "tx_abc".into(),
         block_height: 800_000,
         anchor_timestamp: Timestamp::now(),
+        aggregate_root: None,
+        inclusion_proof: None,
     };
     assert_eq!(ty.domain(), "anchor");
 }
@@ -547,6 +551,8 @@ fn public_chain_anchor_not_allowed_in_waypoint() {
         tx_ref: "0xdeadbeef".into(),
         block_height: 1,
         anchor_timestamp: Timestamp::now(),
+        aggregate_root: None,
+        inclusion_proof: None,
     };
     assert!(!ty.allowed_in_waypoint());
 }

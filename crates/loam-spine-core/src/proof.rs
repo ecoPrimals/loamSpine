@@ -214,11 +214,11 @@ impl CertificateOwnershipProof {
     }
 }
 
-/// Compute Merkle root of a list of entry hashes using Blake3.
+/// Compute Merkle root of a list of hashes using Blake3.
 ///
 /// Uses standard binary Merkle tree: hash(left || right) for pairs,
 /// duplicate last element if odd number of leaves.
-pub(crate) fn compute_merkle_root(leaves: &[crate::types::EntryHash]) -> crate::types::ContentHash {
+pub fn compute_merkle_root(leaves: &[crate::types::ContentHash]) -> crate::types::ContentHash {
     use crate::types::hash_bytes;
 
     if leaves.is_empty() {
@@ -228,7 +228,7 @@ pub(crate) fn compute_merkle_root(leaves: &[crate::types::EntryHash]) -> crate::
         return leaves[0];
     }
 
-    let mut layer: Vec<crate::types::EntryHash> = leaves.to_vec();
+    let mut layer: Vec<crate::types::ContentHash> = leaves.to_vec();
     while layer.len() > 1 {
         let mut next = Vec::with_capacity(layer.len().div_ceil(2));
         let mut i = 0;
@@ -248,6 +248,105 @@ pub(crate) fn compute_merkle_root(leaves: &[crate::types::EntryHash]) -> crate::
         layer = next;
     }
     layer[0]
+}
+
+/// Merkle inclusion proof for an aggregate anchor batch.
+///
+/// Proves that a specific `state_hash` is a leaf of the aggregate Merkle tree
+/// whose root was anchored to a public chain.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AggregateInclusionProof {
+    /// The leaf hash being proven (a spine's state_hash).
+    #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
+    pub leaf: crate::types::ContentHash,
+    /// Index of the leaf in the original leaves array.
+    pub leaf_index: usize,
+    /// Sibling hashes along the path from leaf to root. Each entry is
+    /// `(sibling_hash, sibling_is_left)` — whether the sibling is the left child.
+    pub siblings: Vec<(crate::types::ContentHash, bool)>,
+}
+
+impl AggregateInclusionProof {
+    /// Verify this proof against an expected aggregate root.
+    #[must_use]
+    pub fn verify(&self, expected_root: &crate::types::ContentHash) -> bool {
+        use crate::types::hash_bytes;
+
+        let mut current = self.leaf;
+        for (sibling, sibling_is_left) in &self.siblings {
+            let mut combined = Vec::with_capacity(64);
+            if *sibling_is_left {
+                combined.extend_from_slice(sibling);
+                combined.extend_from_slice(&current);
+            } else {
+                combined.extend_from_slice(&current);
+                combined.extend_from_slice(sibling);
+            }
+            current = hash_bytes(&combined);
+        }
+        current == *expected_root
+    }
+}
+
+/// Generate a Merkle inclusion proof for a leaf at `index` within `leaves`.
+///
+/// Returns `None` if `index` is out of bounds.
+#[must_use]
+pub fn generate_aggregate_proof(
+    leaves: &[crate::types::ContentHash],
+    index: usize,
+) -> Option<AggregateInclusionProof> {
+    use crate::types::hash_bytes;
+
+    if index >= leaves.len() || leaves.is_empty() {
+        return None;
+    }
+    if leaves.len() == 1 {
+        return Some(AggregateInclusionProof {
+            leaf: leaves[0],
+            leaf_index: 0,
+            siblings: Vec::new(),
+        });
+    }
+
+    let mut siblings = Vec::new();
+    let mut layer: Vec<crate::types::ContentHash> = leaves.to_vec();
+    let mut pos = index;
+
+    while layer.len() > 1 {
+        let sibling_pos = if pos % 2 == 0 { pos + 1 } else { pos - 1 };
+        let sibling_hash = if sibling_pos < layer.len() {
+            layer[sibling_pos]
+        } else {
+            layer[pos]
+        };
+        let sibling_is_left = pos % 2 == 1;
+        siblings.push((sibling_hash, sibling_is_left));
+
+        let mut next = Vec::with_capacity(layer.len().div_ceil(2));
+        let mut i = 0;
+        while i < layer.len() {
+            let left = layer[i];
+            let right = if i + 1 < layer.len() {
+                layer[i + 1]
+            } else {
+                layer[i]
+            };
+            let mut combined = Vec::with_capacity(64);
+            combined.extend_from_slice(&left);
+            combined.extend_from_slice(&right);
+            next.push(hash_bytes(&combined));
+            i += 2;
+        }
+        layer = next;
+        pos /= 2;
+    }
+
+    Some(AggregateInclusionProof {
+        leaf: leaves[index],
+        leaf_index: index,
+        siblings,
+    })
 }
 
 /// History summary for certificate proofs.

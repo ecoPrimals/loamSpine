@@ -73,6 +73,7 @@ pub const METHODS: &[&str] = &[
     "braid.commit",
     // Public chain anchoring
     "anchor.publish",
+    "anchor.publish_batch",
     "anchor.verify",
     // Ionic bond ledger
     "bonding.ledger.store",
@@ -125,6 +126,7 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
     ("commit_session", "session.commit"),
     ("commit_braid", "braid.commit"),
     ("publish_anchor", "anchor.publish"),
+    ("publish_anchor_batch", "anchor.publish_batch"),
     ("verify_anchor", "anchor.verify"),
     ("bond_ledger_store", "bonding.ledger.store"),
     ("bond_ledger_retrieve", "bonding.ledger.retrieve"),
@@ -211,6 +213,7 @@ pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
     ("session.commit", 5, false),
     ("braid.commit", 5, false),
     ("anchor.publish", 2, false),
+    ("anchor.publish_batch", 10, false),
     ("anchor.verify", 2, false),
     ("bonding.ledger.store", 2, false),
     ("bonding.ledger.retrieve", 1, false),

@@ -6,9 +6,9 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C522%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C523%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
-[![Methods](https://img.shields.io/badge/JSON--RPC-40%20methods-blue)]()
+[![Methods](https://img.shields.io/badge/JSON--RPC-43%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()
 [![Stadial](https://img.shields.io/badge/stadial-ready-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
@@ -96,7 +96,7 @@ loamSpine/
 │   │       │   ├── certificate_loan.rs  # Loan lifecycle (loan, return, sublend)
 │   │       │   ├── certificate_escrow.rs # Escrow (hold, release, cancel)
 │   │       │   ├── expiry_sweeper.rs # Background expired-loan auto-return
-│   │       │   ├── anchor.rs       # Public chain anchor (record + verify receipts)
+│   │       │   ├── anchor.rs       # Public chain anchor (publish, verify, batch aggregate)
 │   │       │   ├── integration.rs # Trait implementations
 │   │       │   ├── signals.rs     # Signal handling
 │   │       │   └── waypoint.rs    # Anchoring, operations, departure, attestation, proofs
@@ -115,7 +115,7 @@ loamSpine/
 │           ├── service/       # Domain-focused RPC ops
 │           ├── health.rs      # Health checks
 │           └── error.rs       # API errors
-├── specs/                     # 13 specification documents
+├── specs/                     # 14 specification documents
 ├── showcase/                  # Interactive demos (54 files)
 └── fuzz/                      # Fuzz testing targets
 ```
@@ -132,41 +132,44 @@ loamSpine/
 |----------|--------|-------------|
 | **Spine** | `spine.create` | Create sovereign ledger |
 | **Spine** | `spine.get` | Get spine metadata |
+| **Spine** | `spine.list` | List all spine IDs |
 | **Spine** | `spine.seal` | Make immutable |
 | **Entry** | `entry.append` | Add entry to chain |
 | **Entry** | `entry.get` | Query by hash |
 | **Entry** | `entry.get_tip` | Get latest entry |
+| **Entry** | `entry.list` | List entries (paginated) |
 | **Certificate** | `certificate.mint` | Create ownership cert |
 | **Certificate** | `certificate.transfer` | Transfer ownership |
 | **Certificate** | `certificate.loan` | Temporary access |
 | **Certificate** | `certificate.return` | End loan |
 | **Certificate** | `certificate.get` | Query certificate |
-| **Certificate** | `certificate.verify` | Verify integrity |
-| **Certificate** | `certificate.lifecycle` | Ownership/loan history |
 | **Waypoint** | `slice.anchor` | Anchor borrowed state |
 | **Waypoint** | `slice.checkout` | Checkout a waypoint slice |
-| **Waypoint** | `slice.record_operation` | Record waypoint operation |
-| **Waypoint** | `slice.depart` | Depart from waypoint |
 | **Proof** | `proof.generate_inclusion` | Create Merkle inclusion proof |
 | **Proof** | `proof.verify_inclusion` | Verify Merkle inclusion proof |
-| **Integration** | `session.commit` | Provenance session commits (aliases: `commit.session`, `provenance.commit`) |
+| **Integration** | `session.commit` | Provenance session commits |
 | **Integration** | `braid.commit` | Attribution braid commits |
-| **Compat** | `permanence.commit_session` | Ephemeral DAG wire compat |
-| **Compat** | `permanence.verify_commit` | Verify via compat format |
-| **Compat** | `permanence.get_commit` | Retrieve via compat format |
-| **Compat** | `permanence.health_check` | Health for compat clients |
+| **Anchor** | `anchor.publish` | Record public chain anchor receipt |
+| **Anchor** | `anchor.publish_batch` | Aggregate batch anchor (Merkle aggregation) |
+| **Anchor** | `anchor.verify` | Verify anchor (single or aggregate) |
 | **Bonding** | `bonding.ledger.store` | Store ionic bond record |
 | **Bonding** | `bonding.ledger.retrieve` | Retrieve bond by ID |
 | **Bonding** | `bonding.ledger.list` | List all bond IDs |
-| **Anchor** | `anchor.publish` | Record public chain anchor receipt |
-| **Anchor** | `anchor.verify` | Verify anchor against spine state |
+| **BTSP** | `btsp.negotiate` | Cipher negotiation |
+| **BTSP** | `btsp.capabilities` | Supported BTSP ciphers |
+| **Auth** | `auth.check` | JH-0 access check |
+| **Auth** | `auth.mode` | Current auth mode |
+| **Auth** | `auth.peer_info` | Peer connection info |
+| **Lifecycle** | `lifecycle.status` | Service lifecycle status |
+| **Lifecycle** | `primal.announce` | Self-registration |
 | **Health** | `health.check` | Service status |
-| **Health** | `health.liveness` | Liveness probe (`{"status":"alive"}`) |
+| **Health** | `health.liveness` | Liveness probe |
 | **Health** | `health.readiness` | Readiness probe |
 | **Meta** | `capabilities.list` | List primal capabilities (Wire Standard L3) |
-| **Meta** | `identity.get` | Primal identity (name, version, domain, license) |
+| **Meta** | `identity.get` | Primal identity |
 | **MCP** | `tools.list` | MCP tool discovery |
 | **MCP** | `tools.call` | MCP tool invocation |
+| **Compat** | `permanence.*` (4) | Legacy naming compat |
 
 ---
 
@@ -200,13 +203,13 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,504 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,523 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc `wildcard_imports`, 2× feature-conditional `unused_async`); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 807 max test file |
-| **Source Files** | 184 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Source Files** | 186 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
@@ -245,6 +248,7 @@ Complete specifications in [specs/](./specs/):
 - Certificate layer, waypoint semantics
 - API specification, service lifecycle
 - Integration specification (provenance trio)
+- Anchoring architecture (compression pipeline, aggregate Merkle tree, gas economics)
 
 ## Contributing
 

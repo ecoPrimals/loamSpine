@@ -30,7 +30,7 @@ pub mod signals;
 mod waypoint;
 
 // Re-export lifecycle manager, service state, infant discovery, expiry sweeper, and anchor types
-pub use anchor::{AnchorReceipt, AnchorVerification};
+pub use anchor::{AnchorBatchEntry, AnchorBatchReceipt, AnchorReceipt, AnchorVerification};
 pub use expiry_sweeper::{ExpirySweeper, ExpirySweeperConfig, ExpirySweeperHandle};
 pub use infant_discovery::InfantDiscovery;
 pub use lifecycle::{LifecycleManager, ServiceState};

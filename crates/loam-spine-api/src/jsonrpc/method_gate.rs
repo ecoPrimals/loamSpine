@@ -200,6 +200,10 @@ mod tests {
         assert_eq!(classify_method("braid.commit"), MethodAccess::Protected);
         assert_eq!(classify_method("btsp.negotiate"), MethodAccess::Protected);
         assert_eq!(
+            classify_method("anchor.publish_batch"),
+            MethodAccess::Protected
+        );
+        assert_eq!(
             classify_method("bonding.ledger.store"),
             MethodAccess::Protected
         );
