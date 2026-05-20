@@ -87,15 +87,10 @@ This showcase is organized into **4 progressive levels**:
 ### Level 3: Inter-Primal Integration (45-60 min) 🌟
 **Goal**: Complete ecosystem working together
 
-**What you'll see**:
-- BearDog signing → LoamSpine certificates
-- NestGate storage → LoamSpine anchoring
-- Squirrel sessions → LoamSpine commits
-- ToadStool compute → LoamSpine proofs
-- **Full Ecosystem** - All primals coordinated!
-
-**Path**: `03-inter-primal/`  
-**Status**: ✅ 5/5 demos complete (using real binaries from `../bins/`)
+**Status**: Fossilized (May 2026). Inter-primal coordination patterns were mined
+into primalSpring experiment exp053. Fossil archive at
+`fossilRecord/loamSpine/showcase-inter-primal-may2026/`.
+See `SHOWCASE_FOSSILIZATION_STANDARD.md` in wateringHole.
 
 ---
 
@@ -462,9 +457,9 @@ cat 00_SHOWCASE_INDEX.md
 - `../specs/` - Complete specifications
 
 ### Ecosystem Showcases
-- `../../squirrel/showcase/` - AI orchestration (if exists)
-- `../../songBird/showcase/` - Service mesh (if exists)
-- `../../toadStool/showcase/` - Universal compute (if exists)
+- squirrel — showcase archived (see `examples/` in squirrel repo)
+- songbird — no formal showcase (see `examples/` in songbird repo)
+- `../../toadStool/showcase/` — Active (local + ecosystem tiers)
 - `../../nestGate/showcase/` - Storage infrastructure (if exists)
 - `../../bearDog/showcase/` - Sovereign security (if exists)
 

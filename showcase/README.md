@@ -44,12 +44,8 @@ showcase/
 │   ├── 04-concurrent-ops/      # Parallel operations
 │   └── 05-error-handling/      # Graceful degradation
 │
-├── 03-inter-primal/            # Cross-Primal Integration
-│   ├── 01-beardog-signing/     # BearDog signing → LoamSpine certs
-│   ├── 02-nestgate-storage/    # NestGate braids → LoamSpine anchoring
-│   ├── 03-squirrel-sessions/   # Squirrel sessions → LoamSpine persistence
-│   ├── 04-toadstool-compute/   # Toadstool uses LoamSpine storage
-│   └── 05-full-ecosystem/      # Complete integration demo
+├── [FOSSILIZED] 03-inter-primal/  # Mined into primalSpring exp053
+│   # Archive: fossilRecord/loamSpine/showcase-inter-primal-may2026/
 │
 └── scripts/                    # External Service Integration
     ├── start_primals.sh        # Start external services
