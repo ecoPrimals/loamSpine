@@ -218,6 +218,7 @@ impl CertificateOwnershipProof {
 ///
 /// Uses standard binary Merkle tree: hash(left || right) for pairs,
 /// duplicate last element if odd number of leaves.
+#[must_use]
 pub fn compute_merkle_root(leaves: &[crate::types::ContentHash]) -> crate::types::ContentHash {
     use crate::types::hash_bytes;
 
@@ -314,7 +315,7 @@ pub fn generate_aggregate_proof(
     let mut pos = index;
 
     while layer.len() > 1 {
-        let sibling_pos = if pos % 2 == 0 { pos + 1 } else { pos - 1 };
+        let sibling_pos = if pos.is_multiple_of(2) { pos + 1 } else { pos - 1 };
         let sibling_hash = if sibling_pos < layer.len() {
             layer[sibling_pos]
         } else {

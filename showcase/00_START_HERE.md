@@ -5,7 +5,7 @@
 **Version**: 0.9.16  
 **Status**: Production Ready  
 **Date**: May 20, 2026  
-**Latest**: Public chain anchor architecture (aggregate batch anchoring), BTSP Phase 3 verified, Tower-signed entries, 43 JSON-RPC methods — 1,523 tests, ~91% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
+**Latest**: Wave 43 Neural API announce, public chain anchor architecture, BTSP Phase 3 verified, 43 JSON-RPC methods — 1,527 tests, ~91% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
 
 ---
 
@@ -439,7 +439,7 @@ cat 00_SHOWCASE_INDEX.md
 - 🔐 **Provable**: Cryptographic proofs of everything
 - 🚀 **Fast**: Pure Rust, zero-copy, optimized
 - 🤝 **Composable**: Seamlessly integrates with ecosystem
-- 🏆 **World-Class**: A+ grade, 1,523 tests passing, ~91% line coverage
+- 🏆 **World-Class**: A+ grade, 1,527 tests passing, ~91% line coverage
 - 🌍 **Universal**: tarpc + JSON-RPC for any client
 
 ---

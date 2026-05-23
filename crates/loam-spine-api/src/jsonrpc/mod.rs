@@ -72,7 +72,7 @@ pub struct LoamSpineJsonRpc {
 impl LoamSpineJsonRpc {
     /// Create a new handler from a service with the given method gate.
     #[must_use]
-    pub fn new(service: LoamSpineRpcService, gate: MethodGate) -> Self {
+    pub const fn new(service: LoamSpineRpcService, gate: MethodGate) -> Self {
         Self { service, gate }
     }
 
@@ -160,14 +160,10 @@ impl LoamSpineJsonRpc {
                 "frame_format": "[4B len][12B nonce][ciphertext + tag]",
                 "provider": "tower-delegated",
             })),
-            "primal.announce" => ser(serde_json::json!({
-                "primal": loam_spine_core::primal_names::SELF_ID,
-                "version": env!("CARGO_PKG_VERSION"),
-                "domain": loam_spine_core::primal_names::LEGACY_DOMAIN,
-                "capability_domain": loam_spine_core::primal_names::CAPABILITY_DOMAIN,
-                "methods": loam_spine_core::niche::METHODS,
-                "status": "running",
-            })),
+            "primal.announce" => {
+                let socket = loam_spine_core::neural_api::resolve_socket_path();
+                ser(loam_spine_core::neural_api::announce_payload(&socket))
+            }
             _ => Err(wire::JsonRpcError {
                 code: METHOD_NOT_FOUND,
                 message: format!("method not found: {method}"),

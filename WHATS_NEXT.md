@@ -9,6 +9,8 @@
 
 ## Documentation changelog
 
+- **May 23, 2026** — **Wave 43: Neural API `primal.announce` adoption**: Startup registration evolved from `lifecycle.register` to `primal.announce` (Wave 43 schema). Semantic `capabilities` (`["anchor", "ledger", "permanence"]`), `signal_tiers` (`["nest"]`), `cost_hints`, `latency_estimates`, `socket` field. Inbound handler unified with outbound shape. Clippy fixes. 1,527 tests.
+
 - **May 20, 2026** — **Public Chain Anchoring Architecture**: `anchor.publish_batch` RPC method for aggregate batch anchoring (Merkle tree of N spine state hashes → one on-chain transaction). `AggregateInclusionProof` and `generate_aggregate_proof` in proof.rs. `PublicChainAnchor` extended with optional `aggregate_root` + `inclusion_proof`. `anchor.verify` now checks aggregate proofs. `specs/ANCHORING_ARCHITECTURE.md` created (compression pipeline, gas economics, community pooling, crypto-as-infrastructure stance). 43 methods total. Upstream propagation: `whitePaper/gen4/ANCHORING_PIPELINE.md` + `NOVEL_FERMENT_TRANSCRIPTS.md` updated, `wateringHole/ANCHORING_STANDARD.md` created. 1,523 tests.
 
 - **May 19, 2026** — **WS-2/WS-3: Cross-Spring Query + Public Timestamping**: `spine.list` and `entry.list` methods. `specs/PUBLIC_TIMESTAMPING.md` exploration spec. Philosophical alignment: crypto as infrastructure (gas is postage), Novel Ferment Transcripts. 42 methods, 1,523 tests.

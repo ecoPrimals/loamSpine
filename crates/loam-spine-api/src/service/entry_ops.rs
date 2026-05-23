@@ -88,11 +88,9 @@ impl LoamSpineRpcService {
             .map_err(ApiError::from)?;
         drop(core);
 
-        let has_more = entries.len() as u64 > request.limit;
-        let entries: Vec<_> = entries
-            .into_iter()
-            .take(request.limit as usize)
-            .collect();
+        let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
+        let has_more = entries.len() > limit;
+        let entries: Vec<_> = entries.into_iter().take(limit).collect();
         let count = entries.len();
         Ok(ListEntriesResponse {
             entries,

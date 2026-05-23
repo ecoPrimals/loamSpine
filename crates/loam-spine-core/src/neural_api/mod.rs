@@ -27,6 +27,29 @@ pub use socket::{
 /// Delegates to [`crate::primal_names::SELF_ID`] — single source of truth.
 pub const PRIMAL_NAME: &str = crate::primal_names::SELF_ID;
 
+/// Signal tier for Neural API routing — determines scheduling priority.
+/// `"nest"` = data-layer primal (storage/DAG/permanence).
+pub const SIGNAL_TIERS: &[&str] = &["nest"];
+
+/// Semantic capability domains for Neural API announce (Wave 43 schema).
+/// These are the high-level routing labels biomeOS uses for `capability.call`.
+pub const ANNOUNCE_CAPABILITIES: &[&str] = &["anchor", "ledger", "permanence"];
+
+/// Per-domain cost hints for Neural API routing weights.
+/// Higher values = more expensive operations.
+pub const COST_HINTS: &[(&str, f64)] = &[
+    ("anchor", 20.0),
+    ("ledger", 15.0),
+    ("permanence", 30.0),
+];
+
+/// Per-domain latency estimates (ms) for Neural API routing.
+pub const LATENCY_ESTIMATES: &[(&str, u32)] = &[
+    ("anchor", 50),
+    ("ledger", 20),
+    ("permanence", 100),
+];
+
 /// Semantic capabilities LoamSpine provides to the ecosystem.
 /// These map to the orchestrator's `capability_domains.rs` for NeuralAPI routing.
 pub const CAPABILITIES: &[&str] = &[
@@ -66,9 +89,12 @@ pub const CAPABILITIES: &[&str] = &[
     "auth.peer_info",
 ];
 
-/// Register LoamSpine with the ecosystem NeuralAPI.
+/// Register LoamSpine with the ecosystem NeuralAPI via `primal.announce`.
 ///
-/// Sends a `lifecycle.register` JSON-RPC request to the NeuralAPI Unix socket.
+/// Sends a Wave 43 `primal.announce` JSON-RPC request to biomeOS's NeuralAPI
+/// Unix socket. Includes semantic capabilities, signal tiers, cost hints,
+/// latency estimates, and socket path for routing intelligence.
+///
 /// If NeuralAPI is not available, logs a debug message and returns Ok (non-fatal).
 ///
 /// # Errors
@@ -91,24 +117,45 @@ pub async fn register_with_neural_api() -> crate::error::LoamSpineResult<bool> {
     register_at_socket(&socket_path, &our_socket).await
 }
 
+/// Build the `primal.announce` payload per Wave 43 Neural API schema.
+#[must_use]
+pub fn announce_payload(socket_path: &std::path::Path) -> serde_json::Value {
+    let cost_hints: serde_json::Map<String, serde_json::Value> = COST_HINTS
+        .iter()
+        .map(|(k, v)| ((*k).to_owned(), serde_json::json!(v)))
+        .collect();
+
+    let latency_estimates: serde_json::Map<String, serde_json::Value> = LATENCY_ESTIMATES
+        .iter()
+        .map(|(k, v)| ((*k).to_owned(), serde_json::json!(v)))
+        .collect();
+
+    serde_json::json!({
+        "primal": PRIMAL_NAME,
+        "version": env!("CARGO_PKG_VERSION"),
+        "socket": socket_path.to_string_lossy(),
+        "capabilities": ANNOUNCE_CAPABILITIES,
+        "methods": crate::niche::METHODS,
+        "signal_tiers": SIGNAL_TIERS,
+        "cost_hints": cost_hints,
+        "latency_estimates": latency_estimates,
+        "pid": std::process::id(),
+        "domain": crate::primal_names::LEGACY_DOMAIN,
+        "capability_domain": crate::primal_names::CAPABILITY_DOMAIN,
+        "status": "running",
+    })
+}
+
 /// Inner registration logic (pure — no env reads, testable concurrently).
 pub(crate) async fn register_at_socket(
     socket_path: &std::path::Path,
     our_socket: &std::path::Path,
 ) -> crate::error::LoamSpineResult<bool> {
-    let pid = std::process::id();
-    let capabilities: &[&str] = CAPABILITIES;
-
-    let params = serde_json::json!({
-        "name": PRIMAL_NAME,
-        "socket_path": our_socket.to_string_lossy(),
-        "pid": pid,
-        "capabilities": capabilities,
-    });
+    let params = announce_payload(our_socket);
 
     let request = serde_json::json!({
         "jsonrpc": "2.0",
-        "method": "lifecycle.register",
+        "method": "primal.announce",
         "params": params,
         "id": 1u64,
     });

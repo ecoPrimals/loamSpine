@@ -156,7 +156,7 @@ pub struct ListEntriesRequest {
     pub limit: u64,
 }
 
-fn default_entry_limit() -> u64 {
+const fn default_entry_limit() -> u64 {
     100
 }
 

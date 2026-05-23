@@ -5,8 +5,8 @@
 //! Exercises CLI argument parsing, subcommands, capabilities output,
 //! socket path resolution, and server startup/shutdown.
 
-#![expect(missing_docs, reason = "integration test module — doc coverage not required")]
-#![expect(
+#![allow(missing_docs, reason = "integration test module — doc coverage not required")]
+#![allow(
     clippy::unwrap_used,
     clippy::expect_used,
     reason = "integration tests: panicking on failure is the correct behavior"

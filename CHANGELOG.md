@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 23, 2026 — Wave 43: Neural API `primal.announce` Adoption)
+
+- **`primal.announce` outbound registration**: `register_with_neural_api()` now sends `primal.announce` (Wave 43 schema) instead of legacy `lifecycle.register`. Payload includes `socket`, semantic `capabilities` (`["anchor", "ledger", "permanence"]`), `signal_tiers` (`["nest"]`), `cost_hints`, `latency_estimates`, full `methods` array, and `pid`.
+- **Inbound handler enriched**: `primal.announce` JSON-RPC handler now returns the same Wave 43 payload via `announce_payload()` — unified shape for both directions.
+- **New constants**: `SIGNAL_TIERS`, `ANNOUNCE_CAPABILITIES`, `COST_HINTS`, `LATENCY_ESTIMATES` in `neural_api/mod.rs`.
+- **Niche self-knowledge**: `primal.announce` added to `SEMANTIC_MAPPINGS` and `COST_ESTIMATES`.
+- **Clippy fixes**: `#[must_use]` on `compute_merkle_root`, `is_multiple_of` modernization, `const fn` promotions, `# Errors` doc, `unused_async` suppression, unfulfilled lint expectation fixes.
+- **4 new tests** (1,527 total): announce payload shape validation, Wave 43 field presence, constant consistency, outbound method name assertion.
+
 ### Added (May 20, 2026 — Public Chain Anchoring Architecture)
 
 - **`anchor.publish_batch` method**: New RPC method for aggregate batch anchoring across multiple spines. Computes an aggregation Merkle tree from N spine state hashes, records a `PublicChainAnchor` entry on each spine with `aggregate_root` and `inclusion_proof` fields. One on-chain transaction covers all N results.

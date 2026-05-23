@@ -153,6 +153,11 @@ impl MethodGate {
     ///
     /// Returns `Ok(())` if allowed, or `Err` with an appropriate
     /// JSON-RPC error if the method is blocked.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `JsonRpcError` with code `-32001` if the method is protected
+    /// and the gate is in enforced mode.
     pub fn check(&self, method: &str) -> Result<(), super::wire::JsonRpcError> {
         let access = classify_method(method);
         match (self.current_mode(), access) {
