@@ -320,17 +320,17 @@ Look for issues labeled `good-first-issue`:
 | Edition | 2024 |
 | Tests | 1,527 (all concurrent, ~3s, zero flaky) |
 | Coverage | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
-| Max File Size | 605 max production; 807 max test file |
+| Max File Size | 605 max production; 787 max test file |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | Lint Exceptions | 4 `#[allow]` in production (2× tarpc `wildcard_imports`, 2× feature-conditional `unused_async`), tests all `#[expect(reason)]` |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
-| SPDX Headers | All 186 source files |
-| Source files | 186 `.rs` across workspace (+ 3 fuzz targets) |
+| SPDX Headers | All 189 source files |
+| Source files | 189 `.rs` across workspace (+ 3 fuzz targets) |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |
-| JSON-RPC Methods | 37 (semantic naming) |
+| JSON-RPC Methods | 43 (semantic naming) |
 | Mock isolation | All mocks cfg-gated out of production |
 | Provenance Trio | Tested (ephemeral DAG + attribution primals) |
 

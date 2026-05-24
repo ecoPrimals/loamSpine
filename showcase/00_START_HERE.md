@@ -4,8 +4,8 @@
 
 **Version**: 0.9.16  
 **Status**: Production Ready  
-**Date**: May 20, 2026  
-**Latest**: Wave 43 Neural API announce, public chain anchor architecture, BTSP Phase 3 verified, 43 JSON-RPC methods — 1,527 tests, ~91% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
+**Date**: May 24, 2026  
+**Latest**: Wave 47 behavioral convergence, deep debt cleanup (safe casts, test cohesion), Wave 43 Neural API announce, public chain anchor architecture, BTSP Phase 3 verified, 43 JSON-RPC methods — 1,527 tests, ~91% line coverage, `#![forbid(unsafe_code)]` in v0.9.16
 
 ---
 
@@ -255,15 +255,12 @@ cd 03-inter-primal/05-full-ecosystem
 
 ### Recommended (For Level 2+)
 - ✅ LoamSpine binary (`loamspine server`)
-- ✅ Songbird orchestrator for discovery (Level 3)
-- ✅ Phase 1 primal binaries in `../bins/` (Level 4)
+- ✅ That's it! Level 2 works standalone
 
-### Optional (For Level 4)
-- ✅ BearDog (`../bins/beardog`)
-- ✅ NestGate (`../bins/nestgate`)
-- ✅ Squirrel (`../bins/squirrel`)
-- ✅ ToadStool (`../bins/toadstool-byob-server`)
-- ✅ Songbird (`../bins/songbird-orchestrator`)
+### Optional (For Inter-Primal Integration)
+- See `cargo run -p loam-spine-core --example demo_inter_primal`
+- Level 3 showcase was fossilized (mined into primalSpring exp053)
+- Archive: `fossilRecord/loamSpine/showcase-inter-primal-may2026/`
 
 ### Verification
 ```bash

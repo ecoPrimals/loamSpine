@@ -1,8 +1,8 @@
 # 🦴 LoamSpine Showcase Index
 
 **Version**: 0.9.16  
-**Last Updated**: April 8, 2026  
-**Status**: ✅ Production Ready (matches Squirrel's excellence!)
+**Last Updated**: May 24, 2026  
+**Status**: ✅ Production Ready
 
 ---
 
@@ -53,12 +53,9 @@ showcase/
 │   ├── 04-concurrent-ops/         ✅ Ready
 │   └── 05-error-handling/         ✅ Ready
 │
-└── 03-inter-primal/               # Level 3: Ecosystem Integration (45 min)
-    ├── 01-beardog-signing/        ✅ Ready (NO MOCKS, uses ../bins/)
-    ├── 02-nestgate-storage/       ✅ Ready (NO MOCKS)
-    ├── 03-squirrel-sessions/      ✅ Ready (NO MOCKS)
-    ├── 04-toadstool-compute/      ✅ Ready (NO MOCKS)
-    └── 05-full-ecosystem/         ✅ Ready (NO MOCKS)
+└── [FOSSILIZED] 03-inter-primal/  # Level 3: Mined into primalSpring exp053
+    # Archive: fossilRecord/loamSpine/showcase-inter-primal-may2026/
+    # Use: cargo run -p loam-spine-core --example demo_inter_primal
 ```
 
 ---

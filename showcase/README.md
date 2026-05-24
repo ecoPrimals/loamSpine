@@ -208,7 +208,7 @@ cd showcase
 |--------|-------|
 | **Tests** | 1,527 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | ~91% line (llvm-cov) |
-| **JSON-RPC Methods** | 37 (semantic naming) |
+| **JSON-RPC Methods** | 43 (semantic naming) |
 | **Entry Types** | 15+ |
 | **Clippy** | pedantic + nursery (0 warnings) |
 | **Unsafe** | 0 (`#![forbid(unsafe_code)]`) |

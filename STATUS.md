@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 20, 2026
+**Last Updated**: May 24, 2026
 
 ---
 
@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,527 (186 source files) |
+| Tests | — | 1,527 (189 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 800 lines | 605 max production (discovery_client/mod.rs); 745 max test file (jsonrpc/tests.rs) |
-| Source files | — | 186 `.rs` files (+ 3 fuzz targets) |
+| Max file size | < 800 lines | 605 max production (discovery_client/mod.rs); 787 max test file (service_tests.rs) |
+| Source files | — | 189 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 4 | 2× `clippy::wildcard_imports` (tarpc macro; `#[expect]` unfulfilled in test target) + 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -70,7 +70,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 186 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 189 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -86,7 +86,7 @@ This document tracks implementation progress against the specification suite in 
 
 ---
 
-## Stadial Readiness (May 20, 2026)
+## Stadial Readiness (May 24, 2026)
 
 ### Universal Checklist
 
@@ -147,6 +147,15 @@ When loamSpine is unavailable:
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
 
 ---
+
+## v0.9.16 Deep Debt Cleanup — Safe Casts, Dead Code Wiring, Test Cohesion (May 24, 2026)
+
+- **btsp/frame.rs safe cast**: `as usize` cast replaced with `usize::try_from()` + proper error for platform-safe BTSP frame lengths.
+- **Dead code wired**: `SessionVerifyResult::cipher` field was deserialized but unused — `#[expect(dead_code)]` removed, field wired into `tracing::debug!` on both handshake paths (length-prefixed + NDJSON) for protocol observability.
+- **API ergonomics**: `register_btsp_session` evolved from `String` to `impl Into<String>` for callers.
+- **neural_api/tests.rs smart-split** (828L → 4 domain-cohesive modules): `tests.rs` (capability/identity, ~130L), `tests_socket.rs` (socket resolution + naming + security config, ~200L), `tests_registration.rs` (register/deregister + Wave 43 announce, ~280L), `tests_mcp.rs` (MCP tool coverage, ~130L).
+- **Lint expectations narrowed**: Each new test module gets only the `#[expect]` attributes matching its actual usage.
+- **Source files**: 186 → **189**. Tests: **1,527**. Max test file: **787** (was 828). Zero clippy warnings.
 
 ## v0.9.16 Deep Debt Execution Pass (April 15, 2026)
 

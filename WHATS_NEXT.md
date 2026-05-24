@@ -3,11 +3,15 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 20, 2026
+**Last Updated**: May 24, 2026
 
 ---
 
 ## Documentation changelog
+
+- **May 24, 2026** — **Deep debt cleanup — safe casts, dead code wiring, test cohesion**: btsp/frame.rs `as usize` → `try_from`. `SessionVerifyResult::cipher` wired into tracing (dead_code removed). `register_btsp_session` → `impl Into<String>`. neural_api/tests.rs (828L) smart-split into 4 domain modules (tests.rs, tests_socket.rs, tests_registration.rs, tests_mcp.rs). Lint expectations narrowed per module. 189 source files, 1,527 tests, max test file 787L.
+
+- **May 24, 2026** — **Wave 47: Deployment Behavioral Convergence**: Resolved "Tokio double-runtime crash" misdiagnosis (actual: `serve` vs `server` subcommand mismatch in `plasmidBin/start_primal.sh`). `LOAMSPINE_DISCOVERY_ENABLED` env gate for NUCLEUS mode. `lifecycle.status` includes `uptime_s`. Confirmed compliance: `--socket` flag, `health.liveness`, SIGTERM handling. 1,527 tests.
 
 - **May 23, 2026** — **Wave 43: Neural API `primal.announce` adoption**: Startup registration evolved from `lifecycle.register` to `primal.announce` (Wave 43 schema). Semantic `capabilities` (`["anchor", "ledger", "permanence"]`), `signal_tiers` (`["nest"]`), `cost_hints`, `latency_estimates`, `socket` field. Inbound handler unified with outbound shape. Clippy fixes. 1,527 tests.
 

@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,527 tests, 43 JSON-RPC methods, 186 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring"
-date = 2026-05-20
+description = "Permanence ledger — 1,527 tests, 43 JSON-RPC methods, 189 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring"
+date = 2026-05-24
 
 [taxonomies]
 primals = ["loamspine"]
@@ -12,14 +12,14 @@ springs = []
 
 - **1,527 tests** (all passing), 0 failures, 0 ignored
 - **43 JSON-RPC methods** across 12 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, permanence)
-- **186 source files**, ~58,800 lines of Rust
+- **189 source files**, ~59,300 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 43 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
 - **Zero DEBT markers**, zero `#[allow]` without `reason`
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
-- **Stability tiers**: 39 stable, 2 evolving (slice), 2 compat (permanence legacy naming)
+- **Stability tiers**: 37 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
 
 ## Key Capabilities
 
@@ -55,6 +55,9 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 
 | Wave | What landed |
 |------|-------------|
+| Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (828→4 modules), 189 source files |
+| Wave 47 | Deployment behavioral convergence — `serve`→`server` fix, `LOAMSPINE_DISCOVERY_ENABLED` env gate, `lifecycle.status` `uptime_s` |
+| Wave 43 | Neural API `primal.announce` adoption — startup announce with capabilities, signal_tiers, cost_hints, latency_estimates |
 | Anchoring Architecture | `anchor.publish_batch`, aggregation Merkle tree, ANCHORING_ARCHITECTURE.md, upstream propagation |
 | Wave 22 (Stadial Gate) | `btsp.capabilities`, `primal.announce`, stability tiers, 40 methods |
 | Stale Socket | TOCTOU-safe `unlink` before `bind`, PID file |
@@ -67,7 +70,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Capability | Provider | Role |
 |------------|----------|------|
 | `signing` | BearDog | Ed25519 entry signing |
-| `discovery` | Songbird | mDNS primal discovery |
+| `discovery` | (capability-discovered) | mDNS / DNS-SRV primal discovery |
 | `chain-anchor` | (not yet built) | External chain submission for anchor.publish |
 
 ## Specifications
