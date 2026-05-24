@@ -179,8 +179,12 @@ impl Default for DiscoveryConfig {
         let tarpc = crate::constants::env_resolution::tarpc_port();
         let jsonrpc = crate::constants::env_resolution::jsonrpc_port();
 
+        let discovery_enabled = std::env::var("LOAMSPINE_DISCOVERY_ENABLED")
+            .map(|v| !matches!(v.as_str(), "0" | "false" | "no"))
+            .unwrap_or(true);
+
         Self {
-            discovery_enabled: true,
+            discovery_enabled,
             discovery_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
 
             tarpc_endpoint: std::env::var("TARPC_ENDPOINT")

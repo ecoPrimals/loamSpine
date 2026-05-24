@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Fixed (May 24, 2026 — Wave 47: Deployment Behavioral Convergence)
+
+- **CRITICAL blocker resolved**: The reported "Tokio double-runtime crash" was a misdiagnosis. Root cause: `infra/plasmidBin/start_primal.sh` passes `serve` subcommand but loamSpine only accepts `server` — immediate CLI failure, not a runtime crash. The actual LS-03 tokio nested-runtime bug was fixed in v0.9.15 and structurally eliminated with mdns-sd migration in v0.9.16. Zero `Runtime::new()` or `block_on()` in production code.
+- **plasmidBin launcher fix**: `start_primal.sh` updated: `serve` → `server` for loamSpine (also affects sweetGrass, rhizoCrypt).
+- **`LOAMSPINE_DISCOVERY_ENABLED` env gate**: New env var (`0`/`false`/`no` = disabled). NUCLEUS compositions can skip infant discovery to eliminate unnecessary DNS/mDNS/registry probes at boot.
+- **`lifecycle.status` standard compliance**: Added `uptime_s` field (elapsed seconds since handler creation). Response now matches DEPLOYMENT_BEHAVIOR_STANDARD shape: `{primal, version, status, uptime_s, auth_mode}`.
+- **Pre-existing compliance confirmed**: `health.liveness` returns `{"status":"alive"}` (PASS), `--socket PATH` CLI flag (PASS), SIGTERM + SIGINT graceful shutdown via `SignalHandler` (PASS), UDS-first default (PASS).
+
 ### Changed (May 23, 2026 — Wave 43: Neural API `primal.announce` Adoption)
 
 - **`primal.announce` outbound registration**: `register_with_neural_api()` now sends `primal.announce` (Wave 43 schema) instead of legacy `lifecycle.register`. Payload includes `socket`, semantic `capabilities` (`["anchor", "ledger", "permanence"]`), `signal_tiers` (`["nest"]`), `cost_hints`, `latency_estimates`, full `methods` array, and `pid`.

@@ -67,13 +67,18 @@ pub fn normalize_method(method: &str) -> &str {
 pub struct LoamSpineJsonRpc {
     pub(crate) service: LoamSpineRpcService,
     gate: MethodGate,
+    started_at: std::time::Instant,
 }
 
 impl LoamSpineJsonRpc {
     /// Create a new handler from a service with the given method gate.
     #[must_use]
-    pub const fn new(service: LoamSpineRpcService, gate: MethodGate) -> Self {
-        Self { service, gate }
+    pub fn new(service: LoamSpineRpcService, gate: MethodGate) -> Self {
+        Self {
+            service,
+            gate,
+            started_at: std::time::Instant::now(),
+        }
     }
 
     /// Create a handler with default service (in-memory storage, permissive gate).
@@ -151,6 +156,7 @@ impl LoamSpineJsonRpc {
                 "primal": loam_spine_core::primal_names::SELF_ID,
                 "version": env!("CARGO_PKG_VERSION"),
                 "status": "running",
+                "uptime_s": self.started_at.elapsed().as_secs(),
                 "auth_mode": self.gate.current_mode().as_str(),
             })),
             "btsp.capabilities" => ser(serde_json::json!({
