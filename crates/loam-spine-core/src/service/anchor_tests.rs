@@ -132,6 +132,9 @@ async fn anchor_target_serde_roundtrip() {
     let targets = vec![
         AnchorTarget::Bitcoin,
         AnchorTarget::Ethereum,
+        AnchorTarget::Rfc3161Tsa {
+            tsa_url: "https://freetsa.org/tsr".into(),
+        },
         AnchorTarget::FederatedSpine {
             peer_id: "spine-peer-abc".into(),
         },
@@ -148,4 +151,44 @@ async fn anchor_target_serde_roundtrip() {
         let back: AnchorTarget = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(target, back);
     }
+}
+
+#[tokio::test]
+async fn anchor_rfc3161_tsa_roundtrip() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkTsaAnchor");
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("TSA Anchor".into()))
+        .await
+        .expect("spine creation");
+
+    let receipt = service
+        .anchor_to_public_chain(
+            spine_id,
+            AnchorTarget::Rfc3161Tsa {
+                tsa_url: "https://freetsa.org/tsr".into(),
+            },
+            "base64-encoded-tst-token-data".into(),
+            0,
+            Timestamp::now(),
+        )
+        .await
+        .expect("tsa anchor");
+
+    assert_ne!(receipt.state_hash, crate::types::ContentHash::default());
+
+    let verification = service
+        .verify_anchor(spine_id, Some(receipt.entry_hash))
+        .await
+        .expect("verify tsa anchor");
+
+    assert!(verification.verified);
+    assert_eq!(
+        verification.anchor_target,
+        AnchorTarget::Rfc3161Tsa {
+            tsa_url: "https://freetsa.org/tsr".into(),
+        }
+    );
+    assert_eq!(verification.tx_ref, "base64-encoded-tst-token-data");
+    assert_eq!(verification.block_height, 0);
 }
