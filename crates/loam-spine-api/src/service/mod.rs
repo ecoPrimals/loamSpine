@@ -78,11 +78,11 @@ impl LoamSpineRpcService {
     ///
     /// Called after a successful BTSP handshake when the verify response
     /// includes a Tower-provided `session_key`.
-    pub async fn register_btsp_session(&self, session_id: String, handshake_key: [u8; 32]) {
+    pub async fn register_btsp_session(&self, session_id: impl Into<String>, handshake_key: [u8; 32]) {
         self.btsp_sessions
             .write()
             .await
-            .insert(session_id, handshake_key);
+            .insert(session_id.into(), handshake_key);
     }
 
     /// Look up a BTSP session's handshake key by session ID.

@@ -33,7 +33,13 @@ pub async fn read_frame<R: AsyncReadExt + Unpin>(reader: &mut R) -> Result<Bytes
         ));
     }
 
-    let mut buf = BytesMut::zeroed(len as usize);
+    let frame_len = usize::try_from(len).map_err(|_| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Read,
+            format!("BTSP frame length {len} exceeds platform capacity"),
+        )
+    })?;
+    let mut buf = BytesMut::zeroed(frame_len);
     reader.read_exact(&mut buf).await.map_err(|e| {
         LoamSpineError::ipc(IpcErrorPhase::Read, format!("BTSP frame body read: {e}"))
     })?;

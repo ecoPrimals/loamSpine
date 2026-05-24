@@ -77,13 +77,9 @@ pub(crate) struct SessionVerifyResult {
     pub verified: bool,
     /// Session ID assigned by BearDog on successful verification.
     pub session_id: Option<String>,
-    /// Negotiated cipher (set on success). Read from BearDog response
-    /// but not directly consumed — Phase 3 cipher is determined by
-    /// `btsp.negotiate` result, not the verify response.
-    #[expect(
-        dead_code,
-        reason = "deserialized from BearDog, used for protocol logging"
-    )]
+    /// Negotiated cipher (set on success). Read from the Tower response;
+    /// Phase 3 cipher is determined by `btsp.negotiate`, but this field is
+    /// logged for protocol tracing.
     pub cipher: Option<String>,
     /// Tower-provided session key (base64, 32 bytes) for Phase 3 HKDF.
     /// Pattern B: loamSpine receives key material from BearDog rather

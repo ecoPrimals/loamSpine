@@ -466,3 +466,28 @@ pub fn capability_list_pretty() -> String {
 )]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "tests use unwrap for conciseness"
+)]
+#[path = "tests_socket.rs"]
+mod tests_socket;
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "tests use unwrap for conciseness"
+)]
+#[path = "tests_registration.rs"]
+mod tests_registration;
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "tests use unwrap for conciseness"
+)]
+#[path = "tests_mcp.rs"]
+mod tests_mcp;

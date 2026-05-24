@@ -179,7 +179,10 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
             "BTSP handshake failed: family verification",
         ));
     }
-    debug!("BTSP: client verified");
+    debug!(
+        cipher = ?verify.cipher,
+        "BTSP: client verified"
+    );
 
     let handshake_key = decode_session_key(verify.session_key.as_ref());
 
@@ -373,7 +376,10 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
             "BTSP NDJSON handshake failed: family verification",
         ));
     }
-    debug!("BTSP NDJSON: client verified");
+    debug!(
+        cipher = ?verify.cipher,
+        "BTSP NDJSON: client verified"
+    );
 
     let handshake_key = decode_session_key(verify.session_key.as_ref());
 

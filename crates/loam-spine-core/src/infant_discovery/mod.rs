@@ -277,14 +277,13 @@ impl InfantDiscovery {
                 capability
             );
         } else {
+            info!(
+                "Discovered {} services for capability '{capability}'",
+                all_services.len()
+            );
             self.cache
                 .insert(capability.to_string(), all_services.clone())
                 .await;
-            info!(
-                "Discovered {} services for capability '{}'",
-                all_services.len(),
-                capability
-            );
         }
 
         Ok(all_services)
