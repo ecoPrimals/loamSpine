@@ -57,11 +57,11 @@ main() {
     log_header "🦴 LoamSpine Showcase — QUICK START"
     
     log_info "This master script runs all showcase demos in sequence:"
-    log_info "  • Level 1: Local Primal (7 demos)"
-    log_info "  • Level 3: Songbird Discovery (1 demo)"
-    log_info "  • Level 4: Inter-Primal (1 demo)"
+    log_info "  • Level 1: Local Primal (10 demos)"
+    log_info "  • Level 2: RPC API (6 demos)"
+    log_info "  • Level 3+4: Inter-Primal [FOSSILIZED — mined into primalSpring]"
     echo ""
-    log_info "Total: 9 working demos"
+    log_info "Total: 16 working demos (Level 3+4 archived)"
     echo ""
     
     if [ -z "${FAST_MODE:-}" ]; then
@@ -115,22 +115,12 @@ main() {
     done
     
     # ========================================================================
-    # LEVEL 2: INTER-PRIMAL INTEGRATION
+    # LEVEL 3+4: INTER-PRIMAL (FOSSILIZED)
     # ========================================================================
     
-    log_header "🔗 Level 3: Inter-Primal Integration"
-    
-    ((total_demos++))
-    log_info "Running demo: full-ecosystem..."
-    
-    if cd "${SCRIPT_DIR}/03-inter-primal/05-full-ecosystem" && FAST_MODE=1 ./demo.sh >/dev/null 2>&1; then
-        log_success "Demo full-ecosystem passed"
-        ((passed_demos++))
-    else
-        log_error "Demo full-ecosystem FAILED"
-        ((failed_demos++))
-        failed_list+=("03-inter-primal/05-full-ecosystem")
-    fi
+    log_header "🔬 Level 3+4: Inter-Primal [FOSSILIZED]"
+    log_info "Inter-primal demos mined into primalSpring experiments."
+    log_info "See fossil record in ecoPrimals/ for archived artifacts."
     
     # ========================================================================
     # SUMMARY

@@ -74,7 +74,7 @@ cd showcase/03-inter-primal/
 - `nestgate` (3.4M)
 - `squirrel` (12M)
 - `toadstool-byob-server` (4.3M)
-- `songbird-orchestrator` (20M)
+
 
 ---
 
@@ -134,9 +134,9 @@ Complete all 21 demos in order:
 
 **Value**: Production-Ready APIs
 
-### Level 3: Dynamic Discovery
-- ✓ Service discovery (no hardcoding)
-- ✓ Capability queries (runtime knowledge)
+### Level 3: Inter-Primal [FOSSILIZED]
+- Mined into primalSpring experiments
+- Integration validated via benchScale (43-method TCP roundtrip)
 - ✓ Auto-registration (zero-config)
 - ✓ Health tracking (failure detection)
 
@@ -193,8 +193,7 @@ SKIP_PAUSES=true ./demo.sh
 
 ### Prerequisites
 - Level 1-2: Just LoamSpine binary
-- Level 3: Songbird binary (optional, demo degrades gracefully)
-- Level 4: Phase 1 binaries (demo attempts real integration)
+- Level 3+4: Fossilized (see primalSpring experiments)
 
 ### Troubleshooting
 - All demos create receipts in `outputs/`

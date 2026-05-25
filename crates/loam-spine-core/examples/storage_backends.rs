@@ -190,11 +190,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   ✅ Pure Rust / ecoBin-aligned builds");
     println!();
 
-    println!("🚀 Future Backends:");
+    println!("🚀 Glacial Backends:");
     println!("   • PostgreSQL (multi-user, enterprise)");
-    println!("   • SQLite (single-file, portable)");
-    println!("   • RocksDB (high-throughput)");
-    println!("   • S3-compatible (cloud-native)");
     println!();
 
     // Backend Selection

@@ -155,7 +155,6 @@ Once you've seen LoamSpine's local capabilities:
 ---
 
 **Following ecosystem showcase patterns:**
-- 🎵 Songbird: Multi-tower federation
 - 🍄 ToadStool: GPU compute benchmarks
 - 🐻 BearDog: Interactive demos
 - 🏰 NestGate: Progressive levels

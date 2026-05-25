@@ -85,13 +85,10 @@ This automated walkthrough demonstrates ALL LoamSpine capabilities:
   🔌 Level 2: RPC API (30 min)
      → Pure Rust RPC (no gRPC, no protobuf!)
 
-  🎵 Level 3: Songbird Discovery (20 min)
-     → Runtime service discovery (zero hardcoding)
+  🔬 Level 3+4: Inter-Primal [FOSSILIZED]
+     → Mined into primalSpring experiments (see fossil record)
 
-  🤝 Level 4: Inter-Primal Integration (45 min)
-     → Complete ecosystem working together
-
-Total Time: ~2.5 hours (or skip to any level)
+Total Time: ~1.5 hours (or skip to any level)
 
 EOF
 
@@ -100,9 +97,7 @@ echo -e "${YELLOW}Choose your path:${NC}"
 echo "  1) Complete showcase (all levels)"
 echo "  2) Level 1 only (local primal)"
 echo "  3) Level 2 only (RPC API)"
-echo "  4) Level 3 only (Songbird discovery)"
-echo "  5) Level 4 only (inter-primal)"
-echo "  6) Quick demo (5 minutes)"
+echo "  4) Quick demo (5 minutes)"
 echo "  q) Quit"
 echo ""
 echo -n "Enter choice [1-6, q]: "
@@ -185,7 +180,7 @@ EOF
     pause_if_interactive
     
     # Demo 6: Storage Backends
-    print_step "Demo 6/7: Storage Backends — InMemory vs redb vs Sled"
+    print_step "Demo 6/7: Storage Backends — InMemory vs redb"
     cd 01-local-primal/06-storage-backends
     ./demo.sh || print_warning "Demo completed with warnings"
     cd ../..
@@ -319,7 +314,7 @@ EOF
     
     # Check if binaries are available
     BINS_AVAILABLE=true
-    for binary in beardog nestgate squirrel toadstool-byob-server songbird-orchestrator; do
+    for binary in beardog nestgate squirrel toadstool-byob-server; do
         if [ ! -f "../bins/$binary" ] || [ ! -x "../bins/$binary" ]; then
             print_warning "$binary not found at ../bins/$binary"
             BINS_AVAILABLE=false
@@ -377,7 +372,6 @@ EOF
         print_info "  • nestgate"
         print_info "  • squirrel"
         print_info "  • toadstool-byob-server"
-        print_info "  • songbird-orchestrator"
         print_info ""
         print_info "See ../bins/README.md for build instructions"
         echo ""
@@ -436,7 +430,7 @@ echo "  🔒 ${BOLD}Sovereign${NC}: You own and control everything"
 echo "  🔐 ${BOLD}Provable${NC}: Cryptographic proofs of all operations"
 echo "  🚀 ${BOLD}Fast${NC}: Pure Rust, zero-copy, optimized"
 echo "  🤝 ${BOLD}Composable${NC}: Seamlessly integrates with ecosystem"
-echo "  🏆 ${BOLD}World-Class${NC}: 1,490 tests, ~91% coverage, zero unsafe"
+echo "  🏆 ${BOLD}World-Class${NC}: 1,528 tests, ~91% coverage, zero unsafe"
 echo ""
 
 echo -e "${MAGENTA}The ecoPrimals Promise:${NC}"

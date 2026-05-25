@@ -17,12 +17,12 @@ echo "  Tests PASSED"
 echo ""
 
 echo "Linting..."
-cargo clippy --workspace --all-features --all-targets -- -D warnings --quiet 2>&1
+cargo clippy --workspace --all-features --all-targets --quiet -- -D warnings 2>&1
 echo "  Clippy PASSED (zero warnings)"
 echo ""
 
 echo "Formatting..."
-cargo fmt --all -- --check --quiet 2>&1
+cargo fmt --all -- --check 2>&1
 echo "  Format PASSED"
 echo ""
 

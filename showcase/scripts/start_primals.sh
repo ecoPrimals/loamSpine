@@ -98,12 +98,7 @@ else
     "$BINS_DIR/nestgate" --help 2>&1 | head -5 || true
 fi
 
-# Songbird Rendezvous (discovery)
-if [ -x "$BINS_DIR/songbird-rendezvous" ]; then
-    start_primal "songbird" "songbird-rendezvous" "" "8081"
-else
-    echo "→ Songbird: Binary not available"
-fi
+# Songbird: removed (fossilized in v0.9.15)
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════════════════════"
@@ -131,7 +126,6 @@ echo ""
 echo "Available CLI tools:"
 echo "  • BearDog:   $BINS_DIR/beardog --help"
 echo "  • NestGate:  $BINS_DIR/nestgate --help"
-echo "  • Songbird:  $BINS_DIR/songbird-cli --help"
 echo "  • Squirrel:  $BINS_DIR/squirrel (starts automatically)"
 echo "  • ToadStool: $BINS_DIR/toadstool-cli --help"
 echo ""

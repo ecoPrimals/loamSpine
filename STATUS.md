@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 24, 2026
+**Last Updated**: May 25, 2026
 
 ---
 
@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,527 (189 source files) |
+| Tests | — | 1,528 (189 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -147,6 +147,12 @@ When loamSpine is unavailable:
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
 
 ---
+
+## v0.9.16 benchScale Roundtrip Validation (May 25, 2026)
+
+- **`infra/benchScale/validate_roundtrip.sh`**: Full 19-phase roundtrip validation harness. Starts a loamSpine TCP server, exercises all 43 canonical JSON-RPC methods via HTTP POST, validates responses, and reports. Aligned with `DEPLOYMENT_VALIDATION_STANDARD` v1.1.
+- **51 validations** across health triad, meta/discovery, auth gate, BTSP, spine CRUD, entry ops, provenance integration (session/braid commit + alias), certificate mint/get, slice anchor/checkout, inclusion proofs, public chain anchoring (Bitcoin, Ethereum, RFC 3161 TSA), bond ledger, permanence compat layer, MCP tools, method aliasing, seal + rejection, error handling, lifecycle uptime, and primal.announce.
+- **Transport**: HTTP POST JSON-RPC 2.0 over TCP (curl-based, no nc fragility).
 
 ## v0.9.16 Deep Debt Cleanup — Safe Casts, Dead Code Wiring, Test Cohesion (May 24, 2026)
 

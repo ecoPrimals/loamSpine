@@ -265,16 +265,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dyn audit**: 72 total `dyn` usages — 28 in doc examples/comments, 37 `Pin<Box<dyn Future>>` for object safety, 7 `Arc<dyn Trait>` for finite-implementor traits; all non-blocking per stadial gate.
 
 ### Metrics
-- Tests: **1,486** (all concurrent, ~3s, zero flaky; `--all-features`)
+- Tests: **1,528** (all concurrent, ~3s, zero flaky)
 - `#[serial]`: **0** (was 121)
-- JSON-RPC methods: **38** (was 32)
-- Source files: **180+** `.rs` (+ 3 fuzz targets)
-- Max file: **605** lines production; **807** max test file
+- JSON-RPC methods: **43** (semantic naming)
+- Source files: **189** `.rs` (+ 3 fuzz targets)
+- Max file: **605** lines production; **787** max test file
 - `#[allow]` in production: **4** (2× tarpc `wildcard_imports`, 2× feature-conditional `unused_async`)
 - Clippy: **0** warnings (pedantic + nursery, `-D warnings`)
 - Doc warnings: **0**
 - `cargo deny check`: all pass
 - Capability Wire Standard: **Full L3**
+- benchScale: **51 validations** (43 methods, live TCP roundtrip)
 
 ## [0.9.15] - 2026-03-31
 

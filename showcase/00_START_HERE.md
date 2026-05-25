@@ -90,7 +90,7 @@ This showcase is organized into **4 progressive levels**:
 **Status**: Fossilized (May 2026). Inter-primal coordination patterns were mined
 into primalSpring experiment exp053. Fossil archive at
 `fossilRecord/loamSpine/showcase-inter-primal-may2026/`.
-See `SHOWCASE_FOSSILIZATION_STANDARD.md` in wateringHole.
+Integration now validated via benchScale (43-method TCP roundtrip) and 1,528 tests.
 
 ---
 
@@ -102,7 +102,7 @@ Perfect if you've never used LoamSpine or the ecoPrimals
 ```
 Step 1: Level 1 (60 min) → Understand LoamSpine standalone
 Step 2: Level 2 (30 min) → See RPC API
-Step 3: Level 3 (45 min) → Experience ecosystem integration
+Step 3: benchScale validation → Verify full API surface
 ```
 
 **Start**: `01-local-primal/README.md`
@@ -231,8 +231,7 @@ cd 02-rpc-api/01-tarpc-basics
 **Why it matters**: All primals working together
 
 ```bash
-cd 03-inter-primal/05-full-ecosystem
-./demo.sh
+SKIP_BUILD=1 ../../infra/benchScale/validate_roundtrip.sh
 ```
 
 **What you'll see**:
@@ -291,7 +290,7 @@ cd showcase
 ### Level Guides
 - `01-local-primal/README.md` - Level 1 guide
 - `02-rpc-api/README.md` - Level 2 guide
-- `03-inter-primal/README.md` - Level 3 guide
+- `infra/benchScale/README.md` - API validation guide
 
 ### Project Documentation
 - `../README.md` - Project overview and documentation
@@ -317,8 +316,8 @@ cd 01-local-primal && ./RUN_ALL.sh
 # Level 2 (30 min)
 cd ../02-rpc-api && ./RUN_ALL.sh
 
-# Level 3 (45 min)
-cd ../03-inter-primal && ./RUN_ALL.sh
+# benchScale validation (full API roundtrip)
+SKIP_BUILD=1 ../../infra/benchScale/validate_roundtrip.sh
 ```
 
 ### Specific Demo
@@ -454,9 +453,9 @@ cat 00_SHOWCASE_INDEX.md
 - `../specs/` - Complete specifications
 
 ### Ecosystem Showcases
-- squirrel — showcase archived (see `examples/` in squirrel repo)
-- songbird — no formal showcase (see `examples/` in songbird repo)
 - `../../toadStool/showcase/` — Active (local + ecosystem tiers)
+- `../../nestGate/showcase/` — Storage infrastructure
+- `../../bearDog/showcase/` — Sovereign security
 - `../../nestGate/showcase/` - Storage infrastructure (if exists)
 - `../../bearDog/showcase/` - Sovereign security (if exists)
 

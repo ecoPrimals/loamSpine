@@ -1,7 +1,7 @@
 # 🦴 LoamSpine Showcase Index
 
 **Version**: 0.9.16  
-**Last Updated**: May 24, 2026  
+**Last Updated**: May 25, 2026  
 **Status**: ✅ Production Ready
 
 ---
@@ -165,7 +165,7 @@ All levels complete + code review + contribution
 | 03-certificate-lifecycle | Mint → Transfer → Loan | 20 min | ✅ Complete |
 | 04-proofs | Inclusion & provenance | 15 min | ✅ Complete |
 | 05-backup-restore | Export & import | 10 min | ✅ Complete |
-| 06-storage-backends | InMemory vs redb vs Sled | 10 min | ✅ Complete |
+| 06-storage-backends | InMemory vs redb | 10 min | ✅ Complete |
 | 07-concurrent-ops | Thread-safe operations | 10 min | ✅ Complete |
 | 08-temporal-moments | Temporal moment recording | 10 min | ✅ Complete |
 | 09-waypoint-anchoring | Waypoint slice anchoring | 10 min | ✅ Complete |
@@ -201,27 +201,13 @@ All levels complete + code review + contribution
 
 ---
 
-### Level 3: Inter-Primal (45 min) ✅ 5/5 READY (NO MOCKS!)
-**Goal**: Complete ecosystem integration
+### Level 3: Inter-Primal — FOSSILIZED
+**Status**: Mined into primalSpring experiments (exp053). Archive preserved in ecoPrimals fossilRecord.
 
-| Demo | Description | Time | Status |
-|------|-------------|------|--------|
-| 01-beardog-signing | Cryptographic trust | 10 min | ✅ Ready |
-| 02-nestgate-storage | Sovereign storage | 10 min | ✅ Ready |
-| 03-squirrel-sessions | AI session anchoring | 10 min | ✅ Ready |
-| 04-toadstool-compute | Verifiable compute | 10 min | ✅ Ready |
-| 05-full-ecosystem | ALL primals together | 15 min | ✅ Ready |
-
-**What you'll learn**:
-- BearDog signing integration
-- NestGate storage integration
-- Squirrel session commits
-- ToadStool compute verification
-- Complete ecosystem coordination
-
-**Prerequisites**: All binaries in `../bins/` (beardog, nestgate, squirrel, toadstool-byob-server, songbird-orchestrator)
-
-**Philosophy**: NO MOCKS! Uses real binaries from `../bins/`
+Inter-primal integration patterns are now validated through:
+- loamSpine's 1,528 unit/integration tests (provenance trio coverage)
+- `infra/benchScale/validate_roundtrip.sh` (43-method live TCP roundtrip)
+- primalSpring composition testing
 
 ---
 
@@ -240,12 +226,10 @@ All levels complete + code review + contribution
 - [ ] I can use JSON-RPC for external clients
 - [ ] I can monitor service health
 
-### After Level 3
-- [ ] I can integrate with BearDog
-- [ ] I can integrate with NestGate
-- [ ] I can integrate with Squirrel
-- [ ] I can integrate with ToadStool
-- [ ] I understand complete ecosystem coordination
+### Integration (via Tests & benchScale)
+- [ ] I understand provenance trio coordination patterns
+- [ ] I can validate the full API surface with benchScale
+- [ ] I understand capability-based integration (no hardcoded primals)
 
 ---
 
@@ -296,31 +280,23 @@ LoamSpine uses capability discovery for all external services:
 - [../specs/](../specs/) - Complete specifications
 
 ### Ecosystem Showcases
-- squirrel — showcase archived (see `examples/` in squirrel repo)
-- songbird — no formal showcase (see `examples/` in songbird repo)
 - `../../toadStool/showcase/` — Active (local + ecosystem tiers)
-- `../../nestGate/showcase/` - Storage infrastructure (if exists)
-- `../../bearDog/showcase/` - Sovereign security (if exists)
+- `../../nestGate/showcase/` — Storage infrastructure
+- `../../bearDog/showcase/` — Sovereign security
 
 ---
 
 ## 🎉 Showcase Evolution
 
-**Before** (Dec 24, 2025):
-- ✅ Level 1 complete (7/7)
-- ❌ No entry points
-- ❌ No quick demo
-- ⚠️ Some mocks in Level 4
-
-**After** (Dec 27, 2025):
-- ✅ All 4 levels ready (21/21)
+**Current** (May 2026):
+- ✅ Level 1 complete (10/10)
+- ✅ Level 2 complete (6 demos)
+- ✅ Level 3+4 fossilized → primalSpring exp053
 - ✅ 3 entry points (START_HERE, QUICK_DEMO, RUN_ME_FIRST)
-- ✅ Progressive learning paths
+- ✅ benchScale TCP roundtrip validation (43 methods)
 - ✅ NO MOCKS policy enforced
-- ✅ Real binaries from `../bins/`
-- ✅ Matches Squirrel's excellence!
 
-**Status**: PRODUCTION READY 🚀
+**Status**: PRODUCTION READY
 
 ---
 
@@ -329,15 +305,14 @@ LoamSpine uses capability discovery for all external services:
 > **"See sovereign permanence in action — no mocks, just real capabilities anchoring ephemeral operations into eternal truth."**
 
 **Following the ecoPrimals showcase pattern**:
-- 🎵 Songbird: Multi-tower federation
 - 🍄 ToadStool: GPU compute benchmarks
 - 🐻 BearDog: Interactive security demos
 - 🏰 NestGate: Progressive storage levels
-- 🐿️ Squirrel: Universal AI orchestration (EXCELLENT model)
-- 🦴 **LoamSpine: Sovereign permanence** (NOW MATCHES EXCELLENCE!)
+- 🐿️ Squirrel: Universal AI orchestration
+- 🦴 **LoamSpine: Sovereign permanence**
 
 ---
 
 🦴 **LoamSpine: Where memories become permanent.** 🚀
 
-*Last updated: April 12, 2026 — Songbird discovery demos archived to fossilRecord (deprecated in v0.9.15). Demos 08–10 added.*
+*Last updated: May 25, 2026 — Level 3+4 fossilized. Songbird removed. benchScale validation active.*

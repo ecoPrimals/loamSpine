@@ -14,7 +14,7 @@ This phase demonstrates **LoamSpine as a production service** using the real `lo
 - **Dual Protocol**: tarpc (binary) + JSON-RPC 2.0 (text)
 - **Language-Agnostic**: Any HTTP client can use JSON-RPC
 - **Production-Ready**: Health checks, monitoring, lifecycle management
-- **19 RPC Methods**: Complete API surface
+- **43 RPC Methods**: Complete API surface (semantic naming)
 
 ---
 
@@ -42,7 +42,7 @@ cd 02-jsonrpc-basics
 **What It Shows**:
 - HTTP-based API access
 - Standard JSON-RPC 2.0 format
-- Same API as tarpc (19 methods)
+- Same API as tarpc (43 methods)
 - curl-based interaction examples
 
 ---

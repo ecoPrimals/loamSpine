@@ -290,7 +290,7 @@ After this demo, explore:
 **Ecosystem Integration** (`../03-inter-primal/`)
 - Sign moments with BearDog
 - Store moment data in NestGate
-- Discover moments via Songbird
+- Discover moments via capability discovery
 
 ---
 
