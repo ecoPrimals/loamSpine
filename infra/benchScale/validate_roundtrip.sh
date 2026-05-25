@@ -153,15 +153,22 @@ fi
 log_header "Starting loamSpine TCP server"
 
 cd "$PROJECT_ROOT"
-BINARY="$PROJECT_ROOT/target/release/loamspine"
+BINARY="${LOAMSPINE_BINARY:-}"
+if [[ -z "$BINARY" ]] || [[ ! -x "$BINARY" ]]; then
+    BINARY="$PROJECT_ROOT/target/release/loamspine"
+fi
 if [[ ! -x "$BINARY" ]]; then
     BINARY="$PROJECT_ROOT/target/debug/loamspine"
 fi
-
 if [[ ! -x "$BINARY" ]]; then
-    echo -e "  ${RED}✗${NC} Binary not found. Run: cargo build --release"
+    BINARY="$(command -v loamspine 2>/dev/null || true)"
+fi
+
+if [[ -z "$BINARY" ]] || [[ ! -x "$BINARY" ]]; then
+    echo -e "  ${RED}✗${NC} Binary not found. Run: cargo build --release (or set LOAMSPINE_BINARY)"
     exit 1
 fi
+echo -e "  Using binary: ${BINARY}"
 
 SERVER_LOG=$(mktemp /tmp/loamspine-benchscale.XXXXXX.log)
 ACTUAL_PORT="$JSONRPC_PORT"

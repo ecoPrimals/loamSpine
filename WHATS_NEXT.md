@@ -9,6 +9,8 @@
 
 ## Documentation changelog
 
+- **May 25, 2026** — **Wave 49 ecosystem tightening**: Showcase fossilized to `ecoPrimals/fossilRecord/primals/loamSpine/showcase_wave49/` (47 files). `showcase/` replaced with README pointer. benchScale binary resolution updated (`LOAMSPINE_BINARY` env → `target/release` → PATH fallback). Pipeline debt item "Tokio runtime-in-runtime panic on health probe" confirmed already fixed (LS-03/v0.9.15, PG-33/v0.9.16, Wave 47 misdiagnosis documented). `notify-plasmidbin.yml` confirmed active. wateringHole handoffs already consolidated in `infra/wateringHole/handoffs/`. All 5 verification checklist items pass.
+
 - **May 25, 2026** — **benchScale roundtrip validation**: `infra/benchScale/validate_roundtrip.sh` — 19-phase harness exercising all 43 JSON-RPC methods via live TCP server. 51 validations, 0 failures. Health triad, spine CRUD, entry ops, provenance commits, certificate mint, slice anchor, inclusion proofs, public chain anchoring (Bitcoin/Ethereum/RFC 3161), bond ledger, permanence compat, MCP tools, method aliasing, seal + rejection, error handling.
 
 - **May 24, 2026** — **Deep debt cleanup — safe casts, dead code wiring, test cohesion**: btsp/frame.rs `as usize` → `try_from`. `SessionVerifyResult::cipher` wired into tracing (dead_code removed). `register_btsp_session` → `impl Into<String>`. neural_api/tests.rs (828L) smart-split into 4 domain modules (tests.rs, tests_socket.rs, tests_registration.rs, tests_mcp.rs). Lint expectations narrowed per module. 189 source files, 1,527 tests, max test file 787L.

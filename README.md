@@ -119,7 +119,8 @@ loamSpine/
 │           ├── health.rs      # Health checks
 │           └── error.rs       # API errors
 ├── specs/                     # 14 specification documents
-├── showcase/                  # Interactive demos (54 files)
+├── showcase/                  # Fossilized → ecoPrimals/fossilRecord (Wave 49)
+├── infra/benchScale/          # 51-validation TCP roundtrip harness
 └── fuzz/                      # Fuzz testing targets
 ```
 
