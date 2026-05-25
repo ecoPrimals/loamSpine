@@ -4,7 +4,7 @@
 
 **Version**: 1.0.0  
 **Status**: Active  
-**Last Updated**: May 13, 2026
+**Last Updated**: May 25, 2026
 
 ---
 
@@ -215,6 +215,8 @@ Methods follow the `{domain}.{operation}` semantic naming standard
 | `auth.check` | Check current auth status |
 | `auth.mode` | Report current auth mode (permissive/enforced) |
 | `auth.peer_info` | Report peer connection info |
+| `tools.list` | MCP tool discovery |
+| `tools.call` | MCP tool invocation |
 | `permanence.commit_session` | Commit session (permanence alias) |
 | `permanence.verify_commit` | Verify a commit |
 | `permanence.get_commit` | Get a commit |

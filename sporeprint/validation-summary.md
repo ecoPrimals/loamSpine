@@ -11,7 +11,7 @@ springs = []
 ## Status
 
 - **1,528 tests** (all passing), 0 failures, 0 ignored
-- **43 JSON-RPC methods** across 12 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, permanence)
+- **43 JSON-RPC methods** across 15 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, health, meta, mcp, permanence)
 - **189 source files**, ~59,300 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 43 methods as Public or Protected
@@ -35,8 +35,11 @@ springs = []
 | Bonding | `ledger.store`, `ledger.retrieve`, `ledger.list` | Ionic bond ledger |
 | BTSP | `negotiate`, `capabilities` | Secure transport negotiation |
 | Auth | `check`, `mode`, `peer_info` | JH-0 method gate introspection |
-| Lifecycle | `status` | Service lifecycle |
+| Lifecycle | `status`, `primal.announce` | Service lifecycle + self-registration |
 | Health | `check`, `liveness`, `readiness` | Health probes |
+| Meta | `capabilities.list`, `identity.get` | Capability discovery (Wire Standard L3) |
+| MCP | `tools.list`, `tools.call` | MCP tool discovery and invocation |
+| Compat | `permanence.*` (4) | Legacy naming compatibility |
 
 ## Provenance Trio Role
 

@@ -351,7 +351,7 @@ loamSpine/
 │
 ├── fuzz/                         # cargo-fuzz targets (separate workspace)
 ├── specs/                        # Specifications
-├── showcase/                     # Demo applications
+├── showcase/                     # Fossilized → ecoPrimals/fossilRecord (Wave 49)
 └── graphs/                       # Deploy graph (biomeOS TOML)
 ```
 

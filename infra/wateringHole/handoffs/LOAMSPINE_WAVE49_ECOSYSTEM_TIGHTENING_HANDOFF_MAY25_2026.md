@@ -47,7 +47,7 @@ no discovery, no I/O blocking, no nested runtimes.
 
 ## Verification Checklist
 
-- [x] No `showcase/` directory (replaced with README pointer to fossilRecord)
+- [x] `showcase/` contains only `README.md` pointer to fossilRecord (per Wave 49 recipe)
 - [x] Local `wateringHole/` handoffs already in `infra/wateringHole/handoffs/`
 - [x] No `which loamspine` or `target/release/loamspine` in deployment scripts
 - [x] `notify-plasmidbin.yml` active in `.github/workflows/`

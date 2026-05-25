@@ -587,7 +587,7 @@
 ## v0.10.0 Targets
 
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
-- **Showcase demos** — Expand from ~10% to full coverage
+- **~~Showcase demos~~** — **FOSSILIZED** (May 25, 2026): Wave 49 — archived to `ecoPrimals/fossilRecord/primals/loamSpine/showcase_wave49/`. Active validation via `infra/benchScale/validate_roundtrip.sh` (51 validations, 43 methods)
 - **Collision layer validation** — neuralSpring experiments (Python baseline)
 - **~~mdns crate evolution~~** — **COMPLETE** (April 20, 2026): `mdns` 3.0 replaced with `mdns-sd` 0.19; async-std/net2/proc-macro-error eliminated; 3 RUSTSEC advisories removed
 - **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)

@@ -118,7 +118,7 @@ This document tracks implementation progress against the specification suite in 
 ### Stability Tiers
 
 All 43 methods have stability annotations in `capabilities.list` response:
-- **stable**: spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, lifecycle, health, auth, primal (39 methods)
+- **stable**: spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, lifecycle, health, auth, primal, capabilities, identity, tools (37 methods)
 - **evolving**: slice (2 methods)
 - **compat**: permanence (4 methods — legacy naming)
 
