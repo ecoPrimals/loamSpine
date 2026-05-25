@@ -58,6 +58,7 @@ cleanup).
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `LOAMSPINE_BINARY` | (auto-detect) | Path to loamspine binary. If unset, checks `target/release`, `target/debug`, then PATH (plasmidBin-compatible). |
 | `LOAMSPINE_PORT` | `19710` | JSON-RPC TCP port |
 | `LOAMSPINE_TARPC_PORT` | `19711` | tarpc port |
 | `LOAMSPINE_BIND` | `127.0.0.1` | Bind address |

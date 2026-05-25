@@ -48,6 +48,16 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 
 ---
 
+## Resolved Upstream Audit Items
+
+| Audit Item | Resolution |
+|------------|------------|
+| **Tokio runtime-in-runtime panic on health probe** | **NOT REPRODUCIBLE / ALREADY FIXED.** Health handlers (`liveness`, `readiness`, `check`) are simple async methods — zero `Runtime::new()`, zero `block_on()`, zero infant discovery on the request path. The original nested-runtime bug was LS-03 (v0.9.15): `block_on()` in infant discovery at *startup*, not health probes. Hardened in v0.9.16 via `mdns-sd` migration (PG-33). Wave 47 documented a reported "Tokio double-runtime crash" as misdiagnosed — actual cause was `serve` vs `server` CLI mismatch in plasmidBin launcher. Production code has **zero** `Runtime::new()` or `block_on()` calls. See `LOAMSPINE_WAVE47_BEHAVIORAL_CONVERGENCE_HANDOFF_MAY24_2026.md`. |
+| **benchScale uses source-build + PATH** | **RESOLVED (Wave 49).** `validate_roundtrip.sh` now checks `LOAMSPINE_BINARY` env first, then `target/release`, `target/debug`, then `command -v loamspine` (PATH / plasmidBin). Build step skippable via `SKIP_BUILD=1`. |
+| **wateringHole flat handoffs** | **RESOLVED (Wave 49).** `archive/` subdir created, superseded handoffs moved. Active handoffs remain in `infra/wateringHole/handoffs/`. |
+
+---
+
 ## Platform
 
 | Area | Issue | Notes |
