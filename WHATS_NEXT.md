@@ -584,33 +584,33 @@
 
 ---
 
-## v0.10.0 Targets
+## v0.10.0 Targets (next natural step)
 
-- **Signing capability middleware** — Signature verification on RPC layer (capability-discovered)
-- **~~Showcase demos~~** — **FOSSILIZED** (May 25, 2026): Wave 49 — archived to `ecoPrimals/fossilRecord/primals/loamSpine/showcase_wave49/`. Active validation via `infra/benchScale/validate_roundtrip.sh` (51 validations, 43 methods)
-- **Collision layer validation** — neuralSpring experiments (Python baseline)
-- **~~mdns crate evolution~~** — **COMPLETE** (April 20, 2026): `mdns` 3.0 replaced with `mdns-sd` 0.19; async-std/net2/proc-macro-error eliminated; 3 RUSTSEC advisories removed
-- **`ValidationHarness`/`ValidationSink`** — Structured validation pattern from biomeOS (partially addressed via `execute_classified` is_transient pattern in v0.9.11)
+- **Signing capability middleware** — Signature verification on RPC layer (capability-discovered). Next natural step per Wave 53.
+- **Collision layer validation** — neuralSpring experiments (Python baseline). See `specs/COLLISION_LAYER_ARCHITECTURE.md`.
+- **~~Showcase demos~~** — **FOSSILIZED** (May 25, 2026): Wave 49 — archived to `ecoPrimals/fossilRecord/primals/loamSpine/showcase_wave49/`. Active validation via `infra/benchScale/validate_roundtrip.sh` (54 validations, 43 methods, 20 phases).
+- **~~mdns crate evolution~~** — **COMPLETE** (April 20, 2026): `mdns` 3.0 replaced with `mdns-sd` 0.19; async-std/net2/proc-macro-error eliminated; 3 RUSTSEC advisories removed.
 
 ---
 
 ## v1.0.0 Targets
 
-- **PostgreSQL storage backend** -- Implement per [specs/STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md)
-- **RocksDB storage backend** -- Implement per [specs/STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md)
-- **Full Universal IPC v3 compliance** -- Complete protocol alignment
-- **genomeBin readiness** -- musl-static resolved (v0.9.16); remaining: checksums.toml musl triple + PIE verification
-- **95%+ test coverage**
-- **HTTP health endpoints** -- `/health/liveness`, `/health/readiness`
-- **Prometheus metrics** -- Request counts, latencies, queue depths
-- **Rate limiting** -- Per-capability and per-client limits
+- **PostgreSQL storage backend** — Roadmap item, not a glacial blocker. Current state: redb (default, pure Rust) + in-memory (testing). See [specs/STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md).
+- **RocksDB storage backend** — Same. Demand-driven — implement when a composition requires it.
+- **Full Universal IPC v3 compliance** — Complete protocol alignment
+- **genomeBin readiness** — musl-static resolved (v0.9.16); remaining: checksums.toml musl triple + PIE verification
+- **95%+ test coverage** — Currently 90.92% line / 92.92% region
+- **HTTP health endpoints** — `/health/liveness`, `/health/readiness` (JSON-RPC health triad already complete)
+- **Prometheus metrics** — Request counts, latencies, queue depths
+- **Rate limiting** — Per-capability and per-client limits
 
 ---
 
 ## Long-term
 
-- **Cross-primal integration testing** -- With rhizoCrypt and sweetGrass
-- **Service mesh patterns** -- From [specs/SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md)
+- **Provenance trio E2E** — Live compositions with rhizoCrypt + sweetGrass (Wave 55 target per primalSpring)
+- **Cross-gate capability.call** — Smoke test with Songbird mesh (primalSpring owns execution)
+- **Service mesh patterns** — From [specs/SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md)
 
 ---
 
