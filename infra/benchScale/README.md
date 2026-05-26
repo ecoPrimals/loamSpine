@@ -46,6 +46,7 @@ cleanup).
 | 17 | error paths | Unknown method (-32601), not-found spine |
 | 18 | `lifecycle.status` | Uptime verification (uptime_s > 0) |
 | 19 | `primal.announce` | Self-registration payload |
+| 20 | `health.*` (40 rapid) | Runtime-in-runtime regression (burst probe survival) |
 
 ## Dependencies
 

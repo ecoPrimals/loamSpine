@@ -526,6 +526,31 @@ resp=$(rpc_call "primal.announce")
 assert_result "primal.announce" "$resp" '.result'
 
 # ============================================================================
+# Phase 20: Health probe burst (runtime-in-runtime regression test)
+# ============================================================================
+
+log_header "Phase 20: Health probe burst (runtime-in-runtime regression)"
+
+for i in $(seq 1 20); do
+    rpc_call "health.liveness" >/dev/null
+    rpc_call "health.readiness" >/dev/null
+done
+
+if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+    echo -e "  ${RED}✗${NC} Server crashed during health burst — possible runtime-in-runtime panic"
+    ((FAIL++)); ((TOTAL++))
+else
+    resp=$(rpc_call "health.liveness")
+    assert_result "health.liveness (after 40 rapid probes)" "$resp" '.result.status'
+
+    resp=$(rpc_call "health.readiness")
+    assert_result "health.readiness (after 40 rapid probes)" "$resp" '.result.ready == true'
+
+    resp=$(rpc_call "health.check")
+    assert_result "health.check (after 40 rapid probes)" "$resp" '.result'
+fi
+
+# ============================================================================
 # Summary
 # ============================================================================
 
@@ -544,7 +569,7 @@ if [[ $FAIL -eq 0 ]]; then
     echo -e "  Port:        $ACTUAL_PORT"
     echo -e "  PID:         $SERVER_PID"
     echo -e "  Methods:     $PASS validations across 43 canonical methods"
-    echo -e "  Phases:      19 validation phases"
+    echo -e "  Phases:      20 validation phases"
     echo -e "  Transport:   HTTP POST JSON-RPC 2.0"
     echo -e "  Standard:    DEPLOYMENT_VALIDATION_STANDARD v1.1"
     echo ""
