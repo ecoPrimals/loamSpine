@@ -56,7 +56,9 @@ getrandom = "0.4.2"
 [features]
 default = ["redb-storage", "dns-srv"]
 redb-storage = ["dep:redb"]
-# Enable testing utilities (MockSigner, MockVerifier) for use in downstream crates
+# Enable testing utilities (MockSigner, MockVerifier, MockTransport) for
+# downstream crates that depend on loam-spine-core and need test doubles.
+# Not used internally — in-repo tests use #[cfg(test)] directly.
 testing = []
 # Enable direct HTTP via ureq (pure Rust, no TLS, no ring/C).
 # For HTTPS, route through a TLS capability provider.

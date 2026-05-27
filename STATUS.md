@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 25, 2026
+**Last Updated**: May 27, 2026
 
 ---
 
@@ -126,7 +126,7 @@ All 43 methods have stability annotations in `capabilities.list` response:
 
 When loamSpine is unavailable:
 - **Provenance trio** (rhizoCrypt → loamSpine → sweetGrass): DAG sessions can still complete, but permanent certificates cannot be minted. rhizoCrypt retains dehydration summaries for later commit when loamSpine returns. No data loss.
-- **Entry signing**: If BEARDOG_SOCKET is also unavailable, entries are stored unsigned. Signature metadata field is empty. Entries can be signed retroactively.
+- **Entry signing**: If `TOWER_SIGNER_SOCKET` is also unavailable, entries are stored unsigned. Signature metadata field is empty. Entries can be signed retroactively.
 - **Health probes**: Downstream discovery marks loamSpine as unhealthy. Composition fallback to cached capability lists.
 - **Bonding ledger**: Ionic bond contracts cannot be persisted. Bond negotiation fails gracefully — bonds are not established until ledger confirms storage.
 - **Slice anchoring**: Waypoint operations fail. Slices remain local and can be anchored when service returns.
@@ -147,6 +147,15 @@ When loamSpine is unavailable:
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
 
 ---
+
+## v0.9.16 Wave 55 Deep Debt — Primal Self-Knowledge Enforcement (May 27, 2026)
+
+- **BearDog coupling removed**: `BEARDOG_SOCKET` → `TOWER_SIGNER_SOCKET` (deprecated fallback preserved). `BEARDOG_FAMILY_SEED` → `BTSP_FAMILY_SEED` (deprecated fallback preserved). All doc comments de-coupled from BearDog primal name — references use "tower signer" capability instead.
+- **Placeholder DIDs replaced**: `did:key:unknown` / `did:key:tower` → `Did::anonymous()` sentinel (`did:primal:anonymous`) + env-driven `TOWER_SIGNER_DID`.
+- **Dead code removed**: `IntoByteBuffer` trait (unused outside defining file). 8 `pub` items tightened to `pub(crate)`: manifest discovery helpers, `negotiate_protocol`, `resolve_primal_socket_with_env`, `DispatchOutcome::is_ok`.
+- **Lint hygiene**: `#[allow(clippy::unused_async)]` → `#[expect]` where configuration-stable (uds.rs). Feature-dependent suppressions kept as `#[allow]` with documented reasons.
+- **Storage docs aligned**: `Postgres`/`Rocksdb` variants marked "roadmap — feature flag not yet defined". `LoamSpineService` doc acknowledges in-memory storage with redb as standalone backend.
+- **1,528 tests**, zero clippy warnings, zero compilation warnings.
 
 ## v0.9.16 benchScale Roundtrip Validation (May 25, 2026)
 

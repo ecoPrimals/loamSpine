@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 27, 2026 — Wave 55: Primal Self-Knowledge Enforcement)
+
+- **BearDog coupling removed**: `BEARDOG_SOCKET` → `TOWER_SIGNER_SOCKET`, `BEARDOG_FAMILY_SEED` → `BTSP_FAMILY_SEED` (deprecated fallbacks preserved for backward compatibility). All doc comments reference capabilities ("tower signer") instead of primal names.
+- **Placeholder DIDs replaced**: `did:key:unknown` → `Did::anonymous()` sentinel. `did:key:tower` → env-driven `TOWER_SIGNER_DID` with `Did::anonymous()` fallback.
+- **Dead code removed**: `IntoByteBuffer` trait (unused). 8 `pub` items tightened to `pub(crate)`.
+- **Lint hygiene**: `#[allow(clippy::unused_async)]` → `#[expect]` where stable across feature configurations.
+- **Storage documentation aligned**: `Postgres`/`Rocksdb` variants marked "roadmap". `LoamSpineService` docs updated.
+
 ### Fixed (May 24, 2026 — Wave 47: Deployment Behavioral Convergence)
 
 - **CRITICAL blocker resolved**: The reported "Tokio double-runtime crash" was a misdiagnosis. Root cause: `infra/plasmidBin/start_primal.sh` passes `serve` subcommand but loamSpine only accepts `server` — immediate CLI failure, not a runtime crash. The actual LS-03 tokio nested-runtime bug was fixed in v0.9.15 and structurally eliminated with mdns-sd migration in v0.9.16. Zero `Runtime::new()` or `block_on()` in production code.

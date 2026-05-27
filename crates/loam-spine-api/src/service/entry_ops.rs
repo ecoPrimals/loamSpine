@@ -8,11 +8,11 @@ use crate::types::*;
 use loam_spine_core::traits::SpineQuery;
 
 impl LoamSpineRpcService {
-    /// Append an entry, signing via Tower if `BEARDOG_SOCKET` is configured.
+    /// Append an entry, signing via Tower if `TOWER_SIGNER_SOCKET` is configured.
     ///
     /// When a tower signer is present, the entry's canonical bytes are signed
-    /// via `BearDog` `crypto.sign_ed25519` and the base64 signature is stored in
-    /// entry metadata (`tower_signature`, `tower_signature_alg`) before the
+    /// via the tower's `crypto.sign_ed25519` and the base64 signature is stored
+    /// in entry metadata (`tower_signature`, `tower_signature_alg`) before the
     /// entry is appended to the spine chain. The chain hash commits to the
     /// signed entry.
     ///

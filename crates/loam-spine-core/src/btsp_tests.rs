@@ -328,6 +328,7 @@ fn resolve_family_seed_from_primary_env() {
     temp_env::with_vars(
         [
             ("FAMILY_SEED", Some("abcdef1234567890")),
+            ("BTSP_FAMILY_SEED", None::<&str>),
             ("BEARDOG_FAMILY_SEED", None::<&str>),
         ],
         || {
@@ -341,11 +342,12 @@ fn resolve_family_seed_from_primary_env() {
 }
 
 #[test]
-fn resolve_family_seed_falls_back_to_beardog() {
+fn resolve_family_seed_falls_back_to_btsp() {
     temp_env::with_vars(
         [
             ("FAMILY_SEED", None::<&str>),
-            ("BEARDOG_FAMILY_SEED", Some("fallback_seed")),
+            ("BTSP_FAMILY_SEED", Some("fallback_seed")),
+            ("BEARDOG_FAMILY_SEED", None::<&str>),
         ],
         || {
             let seed = super::handshake::resolve_family_seed().expect("should resolve");
@@ -362,6 +364,7 @@ fn resolve_family_seed_primary_takes_precedence() {
     temp_env::with_vars(
         [
             ("FAMILY_SEED", Some("primary")),
+            ("BTSP_FAMILY_SEED", Some("fallback")),
             ("BEARDOG_FAMILY_SEED", Some("fallback")),
         ],
         || {
@@ -379,6 +382,7 @@ fn resolve_family_seed_missing_returns_error() {
     temp_env::with_vars(
         [
             ("FAMILY_SEED", None::<&str>),
+            ("BTSP_FAMILY_SEED", None::<&str>),
             ("BEARDOG_FAMILY_SEED", None::<&str>),
         ],
         || {

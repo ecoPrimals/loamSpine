@@ -2,7 +2,7 @@
 
 //! Tower signing integration tests for `entry.append` and `session.commit`.
 //!
-//! Validates that when `BEARDOG_SOCKET` is configured (Tower signer present),
+//! Validates that when `TOWER_SIGNER_SOCKET` is configured (Tower signer present),
 //! entries are signed via `crypto.sign_ed25519` and the signature is stored
 //! in entry metadata (`tower_signature`, `tower_signature_alg`).
 
@@ -13,7 +13,7 @@ use std::sync::Arc;
 use tokio::io::AsyncWriteExt;
 use tokio::net::UnixListener;
 
-/// Spawn a mock `BearDog` crypto provider that responds to `crypto.sign_ed25519`
+/// Spawn a mock tower crypto provider that responds to `crypto.sign_ed25519`
 /// with a blake3 hash of the message as the signature (deterministic mock).
 async fn spawn_mock_tower_signer(
     tmp: &std::path::Path,

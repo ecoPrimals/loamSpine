@@ -317,7 +317,7 @@ impl InfantDiscovery {
     /// and delivers results via async-compatible flume channels.
     ///
     /// For production, prefer DNS SRV or environment variables.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "async required for mdns feature builds; lint fires only in no-feature builds"
     )]

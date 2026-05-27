@@ -83,6 +83,12 @@ pub(crate) struct ActiveSliceInfo {
 /// `LoamSpine` only knows its own capabilities. Other primals (signing services,
 /// discovery services, etc.) are discovered at runtime through the capability
 /// registry, not hardcoded at compile time.
+///
+/// ## Storage
+///
+/// Currently uses in-memory storage for all backends. `RedbStorage` is available
+/// as a standalone backend (via `feature = "redb-storage"`) for callers that
+/// wire their own persistence layer. Trait-injected storage is a v0.10.0 target.
 #[derive(Clone)]
 pub struct LoamSpineService {
     pub(crate) spine_storage: InMemorySpineStorage,

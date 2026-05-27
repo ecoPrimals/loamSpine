@@ -111,11 +111,29 @@ impl std::borrow::Borrow<str> for PeerId {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Did(Arc<str>);
 
+/// Sentinel value for contexts where no identity is known or configured.
+const ANONYMOUS_DID: &str = "did:primal:anonymous";
+
 impl Did {
+    /// Sentinel DID for contexts where no identity is known or configured.
+    ///
+    /// Used instead of hardcoded placeholder strings. Callers should check
+    /// `did.is_anonymous()` rather than string-matching.
+    #[must_use]
+    pub fn anonymous() -> Self {
+        Self(Arc::from(ANONYMOUS_DID))
+    }
+
     /// Create a new DID.
     #[must_use]
     pub fn new(value: impl Into<Arc<str>>) -> Self {
         Self(value.into())
+    }
+
+    /// Returns `true` if this DID is the anonymous sentinel.
+    #[must_use]
+    pub fn is_anonymous(&self) -> bool {
+        self.0.as_ref() == ANONYMOUS_DID
     }
 
     /// Get the DID as a string slice.
@@ -178,7 +196,7 @@ impl Signature {
     /// Create a signature from a `Vec<u8>` (convenience method).
     #[must_use]
     pub fn from_vec(bytes: Vec<u8>) -> Self {
-        Self(bytes.into_byte_buffer())
+        Self(ByteBuffer::from(bytes))
     }
 
     /// Create an empty signature (for unsigned entries).
@@ -402,30 +420,6 @@ mod hex {
 /// assert_eq!(&slice[..], b"hello");
 /// ```
 pub type ByteBuffer = Bytes;
-
-/// Extension trait for converting between `Vec<u8>` and `ByteBuffer`.
-pub trait IntoByteBuffer {
-    /// Convert to a zero-copy byte buffer.
-    fn into_byte_buffer(self) -> ByteBuffer;
-}
-
-impl IntoByteBuffer for Vec<u8> {
-    fn into_byte_buffer(self) -> ByteBuffer {
-        ByteBuffer::from(self)
-    }
-}
-
-impl IntoByteBuffer for &[u8] {
-    fn into_byte_buffer(self) -> ByteBuffer {
-        ByteBuffer::copy_from_slice(self)
-    }
-}
-
-impl IntoByteBuffer for &str {
-    fn into_byte_buffer(self) -> ByteBuffer {
-        ByteBuffer::copy_from_slice(self.as_bytes())
-    }
-}
 
 // ============================================================================
 // Serde helpers for ContentHash / EntryHash — accept hex strings or byte arrays

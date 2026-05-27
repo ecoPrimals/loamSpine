@@ -141,7 +141,7 @@ pub fn resolve_socket_base_dir_with(runtime_dir: Option<&str>) -> std::path::Pat
 
 pub use super::env_resolution::{
     actual_jsonrpc_port, actual_tarpc_port, bind_address, has_explicit_tcp_config, jsonrpc_port,
-    resolve_primal_socket_with_env, tarpc_port, use_os_assigned_ports,
+    tarpc_port, use_os_assigned_ports,
 };
 
 /// Build a complete endpoint URL from parts.
@@ -271,7 +271,8 @@ pub fn resolve_primal_tarpc_socket_from(
 /// Protocol escalation: prefer tarpc when `.tarpc.sock` exists,
 /// fall back to JSON-RPC `.sock`.
 #[must_use]
-pub fn negotiate_protocol(primal: &str, family_id: &str) -> (IpcProtocol, std::path::PathBuf) {
+#[allow(dead_code, reason = "protocol negotiation entry point for runtime IPC")]
+pub(crate) fn negotiate_protocol(primal: &str, family_id: &str) -> (IpcProtocol, std::path::PathBuf) {
     let base = resolve_socket_base_dir();
     negotiate_protocol_from(&base, primal, family_id)
 }

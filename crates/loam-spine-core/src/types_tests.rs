@@ -73,14 +73,14 @@ fn format_hash_short_works() {
 #[test]
 fn byte_buffer_from_vec() {
     let vec = vec![1u8, 2, 3, 4, 5];
-    let buffer: ByteBuffer = vec.into_byte_buffer();
+    let buffer: ByteBuffer = ByteBuffer::from(vec);
     assert_eq!(&buffer[..], &[1, 2, 3, 4, 5]);
 }
 
 #[test]
 fn byte_buffer_from_slice() {
     let data: &[u8] = &[1, 2, 3];
-    let buffer: ByteBuffer = data.into_byte_buffer();
+    let buffer: ByteBuffer = ByteBuffer::copy_from_slice(data);
     assert_eq!(&buffer[..], &[1, 2, 3]);
 }
 
@@ -127,7 +127,7 @@ fn timestamp_display() {
 
 #[test]
 fn byte_buffer_from_str_slice() {
-    let buffer: ByteBuffer = "hello".into_byte_buffer();
+    let buffer: ByteBuffer = ByteBuffer::copy_from_slice(b"hello");
     assert_eq!(&buffer[..], b"hello");
 }
 
@@ -272,7 +272,7 @@ mod proptest_roundtrips {
 
         #[test]
         fn byte_buffer_roundtrip(data in prop::collection::vec(any::<u8>(), 0..512)) {
-            let buf: ByteBuffer = data.clone().into_byte_buffer();
+            let buf: ByteBuffer = ByteBuffer::from(data.clone());
             prop_assert_eq!(&buf[..], &data[..]);
         }
     }

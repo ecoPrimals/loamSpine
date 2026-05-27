@@ -33,9 +33,9 @@ use tokio::sync::RwLock;
 
 /// RPC service implementation backed by the core `LoamSpineService`.
 ///
-/// When `tower_signer` is configured (via `BEARDOG_SOCKET`), all entry
-/// appends are signed via `BearDog` `crypto.sign_ed25519` and the signature
-/// is stored in entry metadata (`tower_signature`, `tower_signature_alg`).
+/// When `tower_signer` is configured (via `TOWER_SIGNER_SOCKET`), all entry
+/// appends are signed via the tower signer's `crypto.sign_ed25519` and the
+/// signature is stored in entry metadata (`tower_signature`, `tower_signature_alg`).
 ///
 /// BTSP Phase 3: `btsp_sessions` stores handshake keys keyed by session ID.
 /// When a `btsp.negotiate` request arrives, the handler looks up the key,
@@ -67,7 +67,7 @@ impl LoamSpineRpcService {
     /// Set the Tower crypto signer for entry signing delegation.
     ///
     /// When set, all `entry.append` and `session.commit` operations will
-    /// sign the entry via `BearDog` `crypto.sign_ed25519` before persisting.
+    /// sign the entry via the tower signer's `crypto.sign_ed25519` before persisting.
     #[must_use]
     pub fn with_tower_signer(mut self, signer: Arc<JsonRpcCryptoSigner>) -> Self {
         self.tower_signer = Some(signer);

@@ -86,7 +86,8 @@ pub fn has_explicit_tcp_config() -> bool {
 /// Checks `{PRIMAL}_SOCKET` env var first, then falls back to the
 /// standard biomeos socket directory resolution.
 #[must_use]
-pub fn resolve_primal_socket_with_env(primal: &str, family_id: &str) -> std::path::PathBuf {
+#[allow(dead_code, reason = "env-reading entry point for runtime socket resolution")]
+pub(crate) fn resolve_primal_socket_with_env(primal: &str, family_id: &str) -> std::path::PathBuf {
     let env_key = network::socket_env_var(primal);
     network::resolve_primal_socket_with(env::var(&env_key).ok().as_deref(), primal, family_id)
 }

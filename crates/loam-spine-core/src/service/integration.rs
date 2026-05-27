@@ -502,7 +502,7 @@ impl ProvenanceSource for LoamSpineService {
                     let spine = self.spine_storage.get_spine(*spine_id).await?;
                     let creator = spine
                         .as_ref()
-                        .map_or_else(|| Did::new("did:key:unknown"), |s| s.owner.clone());
+                        .map_or_else(Did::anonymous, |s| s.owner.clone());
 
                     return Ok(Some(AttributionRecord {
                         content_hash,
@@ -527,7 +527,7 @@ impl ProvenanceSource for LoamSpineService {
             let spine = self.spine_storage.get_spine(spine_id).await?;
             let owner = spine
                 .as_ref()
-                .map_or_else(|| Did::new("did:key:unknown"), |s| s.owner.clone());
+                .map_or_else(Did::anonymous, |s| s.owner.clone());
 
             let entries = self
                 .entry_storage

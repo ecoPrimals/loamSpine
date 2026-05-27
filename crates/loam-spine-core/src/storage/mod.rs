@@ -185,16 +185,16 @@ pub enum StorageBackend {
     #[default]
     Redb,
 
-    /// PostgreSQL-backed persistent storage (planned).
+    /// PostgreSQL-backed persistent storage (roadmap).
     ///
     /// Production-grade relational storage for multi-node deployments.
-    /// Note: Requires the `postgres` feature to be enabled.
+    /// Feature flag not yet defined — `is_available()` returns `false`.
     Postgres,
 
-    /// RocksDB-backed persistent storage (planned).
+    /// RocksDB-backed persistent storage (roadmap).
     ///
     /// High-performance LSM-tree storage.
-    /// Note: Requires the `rocksdb` feature to be enabled.
+    /// Feature flag not yet defined — `is_available()` returns `false`.
     Rocksdb,
 }
 

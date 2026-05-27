@@ -204,19 +204,24 @@ async fn run_server(
 
     let rpc_service = {
         let svc = LoamSpineRpcService::new(service);
-        if let Ok(beardog_socket) = std::env::var("BEARDOG_SOCKET") {
-            let socket_path = std::path::PathBuf::from(&beardog_socket);
-            info!("Tower signing enabled via BEARDOG_SOCKET={beardog_socket}");
+        let tower_socket = std::env::var("TOWER_SIGNER_SOCKET")
+            .or_else(|_| std::env::var("BEARDOG_SOCKET"));
+        if let Ok(socket_val) = tower_socket {
+            let socket_path = std::path::PathBuf::from(&socket_val);
+            info!("Tower signing enabled via TOWER_SIGNER_SOCKET={socket_val}");
+            let signer_did = std::env::var("TOWER_SIGNER_DID")
+                .map(loam_spine_core::types::Did::new)
+                .unwrap_or_else(|_| loam_spine_core::types::Did::anonymous());
             let signer = std::sync::Arc::new(
                 loam_spine_core::traits::crypto_provider::JsonRpcCryptoSigner::new(
                     socket_path,
-                    loam_spine_core::types::Did::new("did:key:tower"),
+                    signer_did,
                     None,
                 ),
             );
             svc.with_tower_signer(signer)
         } else {
-            info!("Tower signing disabled (BEARDOG_SOCKET not set)");
+            info!("Tower signing disabled (TOWER_SIGNER_SOCKET not set)");
             svc
         }
     };

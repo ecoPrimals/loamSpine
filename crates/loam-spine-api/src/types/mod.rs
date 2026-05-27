@@ -401,7 +401,7 @@ pub struct CommitSessionResponse {
 
     // -- Tower signature (when signing is enabled) --
     /// Ed25519 signature over the entry's canonical bytes (base64),
-    /// present only when `BEARDOG_SOCKET` is configured.
+    /// present only when `TOWER_SIGNER_SOCKET` is configured.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tower_signature: Option<String>,
 }

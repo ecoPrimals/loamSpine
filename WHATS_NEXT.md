@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 25, 2026
+**Last Updated**: May 27, 2026
 
 ---
 
 ## Documentation changelog
+
+- **May 27, 2026** — **Wave 55 deep debt cleanup — primal self-knowledge enforcement**: `BEARDOG_SOCKET` → `TOWER_SIGNER_SOCKET` (deprecated fallback preserved). `BEARDOG_FAMILY_SEED` → `BTSP_FAMILY_SEED` (deprecated fallback preserved). `did:key:unknown` / `did:key:tower` placeholders → `Did::anonymous()` sentinel + env-driven `TOWER_SIGNER_DID`. Dead `IntoByteBuffer` trait removed. 8 `pub` items tightened to `pub(crate)`. `#[allow]` → `#[expect]` for `clippy::unused_async` (where cfg-stable). Storage docs aligned (Postgres/RocksDB = roadmap, service uses in-memory). All doc comments de-coupled from BearDog primal name. 1,528 tests, zero warnings.
 
 - **May 25, 2026** — **Wave 49 ecosystem tightening**: Showcase fossilized to `ecoPrimals/fossilRecord/primals/loamSpine/showcase_wave49/` (47 files). `showcase/` replaced with README pointer. benchScale binary resolution updated (`LOAMSPINE_BINARY` env → `target/release` → PATH fallback). Pipeline debt item "Tokio runtime-in-runtime panic on health probe" confirmed already fixed (LS-03/v0.9.15, PG-33/v0.9.16, Wave 47 misdiagnosis documented). `notify-plasmidbin.yml` confirmed active. wateringHole handoffs already consolidated in `infra/wateringHole/handoffs/`. All 5 verification checklist items pass.
 

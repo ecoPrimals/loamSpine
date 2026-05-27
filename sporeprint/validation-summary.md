@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
 description = "Permanence ledger — 1,528 tests, 43 JSON-RPC methods, 189 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring"
-date = 2026-05-25
+date = 2026-05-27
 
 [taxonomies]
 primals = ["loamspine"]
@@ -73,7 +73,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 
 | Capability | Provider | Role |
 |------------|----------|------|
-| `signing` | BearDog | Ed25519 entry signing |
+| `signing` | Tower signer (capability-discovered) | Ed25519 entry signing |
 | `discovery` | (capability-discovered) | mDNS / DNS-SRV primal discovery |
 | `chain-anchor` | (not yet built) | External chain submission for anchor.publish |
 

@@ -4,7 +4,7 @@
 
 **Version**: 1.0.0  
 **Status**: Active  
-**Last Updated**: May 25, 2026
+**Last Updated**: May 27, 2026
 
 ---
 
@@ -57,7 +57,7 @@ pub trait LoamSpineRpc {
     
     // ==================== Entry Operations ====================
     
-    /// Append an entry (Tower-signed via BearDog crypto.sign_ed25519 when BEARDOG_SOCKET is set)
+    /// Append an entry (Tower-signed via crypto.sign_ed25519 when TOWER_SIGNER_SOCKET is set)
     async fn append_entry(request: AppendEntryRequest) -> Result<AppendEntryResponse, ApiError>;
     
     /// Get entry by hash
@@ -361,10 +361,10 @@ Callers do **not** provide entry signatures. Signing is handled internally:
 
 | Aspect | Behavior |
 |--------|----------|
-| **Who signs** | LoamSpine calls BearDog `crypto.sign_ed25519` internally when `BEARDOG_SOCKET` is set |
+| **Who signs** | LoamSpine calls the tower signer's `crypto.sign_ed25519` internally when `TOWER_SIGNER_SOCKET` is set |
 | **What is signed** | The entry's canonical bytes (`entry.to_canonical_bytes()`) — includes all fields except metadata |
 | **Where stored** | `entry.metadata["tower_signature"]` (base64 Ed25519) and `entry.metadata["tower_signature_alg"]` |
-| **No Tower** | When `BEARDOG_SOCKET` is not set, entries are unsigned (standalone mode) |
+| **No Tower** | When `TOWER_SIGNER_SOCKET` is not set, entries are unsigned (standalone mode) |
 | **`committer` field** | `Entry.committer` is always derived from `spine.owner`, **not** from the request. The `committer` field in `AppendEntryRequest` is optional and ignored. For `session.commit`, the request `committer` is embedded in the `SessionCommit` entry type. |
 | **`committer` format** | DID string, e.g. `"did:key:z6MkOwner..."`. Set when creating the spine via `spine.create`. |
 | **Hash fields** | All `ContentHash`/`EntryHash` fields accept both JSON byte arrays (`[1,2,...,32]`) and 64-char hex strings (`"0102..."` or `"0x0102..."`). |
@@ -555,7 +555,7 @@ pub struct CommitSessionResponse {
     pub merkle_root: ContentHash,
     pub vertex_count: u64,
     pub committer: Did,
-    // Tower signature (when BEARDOG_SOCKET is set)
+    // Tower signature (when TOWER_SIGNER_SOCKET is set)
     pub tower_signature: Option<String>,
 }
 
@@ -627,11 +627,11 @@ pub enum ApiError {
 
 ## 6. Authentication
 
-All API calls require BearDog authentication:
+All API calls require tower authentication:
 
 ```
-Authorization: Bearer <beardog-token>
-X-BearDog-DID: did:key:z6Mk...
+Authorization: Bearer <tower-token>
+X-Tower-DID: did:key:z6Mk...
 ```
 
 ---

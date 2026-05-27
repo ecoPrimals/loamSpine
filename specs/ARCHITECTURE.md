@@ -4,7 +4,7 @@
 
 **Version**: 1.1.0  
 **Status**: Active  
-**Last Updated**: December 24, 2025
+**Last Updated**: May 27, 2026
 
 > **Implementation Note**: The LoamSpine codebase uses capability-based discovery.
 > External services are discovered at runtime via environment variables and the

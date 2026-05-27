@@ -81,7 +81,7 @@ pub async fn run_jsonrpc_uds_server(
 /// # Errors
 ///
 /// Returns error if the socket cannot be bound.
-#[allow(clippy::unused_async, reason = "async context needed by callers that await shutdown")]
+#[expect(clippy::unused_async, reason = "async context needed by callers that await shutdown")]
 pub async fn run_jsonrpc_uds_server_with_gate(
     path: impl Into<std::path::PathBuf>,
     service: LoamSpineRpcService,
