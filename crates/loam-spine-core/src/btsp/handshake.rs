@@ -509,10 +509,7 @@ fn decode_session_key(session_key: Option<&String>) -> Option<[u8; 32]> {
 pub(crate) fn resolve_family_seed() -> Result<String, LoamSpineError> {
     use base64::Engine;
 
-    let raw = std::env::var("FAMILY_SEED")
-        .or_else(|_| std::env::var("BTSP_FAMILY_SEED"))
-        .or_else(|_| std::env::var("BEARDOG_FAMILY_SEED"))
-        .map_err(|_| {
+    let raw = crate::constants::env_resolution::family_seed().map_err(|_| {
             LoamSpineError::ipc(
                 IpcErrorPhase::Connect,
                 "FAMILY_SEED not set (checked FAMILY_SEED, BTSP_FAMILY_SEED, and BEARDOG_FAMILY_SEED)",

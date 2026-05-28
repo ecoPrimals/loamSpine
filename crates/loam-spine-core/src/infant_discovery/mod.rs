@@ -125,10 +125,8 @@ impl DiscoveryConfig {
     #[must_use]
     pub fn from_env_or_default() -> Self {
         Self::from_explicit(
-            env::var("SERVICE_REGISTRY_URL").ok().as_deref(),
-            env::var("DISCOVERY_CACHE_TTL")
-                .ok()
-                .and_then(|s| s.parse().ok()),
+            crate::constants::env_resolution::service_registry_url().as_deref(),
+            crate::constants::env_resolution::discovery_cache_ttl(),
         )
     }
 

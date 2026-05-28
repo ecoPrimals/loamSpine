@@ -179,18 +179,16 @@ impl Default for DiscoveryConfig {
         let tarpc = crate::constants::env_resolution::tarpc_port();
         let jsonrpc = crate::constants::env_resolution::jsonrpc_port();
 
-        let discovery_enabled = std::env::var("LOAMSPINE_DISCOVERY_ENABLED")
-            .map(|v| !matches!(v.as_str(), "0" | "false" | "no"))
-            .unwrap_or(true);
+        let discovery_enabled = crate::constants::env_resolution::discovery_enabled();
 
         Self {
             discovery_enabled,
-            discovery_endpoint: std::env::var("DISCOVERY_ENDPOINT").ok(),
+            discovery_endpoint: crate::constants::env_resolution::discovery_endpoint(),
 
-            tarpc_endpoint: std::env::var("TARPC_ENDPOINT")
-                .unwrap_or_else(|_| format!("http://{bind}:{tarpc}")),
-            jsonrpc_endpoint: std::env::var("JSONRPC_ENDPOINT")
-                .unwrap_or_else(|_| format!("http://{bind}:{jsonrpc}")),
+            tarpc_endpoint: crate::constants::env_resolution::tarpc_endpoint()
+                .unwrap_or_else(|| format!("http://{bind}:{tarpc}")),
+            jsonrpc_endpoint: crate::constants::env_resolution::jsonrpc_endpoint()
+                .unwrap_or_else(|| format!("http://{bind}:{jsonrpc}")),
 
             auto_advertise: true,
             heartbeat_interval_seconds: 60,

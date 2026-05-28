@@ -78,7 +78,7 @@ pub fn find_by_name_from(base: &Path, name: &str) -> Option<PrimalManifest> {
 #[must_use]
 #[allow(dead_code, reason = "env-reading entry point for runtime manifest discovery")]
 pub(crate) fn manifest_dir() -> Option<PathBuf> {
-    let runtime_dir = std::env::var("XDG_RUNTIME_DIR").ok()?;
+    let runtime_dir = crate::constants::env_resolution::xdg_runtime_dir()?;
     manifest_dir_from(Path::new(&runtime_dir))
 }
 

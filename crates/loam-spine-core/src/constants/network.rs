@@ -8,7 +8,6 @@
 //! functions for concurrency safety.
 
 use std::borrow::Cow;
-use std::env;
 use tracing::{debug, warn};
 
 use crate::constants::{DEFAULT_JSONRPC_PORT, DEFAULT_TARPC_PORT, OS_ASSIGNED_PORT};
@@ -301,7 +300,9 @@ pub fn negotiate_protocol_from(
 }
 
 fn resolve_socket_base_dir() -> std::path::PathBuf {
-    resolve_socket_base_dir_with(env::var("XDG_RUNTIME_DIR").ok().as_deref())
+    resolve_socket_base_dir_with(
+        super::env_resolution::xdg_runtime_dir().as_deref(),
+    )
 }
 
 /// Detect the current user's runtime directory via `/proc/self/status`.

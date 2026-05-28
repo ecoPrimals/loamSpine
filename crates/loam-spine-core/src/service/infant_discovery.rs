@@ -225,8 +225,11 @@ impl InfantDiscovery {
     ) -> Option<String> {
         let value = endpoint.map(String::from).or_else(|| {
             env_overrides
-                .and_then(|m| m.get("DISCOVERY_ENDPOINT").cloned())
-                .or_else(|| std::env::var("DISCOVERY_ENDPOINT").ok())
+                .and_then(|m| {
+                    m.get(crate::constants::env_resolution::keys::DISCOVERY_ENDPOINT)
+                        .cloned()
+                })
+                .or_else(crate::constants::env_resolution::discovery_endpoint)
         });
         match value {
             Some(v) if !v.is_empty() => {

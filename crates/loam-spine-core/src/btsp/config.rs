@@ -24,7 +24,8 @@ const DEFAULT_BTSP_PROVIDER_PREFIX: &str = "btsp-provider";
 /// Checks `BTSP_PROVIDER` env var first, allowing runtime configuration
 /// of the handshake provider without compile-time primal coupling.
 fn btsp_provider_prefix() -> String {
-    std::env::var("BTSP_PROVIDER").unwrap_or_else(|_| DEFAULT_BTSP_PROVIDER_PREFIX.into())
+    crate::constants::env_resolution::btsp_provider()
+        .unwrap_or_else(|| DEFAULT_BTSP_PROVIDER_PREFIX.into())
 }
 
 /// Pure variant for testing and explicit configuration.
@@ -81,11 +82,11 @@ impl BtspHandshakeConfig {
     /// meaning BTSP is required. Returns `None` in development mode.
     #[must_use]
     pub fn from_env() -> Option<Self> {
-        let provider_socket_override = std::env::var("BTSP_PROVIDER_SOCKET").ok();
+        let provider_socket_override = crate::constants::env_resolution::btsp_provider_socket();
         Self::from_values(
-            std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref(),
+            crate::constants::env_resolution::biomeos_family_id().as_deref(),
             provider_socket_override.as_deref(),
-            std::env::var("BIOMEOS_SOCKET_DIR").ok().as_deref(),
+            crate::constants::env_resolution::biomeos_socket_dir().as_deref(),
         )
     }
 }
@@ -148,7 +149,9 @@ pub(crate) fn provider_socket_name(
 /// Returns `true` when `BIOMEOS_FAMILY_ID` is set and not `"default"`.
 #[must_use]
 pub fn is_btsp_required() -> bool {
-    is_btsp_required_with(std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref())
+    is_btsp_required_with(
+        crate::constants::env_resolution::biomeos_family_id().as_deref(),
+    )
 }
 
 /// Pure inner function: check BTSP requirement from explicit values.

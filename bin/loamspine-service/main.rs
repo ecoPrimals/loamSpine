@@ -204,14 +204,13 @@ async fn run_server(
 
     let rpc_service = {
         let svc = LoamSpineRpcService::new(service);
-        let tower_socket = std::env::var("TOWER_SIGNER_SOCKET")
-            .or_else(|_| std::env::var("BEARDOG_SOCKET"));
-        if let Ok(socket_val) = tower_socket {
+        let tower_socket = loam_spine_core::constants::env_resolution::tower_signer_socket();
+        if let Some(socket_val) = tower_socket {
             let socket_path = std::path::PathBuf::from(&socket_val);
             info!("Tower signing enabled via TOWER_SIGNER_SOCKET={socket_val}");
-            let signer_did = std::env::var("TOWER_SIGNER_DID")
+            let signer_did = loam_spine_core::constants::env_resolution::tower_signer_did()
                 .map(loam_spine_core::types::Did::new)
-                .unwrap_or_else(|_| loam_spine_core::types::Did::anonymous());
+                .unwrap_or_else(loam_spine_core::types::Did::anonymous);
             let signer = std::sync::Arc::new(
                 loam_spine_core::traits::crypto_provider::JsonRpcCryptoSigner::new(
                     socket_path,
@@ -315,7 +314,7 @@ async fn run_server(
     };
 
     #[cfg(unix)]
-    let family_id = std::env::var("BIOMEOS_FAMILY_ID").ok();
+    let family_id = loam_spine_core::constants::env_resolution::biomeos_family_id();
 
     // Capability-domain symlink: ledger.sock → loamspine.sock
     // Enables orchestration-layer `by_capability = "ledger"` routing in deploy graphs.

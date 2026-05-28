@@ -56,8 +56,7 @@ impl AuthMode {
     /// Unset or unrecognized defaults to `Permissive`.
     #[must_use]
     pub fn from_env() -> Self {
-        std::env::var("LOAMSPINE_AUTH_MODE")
-            .ok()
+        loam_spine_core::constants::env_resolution::loamspine_auth_mode()
             .and_then(|v| match v.to_ascii_lowercase().as_str() {
                 "enforced" => Some(Self::Enforced),
                 "permissive" => Some(Self::Permissive),

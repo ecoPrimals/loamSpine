@@ -139,9 +139,9 @@ pub fn validate_security_config(
 #[must_use]
 pub fn resolve_socket_path() -> PathBuf {
     resolve_socket_path_with(
-        std::env::var("LOAMSPINE_SOCKET").ok().as_deref(),
-        std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref(),
-        std::env::var("XDG_RUNTIME_DIR").ok().as_deref(),
+        crate::constants::env_resolution::loamspine_socket().as_deref(),
+        crate::constants::env_resolution::biomeos_family_id().as_deref(),
+        crate::constants::env_resolution::xdg_runtime_dir().as_deref(),
     )
 }
 
@@ -152,8 +152,8 @@ pub fn resolve_socket_path() -> PathBuf {
 /// Returns error if `BIOMEOS_INSECURE=1` is set alongside a non-default `BIOMEOS_FAMILY_ID`.
 pub fn validate_security_config_from_env() -> Result<(), LoamSpineError> {
     validate_security_config(
-        std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref(),
-        std::env::var("BIOMEOS_INSECURE").ok().as_deref(),
+        crate::constants::env_resolution::biomeos_family_id().as_deref(),
+        crate::constants::env_resolution::biomeos_insecure().as_deref(),
     )
 }
 
@@ -176,8 +176,8 @@ pub fn resolve_neural_api_socket_with(
 /// Resolve the NeuralAPI socket path for connecting to the orchestration layer (reads env).
 pub(super) fn resolve_neural_api_socket() -> Option<PathBuf> {
     resolve_neural_api_socket_with(
-        std::env::var("BIOMEOS_NEURAL_API_SOCKET").ok().as_deref(),
-        std::env::var("XDG_RUNTIME_DIR").ok().as_deref(),
-        std::env::var("BIOMEOS_FAMILY_ID").ok().as_deref(),
+        crate::constants::env_resolution::biomeos_neural_api_socket().as_deref(),
+        crate::constants::env_resolution::xdg_runtime_dir().as_deref(),
+        crate::constants::env_resolution::biomeos_family_id().as_deref(),
     )
 }

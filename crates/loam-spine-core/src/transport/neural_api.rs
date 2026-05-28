@@ -70,16 +70,11 @@ impl NeuralApiTransport {
 
     /// Resolve socket path from environment variables.
     fn socket_from_env() -> Option<PathBuf> {
-        if let Ok(explicit) = std::env::var("BIOMEOS_NEURAL_API_SOCKET") {
-            return Some(PathBuf::from(explicit));
-        }
-
-        let runtime_dir = std::env::var("XDG_RUNTIME_DIR").ok()?;
-        let family_id = std::env::var("BIOMEOS_FAMILY_ID").unwrap_or_else(|_| "default".into());
-        let dir = crate::primal_names::BIOMEOS_SOCKET_DIR;
-        Some(PathBuf::from(format!(
-            "{runtime_dir}/{dir}/neural-api-{family_id}.sock"
-        )))
+        crate::neural_api::socket::resolve_neural_api_socket_with(
+            crate::constants::env_resolution::biomeos_neural_api_socket().as_deref(),
+            crate::constants::env_resolution::xdg_runtime_dir().as_deref(),
+            crate::constants::env_resolution::biomeos_family_id().as_deref(),
+        )
     }
 
     fn next_id(&self) -> u64 {

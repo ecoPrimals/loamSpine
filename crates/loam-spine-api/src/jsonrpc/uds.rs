@@ -462,7 +462,7 @@ fn is_btsp_ndjson(line: &str) -> bool {
 
 /// Resolve the BTSP provider socket from environment for NDJSON auto-detect.
 fn resolve_btsp_provider() -> Option<std::path::PathBuf> {
-    if let Ok(path) = std::env::var("BTSP_PROVIDER_SOCKET") {
+    if let Some(path) = loam_spine_core::constants::env_resolution::btsp_provider_socket() {
         return Some(std::path::PathBuf::from(path));
     }
     let config = loam_spine_core::btsp::BtspHandshakeConfig::from_env()?;
