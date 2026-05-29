@@ -346,6 +346,7 @@ async fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
 // DNS SRV error paths and registry discovery paths
 // =============================================================================
 
+#[cfg(feature = "dns-srv")]
 #[tokio::test]
 async fn test_dns_srv_discovery_timeout_on_bogus_domain() {
     let config = DiscoveryConfig {
@@ -363,6 +364,7 @@ async fn test_dns_srv_discovery_timeout_on_bogus_domain() {
     assert!(services.is_empty());
 }
 
+#[cfg(feature = "dns-srv")]
 #[tokio::test]
 async fn test_dns_srv_multiple_known_capabilities() {
     let discovery = InfantDiscovery::new().unwrap();

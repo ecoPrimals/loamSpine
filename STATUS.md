@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,533 (189 source files) |
+| Tests | — | 1,533 (193 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -70,7 +70,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 189 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 193 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -147,6 +147,14 @@ When loamSpine is unavailable:
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
 
 ---
+
+## v0.9.16 Deep Debt Cleanup — Test Cohesion, Dependency Hygiene, Pure Rust Default (May 29, 2026)
+
+- **Smart refactor `jsonrpc/tests.rs`**: 876L monolith split into 5 domain-cohesive modules: `tests.rs` (120L, helpers + core), `tests_spine_entry.rs` (233L), `tests_session.rs` (194L), `tests_proof_anchor.rs` (155L), `tests_wire_errors.rs` (195L). All production test files now under 800L.
+- **Dead dependency removed**: `anyhow` removed from `loam-spine-api` (zero references in crate).
+- **`base64` hoisted to workspace**: DRY — both `loam-spine-core` and `loam-spine-api` now use `base64 = { workspace = true }`.
+- **`dns-srv` made opt-in**: Removed from `default` features. Default build is now pure Rust with zero C dependencies. `hickory-resolver` (which pulls `ring`/C via DNSSEC) only enters the build when `dns-srv` feature is explicitly enabled. DNS SRV tests feature-gated.
+- **193 source files** (was 189). 1,533 tests with `dns-srv`, 1,530 without. Zero clippy warnings.
 
 ## v0.9.16 Wave 60 — session.dehydrate Upstream Target (May 29, 2026)
 

@@ -52,6 +52,9 @@ bytes = "1.9"
 # URL parsing
 url = "2.5"
 
+# Base64 encoding (BTSP, signatures)
+base64 = "0.22.1"
+
 # Binary serialization for storage
 rmp-serde = "1.3"
 

@@ -100,13 +100,12 @@ pub struct DiscoveryConfig {
 
 impl Default for DiscoveryConfig {
     fn default() -> Self {
+        #[allow(unused_mut, reason = "mutated when dns-srv or mdns features are enabled")]
         let mut methods = vec![DiscoveryProtocol::Environment];
 
-        // DNS-SRV is production-grade; available when dns-srv feature is enabled
         #[cfg(feature = "dns-srv")]
         methods.push(DiscoveryProtocol::DnsSrv);
 
-        // mDNS for zero-config LAN discovery when feature-enabled
         #[cfg(feature = "mdns")]
         methods.push(DiscoveryProtocol::MDns);
 

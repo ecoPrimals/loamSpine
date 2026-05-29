@@ -134,6 +134,7 @@ async fn test_service_registry_discovery_returns_empty() {
     assert!(services.is_empty());
 }
 
+#[cfg(feature = "dns-srv")]
 #[tokio::test]
 async fn test_dns_srv_discovery_no_records() {
     let discovery = InfantDiscovery::new().unwrap();

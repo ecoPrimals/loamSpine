@@ -44,7 +44,7 @@ hickory-resolver = { version = "0.26", optional = true }
 # mDNS-SD for local network service discovery (optional).
 # Pure Rust, manages its own daemon thread, no async runtime dependency.
 mdns-sd = { version = "0.19", optional = true }
-base64 = "0.22.1"
+base64 = { workspace = true }
 
 # BTSP Phase 3 symmetric transport crypto (RustCrypto, pure Rust, no C/asm)
 chacha20poly1305 = "0.10"
@@ -54,7 +54,7 @@ zeroize = { version = "1.8.2", features = ["zeroize_derive"] }
 getrandom = "0.4.2"
 
 [features]
-default = ["redb-storage", "dns-srv"]
+default = ["redb-storage"]
 redb-storage = ["dep:redb"]
 # Enable testing utilities (MockSigner, MockVerifier, MockTransport) for
 # downstream crates that depend on loam-spine-core and need test doubles.
@@ -66,7 +66,9 @@ discovery-http = ["dep:ureq"]
 # Enable Tower Atomic transport (NeuralAPI via Unix socket JSON-RPC).
 # This is the ecoBin-compliant production transport — zero C dependencies.
 tower-atomic = []
-# Enable DNS SRV discovery (RFC 2782) for production service discovery
+# Enable DNS SRV discovery (RFC 2782) for production service discovery.
+# Opt-in: pulls hickory-resolver which transitively depends on `ring` (C/asm).
+# Without this feature, the default build is pure Rust with zero C dependencies.
 dns-srv = ["dep:hickory-resolver"]
 # Enable mDNS-SD local network service discovery (pure Rust, no async runtime dep)
 mdns = ["dep:mdns-sd"]

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (May 29, 2026 — Deep Debt: Test Cohesion, Dependency Hygiene, Pure Rust Default)
+
+- **`jsonrpc/tests.rs` smart-split**: 876L → 5 domain modules (tests.rs 120L, tests_spine_entry 233L, tests_session 194L, tests_proof_anchor 155L, tests_wire_errors 195L).
+- **Dead `anyhow` removed** from `loam-spine-api` (zero references).
+- **`base64` hoisted** to workspace dependencies (was duplicated in core + api).
+- **`dns-srv` made opt-in**: Default build is pure Rust (zero C). `hickory-resolver`/`ring` only enters when `dns-srv` feature enabled. DNS SRV tests feature-gated.
+
 ### Added (May 29, 2026 — Wave 60: Session Dehydration Upstream Target)
 
 - **`session.dehydrate` JSON-RPC method**: Computes a blake3 content-addressed summary of a spine's uncommitted entries without modifying state. Read-only "prepare" step for rootPulse's dehydrate-sign-commit pipeline. Wired through JSON-RPC, tarpc, MCP `tools.list`, niche `METHODS`, `SEMANTIC_MAPPINGS`, and `capabilities.list` (session group: `["dehydrate", "commit"]`).

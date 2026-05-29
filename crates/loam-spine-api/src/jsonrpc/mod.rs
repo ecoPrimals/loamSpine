@@ -406,6 +406,18 @@ pub(crate) fn outcome_to_response(
 mod tests;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_spine_entry;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_session;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_proof_anchor;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_wire_errors;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_bond_ledger;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
