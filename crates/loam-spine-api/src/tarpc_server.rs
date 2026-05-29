@@ -219,6 +219,14 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
         self.service.health_check(request).await
     }
 
+    async fn dehydrate_session(
+        self,
+        _: tarpc::context::Context,
+        request: DehydrateSessionRequest,
+    ) -> Result<DehydrateSessionResponse, ApiError> {
+        self.service.dehydrate_session(request).await
+    }
+
     async fn commit_session(
         self,
         _: tarpc::context::Context,

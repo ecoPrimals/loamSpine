@@ -110,6 +110,73 @@ impl LoamSpineRpcService {
         }
     }
 
+    /// Dehydrate a session — compute a content-addressed summary of the
+    /// spine's entries since the last session commit (or since genesis).
+    ///
+    /// Read-only: does not modify the spine. The returned `session_hash`
+    /// can be signed by rootPulse before calling `session.commit`.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the spine does not exist.
+    pub async fn dehydrate_session(
+        &self,
+        request: DehydrateSessionRequest,
+    ) -> ApiResult<DehydrateSessionResponse> {
+        let core = self.core().await;
+        let spine = core
+            .get_spine(request.spine_id)
+            .await
+            .map_err(ApiError::from)?
+            .ok_or_else(|| ApiError::SpineNotFound(format!("{:?}", request.spine_id)))?;
+
+        let entries = core
+            .get_entries(request.spine_id, 0, spine.height)
+            .await
+            .map_err(ApiError::from)?;
+        drop(core);
+
+        let last_commit_idx = entries
+            .iter()
+            .rposition(|e| matches!(e.entry_type, loam_spine_core::entry::EntryType::SessionCommit { .. }));
+
+        let uncommitted = match last_commit_idx {
+            Some(idx) => &entries[idx + 1..],
+            None => &entries[..],
+        };
+
+        let mut preimage = Vec::new();
+        preimage.extend_from_slice(request.session_id.as_bytes());
+        preimage.extend_from_slice(request.spine_id.as_bytes());
+        for entry in uncommitted {
+            let eh = entry
+                .compute_hash()
+                .map_err(|e| ApiError::Internal(format!("entry hash: {e}")))?;
+            preimage.extend_from_slice(&eh);
+        }
+        let session_hash = loam_spine_core::types::hash_bytes(&preimage);
+
+        let session_type = request.session_type.unwrap_or_else(|| "session".to_string());
+        let entry_count = u64::try_from(uncommitted.len()).unwrap_or(u64::MAX);
+
+        debug!(
+            spine_id = ?request.spine_id,
+            session_id = ?request.session_id,
+            entry_count,
+            "session.dehydrate complete"
+        );
+
+        Ok(DehydrateSessionResponse {
+            spine_id: request.spine_id,
+            session_id: request.session_id,
+            session_hash,
+            entry_count,
+            dehydrated_at: loam_spine_core::types::Timestamp::now(),
+            committer: request.committer,
+            session_type,
+        })
+    }
+
     /// Commit a session from an ephemeral storage primal.
     ///
     /// # Errors

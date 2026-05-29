@@ -407,6 +407,50 @@ pub struct CommitSessionResponse {
 }
 
 // ============================================================================
+// Session Dehydration
+// ============================================================================
+
+/// Request to dehydrate a session — compute a content-addressed summary
+/// of the spine's entries since the last session commit (or since genesis).
+///
+/// This is the "prepare" step before `session.commit`: rootPulse calls
+/// `session.dehydrate` to get the hash for signing, then passes the signed
+/// hash to `session.commit`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DehydrateSessionRequest {
+    /// Spine to dehydrate.
+    pub spine_id: SpineId,
+    /// Session ID for this dehydration (caller-assigned).
+    pub session_id: Uuid,
+    /// DID of the entity requesting dehydration.
+    pub committer: Did,
+    /// Optional session type label (default: `"session"`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_type: Option<String>,
+}
+
+/// Response from dehydrating a session — content-addressed summary
+/// suitable for signing before commit.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DehydrateSessionResponse {
+    /// Spine that was dehydrated.
+    pub spine_id: SpineId,
+    /// Session ID (echoed from request).
+    pub session_id: Uuid,
+    /// Blake3 hash of the session state (content address).
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
+    pub session_hash: ContentHash,
+    /// Number of entries included in the dehydration.
+    pub entry_count: u64,
+    /// Timestamp of the dehydration.
+    pub dehydrated_at: Timestamp,
+    /// DID of the requester (echoed from request).
+    pub committer: Did,
+    /// Session type label.
+    pub session_type: String,
+}
+
+// ============================================================================
 // Semantic Attribution Integration
 // ============================================================================
 

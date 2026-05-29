@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (May 29, 2026 — Wave 60: Session Dehydration Upstream Target)
+
+- **`session.dehydrate` JSON-RPC method**: Computes a blake3 content-addressed summary of a spine's uncommitted entries without modifying state. Read-only "prepare" step for rootPulse's dehydrate-sign-commit pipeline. Wired through JSON-RPC, tarpc, MCP `tools.list`, niche `METHODS`, `SEMANTIC_MAPPINGS`, and `capabilities.list` (session group: `["dehydrate", "commit"]`).
+- **3 integration tests**: `dehydrate_session`, `dehydrate_then_commit` (full pipeline), `dehydrate_idempotent`.
+- **benchScale Phase 7 updated**: `session.dehydrate` → `session.commit` flow with dehydrated hash.
+- **DH-1 `/tmp` compliance confirmed**: Zero hardcoded `/tmp` in production Rust. Socket fallback uses `std::env::temp_dir()` behind dynamic XDG/`/run/user/{uid}` resolution.
+
 ### Changed (May 27, 2026 — Wave 55: Primal Self-Knowledge Enforcement)
 
 - **BearDog coupling removed**: `BEARDOG_SOCKET` → `TOWER_SIGNER_SOCKET`, `BEARDOG_FAMILY_SEED` → `BTSP_FAMILY_SEED` (deprecated fallbacks preserved for backward compatibility). All doc comments reference capabilities ("tower signer") instead of primal names.

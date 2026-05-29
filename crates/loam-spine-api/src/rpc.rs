@@ -13,6 +13,7 @@ use crate::types::{
     BondLedgerRetrieveResponse, BondLedgerStoreRequest, BondLedgerStoreResponse,
     CheckoutSliceRequest, CheckoutSliceResponse, CommitBraidRequest, CommitBraidResponse,
     CommitSessionRequest, CommitSessionResponse, CreateSpineRequest, CreateSpineResponse,
+    DehydrateSessionRequest, DehydrateSessionResponse,
     GenerateInclusionProofRequest, GenerateInclusionProofResponse, GetCertificateRequest,
     GetCertificateResponse, GetEntryRequest, GetEntryResponse, GetSpineRequest, GetSpineResponse,
     GetTipRequest, GetTipResponse, HealthCheckRequest, HealthCheckResponse, LoanCertificateRequest,
@@ -185,6 +186,11 @@ pub trait LoamSpineRpc {
     // ========================================================================
     // Ephemeral Storage Integration
     // ========================================================================
+
+    /// Dehydrate a session — compute content-addressed summary without committing.
+    async fn dehydrate_session(
+        request: DehydrateSessionRequest,
+    ) -> Result<DehydrateSessionResponse, ApiError>;
 
     /// Commit a session from an ephemeral storage primal.
     ///

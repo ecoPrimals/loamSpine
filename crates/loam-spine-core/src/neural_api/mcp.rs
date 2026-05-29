@@ -164,6 +164,16 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 },
                 "required": ["spine_id", "entry_hash", "proof"]
             })),
+            mcp_tool("session_dehydrate", "Dehydrate a session — compute content-addressed summary without committing", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Target spine ID" },
+                    "session_id": { "type": "string", "description": "Session UUID" },
+                    "committer": { "type": "string", "description": "Committer DID" },
+                    "session_type": { "type": "string", "description": "Session type label (default: session)" }
+                },
+                "required": ["spine_id", "session_id", "committer"]
+            })),
             mcp_tool("session_commit", "Commit an ephemeral session to permanent storage", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -290,6 +300,7 @@ pub fn mcp_tool_to_rpc(
         "slice_checkout" => "slice.checkout",
         "proof_generate_inclusion" => "proof.generate_inclusion",
         "proof_verify_inclusion" => "proof.verify_inclusion",
+        "session_dehydrate" => "session.dehydrate",
         "session_commit" => "session.commit",
         "braid_commit" => "braid.commit",
         "anchor_publish" => "anchor.publish",

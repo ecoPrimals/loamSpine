@@ -69,6 +69,7 @@ pub const METHODS: &[&str] = &[
     "proof.generate_inclusion",
     "proof.verify_inclusion",
     // Provenance trio integration
+    "session.dehydrate",
     "session.commit",
     "braid.commit",
     // Public chain anchoring
@@ -123,6 +124,7 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
     ("checkout_slice", "slice.checkout"),
     ("generate_inclusion_proof", "proof.generate_inclusion"),
     ("verify_inclusion_proof", "proof.verify_inclusion"),
+    ("dehydrate_session", "session.dehydrate"),
     ("commit_session", "session.commit"),
     ("commit_braid", "braid.commit"),
     ("publish_anchor", "anchor.publish"),

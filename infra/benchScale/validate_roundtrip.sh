@@ -329,10 +329,14 @@ log_header "Phase 7: Provenance Integration"
 SESSION_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())' 2>/dev/null || echo "a0a0a0a0-b1b1-c2c2-d3d3-e4e4e4e4e4e4")
 BRAID_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())' 2>/dev/null || echo "b0b0b0b0-c1c1-d2d2-e3e3-f4f4f4f4f4f4")
 
-SESSION_HASH="[42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42]"
 BRAID_HASH="[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]"
 
-resp=$(rpc_call "session.commit" "{\"spine_id\":\"$SPINE_ID\",\"session_id\":\"$SESSION_UUID\",\"session_hash\":$SESSION_HASH,\"vertex_count\":10,\"committer\":\"did:key:z6MkBenchScale\"}")
+# Dehydrate before commit — the rootPulse flow
+resp=$(rpc_call "session.dehydrate" "{\"spine_id\":\"$SPINE_ID\",\"session_id\":\"$SESSION_UUID\",\"committer\":\"did:key:z6MkBenchScale\"}")
+assert_result "session.dehydrate" "$resp" '.result.session_hash'
+DEHYDRATED_HASH=$(echo "$resp" | jq -c '.result.session_hash')
+
+resp=$(rpc_call "session.commit" "{\"spine_id\":\"$SPINE_ID\",\"session_id\":\"$SESSION_UUID\",\"session_hash\":$DEHYDRATED_HASH,\"vertex_count\":10,\"committer\":\"did:key:z6MkBenchScale\"}")
 assert_result "session.commit" "$resp" '.result.commit_hash'
 
 resp=$(rpc_call "braid.commit" "{\"spine_id\":\"$SPINE_ID\",\"braid_id\":\"$BRAID_UUID\",\"braid_hash\":$BRAID_HASH,\"subjects\":[\"did:key:z6MkAgent1\",\"did:key:z6MkAgent2\"],\"committer\":\"did:key:z6MkBenchScale\"}")

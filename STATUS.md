@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 27, 2026
+**Last Updated**: May 29, 2026
 
 ---
 
@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,528 (189 source files) |
+| Tests | — | 1,533 (189 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -148,6 +148,14 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+## v0.9.16 Wave 60 — session.dehydrate Upstream Target (May 29, 2026)
+
+- **`session.dehydrate` method implemented**: New JSON-RPC method that computes a content-addressed blake3 summary of a spine's uncommitted entries without modifying state. This is the "prepare" step for rootPulse: dehydrate → sign → `session.commit`. Wired through JSON-RPC, tarpc, MCP, niche, and capabilities.
+- **Full roundtrip flow**: `session.dehydrate` returns a deterministic `session_hash` that feeds directly into `session.commit`'s `session_hash` field, completing the dehydrate-sign-commit pipeline.
+- **DH-1 compliance confirmed**: loamSpine has zero `/tmp` hardcoding in production code. Socket fallback uses `std::env::temp_dir()` behind dynamic `$XDG_RUNTIME_DIR` / `/run/user/{uid}` resolution.
+- **benchScale updated**: `validate_roundtrip.sh` Phase 7 now includes `session.dehydrate` → `session.commit` flow (dehydrated hash fed to commit).
+- **44 methods** (was 43), **1,533 tests** (was 1,528). Zero clippy warnings, zero compilation warnings.
+
 ## v0.9.16 Wave 55 Deep Debt — Primal Self-Knowledge Enforcement (May 27, 2026)
 
 - **BearDog coupling removed**: `BEARDOG_SOCKET` → `TOWER_SIGNER_SOCKET` (deprecated fallback preserved). `BEARDOG_FAMILY_SEED` → `BTSP_FAMILY_SEED` (deprecated fallback preserved). All doc comments de-coupled from BearDog primal name — references use "tower signer" capability instead.
@@ -155,7 +163,7 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 - **Dead code removed**: `IntoByteBuffer` trait (unused outside defining file). 8 `pub` items tightened to `pub(crate)`: manifest discovery helpers, `negotiate_protocol`, `resolve_primal_socket_with_env`, `DispatchOutcome::is_ok`.
 - **Lint hygiene**: `#[allow(clippy::unused_async)]` → `#[expect]` where configuration-stable (uds.rs). Feature-dependent suppressions kept as `#[allow]` with documented reasons.
 - **Storage docs aligned**: `Postgres`/`Rocksdb` variants marked "roadmap — feature flag not yet defined". `LoamSpineService` doc acknowledges in-memory storage with redb as standalone backend.
-- **1,528 tests**, zero clippy warnings, zero compilation warnings.
+- **1,533 tests**, zero clippy warnings, zero compilation warnings.
 
 ## v0.9.16 benchScale Roundtrip Validation (May 25, 2026)
 

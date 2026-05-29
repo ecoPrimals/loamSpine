@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,528 tests, 43 JSON-RPC methods, 189 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring"
-date = 2026-05-27
+description = "Permanence ledger — 1,533 tests, 44 JSON-RPC methods, 189 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring"
+date = 2026-05-29
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,11 +10,11 @@ springs = []
 
 ## Status
 
-- **1,528 tests** (all passing), 0 failures, 0 ignored
+- **1,533 tests** (all passing), 0 failures, 0 ignored
 - **43 JSON-RPC methods** across 15 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, health, meta, mcp, permanence)
 - **189 source files**, ~59,300 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
-- **JH-0 ADOPTED** — method gate classifies all 43 methods as Public or Protected
+- **JH-0 ADOPTED** — method gate classifies all 44 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
 - **Zero DEBT markers**, zero `#[allow]` without `reason`
@@ -49,6 +49,7 @@ loamSpine is the **permanence layer** of the provenance trio:
 rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attribution braid)
 ```
 
+- `session.dehydrate` computes content-addressed summary of uncommitted entries (read-only)
 - `session.commit` receives dehydrated DAG sessions from rhizoCrypt
 - `braid.commit` records attribution braids from sweetGrass
 - `anchor.publish` stamps spine state to public immutable ledgers (Bitcoin OP_RETURN, Ethereum, RFC 3161 TSA)
@@ -58,7 +59,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 
 | Wave | What landed |
 |------|-------------|
-| benchScale | `infra/benchScale/validate_roundtrip.sh` — 51 validations across all 43 methods, live TCP roundtrip |
+| benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across all 44 methods, live TCP roundtrip |
 | Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (828→4 modules), 189 source files |
 | Wave 47 | Deployment behavioral convergence — `serve`→`server` fix, `LOAMSPINE_DISCOVERY_ENABLED` env gate, `lifecycle.status` `uptime_s` |
 | Wave 43 | Neural API `primal.announce` adoption — startup announce with capabilities, signal_tiers, cost_hints, latency_estimates |
@@ -82,7 +83,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Spec | Status |
 |------|--------|
 | [LOAMSPINE_SPECIFICATION.md](../specs/LOAMSPINE_SPECIFICATION.md) | Complete |
-| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (43 methods) |
+| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (44 methods) |
 | [DATA_MODEL.md](../specs/DATA_MODEL.md) | Complete |
 | [CERTIFICATE_LAYER.md](../specs/CERTIFICATE_LAYER.md) | Complete |
 | [ANCHORING_ARCHITECTURE.md](../specs/ANCHORING_ARCHITECTURE.md) | Complete |

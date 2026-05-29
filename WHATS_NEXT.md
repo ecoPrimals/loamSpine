@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 27, 2026
+**Last Updated**: May 29, 2026
 
 ---
 
 ## Documentation changelog
+
+- **May 29, 2026** — **Wave 60 — session.dehydrate upstream target**: `session.dehydrate` JSON-RPC method implemented (rootPulse dehydrate-sign-commit pipeline). Blake3 content-addressed summary of uncommitted entries, read-only. Wired through JSON-RPC, tarpc, MCP, niche, capabilities. benchScale Phase 7 updated with dehydrate→commit flow. DH-1 `/tmp` compliance confirmed clean. 44 methods, 1,533 tests.
 
 - **May 27, 2026** — **Wave 55 deep debt cleanup — primal self-knowledge enforcement**: `BEARDOG_SOCKET` → `TOWER_SIGNER_SOCKET` (deprecated fallback preserved). `BEARDOG_FAMILY_SEED` → `BTSP_FAMILY_SEED` (deprecated fallback preserved). `did:key:unknown` / `did:key:tower` placeholders → `Did::anonymous()` sentinel + env-driven `TOWER_SIGNER_DID`. Dead `IntoByteBuffer` trait removed. 8 `pub` items tightened to `pub(crate)`. `#[allow]` → `#[expect]` for `clippy::unused_async` (where cfg-stable). Storage docs aligned (Postgres/RocksDB = roadmap, service uses in-memory). All doc comments de-coupled from BearDog primal name. 1,528 tests, zero warnings.
 

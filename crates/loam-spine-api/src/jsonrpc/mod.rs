@@ -266,6 +266,7 @@ impl LoamSpineJsonRpc {
                 self.dispatch_infra(method)
             }
 
+            "session.dehydrate" => rpc!(params, dehydrate_session),
             "session.commit" => rpc!(params, commit_session),
             "braid.commit" => rpc!(params, commit_braid),
 
