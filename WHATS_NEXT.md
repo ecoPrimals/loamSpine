@@ -592,7 +592,7 @@
 
 - **Signing capability middleware** — Signature verification on RPC layer (capability-discovered). Next natural step per Wave 53.
 - **Collision layer validation** — neuralSpring experiments (Python baseline). See `specs/COLLISION_LAYER_ARCHITECTURE.md`.
-- **~~Showcase demos~~** — **FOSSILIZED** (May 25, 2026): Wave 49 — archived to `ecoPrimals/fossilRecord/primals/loamSpine/showcase_wave49/`. Active validation via `infra/benchScale/validate_roundtrip.sh` (54 validations, 43 methods, 20 phases).
+- **~~Showcase demos~~** — **FOSSILIZED** (May 25, 2026): Wave 49 — archived to `ecoPrimals/fossilRecord/primals/loamSpine/showcase_wave49/`. Active validation via `infra/benchScale/validate_roundtrip.sh` (52 validations, 44 methods, 19 phases).
 - **~~mdns crate evolution~~** — **COMPLETE** (April 20, 2026): `mdns` 3.0 replaced with `mdns-sd` 0.19; async-std/net2/proc-macro-error eliminated; 3 RUSTSEC advisories removed.
 
 ---

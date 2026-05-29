@@ -1,6 +1,6 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,533 tests, 44 JSON-RPC methods, 189 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring"
+description = "Permanence ledger — 1,533 tests, 44 JSON-RPC methods, 193 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring"
 date = 2026-05-29
 
 [taxonomies]
@@ -11,15 +11,15 @@ springs = []
 ## Status
 
 - **1,533 tests** (all passing), 0 failures, 0 ignored
-- **43 JSON-RPC methods** across 15 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, health, meta, mcp, permanence)
-- **189 source files**, ~59,300 lines of Rust
+- **44 JSON-RPC methods** across 15 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, health, meta, mcp, permanence)
+- **193 source files**, ~60,000 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 44 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
 - **Zero DEBT markers**, zero `#[allow]` without `reason`
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
-- **Stability tiers**: 37 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
+- **Stability tiers**: 38 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
 
 ## Key Capabilities
 
@@ -30,7 +30,7 @@ springs = []
 | Certificate | `mint`, `transfer`, `loan`, `return`, `get` | Memory-bound objects (Novel Ferment Transcripts) |
 | Proof | `generate_inclusion`, `verify_inclusion` | Merkle inclusion proofs |
 | Anchor | `publish`, `publish_batch`, `verify` | Public chain anchoring + aggregate batch (Bitcoin, Ethereum, RFC 3161, Data Commons) |
-| Session | `commit` | Provenance trio integration (rhizoCrypt dehydration) |
+| Session | `dehydrate`, `commit` | Provenance trio integration (content-addressed dehydration for rootPulse signing, then commit) |
 | Braid | `commit` | Attribution braid integration (sweetGrass) |
 | Bonding | `ledger.store`, `ledger.retrieve`, `ledger.list` | Ionic bond ledger |
 | BTSP | `negotiate`, `capabilities` | Secure transport negotiation |
@@ -60,7 +60,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Wave | What landed |
 |------|-------------|
 | benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across all 44 methods, live TCP roundtrip |
-| Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (828→4 modules), 189 source files |
+| Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 193 source files |
 | Wave 47 | Deployment behavioral convergence — `serve`→`server` fix, `LOAMSPINE_DISCOVERY_ENABLED` env gate, `lifecycle.status` `uptime_s` |
 | Wave 43 | Neural API `primal.announce` adoption — startup announce with capabilities, signal_tiers, cost_hints, latency_estimates |
 | Anchoring Architecture | `anchor.publish_batch`, aggregation Merkle tree, ANCHORING_ARCHITECTURE.md, upstream propagation |

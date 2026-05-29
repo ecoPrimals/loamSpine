@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: May 27, 2026
+**Last Updated**: May 29, 2026
 
 ---
 
@@ -26,8 +26,8 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 | Dependency | Issue | Mitigation |
 |------------|-------|------------|
 | `opentelemetry_sdk` | RUSTSEC-2026-0007. Hard dep of tarpc 0.37 (not feature-gated). | **RESOLVED** — advisory no longer detected by `cargo deny check advisories`; ignore removed from `deny.toml`. |
-| `hickory-net` (via `hickory-resolver` 0.26) | Pulls `async-trait` (stadial ghost; upstream debt). `hickory-proto` 0.26 no longer uses it, but `hickory-net` 0.26 still does. | Non-blocking per stadial gate; awaiting upstream `hickory-net` release that drops `async-trait`. |
-| `ring` | Lockfile artifact via `hickory-proto` 0.26 optional `dnssec-ring` feature. LoamSpine uses `hickory-resolver` for DNS SRV discovery but does **not** enable DNSSEC features, so `ring` is never compiled. `cargo tree -i ring --all-features` returns nothing; `ring` is explicitly banned in `deny.toml` (`bans ok`). | Cosmetic lockfile presence only; no code is linked. Resolves when upstream `hickory` drops the optional `ring` declaration or when LoamSpine migrates to a resolver that never declares `ring`. |
+| `hickory-net` (via `hickory-resolver` 0.26) | Pulls `async-trait` (stadial ghost; upstream debt). Only present when `dns-srv` feature is enabled (opt-in since Wave 60). Default build has zero `hickory` deps. | Non-blocking; `dns-srv` opt-in eliminates this from default builds. |
+| `ring` | Lockfile artifact via `hickory-proto` 0.26 optional `dnssec-ring` feature. Only appears when `dns-srv` feature is enabled (opt-in since Wave 60). Default build has zero `ring` deps. `ring` is explicitly banned in `deny.toml`. | **Eliminated from default build.** Only enters via opt-in `dns-srv` feature. |
 | `mdns` 3.0 → `mdns-sd` 0.19 | **RESOLVED** — migrated to `mdns-sd` 0.19 (pure Rust, no async runtime dep). `async-std`, `net2`, `proc-macro-error` all eliminated. 3 RUSTSEC advisories removed from `deny.toml`. | N/A |
 
 ---

@@ -23,7 +23,7 @@ This document tracks implementation progress against the specification suite in 
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
 | [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | COMPLETE | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig` with `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective). `AttestationResult` for capability-discovered attestation providers. `PropagationPolicy`, `SliceTerms`, `SliceOperationType`, `WaypointSummary` types defined. `RelendingChain` with multi-hop sublend/return. `ExpirySweeper` for auto-return. |
 | [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | COMPLETE | Core CRUD + loan/return + sublend + `verify_certificate` + `generate_provenance_proof` + escrow + `UsageSummary` integrated into `CertificateReturn` and `LoanRecord`. `WaypointSummary` re-used from waypoint module. Scyborg license schema. Certificate module: types, lifecycle, metadata, provenance, escrow, usage, tests. |
-| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 43 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
+| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 44 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory and redb (default); sled and SQLite removed (stadial compliance). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
@@ -53,7 +53,7 @@ This document tracks implementation progress against the specification suite in 
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
 | Max file size | < 800 lines | 605 max production (discovery_client/mod.rs); 787 max test file (service_tests.rs) |
-| Source files | — | 189 `.rs` files (+ 3 fuzz targets) |
+| Source files | — | 193 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 4 | 2× `clippy::wildcard_imports` (tarpc macro; `#[expect]` unfulfilled in test target) + 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -117,7 +117,7 @@ This document tracks implementation progress against the specification suite in 
 
 ### Stability Tiers
 
-All 43 methods have stability annotations in `capabilities.list` response:
+All 44 methods have stability annotations in `capabilities.list` response:
 - **stable**: spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, lifecycle, health, auth, primal, capabilities, identity, tools (37 methods)
 - **evolving**: slice (2 methods)
 - **compat**: permanence (4 methods — legacy naming)
@@ -176,7 +176,7 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 ## v0.9.16 benchScale Roundtrip Validation (May 25, 2026)
 
 - **`infra/benchScale/validate_roundtrip.sh`**: Full 19-phase roundtrip validation harness. Starts a loamSpine TCP server, exercises all 43 canonical JSON-RPC methods via HTTP POST, validates responses, and reports. Aligned with `DEPLOYMENT_VALIDATION_STANDARD` v1.1.
-- **51 validations** across health triad, meta/discovery, auth gate, BTSP, spine CRUD, entry ops, provenance integration (session/braid commit + alias), certificate mint/get, slice anchor/checkout, inclusion proofs, public chain anchoring (Bitcoin, Ethereum, RFC 3161 TSA), bond ledger, permanence compat layer, MCP tools, method aliasing, seal + rejection, error handling, lifecycle uptime, and primal.announce.
+- **52 validations** across health triad, meta/discovery, auth gate, BTSP, spine CRUD, entry ops, provenance integration (session dehydrate/commit + braid commit + alias), certificate mint/get, slice anchor/checkout, inclusion proofs, public chain anchoring (Bitcoin, Ethereum, RFC 3161 TSA), bond ledger, permanence compat layer, MCP tools, method aliasing, seal + rejection, error handling, lifecycle uptime, and primal.announce.
 - **Transport**: HTTP POST JSON-RPC 2.0 over TCP (curl-based, no nc fragility).
 
 ## v0.9.16 Deep Debt Cleanup — Safe Casts, Dead Code Wiring, Test Cohesion (May 24, 2026)

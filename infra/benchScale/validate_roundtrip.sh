@@ -572,7 +572,7 @@ if [[ $FAIL -eq 0 ]]; then
     echo ""
     echo -e "  Port:        $ACTUAL_PORT"
     echo -e "  PID:         $SERVER_PID"
-    echo -e "  Methods:     $PASS validations across 43 canonical methods"
+    echo -e "  Methods:     $PASS validations across 44 canonical methods"
     echo -e "  Phases:      20 validation phases"
     echo -e "  Transport:   HTTP POST JSON-RPC 2.0"
     echo -e "  Standard:    DEPLOYMENT_VALIDATION_STANDARD v1.1"

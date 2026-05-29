@@ -18,7 +18,7 @@ LOAMSPINE_PORT=8080 ./infra/benchScale/validate_roundtrip.sh
 
 ## What It Does
 
-Starts a loamSpine TCP server on `127.0.0.1:19710`, exercises **all 43
+Starts a loamSpine TCP server on `127.0.0.1:19710`, exercises **all 44
 canonical JSON-RPC methods** via HTTP POST, validates responses, and
 reports results. Server lifecycle is fully managed (start → validate →
 cleanup).

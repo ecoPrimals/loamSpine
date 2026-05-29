@@ -31,7 +31,7 @@ when they need to commit, verify, or query permanent records.
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
 - **Version:** 0.9.16
-- **Source files:** 189 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Source files:** 193 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 - **Production crypto adapters:** `JsonRpcCryptoSigner` and `JsonRpcCryptoVerifier` implement the signing capability via JSON-RPC `crypto.sign_ed25519` / `crypto.verify_ed25519` per `CRYPTO_WIRE_CONTRACT.md` (see `crates/loam-spine-core/src/traits/crypto_provider.rs`). `CliSigner` remains the development fallback.
 
 ## Key Capabilities (JSON-RPC methods)
@@ -39,7 +39,7 @@ when they need to commit, verify, or query permanent records.
 - `spine.create`, `spine.get`, `spine.list`, `spine.seal` — Spine lifecycle
 - `entry.append`, `entry.get`, `entry.get_tip`, `entry.list` — Entry management
 - `certificate.mint`, `certificate.transfer`, `certificate.loan`, `certificate.return`, `certificate.get` — Loam Certificates
-- `session.commit`, `braid.commit` — Provenance trio coordination
+- `session.dehydrate`, `session.commit`, `braid.commit` — Provenance trio coordination
 - `slice.anchor`, `slice.checkout` — Waypoint anchoring
 - `anchor.publish`, `anchor.publish_batch`, `anchor.verify` — Public chain anchoring (single + aggregate Merkle batch)
 - `proof.generate_inclusion`, `proof.verify_inclusion` — Merkle inclusion proofs

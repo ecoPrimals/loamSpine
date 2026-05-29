@@ -6,9 +6,9 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C528%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C533%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
-[![Methods](https://img.shields.io/badge/JSON--RPC-43%20methods-blue)]()
+[![Methods](https://img.shields.io/badge/JSON--RPC-44%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()
 [![Stadial](https://img.shields.io/badge/stadial-ready-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
@@ -120,7 +120,7 @@ loamSpine/
 │           └── error.rs       # API errors
 ├── specs/                     # 14 specification documents
 ├── showcase/                  # Fossilized → ecoPrimals/fossilRecord (Wave 49)
-├── infra/benchScale/          # 51-validation TCP roundtrip harness
+├── infra/benchScale/          # 52-validation TCP roundtrip harness
 └── fuzz/                      # Fuzz testing targets
 ```
 
@@ -151,6 +151,7 @@ loamSpine/
 | **Waypoint** | `slice.checkout` | Checkout a waypoint slice |
 | **Proof** | `proof.generate_inclusion` | Create Merkle inclusion proof |
 | **Proof** | `proof.verify_inclusion` | Verify Merkle inclusion proof |
+| **Integration** | `session.dehydrate` | Content-addressed session summary (read-only prepare for signing) |
 | **Integration** | `session.commit` | Provenance session commits |
 | **Integration** | `braid.commit` | Attribution braid commits |
 | **Anchor** | `anchor.publish` | Record public chain anchor receipt |
@@ -213,7 +214,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc `wildcard_imports`, 2× feature-conditional `unused_async`); tests all `#[expect(reason)]` |
 | **Max File Size** | 605 max production; 787 max test file |
-| **Source Files** | 189 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Source Files** | 193 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
