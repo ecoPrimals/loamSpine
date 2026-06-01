@@ -76,7 +76,6 @@ pub fn find_by_name_from(base: &Path, name: &str) -> Option<PrimalManifest> {
 /// Returns `$XDG_RUNTIME_DIR/ecoPrimals/` if the env var is set and the
 /// directory exists, otherwise `None`.
 #[must_use]
-#[allow(dead_code, reason = "env-reading entry point for runtime manifest discovery")]
 pub(crate) fn manifest_dir() -> Option<PathBuf> {
     let runtime_dir = crate::constants::env_resolution::xdg_runtime_dir()?;
     manifest_dir_from(Path::new(&runtime_dir))
@@ -88,7 +87,6 @@ pub(crate) fn manifest_dir() -> Option<PathBuf> {
 /// as a `PrimalManifest`. Invalid or unparseable files are silently
 /// skipped (defensive — a malformed neighbor should not crash us).
 #[must_use]
-#[allow(dead_code, reason = "env-reading entry point for runtime manifest discovery")]
 pub(crate) fn discover_manifests() -> Vec<PrimalManifest> {
     let Some(dir) = manifest_dir() else {
         return Vec::new();
@@ -98,7 +96,7 @@ pub(crate) fn discover_manifests() -> Vec<PrimalManifest> {
 
 /// Find a primal manifest by capability.
 #[must_use]
-#[allow(dead_code, reason = "env-reading entry point for runtime manifest discovery")]
+#[expect(dead_code, reason = "pre-wired for capability-based primal discovery (strandGate deploy)")]
 pub(crate) fn find_by_capability(capability: &str) -> Option<PrimalManifest> {
     discover_manifests()
         .into_iter()
@@ -107,7 +105,7 @@ pub(crate) fn find_by_capability(capability: &str) -> Option<PrimalManifest> {
 
 /// Find a primal manifest by name.
 #[must_use]
-#[allow(dead_code, reason = "env-reading entry point for runtime manifest discovery")]
+#[expect(dead_code, reason = "pre-wired for name-based primal discovery (strandGate deploy)")]
 pub(crate) fn find_by_name(name: &str) -> Option<PrimalManifest> {
     discover_manifests().into_iter().find(|m| m.name == name)
 }

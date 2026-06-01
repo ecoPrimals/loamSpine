@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 1, 2026 — Wave 67: strandGate Provenance Gate Ack)
+
+- **Lint evolution**: 6 `#[allow(dead_code)]` evolved — 4 to `#[expect(dead_code)]` with strandGate deploy reasons, 2 transitively-reachable functions cleaned of unnecessary annotation. Compiler warns when entry points are wired.
+- **Handoff lifecycle**: May 29 deep debt handoff archived; Wave 67 strandGate ack created.
+
 ### Changed (May 29, 2026 — Deep Debt: Test Cohesion, Dependency Hygiene, Pure Rust Default)
 
 - **`jsonrpc/tests.rs` smart-split**: 876L → 5 domain modules (tests.rs 120L, tests_spine_entry 233L, tests_session 194L, tests_proof_anchor 155L, tests_wire_errors 195L).

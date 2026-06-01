@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 29, 2026
+**Last Updated**: June 1, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 1, 2026** — **Wave 67 — strandGate provenance gate ack**: loamSpine assigned to strandGate (provenance trio: rhizoCrypt + loamSpine + sweetGrass). Hardware ready (Dual EPYC 7452, 256GB ECC), deployment blocked on Phase 1 mesh validation. Lint evolution: 6 `#[allow(dead_code)]` → 4 `#[expect(dead_code)]` for pre-wired strandGate deploy entry points + 2 cleaned of unnecessary annotation. Mountain status: all 10 deep-debt dimensions clean. May 29 handoff archived, Wave 67 ack created.
 
 - **May 29, 2026** — **Wave 60 — session.dehydrate upstream target**: `session.dehydrate` JSON-RPC method implemented (rootPulse dehydrate-sign-commit pipeline). Blake3 content-addressed summary of uncommitted entries, read-only. Wired through JSON-RPC, tarpc, MCP, niche, capabilities. benchScale Phase 7 updated with dehydrate→commit flow. DH-1 `/tmp` compliance confirmed clean. 44 methods, 1,533 tests.
 

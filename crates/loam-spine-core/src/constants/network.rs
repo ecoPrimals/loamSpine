@@ -270,7 +270,7 @@ pub fn resolve_primal_tarpc_socket_from(
 /// Protocol escalation: prefer tarpc when `.tarpc.sock` exists,
 /// fall back to JSON-RPC `.sock`.
 #[must_use]
-#[allow(dead_code, reason = "protocol negotiation entry point for runtime IPC")]
+#[expect(dead_code, reason = "pre-wired for provenance trio IPC negotiation (strandGate deploy)")]
 pub(crate) fn negotiate_protocol(primal: &str, family_id: &str) -> (IpcProtocol, std::path::PathBuf) {
     let base = resolve_socket_base_dir();
     negotiate_protocol_from(&base, primal, family_id)

@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: May 29, 2026
+**Last Updated**: June 1, 2026
 
 ---
 
@@ -145,6 +145,15 @@ When loamSpine is unavailable:
 ### ecoBin Grade: A+
 
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
+
+---
+
+## v0.9.16 Wave 67 — strandGate Provenance Gate Ack (June 1, 2026)
+
+- **Ownership**: loamSpine assigned to **strandGate** (provenance trio: rhizoCrypt + loamSpine + sweetGrass). Hardware ready (Dual EPYC 7452, 256GB ECC), deployment blocked on Phase 1 mesh validation.
+- **Lint evolution**: 6 `#[allow(dead_code)]` → 4 `#[expect(dead_code)]` for pre-wired strandGate deploy entry points (socket resolution, protocol negotiation, manifest discovery). 2 transitively-reachable functions cleaned of unnecessary annotation. Compiler will warn when entry points are wired, reminding to remove the annotation.
+- **Mountain status**: All 10 deep-debt dimensions **CLEAN**. Zero TODO/FIXME, zero `.unwrap()` in production, zero `as` casts, zero hardcoded `/tmp`, zero unsafe code.
+- **Handoff lifecycle**: May 29 deep debt handoff archived. Wave 67 strandGate ack handoff created.
 
 ---
 
