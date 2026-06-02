@@ -301,6 +301,7 @@ async fn test_tarpc_seal_nonexistent_spine() {
     let request = SealSpineRequest {
         spine_id: uuid::Uuid::nil(),
         sealer: Did::new("did:key:z6MkTest"),
+        reason: None,
     };
 
     let result = LoamSpineRpc::seal_spine(server, ctx, request).await;

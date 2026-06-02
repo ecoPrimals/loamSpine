@@ -52,6 +52,7 @@ async fn test_jsonrpc_seal_spine() {
     let seal_request = SealSpineRequest {
         spine_id: create_response.spine_id,
         sealer: owner,
+        reason: None,
     };
 
     let result: Result<crate::types::SealSpineResponse, _> =

@@ -148,6 +148,15 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+## v0.9.16 Evolution — Seal Reason, Discovery Enforcement, Permanence Diagnostics (June 2, 2026)
+
+- **`spine.seal` reason wiring**: `SealSpineRequest` now accepts an optional `reason` field (e.g. "migration", "archive", "end-of-session"). Wired through to core `seal_spine`. Backward-compatible via `#[serde(default)]`.
+- **`all_required_available()` enforcement**: Discovery `CapabilityRegistry` now checks that signer + verifier are registered instead of always returning `true`. Added test covering both empty and populated registry states.
+- **`permanence.health_check` diagnostics**: Returns structured JSON (`healthy`, `spine_count`, `entry_count`, `uptime_s`) instead of bare `true`. Enables richer monitoring in trio compositions.
+- **Test count**: 1,574 (new registry capability test).
+
+---
+
 ## v0.9.16 Evolution — Discovery Transport, Lifecycle State, Waypoint & Verify Semantics (June 2, 2026)
 
 - **Discovery transport wiring**: Service binary now enables `tower-atomic` + `discovery-http` features — NeuralAPI UDS transport and HTTP fallback are compiled and available for production discovery. Fixed private module path in `NeuralApiTransport` (`socket::` → public re-export).

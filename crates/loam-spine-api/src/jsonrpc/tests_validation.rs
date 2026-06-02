@@ -153,6 +153,7 @@ async fn service_error_returns_loamspine_error_code() {
     let seal_request = SealSpineRequest {
         spine_id: create_response.spine_id,
         sealer: owner.clone(),
+        reason: None,
     };
     let _: crate::types::SealSpineResponse = rpc_call(&server, "spine.seal", &seal_request)
         .await
@@ -162,6 +163,7 @@ async fn service_error_returns_loamspine_error_code() {
     let seal_again_request = SealSpineRequest {
         spine_id: create_response.spine_id,
         sealer: wrong_sealer,
+        reason: None,
     };
     let rpc_req = JsonRpcRequest {
         jsonrpc: "2.0".to_string(),

@@ -92,6 +92,7 @@ async fn test_tarpc_seal_spine() {
     let seal_request = SealSpineRequest {
         spine_id: create_response.spine_id,
         sealer: owner,
+        reason: None,
     };
 
     let result = LoamSpineRpc::seal_spine(server, ctx, seal_request).await;

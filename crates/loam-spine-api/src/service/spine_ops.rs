@@ -79,7 +79,7 @@ impl LoamSpineRpcService {
     /// Returns error if sealing fails.
     pub async fn seal_spine(&self, request: SealSpineRequest) -> ApiResult<SealSpineResponse> {
         let core = self.core_mut().await;
-        match core.seal_spine(request.spine_id, None).await {
+        match core.seal_spine(request.spine_id, request.reason).await {
             Ok(hash) => Ok(SealSpineResponse {
                 success: true,
                 seal_hash: Some(hash),

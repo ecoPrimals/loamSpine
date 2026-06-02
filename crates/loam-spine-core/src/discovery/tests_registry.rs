@@ -140,9 +140,29 @@ async fn all_statuses() {
 }
 
 #[tokio::test]
-async fn all_required_available() {
+async fn all_required_available_empty_registry() {
     let registry = CapabilityRegistry::new();
-    assert!(registry.all_required_available().await);
+    assert!(
+        !registry.all_required_available().await,
+        "empty registry should report not-ready (no signer/verifier)"
+    );
+}
+
+#[tokio::test]
+async fn all_required_available_with_capabilities() {
+    use crate::traits::signing::testing::{MockSigner, MockVerifier};
+    use crate::types::Did;
+
+    let mock_signer: BoxedSigner =
+        Arc::new(MockSigner::new(Did::new("did:key:z6MkTestSigner")));
+    let mock_verifier: BoxedVerifier = Arc::new(MockVerifier::permissive());
+    let registry = CapabilityRegistry::new();
+    registry.register_signer(mock_signer).await;
+    registry.register_verifier(mock_verifier).await;
+    assert!(
+        registry.all_required_available().await,
+        "registry with signer + verifier should be ready"
+    );
 }
 
 #[test]

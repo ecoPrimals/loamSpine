@@ -236,6 +236,7 @@ async fn test_seal_spine() {
         .seal_spine(SealSpineRequest {
             spine_id: create_resp.spine_id,
             sealer: owner,
+            reason: Some("test-seal".into()),
         })
         .await
         .expect("seal should succeed");
@@ -248,6 +249,7 @@ async fn test_seal_spine() {
         .seal_spine(SealSpineRequest {
             spine_id: create_resp.spine_id,
             sealer: Did::new("did:key:other"),
+            reason: None,
         })
         .await;
 

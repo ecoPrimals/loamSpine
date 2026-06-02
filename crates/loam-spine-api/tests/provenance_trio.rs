@@ -565,5 +565,8 @@ async fn permanent_storage_health_check() {
     };
     let resp = server.handle_request(req).await;
     assert!(resp.error.is_none());
-    assert_eq!(resp.result.unwrap(), serde_json::Value::Bool(true));
+    let health = resp.result.unwrap();
+    assert_eq!(health["healthy"], true);
+    assert!(health["spine_count"].is_number());
+    assert!(health["entry_count"].is_number());
 }

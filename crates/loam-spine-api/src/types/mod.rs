@@ -115,6 +115,9 @@ pub struct SealSpineRequest {
     pub spine_id: SpineId,
     /// Sealer DID
     pub sealer: Did,
+    /// Optional seal reason (e.g. "migration", "archive", "end-of-session")
+    #[serde(default)]
+    pub reason: Option<String>,
 }
 
 /// Response from sealing a spine.

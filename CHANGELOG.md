@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 2, 2026 — Evolution: Seal Reason, Discovery Enforcement, Permanence Diagnostics)
+
+- **`spine.seal` reason field**: `SealSpineRequest` accepts optional `reason` for seal provenance.
+- **`all_required_available()`**: Checks signer + verifier registration instead of always `true`.
+- **`permanence.health_check`**: Returns structured JSON with `spine_count`, `entry_count`, `uptime_s`.
+
 ### Changed (June 2, 2026 — Evolution: Discovery Transport, Lifecycle State, Waypoint & Verify Semantics)
 
 - **Discovery transport wiring**: Service binary enables `tower-atomic` + `discovery-http` features; NeuralAPI UDS transport and HTTP fallback available for production discovery.

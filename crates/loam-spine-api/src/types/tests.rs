@@ -43,6 +43,7 @@ fn seal_spine_request_roundtrip() {
     let req = SealSpineRequest {
         spine_id: uuid::Uuid::now_v7(),
         sealer: Did::new("did:key:sealer"),
+        reason: Some("archive".into()),
     };
     let json = serde_json::to_string(&req).expect("serialize");
     let parsed: SealSpineRequest = serde_json::from_str(&json).expect("deserialize");

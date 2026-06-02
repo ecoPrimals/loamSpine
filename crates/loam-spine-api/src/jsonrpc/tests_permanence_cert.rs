@@ -113,10 +113,13 @@ async fn test_jsonrpc_permanence_commit_and_verify() {
 async fn test_jsonrpc_permanence_health_check() {
     let server = LoamSpineJsonRpc::default_server();
 
-    let healthy: bool = rpc_call_no_params(&server, "permanence.health_check")
+    let health: serde_json::Value = rpc_call_no_params(&server, "permanence.health_check")
         .await
         .unwrap();
-    assert!(healthy);
+    assert_eq!(health["healthy"], true);
+    assert!(health["spine_count"].is_number());
+    assert!(health["entry_count"].is_number());
+    assert!(health["uptime_s"].is_number());
 }
 
 #[tokio::test]
@@ -145,10 +148,10 @@ async fn test_jsonrpc_legacy_permanence_delegates() {
             .unwrap();
     assert!(response.accepted);
 
-    let healthy: bool = rpc_call_no_params(&server, "permanent-storage.healthCheck")
+    let health: serde_json::Value = rpc_call_no_params(&server, "permanent-storage.healthCheck")
         .await
         .unwrap();
-    assert!(healthy);
+    assert_eq!(health["healthy"], true);
 }
 
 // ========================================================================

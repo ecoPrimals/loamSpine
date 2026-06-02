@@ -375,10 +375,12 @@ impl CapabilityRegistry {
     }
 
     /// Check if all required capabilities are available.
+    ///
+    /// Returns `true` when at minimum a signer and verifier are registered.
+    /// Attestation and registry are optional (degraded-mode acceptable).
     pub async fn all_required_available(&self) -> bool {
         let inner = self.inner.read().await;
-        let _ = inner;
-        true
+        inner.signer.is_some() && inner.verifier.is_some()
     }
 }
 

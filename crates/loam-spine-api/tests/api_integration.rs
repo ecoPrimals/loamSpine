@@ -178,6 +178,7 @@ async fn seal_spine() {
         .seal_spine(SealSpineRequest {
             spine_id: create_resp.spine_id,
             sealer: owner.clone(),
+            reason: None,
         })
         .await
         .unwrap_or_else(|_| unreachable!());

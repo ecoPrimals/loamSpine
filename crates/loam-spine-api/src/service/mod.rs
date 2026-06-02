@@ -144,12 +144,18 @@ impl LoamSpineRpcService {
     }
 
     /// Check whether the permanence layer (spine + entry storage) is healthy.
-    pub async fn permanence_healthy(&self) -> bool {
+    pub async fn permanence_healthy(&self) -> serde_json::Value {
         let core = self.core().await;
-        core.spine_count().await;
-        core.entry_count().await;
+        let spine_count = core.spine_count().await;
+        let entry_count = core.entry_count().await;
+        let uptime_s = self.started_at.elapsed().as_secs();
         drop(core);
-        true
+        serde_json::json!({
+            "healthy": true,
+            "spine_count": spine_count,
+            "entry_count": entry_count,
+            "uptime_s": uptime_s,
+        })
     }
 
     /// Readiness probe (standard container orchestrator endpoint).
