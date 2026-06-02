@@ -93,21 +93,26 @@ impl LoamSpineRpcService {
             }
         };
 
-        match core
-            .checkout_slice(
-                request.waypoint_spine_id,
-                entry_hash,
-                request.requester,
-                session_id,
-            )
+        core.checkout_slice(
+            request.waypoint_spine_id,
+            entry_hash,
+            request.requester,
+            session_id,
+        )
+        .await
+        .map_err(ApiError::from)?;
+
+        let checkout_hash = core
+            .get_spine(request.waypoint_spine_id)
             .await
-        {
-            Ok(_origin) => Ok(CheckoutSliceResponse {
-                success: true,
-                checkout_hash: Some(entry_hash),
-            }),
-            Err(e) => Err(ApiError::from(e)),
-        }
+            .map_err(ApiError::from)?
+            .and_then(|s| s.tip_entry().and_then(|e| e.compute_hash().ok()))
+            .unwrap_or(entry_hash);
+
+        Ok(CheckoutSliceResponse {
+            success: true,
+            checkout_hash: Some(checkout_hash),
+        })
     }
 
     /// Dehydrate a session — compute a content-addressed summary of the
@@ -384,7 +389,6 @@ impl LoamSpineRpcService {
         request: PermanentStorageVerifyRequest,
     ) -> ApiResult<bool> {
         let spine_id = parse_uuid(&request.spine_id, "spine_id")?;
-
         let entry_hash = parse_content_hash(&request.entry_hash, "entry_hash")?;
 
         let get_resp = self
@@ -394,7 +398,22 @@ impl LoamSpineRpcService {
             })
             .await?;
 
-        Ok(get_resp.found)
+        if !get_resp.found {
+            return Ok(false);
+        }
+
+        let is_commit = get_resp
+            .entry
+            .as_ref()
+            .is_some_and(|e| {
+                matches!(
+                    e.entry_type,
+                    loam_spine_core::entry::EntryType::SessionCommit { .. }
+                        | loam_spine_core::entry::EntryType::BraidCommit { .. }
+                )
+            });
+
+        Ok(is_commit)
     }
 
     /// Get a commit using the `permanent-storage` wire format.

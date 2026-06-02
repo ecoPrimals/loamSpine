@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 2, 2026 — Evolution: Discovery Transport, Lifecycle State, Waypoint & Verify Semantics)
+
+- **Discovery transport wiring**: Service binary enables `tower-atomic` + `discovery-http` features; NeuralAPI UDS transport and HTTP fallback available for production discovery.
+- **`lifecycle.status` state handle**: Reads from shared `Arc<RwLock<String>>` instead of hardcoded `"running"`. `service_state_handle()` API for lifecycle integration.
+- **`slice.checkout` hash fix**: Returns checkout entry hash (tip) instead of anchor entry hash.
+- **`permanence.verify_commit`**: Verifies entry type is `SessionCommit` or `BraidCommit`, not just existence.
+- **NeuralAPI private module fix**: `NeuralApiTransport` uses public re-export path.
+- **Test count**: 1,573 (43 transport tests unlocked).
+
 ### Changed (June 2, 2026 — Evolution: Handler Fidelity, Error Transparency, Proof Verification)
 
 - **`health.check` real uptime**: Service tracks `started_at` and reports actual uptime instead of hardcoded `0`.

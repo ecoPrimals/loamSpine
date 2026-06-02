@@ -68,6 +68,7 @@ pub struct LoamSpineJsonRpc {
     pub(crate) service: LoamSpineRpcService,
     gate: MethodGate,
     started_at: std::time::Instant,
+    service_state: std::sync::Arc<std::sync::RwLock<String>>,
 }
 
 impl LoamSpineJsonRpc {
@@ -78,7 +79,18 @@ impl LoamSpineJsonRpc {
             service,
             gate,
             started_at: std::time::Instant::now(),
+            service_state: std::sync::Arc::new(std::sync::RwLock::new("running".into())),
         }
+    }
+
+    /// Get the shared service state handle for lifecycle integration.
+    ///
+    /// The binary or lifecycle manager updates this to reflect actual state
+    /// (`STARTING`, `RUNNING`, `DEGRADED`, `STOPPING`, etc.), and
+    /// `lifecycle.status` reports it to callers.
+    #[must_use]
+    pub fn service_state_handle(&self) -> std::sync::Arc<std::sync::RwLock<String>> {
+        std::sync::Arc::clone(&self.service_state)
     }
 
     /// Create a handler with default service (in-memory storage, permissive gate).
@@ -152,13 +164,19 @@ impl LoamSpineJsonRpc {
         method: &str,
     ) -> Result<serde_json::Value, wire::JsonRpcError> {
         match method {
-            "lifecycle.status" => ser(serde_json::json!({
-                "primal": loam_spine_core::primal_names::SELF_ID,
-                "version": env!("CARGO_PKG_VERSION"),
-                "status": "running",
-                "uptime_s": self.started_at.elapsed().as_secs(),
-                "auth_mode": self.gate.current_mode().as_str(),
-            })),
+            "lifecycle.status" => {
+                let status = self
+                    .service_state
+                    .read()
+                    .map_or_else(|_| "running".to_string(), |s| s.clone());
+                ser(serde_json::json!({
+                    "primal": loam_spine_core::primal_names::SELF_ID,
+                    "version": env!("CARGO_PKG_VERSION"),
+                    "status": status,
+                    "uptime_s": self.started_at.elapsed().as_secs(),
+                    "auth_mode": self.gate.current_mode().as_str(),
+                }))
+            }
             "btsp.capabilities" => ser(serde_json::json!({
                 "ciphers": ["chacha20-poly1305", "null"],
                 "hkdf": "sha256",

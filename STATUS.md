@@ -148,6 +148,16 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+## v0.9.16 Evolution — Discovery Transport, Lifecycle State, Waypoint & Verify Semantics (June 2, 2026)
+
+- **Discovery transport wiring**: Service binary now enables `tower-atomic` + `discovery-http` features — NeuralAPI UDS transport and HTTP fallback are compiled and available for production discovery. Fixed private module path in `NeuralApiTransport` (`socket::` → public re-export).
+- **Lifecycle state wiring**: `lifecycle.status` RPC reads from a shared `Arc<RwLock<String>>` state handle instead of hardcoded `"running"`. Binary can wire `LifecycleManager` transitions into this handle for real state reporting (`STARTING`, `DEGRADED`, `STOPPING`, etc.).
+- **`slice.checkout` hash fix**: Returns the actual checkout entry hash (tip after append) instead of the anchor entry hash.
+- **`permanence.verify_commit` semantics**: Now verifies that the entry is actually a `SessionCommit` or `BraidCommit`, not just that any entry exists at that hash.
+- **Test count**: 1,573 (up from 1,530 — 43 `neural_api` transport tests unlocked by enabling `tower-atomic`).
+
+---
+
 ## v0.9.16 Evolution — Handler Fidelity, Error Transparency, Proof Verification (June 2, 2026)
 
 - **Health evolution**: `health.check` now returns real uptime from service start time instead of hardcoded `0`. Service struct tracks `started_at: Instant`.

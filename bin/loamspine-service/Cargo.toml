@@ -13,7 +13,7 @@ path = "main.rs"
 
 [dependencies]
 anyhow = { workspace = true }
-loam-spine-core = { workspace = true }
+loam-spine-core = { workspace = true, features = ["tower-atomic", "discovery-http"] }
 loam-spine-api = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

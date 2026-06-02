@@ -70,7 +70,7 @@ impl NeuralApiTransport {
 
     /// Resolve socket path from environment variables.
     fn socket_from_env() -> Option<PathBuf> {
-        crate::neural_api::socket::resolve_neural_api_socket_with(
+        crate::neural_api::resolve_neural_api_socket_with(
             crate::constants::env_resolution::biomeos_neural_api_socket().as_deref(),
             crate::constants::env_resolution::xdg_runtime_dir().as_deref(),
             crate::constants::env_resolution::biomeos_family_id().as_deref(),
