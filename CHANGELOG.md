@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 2, 2026 — Evolution: Readiness Diagnostics, Attribution, Auth Peer Info)
+
+- **Readiness probe**: Exercises storage read and reports spine count.
+- **`get_attribution`**: Collects `SessionCommit` committers as contributors.
+- **`auth.peer_info`**: Reports auth mode and transport type.
+- **`btsp_sessions_count()`**: New accessor on `LoamSpineRpcService`.
+
 ### Changed (June 2, 2026 — Evolution: Seal Reason, Discovery Enforcement, Permanence Diagnostics)
 
 - **`spine.seal` reason field**: `SealSpineRequest` accepts optional `reason` for seal provenance.

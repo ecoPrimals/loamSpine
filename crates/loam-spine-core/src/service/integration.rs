@@ -504,10 +504,20 @@ impl ProvenanceSource for LoamSpineService {
                         .as_ref()
                         .map_or_else(Did::anonymous, |s| s.owner.clone());
 
+                    let mut contributors = Vec::new();
+                    for e in &entries {
+                        if let EntryType::SessionCommit { committer, .. } = &e.entry_type
+                            && *committer != creator
+                            && !contributors.contains(committer)
+                        {
+                            contributors.push(committer.clone());
+                        }
+                    }
+
                     return Ok(Some(AttributionRecord {
                         content_hash,
                         creator,
-                        contributors: Vec::new(),
+                        contributors,
                         certificate_id: None,
                         recorded_at: entry.timestamp,
                     }));

@@ -148,6 +148,14 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+## v0.9.16 Evolution — Readiness Diagnostics, Attribution, Auth Peer Info (June 2, 2026)
+
+- **Readiness probe**: Now exercises storage read path and reports spine count in reason field, not just lock acquisition.
+- **`get_attribution` contributors**: Collects unique committers from `SessionCommit` entries as contributors instead of always returning empty vec.
+- **`auth.peer_info`**: Reports actual auth mode and transport type instead of hardcoded unknowns. `btsp_sessions_count()` accessor added to service.
+
+---
+
 ## v0.9.16 Evolution — Seal Reason, Discovery Enforcement, Permanence Diagnostics (June 2, 2026)
 
 - **`spine.seal` reason wiring**: `SealSpineRequest` now accepts an optional `reason` field (e.g. "migration", "archive", "end-of-session"). Wired through to core `seal_spine`. Backward-compatible via `#[serde(default)]`.

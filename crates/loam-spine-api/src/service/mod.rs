@@ -92,6 +92,11 @@ impl LoamSpineRpcService {
         self.btsp_sessions.read().await.get(session_id).copied()
     }
 
+    /// Number of active BTSP sessions.
+    pub async fn btsp_sessions_count(&self) -> usize {
+        self.btsp_sessions.read().await.len()
+    }
+
     /// Get read access to the core service.
     pub async fn core(&self) -> tokio::sync::RwLockReadGuard<'_, CoreService> {
         self.core.read().await
@@ -166,13 +171,13 @@ impl LoamSpineRpcService {
     ///
     /// Returns error if readiness check fails.
     pub async fn readiness(&self) -> ApiResult<crate::health::ReadinessProbe> {
-        // Check if we can access core service
-        let _core = self.core().await;
+        let core = self.core().await;
+        let spine_count = core.spine_count().await;
+        drop(core);
 
-        // If we got here, we're ready
         Ok(crate::health::ReadinessProbe {
             ready: true,
-            reason: None,
+            reason: Some(format!("storage accessible, {spine_count} spines")),
         })
     }
 

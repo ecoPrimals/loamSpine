@@ -226,11 +226,15 @@ impl LoamSpineJsonRpc {
                 "public_methods": ["identity.get", "capabilities.list", "lifecycle.status",
                                    "primal.announce", "btsp.capabilities", "tools.list"],
             })),
-            "auth.peer_info" => ser(serde_json::json!({
-                "authenticated": false,
-                "peer_id": serde_json::Value::Null,
-                "transport": "unknown",
-            })),
+            "auth.peer_info" => {
+                let auth_mode = self.gate.current_mode();
+                ser(serde_json::json!({
+                    "authenticated": false,
+                    "peer_id": serde_json::Value::Null,
+                    "transport": "json-rpc",
+                    "auth_mode": auth_mode.as_str(),
+                }))
+            }
             _ => Err(wire::JsonRpcError {
                 code: METHOD_NOT_FOUND,
                 message: format!("method not found: {method}"),
