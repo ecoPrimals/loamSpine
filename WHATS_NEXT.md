@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 1, 2026
+**Last Updated**: June 2, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 2, 2026** — **Handler Evolution — Fidelity, Transport, Diagnostics**: 17 thin/stub handlers evolved to real implementations across 4 commits. `health.check` real uptime, error transparency in get ops, `braid.commit` real index, `InclusionProof::verify` Merkle path validation. Discovery `tower-atomic` + `discovery-http` features enabled on service binary. `lifecycle.status` shared state handle. `slice.checkout` correct hash, `permanence.verify_commit` entry type check. `spine.seal` reason field, `all_required_available()` enforcement, `permanence.health_check` structured diagnostics. Readiness storage verification, `get_attribution` contributor collection, `auth.peer_info` auth mode. 1,574 tests (44 new from unlocked features + capability test).
 
 - **June 1, 2026** — **Wave 67 — strandGate provenance gate ack**: loamSpine assigned to strandGate (provenance trio: rhizoCrypt + loamSpine + sweetGrass). Hardware ready (Dual EPYC 7452, 256GB ECC), deployment blocked on Phase 1 mesh validation. Lint evolution: 6 `#[allow(dead_code)]` → 4 `#[expect(dead_code)]` for pre-wired strandGate deploy entry points + 2 cleaned of unnecessary annotation. Mountain status: all 10 deep-debt dimensions clean. May 29 handoff archived, Wave 67 ack created.
 
