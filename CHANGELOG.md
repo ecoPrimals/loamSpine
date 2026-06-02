@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 2, 2026 — Deep Debt: Lint Parity, Visibility Tightening, Comment Hygiene)
+
+- **`loam-spine-api` lint parity**: Added `#![deny(clippy::unwrap_used)]` and `#![deny(clippy::expect_used)]` — matches `loam-spine-core` enforcement.
+- **Visibility tightening**: 4 `pub fn` manifest discovery functions → `pub(crate)` (no external callers). 3 injectable `_from` variants annotated `#[cfg_attr(not(test), expect(dead_code))]`.
+- **Comment hygiene**: `transport/mod.rs` mock section comment corrected. `btsp/config.rs` doc comment updated.
+
 ### Changed (June 1, 2026 — Wave 67: strandGate Provenance Gate Ack)
 
 - **Lint evolution**: 6 `#[allow(dead_code)]` evolved — 4 to `#[expect(dead_code)]` with strandGate deploy reasons, 2 transitively-reachable functions cleaned of unnecessary annotation. Compiler warns when entry points are wired.

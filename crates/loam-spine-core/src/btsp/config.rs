@@ -28,7 +28,7 @@ fn btsp_provider_prefix() -> String {
         .unwrap_or_else(|| DEFAULT_BTSP_PROVIDER_PREFIX.into())
 }
 
-/// Pure variant for testing and explicit configuration.
+/// Pure variant for injectable override (no env reads).
 #[must_use]
 fn btsp_provider_prefix_with(provider_override: Option<&str>) -> String {
     provider_override

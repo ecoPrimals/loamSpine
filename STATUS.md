@@ -148,6 +148,15 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+## v0.9.16 Deep Debt — Lint Parity, Visibility Tightening, Comment Hygiene (June 2, 2026)
+
+- **Lint parity**: `loam-spine-api` now denies `clippy::unwrap_used` and `clippy::expect_used` at the crate level — matching `loam-spine-core` enforcement. All production code already compliant.
+- **Visibility tightening**: 4 `pub fn` manifest discovery functions tightened to `pub(crate)` (only used within the crate). 3 injectable `_from` variants annotated with `#[cfg_attr(not(test), expect(dead_code))]` — test-only in production builds.
+- **Comment hygiene**: `transport/mod.rs` mock section comment corrected to match `#[cfg]` gate. `btsp/config.rs` doc comment updated from "testing" to "injectable override."
+- **Zero regressions**: 1,530 tests pass (default build), zero clippy warnings, zero `cargo check` warnings.
+
+---
+
 ## v0.9.16 Wave 67 — strandGate Provenance Gate Ack (June 1, 2026)
 
 - **Ownership**: loamSpine assigned to **strandGate** (provenance trio: rhizoCrypt + loamSpine + sweetGrass). Hardware ready (Dual EPYC 7452, 256GB ECC), deployment blocked on Phase 1 mesh validation.

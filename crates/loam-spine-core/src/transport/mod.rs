@@ -154,8 +154,8 @@ pub mod neural_api;
 pub use neural_api::NeuralApiTransport;
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Mock transport for testing (always available so unit tests compile
-// without either feature)
+// Mock transport for testing (available via #[cfg(test)] or the
+// "testing" feature — not compiled in default production builds)
 // ──────────────────────────────────────────────────────────────────────────────
 
 #[cfg(any(test, feature = "testing"))]

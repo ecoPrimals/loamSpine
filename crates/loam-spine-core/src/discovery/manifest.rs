@@ -37,14 +37,14 @@ pub struct PrimalManifest {
 ///
 /// Returns `base/ecoPrimals/` if the directory exists, otherwise `None`.
 #[must_use]
-pub fn manifest_dir_from(base: &Path) -> Option<PathBuf> {
+pub(crate) fn manifest_dir_from(base: &Path) -> Option<PathBuf> {
     let dir = base.join("ecoPrimals");
     if dir.is_dir() { Some(dir) } else { None }
 }
 
 /// Discover all primal manifests under `base/ecoPrimals/*.json`.
 #[must_use]
-pub fn discover_manifests_from(base: &Path) -> Vec<PrimalManifest> {
+pub(crate) fn discover_manifests_from(base: &Path) -> Vec<PrimalManifest> {
     let Some(dir) = manifest_dir_from(base) else {
         return Vec::new();
     };
@@ -53,7 +53,8 @@ pub fn discover_manifests_from(base: &Path) -> Vec<PrimalManifest> {
 
 /// Find a primal manifest by capability under a given base path.
 #[must_use]
-pub fn find_by_capability_from(base: &Path, capability: &str) -> Option<PrimalManifest> {
+#[cfg_attr(not(test), expect(dead_code, reason = "injectable variant tested directly; production uses env-reading wrapper"))]
+pub(crate) fn find_by_capability_from(base: &Path, capability: &str) -> Option<PrimalManifest> {
     discover_manifests_from(base)
         .into_iter()
         .find(|m| m.capabilities.iter().any(|c| c == capability))
@@ -61,7 +62,8 @@ pub fn find_by_capability_from(base: &Path, capability: &str) -> Option<PrimalMa
 
 /// Find a primal manifest by name under a given base path.
 #[must_use]
-pub fn find_by_name_from(base: &Path, name: &str) -> Option<PrimalManifest> {
+#[cfg_attr(not(test), expect(dead_code, reason = "injectable variant tested directly; production uses env-reading wrapper"))]
+pub(crate) fn find_by_name_from(base: &Path, name: &str) -> Option<PrimalManifest> {
     discover_manifests_from(base)
         .into_iter()
         .find(|m| m.name == name)
