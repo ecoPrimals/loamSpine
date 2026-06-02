@@ -49,10 +49,11 @@ impl LoamSpineRpcService {
                 found: true,
                 spine: Some(spine),
             }),
-            Ok(None) | Err(_) => Ok(GetSpineResponse {
+            Ok(None) => Ok(GetSpineResponse {
                 found: false,
                 spine: None,
             }),
+            Err(e) => Err(ApiError::from(e)),
         }
     }
 

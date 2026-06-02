@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 2, 2026 — Evolution: Handler Fidelity, Error Transparency, Proof Verification)
+
+- **`health.check` real uptime**: Service tracks `started_at` and reports actual uptime instead of hardcoded `0`.
+- **Error transparency**: `spine.get` and `entry.get` propagate storage errors instead of silently masking as "not found."
+- **`braid.commit` real index**: Returns actual spine height after append instead of hardcoded `0`.
+- **`InclusionProof::verify`**: Evolved from stub to proper Merkle path validation (entry hash integrity, path-to-tip, zero-hash rejection, cycle detection).
+
 ### Changed (June 2, 2026 — Deep Debt: Lint Parity, Visibility Tightening, Comment Hygiene)
 
 - **`loam-spine-api` lint parity**: Added `#![deny(clippy::unwrap_used)]` and `#![deny(clippy::expect_used)]` — matches `loam-spine-core` enforcement.

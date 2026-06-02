@@ -277,16 +277,13 @@ impl LoamSpineRpcService {
         &self,
         request: CommitBraidRequest,
     ) -> ApiResult<CommitBraidResponse> {
-        // Build braid summary from request
-        // BraidSummary::new takes (braid_id, braid_type, subject_hash, braid_hash)
         let mut braid = BraidSummary::new(
             request.braid_id,
             "attribution",
-            request.braid_hash, // Using braid_hash as subject_hash
+            request.braid_hash,
             request.braid_hash,
         );
 
-        // Add agents from subjects
         for agent in request.subjects {
             braid = braid.with_agent(agent);
         }
@@ -298,9 +295,17 @@ impl LoamSpineRpcService {
                 .map_err(ApiError::from)?
         };
 
+        let index = {
+            let core = self.core().await;
+            core.get_spine(request.spine_id)
+                .await
+                .map_err(ApiError::from)?
+                .map_or(0, |s| s.height.saturating_sub(1))
+        };
+
         Ok(CommitBraidResponse {
             commit_hash: hash,
-            index: 0,
+            index,
         })
     }
 

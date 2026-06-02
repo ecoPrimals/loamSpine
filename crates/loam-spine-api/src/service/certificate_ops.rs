@@ -118,15 +118,15 @@ impl LoamSpineRpcService {
             let core = self.core().await;
             core.get_certificate(request.certificate_id).await
         };
-        Ok(result.map_or(
-            GetCertificateResponse {
-                found: false,
-                certificate: None,
-            },
-            |cert| GetCertificateResponse {
+        Ok(match result {
+            Some(cert) => GetCertificateResponse {
                 found: true,
                 certificate: Some(cert),
             },
-        ))
+            None => GetCertificateResponse {
+                found: false,
+                certificate: None,
+            },
+        })
     }
 }

@@ -45,6 +45,7 @@ pub struct LoamSpineRpcService {
     core: Arc<RwLock<CoreService>>,
     tower_signer: Option<Arc<JsonRpcCryptoSigner>>,
     btsp_sessions: Arc<RwLock<HashMap<String, [u8; 32]>>>,
+    started_at: std::time::Instant,
 }
 
 impl LoamSpineRpcService {
@@ -55,6 +56,7 @@ impl LoamSpineRpcService {
             core: Arc::new(RwLock::new(core)),
             tower_signer: None,
             btsp_sessions: Arc::new(RwLock::new(HashMap::new())),
+            started_at: std::time::Instant::now(),
         }
     }
 
@@ -120,7 +122,7 @@ impl LoamSpineRpcService {
                 name: loam_spine_core::primal_names::SELF_ID.to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 status: status.clone(),
-                uptime_secs: Some(0),
+                uptime_secs: Some(self.started_at.elapsed().as_secs()),
                 components: vec![loam_spine_core::primal::ComponentHealth::healthy(format!(
                     "storage: {spine_count} spines"
                 ))],

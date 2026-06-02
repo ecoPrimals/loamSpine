@@ -79,20 +79,28 @@ impl InclusionProof {
     ///
     /// Returns an error if entry hash computation fails.
     pub fn verify(&self) -> LoamSpineResult<bool> {
-        // Verify entry hash matches
         if self.entry.compute_hash()? != self.entry_hash {
             return Ok(false);
         }
 
-        // If path is empty and entry_hash == tip, it's valid (entry is tip)
         if self.path.is_empty() {
             return Ok(self.entry_hash == self.tip);
         }
 
-        // Verify we reach the tip through the path
-        // In a proper implementation, we'd verify each entry links correctly
-        // For now, just verify the path ends at tip
-        Ok(self.path.last() == Some(&self.tip))
+        if self.path.last() != Some(&self.tip) {
+            return Ok(false);
+        }
+
+        for hash in &self.path {
+            if *hash == self.entry_hash {
+                return Ok(false);
+            }
+            if *hash == [0u8; 32] {
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
     }
 
     /// Get the number of entries between this entry and tip.

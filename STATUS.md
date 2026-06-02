@@ -148,6 +148,15 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+## v0.9.16 Evolution — Handler Fidelity, Error Transparency, Proof Verification (June 2, 2026)
+
+- **Health evolution**: `health.check` now returns real uptime from service start time instead of hardcoded `0`. Service struct tracks `started_at: Instant`.
+- **Error transparency**: `spine.get` and `entry.get` no longer silently mask storage errors as "not found." Storage failures now propagate as proper API errors, enabling trio composition partners to distinguish between "doesn't exist" and "storage unavailable."
+- **`braid.commit` fidelity**: Returns real append index from spine height instead of hardcoded `0`. sweetGrass integration can now track exact ledger positions.
+- **`InclusionProof::verify` evolution**: Replaced stub verification ("just check path ends at tip") with proper Merkle path validation — verifies entry hash integrity, path-to-tip connectivity, rejects zero-hashes and self-referential paths.
+
+---
+
 ## v0.9.16 Deep Debt — Lint Parity, Visibility Tightening, Comment Hygiene (June 2, 2026)
 
 - **Lint parity**: `loam-spine-api` now denies `clippy::unwrap_used` and `clippy::expect_used` at the crate level — matching `loam-spine-core` enforcement. All production code already compliant.

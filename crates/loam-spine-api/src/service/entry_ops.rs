@@ -60,16 +60,17 @@ impl LoamSpineRpcService {
         let core = self.core().await;
         let result = core.get_entry(request.entry_hash).await;
         drop(core);
-        Ok(match result {
-            Ok(Some(entry)) => GetEntryResponse {
+        match result {
+            Ok(Some(entry)) => Ok(GetEntryResponse {
                 found: true,
                 entry: Some(entry),
-            },
-            Ok(None) | Err(_) => GetEntryResponse {
+            }),
+            Ok(None) => Ok(GetEntryResponse {
                 found: false,
                 entry: None,
-            },
-        })
+            }),
+            Err(e) => Err(ApiError::from(e)),
+        }
     }
 
     /// List entries in a spine (paginated).
