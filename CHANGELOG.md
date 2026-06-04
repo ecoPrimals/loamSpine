@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (June 4, 2026 — Trust Ledger IPC: bearDog Cross-Gate Trust Wiring)
+
+- **`trust.anchor`**: Anchor cross-gate trust events (KeyExchange, TrustIssuerRegistration, TokenVerificationCrossGate) as permanent ledger entries on a dedicated trust spine.
+- **`trust.query`**: Query trust events by gate DID across all roles.
+- **`trust.event_count`**: Return number of anchored trust events.
+- **`"trust"` domain**: Added to niche domains, NeuralAPI, MCP tools, resource estimates, dependency graph.
+- **Lint evolution**: Last 2 `#[allow(` → `#[expect(`. Zero `#[allow(` remaining.
+- 17 new tests (core trust_ledger + JSON-RPC integration). 1,600 tests total, 198 source files.
+
 ### Changed (June 3, 2026 — Deep Debt: Lint Evolution, Test Cohesion, Clone Audit)
 
 - **Lint evolution**: `#[allow(dead_code)]` on `DispatchOutcome::is_ok` evolved to `#[cfg_attr(not(test), expect(dead_code))]`.

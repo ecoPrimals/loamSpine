@@ -306,6 +306,10 @@ impl LoamSpineJsonRpc {
             "bonding.ledger.retrieve" => rpc!(params, bond_ledger_retrieve),
             "bonding.ledger.list" => rpc!(params, bond_ledger_list),
 
+            "trust.anchor" => rpc!(params, trust_anchor),
+            "trust.query" => rpc!(params, trust_query),
+            "trust.event_count" => rpc!(params, trust_event_count),
+
             "btsp.negotiate" => rpc!(params, negotiate_btsp),
 
             "permanence.commit_session" => rpc!(params, permanent_storage_commit_session),
@@ -441,6 +445,9 @@ mod tests_wire_errors;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_bond_ledger;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_trust;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_permanence_cert;

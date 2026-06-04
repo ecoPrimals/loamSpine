@@ -246,6 +246,25 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 "properties": {},
                 "required": []
             })),
+            mcp_tool("trust_anchor", "Anchor a cross-gate trust event as a permanent ledger entry", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "entry_type": { "type": "object", "description": "Trust-domain EntryType variant (KeyExchange, TrustIssuerRegistration, or TokenVerificationCrossGate)" }
+                },
+                "required": ["entry_type"]
+            })),
+            mcp_tool("trust_query", "Query trust events involving a specific gate DID", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "gate_did": { "type": "string", "description": "Gate DID to query trust events for" }
+                },
+                "required": ["gate_did"]
+            })),
+            mcp_tool("trust_event_count", "Return the number of trust events in the ledger", &serde_json::json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            })),
             mcp_tool("health_check", "Check LoamSpine health status", &serde_json::json!({
                 "type": "object",
                 "properties": {},
@@ -309,6 +328,9 @@ pub fn mcp_tool_to_rpc(
         "bonding_ledger_store" => "bonding.ledger.store",
         "bonding_ledger_retrieve" => "bonding.ledger.retrieve",
         "bonding_ledger_list" => "bonding.ledger.list",
+        "trust_anchor" => "trust.anchor",
+        "trust_query" => "trust.query",
+        "trust_event_count" => "trust.event_count",
         "health_check" => "health.check",
         "capability_list" => "capabilities.list",
         "identity_get" => "identity.get",

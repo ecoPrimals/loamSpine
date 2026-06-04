@@ -246,7 +246,7 @@ impl InfantDiscovery {
     /// This is the standard production discovery method.
     ///
     /// Note: Disabled in test mode to avoid runtime conflicts. Use environment variables in tests.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "async required for dns-srv feature builds; lint fires only in no-feature builds"
     )]

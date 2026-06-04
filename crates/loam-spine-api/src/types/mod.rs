@@ -28,11 +28,13 @@ mod anchor;
 mod bond_ledger;
 mod certificate;
 mod permanent_storage;
+mod trust;
 
 pub use anchor::*;
 pub use bond_ledger::*;
 pub use certificate::*;
 pub use permanent_storage::*;
+pub use trust::*;
 
 /// Serde helpers for `Option<ByteBuffer>` fields in RPC types.
 ///

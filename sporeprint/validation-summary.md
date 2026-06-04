@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,583 tests, 44 JSON-RPC methods, 194 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust schema"
-date = 2026-06-03
+description = "Permanence ledger — 1,600 tests, 47 JSON-RPC methods, 198 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC"
+date = 2026-06-04
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,16 +10,16 @@ springs = []
 
 ## Status
 
-- **1,583 tests** (all passing), 0 failures, 0 ignored
-- **44 JSON-RPC methods** across 15 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, btsp, auth, lifecycle, health, meta, mcp, permanence)
-- **194 source files**, ~60,300 lines of Rust
+- **1,600 tests** (all passing), 0 failures, 0 ignored
+- **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
+- **198 source files**, ~61,000 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
-- **JH-0 ADOPTED** — method gate classifies all 44 methods as Public or Protected
+- **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
-- **Zero DEBT markers**, zero `#[allow]` without `reason`
+- **Zero DEBT markers**, zero `#[allow]` (all evolved to `#[expect]`)
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
-- **Stability tiers**: 38 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
+- **Stability tiers**: 41 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
 
 ## Key Capabilities
 
@@ -33,6 +33,7 @@ springs = []
 | Session | `dehydrate`, `commit` | Provenance trio integration (content-addressed dehydration for rootPulse signing, then commit) |
 | Braid | `commit` | Attribution braid integration (sweetGrass) |
 | Bonding | `ledger.store`, `ledger.retrieve`, `ledger.list` | Ionic bond ledger |
+| Trust | `anchor`, `query`, `event_count` | Cross-gate trust event anchoring (bearDog IPC) |
 | BTSP | `negotiate`, `capabilities` | Secure transport negotiation |
 | Auth | `check`, `mode`, `peer_info` | JH-0 method gate introspection |
 | Lifecycle | `status`, `primal.announce` | Service lifecycle + self-registration |
@@ -59,7 +60,8 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 
 | Wave | What landed |
 |------|-------------|
-| benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across all 44 methods, live TCP roundtrip |
+| Trust IPC | `trust.anchor`, `trust.query`, `trust.event_count` — bearDog cross-gate trust wiring |
+| benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across all 47 methods, live TCP roundtrip |
 | Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 194 source files |
 | Wave 47 | Deployment behavioral convergence — `serve`→`server` fix, `LOAMSPINE_DISCOVERY_ENABLED` env gate, `lifecycle.status` `uptime_s` |
 | Wave 43 | Neural API `primal.announce` adoption — startup announce with capabilities, signal_tiers, cost_hints, latency_estimates |
@@ -83,7 +85,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Spec | Status |
 |------|--------|
 | [LOAMSPINE_SPECIFICATION.md](../specs/LOAMSPINE_SPECIFICATION.md) | Complete |
-| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (44 methods) |
+| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (47 methods) |
 | [DATA_MODEL.md](../specs/DATA_MODEL.md) | Complete |
 | [CERTIFICATE_LAYER.md](../specs/CERTIFICATE_LAYER.md) | Complete |
 | [ANCHORING_ARCHITECTURE.md](../specs/ANCHORING_ARCHITECTURE.md) | Complete |

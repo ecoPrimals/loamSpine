@@ -78,6 +78,9 @@ pub const CAPABILITIES: &[&str] = &[
     "bonding.ledger.store",
     "bonding.ledger.retrieve",
     "bonding.ledger.list",
+    "trust.anchor",
+    "trust.query",
+    "trust.event_count",
     "btsp.negotiate",
     "btsp.capabilities",
     "primal.announce",
@@ -422,6 +425,9 @@ fn capability_list_inner() -> serde_json::Value {
             "bonding.ledger.store":      { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
             "bonding.ledger.retrieve":   { "latency_ms": 1, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
             "bonding.ledger.list":       { "latency_ms": 1, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
+            "trust.anchor":              { "latency_ms": 2, "cpu": "low", "memory_bytes": 8192, "gpu_eligible": false },
+            "trust.query":               { "latency_ms": 5, "cpu": "low", "memory_bytes": 16384, "gpu_eligible": false },
+            "trust.event_count":         { "latency_ms": 1, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
             "btsp.negotiate":            { "latency_ms": 2, "cpu": "low", "memory_bytes": 4096, "gpu_eligible": false },
             "btsp.capabilities":         { "latency_ms": 1, "cpu": "low", "memory_bytes": 512, "gpu_eligible": false },
             "primal.announce":           { "latency_ms": 1, "cpu": "low", "memory_bytes": 1024, "gpu_eligible": false },
@@ -449,6 +455,8 @@ fn capability_list_inner() -> serde_json::Value {
             "anchor.verify": ["anchor.publish"],
             "bonding.ledger.retrieve": ["bonding.ledger.store"],
             "bonding.ledger.list": ["bonding.ledger.store"],
+            "trust.query": ["trust.anchor"],
+            "trust.event_count": ["trust.anchor"],
         },
     })
 }

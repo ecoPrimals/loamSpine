@@ -6,9 +6,9 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C583%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C600%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
-[![Methods](https://img.shields.io/badge/JSON--RPC-44%20methods-blue)]()
+[![Methods](https://img.shields.io/badge/JSON--RPC-47%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()
 [![Stadial](https://img.shields.io/badge/stadial-ready-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
@@ -60,7 +60,7 @@ cargo deny check licenses bans sources
 # Full verification
 ./verify.sh
 
-# benchScale roundtrip validation (44 methods over live TCP)
+# benchScale roundtrip validation (47 methods over live TCP)
 SKIP_BUILD=1 ./infra/benchScale/validate_roundtrip.sh
 ```
 
@@ -85,7 +85,7 @@ loamSpine/
 │   │       ├── config.rs          # Configuration
 │   │       ├── discovery/         # Capability registry + DynSigner/DynVerifier
 │   │       ├── discovery_client/  # HTTP discovery client + ResilientDiscoveryClient
-│   │       ├── entry/             # Entry types (18+ variants incl. cross-gate trust, MessagePack / rmp-serde canonical)
+│   │       ├── entry/             # Entry types (18+ variants incl. cross-gate trust, trust ledger IPC, MessagePack / rmp-serde canonical)
 │   │       ├── infant_discovery/  # DNS-SRV, mDNS-SD, registry discovery
 │   │       ├── manager/           # Certificate manager
 │   │       ├── niche.rs            # Primal self-knowledge (capabilities, deps, costs)
@@ -208,13 +208,13 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,583 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,600 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc `wildcard_imports`, 1× feature-conditional `unused_mut`, 1× feature-conditional `unused_async`); 4 `#[expect(dead_code)]` for pre-wired strandGate deploy entry points; tests all `#[expect(reason)]` |
 | **Max File Size** | 640 max production; 789 max test file |
-| **Source Files** | 194 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Source Files** | 198 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

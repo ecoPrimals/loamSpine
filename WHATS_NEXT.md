@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 3, 2026
+**Last Updated**: June 4, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 4, 2026** — **Trust Ledger IPC — bearDog Cross-Gate Trust Wiring**: 3 new JSON-RPC methods (`trust.anchor`, `trust.query`, `trust.event_count`) with dedicated trust spine. bearDog can anchor trusted issuer registrations, key exchanges, and cross-gate token verifications as permanent ledger entries. `"trust"` domain added to niche. NeuralAPI/MCP tools wired. Last 2 `#[allow(` → `#[expect(`. 1,600 tests, 198 source files, 47 methods.
 
 - **June 3, 2026** — **Deep Debt + Wave 76 Parity Sprint**: Cross-gate trust entry schema (3 new `EntryType` variants: `KeyExchange`, `TrustIssuerRegistration`, `TokenVerificationCrossGate`). FRAGO ACK for `wave76-parity-sprint-provenance`. Smart-split `entry_tests.rs` (845→639L). Last `#[allow(dead_code)]` evolved to `#[cfg_attr(not(test), expect(dead_code))]`. 10-dimension audit clean. 1,583 tests, 194 source files.
 
