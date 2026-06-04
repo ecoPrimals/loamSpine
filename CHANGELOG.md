@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 3, 2026 — Deep Debt: Lint Evolution, Test Cohesion, Clone Audit)
+
+- **Lint evolution**: `#[allow(dead_code)]` on `DispatchOutcome::is_ok` evolved to `#[cfg_attr(not(test), expect(dead_code))]`.
+- **Smart-split**: `entry_tests.rs` 845→639L. Cross-gate trust tests → `entry_tests_trust.rs` (213L).
+- **Clone audit**: High-clone files confirmed test-only or O(1) Arc clones.
+
+### Added (June 3, 2026 — Wave 76 Parity Sprint: Cross-Gate Trust Entry Schema)
+
+- **`EntryType::KeyExchange`**: Ed25519 key exchange between two gates.
+- **`EntryType::TrustIssuerRegistration`**: Trust issuer registration with scope and capabilities.
+- **`EntryType::TokenVerificationCrossGate`**: Cross-gate token verification event.
+- All three in `"trust"` domain, excluded from waypoint spines.
+- 9 new tests (domain, waypoint, serde roundtrips).
+
 ### Changed (June 2, 2026 — Evolution: Readiness Diagnostics, Attribution, Auth Peer Info)
 
 - **Readiness probe**: Exercises storage read and reports spine count.

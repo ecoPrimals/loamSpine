@@ -29,7 +29,7 @@ pub enum DispatchOutcome<T> {
 impl<T> DispatchOutcome<T> {
     /// Returns `true` if the outcome is a successful result.
     #[must_use]
-    #[allow(dead_code, reason = "predicate used in test assertions")]
+    #[cfg_attr(not(test), expect(dead_code, reason = "predicate used in test assertions"))]
     pub(crate) const fn is_ok(&self) -> bool {
         matches!(self, Self::Ok(_))
     }

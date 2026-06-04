@@ -638,3 +638,11 @@ pub enum SpineType {
 #[expect(clippy::unwrap_used, reason = "proptests use unwrap for assertions")]
 #[path = "entry_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise error paths"
+)]
+#[path = "entry_tests_trust.rs"]
+mod tests_trust;

@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 2, 2026
+**Last Updated**: June 3, 2026
 
 ---
 
@@ -19,7 +19,7 @@ This document tracks implementation progress against the specification suite in 
 |------|--------|-------|
 | [LOAMSPINE_SPECIFICATION.md](specs/LOAMSPINE_SPECIFICATION.md) | COMPLETE | Master spec implemented |
 | [ARCHITECTURE.md](specs/ARCHITECTURE.md) | COMPLETE | Component layout matches spec |
-| [DATA_MODEL.md](specs/DATA_MODEL.md) | COMPLETE | Entry, Spine, Chain, SpineConfig, EntryType (15+ variants) |
+| [DATA_MODEL.md](specs/DATA_MODEL.md) | COMPLETE | Entry, Spine, Chain, SpineConfig, EntryType (18+ variants incl. cross-gate trust) |
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
 | [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | COMPLETE | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig` with `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective). `AttestationResult` for capability-discovered attestation providers. `PropagationPolicy`, `SliceTerms`, `SliceOperationType`, `WaypointSummary` types defined. `RelendingChain` with multi-hop sublend/return. `ExpirySweeper` for auto-return. |
 | [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | COMPLETE | Core CRUD + loan/return + sublend + `verify_certificate` + `generate_provenance_proof` + escrow + `UsageSummary` integrated into `CertificateReturn` and `LoanRecord`. `WaypointSummary` re-used from waypoint module. Scyborg license schema. Certificate module: types, lifecycle, metadata, provenance, escrow, usage, tests. |
@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,574 (193 source files) |
+| Tests | — | 1,583 (194 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 800 lines | 605 max production (discovery_client/mod.rs); 787 max test file (service_tests.rs) |
-| Source files | — | 193 `.rs` files (+ 3 fuzz targets) |
+| Max file size | < 800 lines | 640 max production (entry/mod.rs); 789 max test file (service_tests.rs) |
+| Source files | — | 194 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 4 | 2× `clippy::wildcard_imports` (tarpc macro; `#[expect]` unfulfilled in test target) + 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -145,6 +145,24 @@ When loamSpine is unavailable:
 ### ecoBin Grade: A+
 
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
+
+---
+
+## v0.9.16 Deep Debt — Lint Evolution, Test Cohesion, Clone Audit (June 3, 2026)
+
+- **Lint evolution**: Last `#[allow(dead_code)]` on `DispatchOutcome::is_ok` evolved to `#[cfg_attr(not(test), expect(dead_code))]`.
+- **Smart-split `entry_tests.rs`**: 845L → 639L. 9 cross-gate trust tests extracted to dedicated `entry_tests_trust.rs` (213L). All source files under 800L.
+- **Clone audit**: High-clone files (`expiry_sweeper` 20, `certificate_loan` 16) audited — all test-only or O(1) Arc clones. Zero optimizable clones.
+- **10-dimension audit clean**: Zero files >800L, zero unsafe, zero TODO/FIXME, zero hardcoded paths in prod, zero mocks in prod. 8 `#[expect(dead_code)]` documented with deployment context.
+- **Test count**: 1,583 (unchanged). 194 source files (up from 193).
+
+---
+
+## v0.9.16 Cross-Gate Trust Entry Schema — Wave 76 Parity Sprint (June 3, 2026)
+
+- **3 new `EntryType` variants**: `KeyExchange`, `TrustIssuerRegistration`, `TokenVerificationCrossGate` for cross-gate trust establishment. All in `"trust"` domain, excluded from waypoint spines.
+- **9 new tests**: Domain classification, waypoint exclusion, JSON serde roundtrips (optional fields, canonical bytes, full Entry roundtrip).
+- **Test count**: 1,583 (up from 1,574). FRAGO ACK: `wave76-parity-sprint-provenance`.
 
 ---
 

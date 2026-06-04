@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 2, 2026
+**Last Updated**: June 3, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 3, 2026** — **Deep Debt + Wave 76 Parity Sprint**: Cross-gate trust entry schema (3 new `EntryType` variants: `KeyExchange`, `TrustIssuerRegistration`, `TokenVerificationCrossGate`). FRAGO ACK for `wave76-parity-sprint-provenance`. Smart-split `entry_tests.rs` (845→639L). Last `#[allow(dead_code)]` evolved to `#[cfg_attr(not(test), expect(dead_code))]`. 10-dimension audit clean. 1,583 tests, 194 source files.
 
 - **June 2, 2026** — **Handler Evolution — Fidelity, Transport, Diagnostics**: 17 thin/stub handlers evolved to real implementations across 4 commits. `health.check` real uptime, error transparency in get ops, `braid.commit` real index, `InclusionProof::verify` Merkle path validation. Discovery `tower-atomic` + `discovery-http` features enabled on service binary. `lifecycle.status` shared state handle. `slice.checkout` correct hash, `permanence.verify_commit` entry type check. `spine.seal` reason field, `all_required_available()` enforcement, `permanence.health_check` structured diagnostics. Readiness storage verification, `get_attribution` contributor collection, `auth.peer_info` auth mode. 1,574 tests (44 new from unlocked features + capability test).
 
