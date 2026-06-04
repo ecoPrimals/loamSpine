@@ -473,6 +473,60 @@ pub enum EntryType {
         data: serde_json::Value,
     },
 
+    // === Cross-Gate Trust ===
+    /// Ed25519 key exchange between two gates, establishing a shared trust
+    /// relationship. The `public_key_hash` is the Blake3 hash of the exchanged
+    /// public key — the raw key material stays with the crypto capability primal.
+    KeyExchange {
+        /// DID of the local gate initiating or accepting the exchange.
+        local_gate: Did,
+        /// DID of the remote gate.
+        remote_gate: Did,
+        /// Blake3 hash of the exchanged Ed25519 public key.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
+        public_key_hash: ContentHash,
+        /// Direction: `"initiated"` or `"accepted"`.
+        direction: String,
+        /// Family ID scope (gates within the same family).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        family_id: Option<String>,
+    },
+
+    /// Registration of a trust issuer in the `TrustedIssuerRegistry`. Records
+    /// that a specific gate or DID has been recognized as a valid issuer of
+    /// trust tokens within a family or cross-family scope.
+    TrustIssuerRegistration {
+        /// DID of the issuer being registered.
+        issuer_did: Did,
+        /// Gate that registered this issuer.
+        registering_gate: Did,
+        /// Scope of trust: `"family"`, `"cross-gate"`, or `"global"`.
+        trust_scope: String,
+        /// Capabilities the issuer is trusted to attest (e.g. `["signing", "verification"]`).
+        capabilities: Vec<String>,
+        /// Expiry timestamp (None = no expiry).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        expires_at: Option<Timestamp>,
+    },
+
+    /// Cross-gate token verification event. Records that a token issued by
+    /// one gate was successfully verified by another gate, establishing
+    /// a permanent audit trail of cross-gate trust exercises.
+    TokenVerificationCrossGate {
+        /// DID of the gate that issued the token.
+        issuer_gate: Did,
+        /// DID of the gate that verified the token.
+        verifier_gate: Did,
+        /// Blake3 hash of the verified token payload.
+        #[serde(deserialize_with = "crate::types::serde_content_hash::deserialize")]
+        token_hash: ContentHash,
+        /// Whether verification succeeded.
+        verified: bool,
+        /// Verification failure reason (None if verified = true).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        failure_reason: Option<String>,
+    },
+
     // === Custom ===
     /// Custom entry type with zero-copy payload.
     Custom {
@@ -510,6 +564,9 @@ impl EntryType {
             Self::TemporalMoment { .. } => "temporal",
             Self::PublicChainAnchor { .. } => "anchor",
             Self::BondLedgerRecord { .. } => "bonding",
+            Self::KeyExchange { .. }
+            | Self::TrustIssuerRegistration { .. }
+            | Self::TokenVerificationCrossGate { .. } => "trust",
             Self::Custom { .. } => "custom",
         }
     }
