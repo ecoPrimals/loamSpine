@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 4, 2026
+**Last Updated**: June 5, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 5, 2026** — **Wave 78 Parity: Capability Registry**: `config/capability_registry.toml` created — 19 domains, 47 operations, 6 consumed capabilities. Machine-readable biomeOS overlay following sweetGrass/biomeOS/petalTongue convention. Wave 78 parity item RESOLVED.
 
 - **June 4, 2026** — **Trust Ledger IPC — bearDog Cross-Gate Trust Wiring**: 3 new JSON-RPC methods (`trust.anchor`, `trust.query`, `trust.event_count`) with dedicated trust spine. bearDog can anchor trusted issuer registrations, key exchanges, and cross-gate token verifications as permanent ledger entries. `"trust"` domain added to niche. NeuralAPI/MCP tools wired. Last 2 `#[allow(` → `#[expect(`. 1,600 tests, 198 source files, 47 methods.
 

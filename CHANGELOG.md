@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (June 5, 2026 — Wave 78 Parity: Capability Registry)
+
+- **`config/capability_registry.toml`**: Machine-readable biomeOS-compatible capability overlay. 19 domains, 47 operations with `depends_on`/`cost`/`stability` metadata, 6 consumed capabilities. Follows sweetGrass/biomeOS/petalTongue convention.
+
 ### Added (June 4, 2026 — Trust Ledger IPC: bearDog Cross-Gate Trust Wiring)
 
 - **`trust.anchor`**: Anchor cross-gate trust events (KeyExchange, TrustIssuerRegistration, TokenVerificationCrossGate) as permanent ledger entries on a dedicated trust spine.

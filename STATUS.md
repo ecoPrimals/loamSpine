@@ -70,6 +70,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
+| `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 47 operations, 6 consumed capabilities |
 | AGPL-3.0-or-later | PASS | SPDX headers on all 193 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
@@ -148,8 +149,9 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
-## v0.9.16 Trust Ledger IPC — bearDog Cross-Gate Trust Wiring (June 4, 2026)
+## v0.9.16 Capability Registry + Trust Ledger IPC (June 4-5, 2026)
 
+- **`config/capability_registry.toml`**: Machine-readable biomeOS-compatible capability overlay. 19 domains, 47 operations (with depends_on/cost/stability metadata), 6 consumed capabilities. Wave 78 parity item RESOLVED.
 - **Trust ledger IPC wired**: `trust.anchor`, `trust.query`, `trust.event_count` — 3 new JSON-RPC methods with dedicated trust spine (mirroring bond_ledger pattern). bearDog can now anchor trusted issuer registrations, key exchanges, and cross-gate token verifications as permanent ledger entries.
 - **Deep debt**: Last 2 `#[allow(` evolved to `#[expect(`. Zero `#[allow(` remaining in codebase.
 - **NeuralAPI / MCP**: 3 new trust tools registered. Resource estimates and dependency graph wired.

@@ -1,0 +1,358 @@
+# loamSpine Capability Registry
+# biomeOS-compatible runtime capability overlay.
+# See: wateringHole SPRING_AS_NICHE_DEPLOYMENT_STANDARD
+#
+# biomeOS reads this file to discover loamSpine capabilities
+# without requiring the primal to be running.
+
+[primal]
+name = "loamspine"
+version = "0.9.16"
+description = "Permanence layer — selective memory, certificates, inclusion proofs"
+license = "AGPL-3.0-or-later"
+protocol = "jsonrpc-2.0"
+transport = ["uds", "tcp", "tarpc"]
+
+# ─── Domain Declarations ───────────────────────────────────────────────
+
+[domains.spine]
+description = "Append-only spine lifecycle"
+methods = ["create", "get", "list", "seal"]
+
+[domains.entry]
+description = "Content-addressed entry management"
+methods = ["append", "get", "get_tip", "list"]
+
+[domains.certificate]
+description = "Loam Certificates — memory-bound objects (Novel Ferment Transcripts)"
+methods = ["mint", "transfer", "loan", "return", "get"]
+
+[domains.proof]
+description = "Merkle inclusion proofs"
+methods = ["generate_inclusion", "verify_inclusion"]
+
+[domains.waypoint]
+description = "Slice anchoring and checkout"
+methods = ["anchor", "checkout"]
+
+[domains.anchor]
+description = "Public chain anchoring (Bitcoin, Ethereum, RFC 3161, Data Commons)"
+methods = ["publish", "publish_batch", "verify"]
+
+[domains.session]
+description = "Provenance trio integration — DAG dehydration and commit"
+methods = ["dehydrate", "commit"]
+
+[domains.braid]
+description = "Attribution braid integration (sweetGrass)"
+methods = ["commit"]
+
+[domains.bonding]
+description = "Ionic bond ledger persistence"
+methods = ["ledger.store", "ledger.retrieve", "ledger.list"]
+
+[domains.trust]
+description = "Cross-gate trust event anchoring (bearDog IPC)"
+methods = ["anchor", "query", "event_count"]
+
+[domains.btsp]
+description = "BTSP Phase 3 secure transport negotiation"
+methods = ["negotiate", "capabilities"]
+
+[domains.health]
+description = "Health, liveness, and readiness probes"
+methods = ["check", "liveness", "readiness"]
+
+[domains.lifecycle]
+description = "Service lifecycle status"
+methods = ["status"]
+
+[domains.auth]
+description = "JH-0 method gate introspection"
+methods = ["check", "mode", "peer_info"]
+
+[domains.capabilities]
+description = "Capability discovery (Wire Standard L3)"
+methods = ["list"]
+
+[domains.identity]
+description = "Primal identity"
+methods = ["get"]
+
+[domains.tools]
+description = "MCP tool exposure for ecosystem orchestration"
+methods = ["list", "call"]
+
+[domains.permanence]
+description = "Legacy naming compatibility layer"
+methods = ["commit_session", "verify_commit", "get_commit", "health_check"]
+
+[domains.primal]
+description = "Primal self-registration"
+methods = ["announce"]
+
+# ─── Per-Operation Metadata ────────────────────────────────────────────
+# Stability tiers: "stable" (Wire Standard locked), "beta" (API may evolve),
+#                  "compat" (legacy naming, will be deprecated)
+
+[operations."spine.create"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."spine.get"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."spine.list"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."spine.seal"]
+depends_on = ["spine.create"]
+cost = "low"
+stability = "stable"
+
+[operations."entry.append"]
+depends_on = ["spine.create"]
+cost = "low"
+stability = "stable"
+
+[operations."entry.get"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."entry.get_tip"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."entry.list"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."certificate.mint"]
+depends_on = ["spine.create"]
+cost = "low"
+stability = "stable"
+
+[operations."certificate.transfer"]
+depends_on = ["certificate.mint"]
+cost = "low"
+stability = "stable"
+
+[operations."certificate.loan"]
+depends_on = ["certificate.mint"]
+cost = "low"
+stability = "stable"
+
+[operations."certificate.return"]
+depends_on = ["certificate.loan"]
+cost = "low"
+stability = "stable"
+
+[operations."certificate.get"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."slice.anchor"]
+depends_on = ["spine.create"]
+cost = "low"
+stability = "stable"
+
+[operations."slice.checkout"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."proof.generate_inclusion"]
+depends_on = ["entry.append"]
+cost = "medium"
+stability = "stable"
+
+[operations."proof.verify_inclusion"]
+depends_on = []
+cost = "medium"
+stability = "stable"
+
+[operations."session.dehydrate"]
+depends_on = ["spine.create"]
+cost = "medium"
+stability = "stable"
+
+[operations."session.commit"]
+depends_on = ["spine.create"]
+cost = "medium"
+stability = "stable"
+
+[operations."braid.commit"]
+depends_on = ["spine.create"]
+cost = "medium"
+stability = "stable"
+
+[operations."anchor.publish"]
+depends_on = ["spine.create"]
+cost = "low"
+stability = "stable"
+
+[operations."anchor.publish_batch"]
+depends_on = ["spine.create"]
+cost = "medium"
+stability = "stable"
+
+[operations."anchor.verify"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."bonding.ledger.store"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."bonding.ledger.retrieve"]
+depends_on = ["bonding.ledger.store"]
+cost = "low"
+stability = "stable"
+
+[operations."bonding.ledger.list"]
+depends_on = ["bonding.ledger.store"]
+cost = "low"
+stability = "stable"
+
+[operations."trust.anchor"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."trust.query"]
+depends_on = ["trust.anchor"]
+cost = "medium"
+stability = "stable"
+
+[operations."trust.event_count"]
+depends_on = ["trust.anchor"]
+cost = "low"
+stability = "stable"
+
+[operations."btsp.negotiate"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."btsp.capabilities"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."health.check"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."health.liveness"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."health.readiness"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."lifecycle.status"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."auth.check"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."auth.mode"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."auth.peer_info"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."capabilities.list"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."identity.get"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."tools.list"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."tools.call"]
+depends_on = []
+cost = "medium"
+stability = "stable"
+
+[operations."primal.announce"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."permanence.commit_session"]
+depends_on = ["spine.create"]
+cost = "medium"
+stability = "compat"
+
+[operations."permanence.verify_commit"]
+depends_on = []
+cost = "low"
+stability = "compat"
+
+[operations."permanence.get_commit"]
+depends_on = []
+cost = "low"
+stability = "compat"
+
+[operations."permanence.health_check"]
+depends_on = []
+cost = "low"
+stability = "compat"
+
+# ─── Consumed Capabilities ─────────────────────────────────────────────
+# What loamSpine calls on other primals (discovered at runtime).
+
+[consumed.btsp]
+required = false
+description = "BTSP handshake-as-a-service (required when FAMILY_ID is set)"
+
+[consumed.signing]
+required = false
+description = "crypto.sign_ed25519 / crypto.verify_ed25519 via JSON-RPC"
+
+[consumed.storage]
+required = false
+description = "External content-addressable storage (local redb is self-sufficient)"
+
+[consumed.discovery]
+required = false
+description = "Service registry (mDNS / DNS-SRV / etcd) for primal discovery"
+
+[consumed.attestation]
+required = false
+description = "Operation attestation for waypoint semantics"
+
+[consumed.chain_anchor]
+required = false
+description = "External chain anchor submission (loamSpine only records receipts)"
