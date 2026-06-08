@@ -184,7 +184,7 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         "BTSP: client verified"
     );
 
-    let handshake_key = decode_session_key(verify.session_key.as_ref());
+    let handshake_key = decode_session_key(verify.session_key.as_deref());
 
     let session_id = verify
         .session_id
@@ -381,7 +381,7 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         "BTSP NDJSON: client verified"
     );
 
-    let handshake_key = decode_session_key(verify.session_key.as_ref());
+    let handshake_key = decode_session_key(verify.session_key.as_deref());
 
     let session_id = verify
         .session_id
@@ -485,10 +485,10 @@ async fn ndjson_send_error<W: AsyncWriteExt + Unpin + Send>(
 ///
 /// Returns `None` if the key is absent, decode fails, or length is wrong.
 /// Graceful degradation: missing key = null cipher fallback.
-fn decode_session_key(session_key: Option<&String>) -> Option<[u8; 32]> {
+fn decode_session_key(session_key: Option<&str>) -> Option<[u8; 32]> {
     use base64::Engine;
 
-    let encoded = session_key?.as_str();
+    let encoded = session_key?;
     let decoded = base64::engine::general_purpose::STANDARD
         .decode(encoded)
         .ok()?;
