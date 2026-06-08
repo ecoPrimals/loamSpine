@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 5, 2026
+**Last Updated**: June 8, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 8, 2026** — **Wave 101: Transport Endpoint Adoption**: Local `TransportEndpoint` type (wire-compatible with sourDough canonical standard) in `transport/endpoint.rs`. `TRANSPORT_ENDPOINT` env acceptance wired in `main.rs`. 14 new tests. loamSpine transport status: DONE (LOCAL pattern, no cross-primal deps). 1,614 tests, 199 source files.
 
 - **June 5, 2026** — **Wave 78 Parity: Capability Registry**: `config/capability_registry.toml` created — 19 domains, 47 operations, 6 consumed capabilities. Machine-readable biomeOS overlay following sweetGrass/biomeOS/petalTongue convention. Wave 78 parity item RESOLVED.
 

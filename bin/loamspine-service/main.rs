@@ -155,6 +155,19 @@ async fn run_server(
         )
         .init();
 
+    // Transport injection: accept TRANSPORT_ENDPOINT from launcher/Tower Atomic.
+    // When set, the launcher decides the transport — the primal does not self-bind.
+    if let Ok(te_json) = std::env::var(loam_spine_core::transport::TRANSPORT_ENDPOINT_ENV) {
+        match loam_spine_core::transport::parse_transport_endpoint(&te_json) {
+            Ok(endpoint) => {
+                info!("Transport endpoint injected: {endpoint}");
+            }
+            Err(e) => {
+                tracing::warn!("Invalid TRANSPORT_ENDPOINT value: {e}");
+            }
+        }
+    }
+
     // TCP is opt-in (ecosystem convention): only start TCP servers
     // when explicitly requested via CLI flags or environment variables.
     // UDS socket is always started as the primary transport.

@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,600 tests, 47 JSON-RPC methods, 198 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, capability_registry.toml"
-date = 2026-06-05
+description = "Permanence ledger — 1,614 tests, 47 JSON-RPC methods, 199 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml"
+date = 2026-06-08
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,9 +10,9 @@ springs = []
 
 ## Status
 
-- **1,600 tests** (all passing), 0 failures, 0 ignored
+- **1,614 tests** (all passing), 0 failures, 0 ignored
 - **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
-- **198 source files**, ~61,000 lines of Rust
+- **199 source files**, ~61,200 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
@@ -60,6 +60,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 
 | Wave | What landed |
 |------|-------------|
+| Transport | `TransportEndpoint` local impl (wire-compat sourDough standard), `TRANSPORT_ENDPOINT` env acceptance |
 | Trust IPC | `trust.anchor`, `trust.query`, `trust.event_count` — bearDog cross-gate trust wiring |
 | benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across all 47 methods, live TCP roundtrip |
 | Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 194 source files |

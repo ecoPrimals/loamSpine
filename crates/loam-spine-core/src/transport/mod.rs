@@ -25,6 +25,10 @@
 //! # }
 //! ```
 
+pub mod endpoint;
+
+pub use endpoint::{TransportEndpoint, parse_transport_endpoint, TRANSPORT_ENDPOINT_ENV};
+
 use std::future::Future;
 use std::pin::Pin;
 

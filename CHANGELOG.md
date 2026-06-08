@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (June 8, 2026 — Wave 101: Transport Endpoint Adoption)
+
+- **`TransportEndpoint`**: Local wire-compatible implementation of sourDough's `TransportEndpoint` standard (`#[serde(tag = "transport")]` — `uds`, `tcp`, `mesh_relay` variants). No cross-primal dependency — the wire format is the contract.
+- **`TRANSPORT_ENDPOINT` env acceptance**: `main.rs` parses and logs launcher-injected transport on startup. Phase 1 (accept + log); Phase 2 (outbound routing) follows when `ipc.resolve` is available.
+- **`parse_transport_endpoint()`**: JSON parsing helper + `TRANSPORT_ENDPOINT_ENV` constant.
+- 14 new tests (roundtrip, wire-compat with sourDough format, `is_local`, Display, env parsing). 1,614 tests total, 199 source files.
+
 ### Added (June 5, 2026 — Wave 78 Parity: Capability Registry)
 
 - **`config/capability_registry.toml`**: Machine-readable biomeOS-compatible capability overlay. 19 domains, 47 operations with `depends_on`/`cost`/`stability` metadata, 6 consumed capabilities. Follows sweetGrass/biomeOS/petalTongue convention.

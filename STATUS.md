@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 4, 2026
+**Last Updated**: June 8, 2026
 
 ---
 
