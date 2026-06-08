@@ -510,11 +510,11 @@ pub(crate) fn resolve_family_seed() -> Result<String, LoamSpineError> {
     use base64::Engine;
 
     let raw = crate::constants::env_resolution::family_seed().map_err(|_| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Connect,
-                "FAMILY_SEED not set (checked FAMILY_SEED, BTSP_FAMILY_SEED, and BEARDOG_FAMILY_SEED)",
-            )
-        })?;
+        LoamSpineError::ipc(
+            IpcErrorPhase::Connect,
+            "FAMILY_SEED not set (checked FAMILY_SEED, BTSP_FAMILY_SEED, and BEARDOG_FAMILY_SEED)",
+        )
+    })?;
 
     Ok(base64::engine::general_purpose::STANDARD.encode(raw.as_bytes()))
 }

@@ -64,10 +64,8 @@ fn test_jsonrpc_creation() {
 #[test]
 fn test_jsonrpc_with_service() {
     let service = LoamSpineRpcService::default_service();
-    let _server = LoamSpineJsonRpc::new(
-        service,
-        super::MethodGate::new(super::AuthMode::Permissive),
-    );
+    let _server =
+        LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
 }
 
 #[tokio::test]

@@ -141,9 +141,12 @@ impl LoamSpineRpcService {
             .map_err(ApiError::from)?;
         drop(core);
 
-        let last_commit_idx = entries
-            .iter()
-            .rposition(|e| matches!(e.entry_type, loam_spine_core::entry::EntryType::SessionCommit { .. }));
+        let last_commit_idx = entries.iter().rposition(|e| {
+            matches!(
+                e.entry_type,
+                loam_spine_core::entry::EntryType::SessionCommit { .. }
+            )
+        });
 
         let uncommitted = match last_commit_idx {
             Some(idx) => &entries[idx + 1..],
@@ -161,7 +164,9 @@ impl LoamSpineRpcService {
         }
         let session_hash = loam_spine_core::types::hash_bytes(&preimage);
 
-        let session_type = request.session_type.unwrap_or_else(|| "session".to_string());
+        let session_type = request
+            .session_type
+            .unwrap_or_else(|| "session".to_string());
         let entry_count = u64::try_from(uncommitted.len()).unwrap_or(u64::MAX);
 
         debug!(
@@ -402,16 +407,13 @@ impl LoamSpineRpcService {
             return Ok(false);
         }
 
-        let is_commit = get_resp
-            .entry
-            .as_ref()
-            .is_some_and(|e| {
-                matches!(
-                    e.entry_type,
-                    loam_spine_core::entry::EntryType::SessionCommit { .. }
-                        | loam_spine_core::entry::EntryType::BraidCommit { .. }
-                )
-            });
+        let is_commit = get_resp.entry.as_ref().is_some_and(|e| {
+            matches!(
+                e.entry_type,
+                loam_spine_core::entry::EntryType::SessionCommit { .. }
+                    | loam_spine_core::entry::EntryType::BraidCommit { .. }
+            )
+        });
 
         Ok(is_commit)
     }

@@ -602,7 +602,7 @@ async fn spine_list_returns_empty_on_fresh_server() {
 
 #[tokio::test]
 async fn entry_list_returns_entries_for_populated_spine() {
-    use crate::types::{CreateSpineRequest, Did, AppendEntryRequest, EntryType};
+    use crate::types::{AppendEntryRequest, CreateSpineRequest, Did, EntryType};
     let server = LoamSpineJsonRpc::default_server();
 
     let create_req = JsonRpcRequest {
@@ -612,7 +612,8 @@ async fn entry_list_returns_entries_for_populated_spine() {
             name: "test".into(),
             owner: Did::new("did:key:z6MkTest"),
             config: None,
-        }).unwrap(),
+        })
+        .unwrap(),
         id: serde_json::Value::Number(1.into()),
     };
     let create_resp = server.handle_request(create_req).await;
@@ -632,7 +633,8 @@ async fn entry_list_returns_entries_for_populated_spine() {
             },
             committer: None,
             payload: None,
-        }).unwrap(),
+        })
+        .unwrap(),
         id: serde_json::Value::Number(2.into()),
     };
     server.handle_request(append_req).await;

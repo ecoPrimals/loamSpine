@@ -473,7 +473,10 @@ pub mod serde_content_hash {
     #[derive(Debug)]
     pub(crate) enum HexError {
         BadLength(usize),
-        InvalidByte { index: usize, source: std::num::ParseIntError },
+        InvalidByte {
+            index: usize,
+            source: std::num::ParseIntError,
+        },
     }
 
     impl std::fmt::Display for HexError {
@@ -494,8 +497,12 @@ pub mod serde_content_hash {
         }
         let mut arr = [0u8; 32];
         for (i, byte) in arr.iter_mut().enumerate() {
-            *byte = u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16)
-                .map_err(|e| HexError::InvalidByte { index: i, source: e })?;
+            *byte = u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16).map_err(|e| {
+                HexError::InvalidByte {
+                    index: i,
+                    source: e,
+                }
+            })?;
         }
         Ok(arr)
     }

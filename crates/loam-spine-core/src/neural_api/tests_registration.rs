@@ -173,10 +173,7 @@ fn announce_payload_has_wave43_fields() {
 
     assert_eq!(payload["primal"], "loamspine");
     assert!(payload["version"].is_string());
-    assert_eq!(
-        payload["socket"],
-        "/run/user/1000/biomeos/loamspine.sock"
-    );
+    assert_eq!(payload["socket"], "/run/user/1000/biomeos/loamspine.sock");
     assert_eq!(payload["status"], "running");
     assert_eq!(payload["domain"], "permanence");
     assert_eq!(payload["capability_domain"], "ledger");

@@ -153,8 +153,7 @@ async fn all_required_available_with_capabilities() {
     use crate::traits::signing::testing::{MockSigner, MockVerifier};
     use crate::types::Did;
 
-    let mock_signer: BoxedSigner =
-        Arc::new(MockSigner::new(Did::new("did:key:z6MkTestSigner")));
+    let mock_signer: BoxedSigner = Arc::new(MockSigner::new(Did::new("did:key:z6MkTestSigner")));
     let mock_verifier: BoxedVerifier = Arc::new(MockVerifier::permissive());
     let registry = CapabilityRegistry::new();
     registry.register_signer(mock_signer).await;

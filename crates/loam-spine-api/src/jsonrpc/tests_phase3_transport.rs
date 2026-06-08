@@ -51,7 +51,8 @@ async fn phase3_transport_switch_encrypted_roundtrip() {
     use tokio::net::UnixStream;
 
     let service = LoamSpineRpcService::default_service();
-    let handler = LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
+    let handler =
+        LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
     let session = make_session_with_key();
     let handshake_key = session.handshake_key.expect("has key");
 
@@ -176,7 +177,8 @@ async fn phase3_multiple_encrypted_requests() {
     use tokio::net::UnixStream;
 
     let service = LoamSpineRpcService::default_service();
-    let handler = LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
+    let handler =
+        LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
     let session = make_session_with_key();
     let handshake_key = session.handshake_key.expect("has key");
 
@@ -269,7 +271,8 @@ async fn phase3_no_key_stays_plaintext() {
     use tokio::net::UnixStream;
 
     let service = LoamSpineRpcService::default_service();
-    let handler = LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
+    let handler =
+        LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
     let session = make_session_without_key();
 
     let (client_stream, server_stream) = UnixStream::pair().expect("unix socket pair");
@@ -326,7 +329,8 @@ async fn phase3_negotiate_null_stays_plaintext() {
     use tokio::net::UnixStream;
 
     let service = LoamSpineRpcService::default_service();
-    let handler = LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
+    let handler =
+        LoamSpineJsonRpc::new(service, super::MethodGate::new(super::AuthMode::Permissive));
 
     let session = BtspSession {
         session_id: TEST_SESSION_ID.to_string(),

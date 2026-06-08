@@ -148,31 +148,38 @@ impl LoamSpineService {
             None => Self::find_latest_anchor(&spine)?,
         };
 
-        let (anchor_target, state_hash, tx_ref, block_height, anchor_timestamp, agg_root, inc_proof) =
-            match &anchor_entry.entry_type {
-                EntryType::PublicChainAnchor {
-                    anchor_target,
-                    state_hash,
-                    tx_ref,
-                    block_height,
-                    anchor_timestamp,
-                    aggregate_root,
-                    inclusion_proof,
-                } => (
-                    anchor_target.clone(),
-                    *state_hash,
-                    tx_ref.clone(),
-                    *block_height,
-                    *anchor_timestamp,
-                    *aggregate_root,
-                    inclusion_proof.clone(),
-                ),
-                _ => {
-                    return Err(LoamSpineError::InvalidEntryType(
-                        "entry is not a PublicChainAnchor".into(),
-                    ));
-                }
-            };
+        let (
+            anchor_target,
+            state_hash,
+            tx_ref,
+            block_height,
+            anchor_timestamp,
+            agg_root,
+            inc_proof,
+        ) = match &anchor_entry.entry_type {
+            EntryType::PublicChainAnchor {
+                anchor_target,
+                state_hash,
+                tx_ref,
+                block_height,
+                anchor_timestamp,
+                aggregate_root,
+                inclusion_proof,
+            } => (
+                anchor_target.clone(),
+                *state_hash,
+                tx_ref.clone(),
+                *block_height,
+                *anchor_timestamp,
+                *aggregate_root,
+                inclusion_proof.clone(),
+            ),
+            _ => {
+                return Err(LoamSpineError::InvalidEntryType(
+                    "entry is not a PublicChainAnchor".into(),
+                ));
+            }
+        };
 
         let preceding_index = anchor_entry.index.checked_sub(1);
         let verified = if let Some(idx) = preceding_index {

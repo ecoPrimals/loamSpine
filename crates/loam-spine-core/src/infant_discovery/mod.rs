@@ -102,7 +102,10 @@ impl Default for DiscoveryConfig {
     fn default() -> Self {
         #[cfg_attr(
             not(any(feature = "dns-srv", feature = "mdns")),
-            expect(unused_mut, reason = "mutated when dns-srv or mdns features are enabled")
+            expect(
+                unused_mut,
+                reason = "mutated when dns-srv or mdns features are enabled"
+            )
         )]
         let mut methods = vec![DiscoveryProtocol::Environment];
 

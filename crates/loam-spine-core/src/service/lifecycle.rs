@@ -323,7 +323,10 @@ impl LifecycleManager {
     /// Send heartbeat with exponential backoff retry logic.
     #[cfg_attr(
         test,
-        allow(dead_code, reason = "called only from spawned heartbeat task, not unit tests")
+        allow(
+            dead_code,
+            reason = "called only from spawned heartbeat task, not unit tests"
+        )
     )]
     pub(crate) async fn send_heartbeat_with_retry(
         client: &crate::discovery_client::DiscoveryClient,

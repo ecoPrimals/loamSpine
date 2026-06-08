@@ -19,7 +19,6 @@
 
 pub mod anchor;
 mod bond_ledger;
-mod trust_ledger;
 mod certificate;
 mod certificate_escrow;
 mod certificate_loan;
@@ -28,6 +27,7 @@ pub mod infant_discovery;
 mod integration;
 mod lifecycle;
 pub mod signals;
+mod trust_ledger;
 mod waypoint;
 
 // Re-export lifecycle manager, service state, infant discovery, expiry sweeper, and anchor types

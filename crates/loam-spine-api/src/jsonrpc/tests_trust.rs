@@ -149,12 +149,8 @@ async fn trust_query_returns_matching_events() {
         .await
         .unwrap();
 
-    let query_req = TrustQueryRequest {
-        gate_did: gate_a,
-    };
-    let resp: TrustQueryResponse = rpc_call(&server, "trust.query", &query_req)
-        .await
-        .unwrap();
+    let query_req = TrustQueryRequest { gate_did: gate_a };
+    let resp: TrustQueryResponse = rpc_call(&server, "trust.query", &query_req).await.unwrap();
     assert_eq!(resp.events.len(), 1);
 }
 
@@ -165,9 +161,7 @@ async fn trust_query_empty_for_unknown_gate() {
     let query_req = TrustQueryRequest {
         gate_did: Did::new("did:key:z6MkNobody"),
     };
-    let resp: TrustQueryResponse = rpc_call(&server, "trust.query", &query_req)
-        .await
-        .unwrap();
+    let resp: TrustQueryResponse = rpc_call(&server, "trust.query", &query_req).await.unwrap();
     assert!(resp.events.is_empty());
 }
 
@@ -192,9 +186,7 @@ async fn trust_anchor_roundtrip_serde() {
     let query_req = TrustQueryRequest {
         gate_did: Did::new("did:key:z6MkSouthGate"),
     };
-    let resp: TrustQueryResponse = rpc_call(&server, "trust.query", &query_req)
-        .await
-        .unwrap();
+    let resp: TrustQueryResponse = rpc_call(&server, "trust.query", &query_req).await.unwrap();
     assert_eq!(resp.events.len(), 1);
 
     let json_original = serde_json::to_value(&original).unwrap();

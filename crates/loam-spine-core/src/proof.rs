@@ -323,7 +323,11 @@ pub fn generate_aggregate_proof(
     let mut pos = index;
 
     while layer.len() > 1 {
-        let sibling_pos = if pos.is_multiple_of(2) { pos + 1 } else { pos - 1 };
+        let sibling_pos = if pos.is_multiple_of(2) {
+            pos + 1
+        } else {
+            pos - 1
+        };
         let sibling_hash = if sibling_pos < layer.len() {
             layer[sibling_pos]
         } else {

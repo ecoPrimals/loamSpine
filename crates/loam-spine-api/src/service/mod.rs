@@ -17,12 +17,12 @@
 mod anchor_ops;
 mod bond_ops;
 mod btsp_ops;
-mod trust_ops;
 mod certificate_ops;
 mod entry_ops;
 mod integration_ops;
 mod proof_ops;
 mod spine_ops;
+mod trust_ops;
 
 use crate::error::{ApiError, ApiResult};
 use crate::types::*;
@@ -81,7 +81,11 @@ impl LoamSpineRpcService {
     ///
     /// Called after a successful BTSP handshake when the verify response
     /// includes a Tower-provided `session_key`.
-    pub async fn register_btsp_session(&self, session_id: impl Into<String>, handshake_key: [u8; 32]) {
+    pub async fn register_btsp_session(
+        &self,
+        session_id: impl Into<String>,
+        handshake_key: [u8; 32],
+    ) {
         self.btsp_sessions
             .write()
             .await

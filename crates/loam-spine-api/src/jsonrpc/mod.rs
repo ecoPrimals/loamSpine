@@ -159,10 +159,7 @@ impl LoamSpineJsonRpc {
         Box::pin(self.dispatch_inner(method, params))
     }
 
-    fn dispatch_infra(
-        &self,
-        method: &str,
-    ) -> Result<serde_json::Value, wire::JsonRpcError> {
+    fn dispatch_infra(&self, method: &str) -> Result<serde_json::Value, wire::JsonRpcError> {
         match method {
             "lifecycle.status" => {
                 let status = self
@@ -210,8 +207,7 @@ impl LoamSpineJsonRpc {
                 let access = method_gate::classify_method(method_name);
                 let allowed = matches!(
                     (self.gate.current_mode(), access),
-                    (_, method_gate::MethodAccess::Public)
-                        | (method_gate::AuthMode::Permissive, _)
+                    (_, method_gate::MethodAccess::Public) | (method_gate::AuthMode::Permissive, _)
                 );
                 ser(serde_json::json!({
                     "method": method_name,
@@ -432,22 +428,10 @@ pub(crate) fn outcome_to_response(
 mod tests;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests_spine_entry;
-#[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests_session;
-#[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests_proof_anchor;
-#[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests_wire_errors;
-#[cfg(test)]
-#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_bond_ledger;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests_trust;
+mod tests_btsp_gate;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_permanence_cert;
@@ -457,6 +441,9 @@ mod tests_permanence_cert;
     reason = "tests use expect for concise assertions"
 )]
 mod tests_phase3_transport;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_proof_anchor;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_protocol_transport;
@@ -472,7 +459,16 @@ mod tests_protocol_trio;
 mod tests_protocol_wire;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_session;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_spine_entry;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_trust;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_validation;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
-mod tests_btsp_gate;
+mod tests_wire_errors;

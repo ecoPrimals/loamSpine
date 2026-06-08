@@ -13,14 +13,13 @@ use crate::types::{
     BondLedgerRetrieveResponse, BondLedgerStoreRequest, BondLedgerStoreResponse,
     CheckoutSliceRequest, CheckoutSliceResponse, CommitBraidRequest, CommitBraidResponse,
     CommitSessionRequest, CommitSessionResponse, CreateSpineRequest, CreateSpineResponse,
-    DehydrateSessionRequest, DehydrateSessionResponse,
-    GenerateInclusionProofRequest, GenerateInclusionProofResponse, GetCertificateRequest,
-    GetCertificateResponse, GetEntryRequest, GetEntryResponse, GetSpineRequest, GetSpineResponse,
-    GetTipRequest, GetTipResponse, HealthCheckRequest, HealthCheckResponse, LoanCertificateRequest,
-    LoanCertificateResponse, MintCertificateRequest, MintCertificateResponse,
-    ReturnCertificateRequest, ReturnCertificateResponse, SealSpineRequest, SealSpineResponse,
-    TransferCertificateRequest, TransferCertificateResponse, VerifyInclusionProofRequest,
-    VerifyInclusionProofResponse,
+    DehydrateSessionRequest, DehydrateSessionResponse, GenerateInclusionProofRequest,
+    GenerateInclusionProofResponse, GetCertificateRequest, GetCertificateResponse, GetEntryRequest,
+    GetEntryResponse, GetSpineRequest, GetSpineResponse, GetTipRequest, GetTipResponse,
+    HealthCheckRequest, HealthCheckResponse, LoanCertificateRequest, LoanCertificateResponse,
+    MintCertificateRequest, MintCertificateResponse, ReturnCertificateRequest,
+    ReturnCertificateResponse, SealSpineRequest, SealSpineResponse, TransferCertificateRequest,
+    TransferCertificateResponse, VerifyInclusionProofRequest, VerifyInclusionProofResponse,
 };
 
 /// Pure Rust RPC service trait for `LoamSpine`.

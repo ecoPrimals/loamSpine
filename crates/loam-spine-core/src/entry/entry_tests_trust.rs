@@ -51,32 +51,38 @@ fn entry_type_domain_cross_gate_trust() {
 #[test]
 fn cross_gate_trust_not_allowed_in_waypoint() {
     let gate = Did::new("did:key:z6MkGate");
-    assert!(!EntryType::KeyExchange {
-        local_gate: gate.clone(),
-        remote_gate: gate.clone(),
-        public_key_hash: [0u8; 32],
-        direction: "initiated".into(),
-        family_id: None,
-    }
-    .allowed_in_waypoint());
+    assert!(
+        !EntryType::KeyExchange {
+            local_gate: gate.clone(),
+            remote_gate: gate.clone(),
+            public_key_hash: [0u8; 32],
+            direction: "initiated".into(),
+            family_id: None,
+        }
+        .allowed_in_waypoint()
+    );
 
-    assert!(!EntryType::TrustIssuerRegistration {
-        issuer_did: gate.clone(),
-        registering_gate: gate.clone(),
-        trust_scope: "family".into(),
-        capabilities: vec![],
-        expires_at: None,
-    }
-    .allowed_in_waypoint());
+    assert!(
+        !EntryType::TrustIssuerRegistration {
+            issuer_did: gate.clone(),
+            registering_gate: gate.clone(),
+            trust_scope: "family".into(),
+            capabilities: vec![],
+            expires_at: None,
+        }
+        .allowed_in_waypoint()
+    );
 
-    assert!(!EntryType::TokenVerificationCrossGate {
-        issuer_gate: gate.clone(),
-        verifier_gate: gate,
-        token_hash: [0u8; 32],
-        verified: false,
-        failure_reason: Some("expired".into()),
-    }
-    .allowed_in_waypoint());
+    assert!(
+        !EntryType::TokenVerificationCrossGate {
+            issuer_gate: gate.clone(),
+            verifier_gate: gate,
+            token_hash: [0u8; 32],
+            verified: false,
+            failure_reason: Some("expired".into()),
+        }
+        .allowed_in_waypoint()
+    );
 }
 
 #[test]
@@ -180,7 +186,10 @@ fn entry_type_serde_trust_issuer_no_expiry() {
     let restored: EntryType = serde_json::from_str(&json).expect("deserialize");
     assert!(matches!(
         restored,
-        EntryType::TrustIssuerRegistration { expires_at: None, .. }
+        EntryType::TrustIssuerRegistration {
+            expires_at: None,
+            ..
+        }
     ));
 }
 

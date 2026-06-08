@@ -28,7 +28,10 @@ pub const AUTH_UNAUTHORIZED: i32 = -32001;
 ///
 /// Reserved for future use when auth verification returns errors
 /// (e.g. malformed tokens, expired credentials).
-#[expect(dead_code, reason = "JH-0 standard error code, reserved for auth verification")]
+#[expect(
+    dead_code,
+    reason = "JH-0 standard error code, reserved for auth verification"
+)]
 pub const AUTH_ERROR: i32 = -32000;
 
 /// Access classification for a JSON-RPC method.
@@ -94,12 +97,8 @@ pub fn classify_method(method: &str) -> MethodAccess {
         return MethodAccess::Public;
     }
     match method {
-        "identity.get"
-        | "capabilities.list"
-        | "lifecycle.status"
-        | "primal.announce"
-        | "btsp.capabilities"
-        | "tools.list" => MethodAccess::Public,
+        "identity.get" | "capabilities.list" | "lifecycle.status" | "primal.announce"
+        | "btsp.capabilities" | "tools.list" => MethodAccess::Public,
         _ => MethodAccess::Protected,
     }
 }
@@ -139,10 +138,7 @@ impl MethodGate {
     /// Current auth mode.
     #[must_use]
     pub fn current_mode(&self) -> AuthMode {
-        match self
-            .mode
-            .load(std::sync::atomic::Ordering::Relaxed)
-        {
+        match self.mode.load(std::sync::atomic::Ordering::Relaxed) {
             MODE_ENFORCED => AuthMode::Enforced,
             _ => AuthMode::Permissive,
         }
@@ -161,15 +157,13 @@ impl MethodGate {
         let access = classify_method(method);
         match (self.current_mode(), access) {
             (_, MethodAccess::Public) | (AuthMode::Permissive, _) => Ok(()),
-            (AuthMode::Enforced, MethodAccess::Protected) => {
-                Err(super::wire::JsonRpcError {
-                    code: AUTH_UNAUTHORIZED,
-                    message: format!(
-                        "method \"{method}\" requires authentication (auth mode: enforced)"
-                    ),
-                    data: None,
-                })
-            }
+            (AuthMode::Enforced, MethodAccess::Protected) => Err(super::wire::JsonRpcError {
+                code: AUTH_UNAUTHORIZED,
+                message: format!(
+                    "method \"{method}\" requires authentication (auth mode: enforced)"
+                ),
+                data: None,
+            }),
         }
     }
 }

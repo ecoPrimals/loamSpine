@@ -37,18 +37,11 @@ pub const ANNOUNCE_CAPABILITIES: &[&str] = &["anchor", "ledger", "permanence"];
 
 /// Per-domain cost hints for Neural API routing weights.
 /// Higher values = more expensive operations.
-pub const COST_HINTS: &[(&str, f64)] = &[
-    ("anchor", 20.0),
-    ("ledger", 15.0),
-    ("permanence", 30.0),
-];
+pub const COST_HINTS: &[(&str, f64)] = &[("anchor", 20.0), ("ledger", 15.0), ("permanence", 30.0)];
 
 /// Per-domain latency estimates (ms) for Neural API routing.
-pub const LATENCY_ESTIMATES: &[(&str, u32)] = &[
-    ("anchor", 50),
-    ("ledger", 20),
-    ("permanence", 100),
-];
+pub const LATENCY_ESTIMATES: &[(&str, u32)] =
+    &[("anchor", 50), ("ledger", 20), ("permanence", 100)];
 
 /// Semantic capabilities LoamSpine provides to the ecosystem.
 /// These map to the orchestrator's `capability_domains.rs` for NeuralAPI routing.
@@ -478,18 +471,12 @@ pub fn capability_list_pretty() -> String {
 mod tests;
 
 #[cfg(test)]
-#[expect(
-    clippy::unwrap_used,
-    reason = "tests use unwrap for conciseness"
-)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 #[path = "tests_socket.rs"]
 mod tests_socket;
 
 #[cfg(test)]
-#[expect(
-    clippy::unwrap_used,
-    reason = "tests use unwrap for conciseness"
-)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 #[path = "tests_registration.rs"]
 mod tests_registration;
 

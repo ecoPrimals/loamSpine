@@ -149,9 +149,7 @@ pub(crate) fn provider_socket_name(
 /// Returns `true` when `BIOMEOS_FAMILY_ID` is set and not `"default"`.
 #[must_use]
 pub fn is_btsp_required() -> bool {
-    is_btsp_required_with(
-        crate::constants::env_resolution::biomeos_family_id().as_deref(),
-    )
+    is_btsp_required_with(crate::constants::env_resolution::biomeos_family_id().as_deref())
 }
 
 /// Pure inner function: check BTSP requirement from explicit values.

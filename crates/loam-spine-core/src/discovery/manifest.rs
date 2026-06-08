@@ -53,7 +53,13 @@ pub(crate) fn discover_manifests_from(base: &Path) -> Vec<PrimalManifest> {
 
 /// Find a primal manifest by capability under a given base path.
 #[must_use]
-#[cfg_attr(not(test), expect(dead_code, reason = "injectable variant tested directly; production uses env-reading wrapper"))]
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "injectable variant tested directly; production uses env-reading wrapper"
+    )
+)]
 pub(crate) fn find_by_capability_from(base: &Path, capability: &str) -> Option<PrimalManifest> {
     discover_manifests_from(base)
         .into_iter()
@@ -62,7 +68,13 @@ pub(crate) fn find_by_capability_from(base: &Path, capability: &str) -> Option<P
 
 /// Find a primal manifest by name under a given base path.
 #[must_use]
-#[cfg_attr(not(test), expect(dead_code, reason = "injectable variant tested directly; production uses env-reading wrapper"))]
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "injectable variant tested directly; production uses env-reading wrapper"
+    )
+)]
 pub(crate) fn find_by_name_from(base: &Path, name: &str) -> Option<PrimalManifest> {
     discover_manifests_from(base)
         .into_iter()
@@ -98,7 +110,10 @@ pub(crate) fn discover_manifests() -> Vec<PrimalManifest> {
 
 /// Find a primal manifest by capability.
 #[must_use]
-#[expect(dead_code, reason = "pre-wired for capability-based primal discovery (strandGate deploy)")]
+#[expect(
+    dead_code,
+    reason = "pre-wired for capability-based primal discovery (strandGate deploy)"
+)]
 pub(crate) fn find_by_capability(capability: &str) -> Option<PrimalManifest> {
     discover_manifests()
         .into_iter()
@@ -107,7 +122,10 @@ pub(crate) fn find_by_capability(capability: &str) -> Option<PrimalManifest> {
 
 /// Find a primal manifest by name.
 #[must_use]
-#[expect(dead_code, reason = "pre-wired for name-based primal discovery (strandGate deploy)")]
+#[expect(
+    dead_code,
+    reason = "pre-wired for name-based primal discovery (strandGate deploy)"
+)]
 pub(crate) fn find_by_name(name: &str) -> Option<PrimalManifest> {
     discover_manifests().into_iter().find(|m| m.name == name)
 }

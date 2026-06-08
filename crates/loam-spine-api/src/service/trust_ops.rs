@@ -32,10 +32,7 @@ impl LoamSpineRpcService {
     /// # Errors
     ///
     /// Returns error on internal failure.
-    pub async fn trust_query(
-        &self,
-        request: TrustQueryRequest,
-    ) -> ApiResult<TrustQueryResponse> {
+    pub async fn trust_query(&self, request: TrustQueryRequest) -> ApiResult<TrustQueryResponse> {
         let core = self.core().await;
         let events = core.trust_query_by_gate(&request.gate_did).await;
 

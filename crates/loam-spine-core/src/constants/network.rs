@@ -270,8 +270,14 @@ pub fn resolve_primal_tarpc_socket_from(
 /// Protocol escalation: prefer tarpc when `.tarpc.sock` exists,
 /// fall back to JSON-RPC `.sock`.
 #[must_use]
-#[expect(dead_code, reason = "pre-wired for provenance trio IPC negotiation (strandGate deploy)")]
-pub(crate) fn negotiate_protocol(primal: &str, family_id: &str) -> (IpcProtocol, std::path::PathBuf) {
+#[expect(
+    dead_code,
+    reason = "pre-wired for provenance trio IPC negotiation (strandGate deploy)"
+)]
+pub(crate) fn negotiate_protocol(
+    primal: &str,
+    family_id: &str,
+) -> (IpcProtocol, std::path::PathBuf) {
     let base = resolve_socket_base_dir();
     negotiate_protocol_from(&base, primal, family_id)
 }
@@ -300,9 +306,7 @@ pub fn negotiate_protocol_from(
 }
 
 fn resolve_socket_base_dir() -> std::path::PathBuf {
-    resolve_socket_base_dir_with(
-        super::env_resolution::xdg_runtime_dir().as_deref(),
-    )
+    resolve_socket_base_dir_with(super::env_resolution::xdg_runtime_dir().as_deref())
 }
 
 /// Detect the current user's runtime directory via `/proc/self/status`.

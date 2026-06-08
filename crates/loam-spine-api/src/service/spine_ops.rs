@@ -62,10 +62,7 @@ impl LoamSpineRpcService {
     /// # Errors
     ///
     /// Returns error if storage query fails.
-    pub async fn list_spines(
-        &self,
-        _request: ListSpinesRequest,
-    ) -> ApiResult<ListSpinesResponse> {
+    pub async fn list_spines(&self, _request: ListSpinesRequest) -> ApiResult<ListSpinesResponse> {
         let core = self.core().await;
         let spine_ids = core.list_spine_ids().await.map_err(ApiError::from)?;
         let count = spine_ids.len();

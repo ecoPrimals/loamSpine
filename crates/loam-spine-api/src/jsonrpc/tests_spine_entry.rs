@@ -2,8 +2,8 @@
 
 use super::*;
 use crate::types::{
-    AppendEntryRequest, CreateSpineRequest, GetEntryRequest, GetSpineRequest, GetTipRequest,
-    MintCertificateRequest, SealSpineRequest, GetCertificateRequest,
+    AppendEntryRequest, CreateSpineRequest, GetCertificateRequest, GetEntryRequest,
+    GetSpineRequest, GetTipRequest, MintCertificateRequest, SealSpineRequest,
 };
 use crate::types::{CertificateType, Did, EntryType};
 use tests::{rpc_call, rpc_call_no_params};
