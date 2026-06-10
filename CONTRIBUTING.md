@@ -17,7 +17,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![forbid(unsafe_code)]` workspace-wide; test modules use inner/outer function pattern for env injection
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 90.92% line / 92.92% region, 1,533 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: 90.9% line, 1,614 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible

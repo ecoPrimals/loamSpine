@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 8, 2026
+**Last Updated**: June 10, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 10, 2026** — **Wave 107 ACK**: No action items for loamSpine. Socket hygiene verified clean (XDG_RUNTIME_DIR, zero `/tmp` violations, `ProtectSystem=strict` compatible). BTSP `Option<&String>` → `Option<&str>` idiomatic evolution. 1,614 tests, 199 source files.
 
 - **June 8, 2026** — **Wave 101: Transport Endpoint Adoption**: Local `TransportEndpoint` type (wire-compatible with sourDough canonical standard) in `transport/endpoint.rs`. `TRANSPORT_ENDPOINT` env acceptance wired in `main.rs`. 14 new tests. loamSpine transport status: DONE (LOCAL pattern, no cross-primal deps). 1,614 tests, 199 source files.
 

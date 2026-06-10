@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 8, 2026 — Idiomatic Evolution)
+
+- **BTSP session key decode**: `Option<&String>` → `Option<&str>` (last `&String` anti-pattern eliminated). Callers evolved from `.as_ref()` to `.as_deref()`.
+
 ### Added (June 8, 2026 — Wave 101: Transport Endpoint Adoption)
 
 - **`TransportEndpoint`**: Local wire-compatible implementation of sourDough's `TransportEndpoint` standard (`#[serde(tag = "transport")]` — `uds`, `tcp`, `mesh_relay` variants). No cross-primal dependency — the wire format is the contract.

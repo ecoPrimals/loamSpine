@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
 description = "Permanence ledger — 1,614 tests, 47 JSON-RPC methods, 199 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml"
-date = 2026-06-08
+date = 2026-06-10
 
 [taxonomies]
 primals = ["loamspine"]
