@@ -176,11 +176,45 @@ pub async fn run_jsonrpc_uds_server_with_gate(
     })
 }
 
+/// Peek the first protocol byte, handling the riboCipher `[0xEC, 0x01]` signal.
+///
+/// Returns `None` if the stream is empty (EOF before any data).
+/// When the riboCipher 2-byte prefix is detected, it is consumed and the
+/// next byte (actual protocol indicator) is returned instead.
+async fn peek_first_protocol_byte(
+    buf_reader: &mut tokio::io::BufReader<tokio::net::unix::OwnedReadHalf>,
+) -> Result<Option<u8>, std::io::Error> {
+    let first = {
+        let buf = tokio::io::AsyncBufReadExt::fill_buf(buf_reader).await?;
+        if buf.is_empty() {
+            return Ok(None);
+        }
+        buf[0]
+    };
+
+    if first == 0xEC {
+        let buf = tokio::io::AsyncBufReadExt::fill_buf(buf_reader).await?;
+        if buf.len() >= 2 && buf[1] == 0x01 {
+            tracing::trace!("riboCipher signal accepted, stripping 2-byte prefix");
+            tokio::io::AsyncBufReadExt::consume(buf_reader, 2);
+            let buf = tokio::io::AsyncBufReadExt::fill_buf(buf_reader).await?;
+            if buf.is_empty() {
+                return Ok(None);
+            }
+            return Ok(Some(buf[0]));
+        }
+    }
+
+    Ok(Some(first))
+}
+
 /// Handle a single UDS connection with wire-level protocol auto-detection.
 ///
-/// Always peeks the first byte to determine wire format, regardless of
+/// Always peeks the first byte(s) to determine wire format, regardless of
 /// whether static BTSP is configured:
 ///
+/// 0. **`[0xEC, 0x01]` → riboCipher signal**: strip 2-byte prefix, then
+///    proceed with normal detection on the remaining stream.
 /// 1. **`{` → line-based**: read the full first line. If it contains
 ///    `"protocol":"btsp"`, route to NDJSON BTSP handshake (primalSpring-
 ///    compatible). Otherwise, dispatch as JSON-RPC.
@@ -195,12 +229,8 @@ async fn handle_uds_connection(
     let (reader, mut writer) = stream.into_split();
     let mut buf_reader = tokio::io::BufReader::new(reader);
 
-    let first_byte = {
-        let buf = tokio::io::AsyncBufReadExt::fill_buf(&mut buf_reader).await?;
-        if buf.is_empty() {
-            return Ok(());
-        }
-        buf[0]
+    let Some(first_byte) = peek_first_protocol_byte(&mut buf_reader).await? else {
+        return Ok(());
     };
 
     if first_byte == b'{' {
@@ -473,6 +503,7 @@ fn resolve_btsp_provider() -> Option<std::path::PathBuf> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -506,5 +537,53 @@ mod tests {
     fn btsp_ndjson_detection_negative_empty() {
         assert!(!is_btsp_ndjson(""));
         assert!(!is_btsp_ndjson("  \n"));
+    }
+
+    #[tokio::test]
+    async fn ribocipher_prefix_stripped_then_json_parsed() {
+        use tokio::io::AsyncWriteExt;
+        let (client, server) = tokio::net::UnixStream::pair().unwrap();
+        let (reader, _) = server.into_split();
+        let mut buf_reader = tokio::io::BufReader::new(reader);
+
+        let (_, mut client_writer) = client.into_split();
+        client_writer
+            .write_all(&[0xEC, 0x01, b'{'])
+            .await
+            .unwrap();
+        client_writer.shutdown().await.unwrap();
+
+        let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
+        assert_eq!(byte, Some(b'{'));
+    }
+
+    #[tokio::test]
+    async fn no_ribocipher_prefix_passthrough() {
+        use tokio::io::AsyncWriteExt;
+        let (client, server) = tokio::net::UnixStream::pair().unwrap();
+        let (reader, _) = server.into_split();
+        let mut buf_reader = tokio::io::BufReader::new(reader);
+
+        let (_, mut client_writer) = client.into_split();
+        client_writer.write_all(b"{\"jsonrpc").await.unwrap();
+        client_writer.shutdown().await.unwrap();
+
+        let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
+        assert_eq!(byte, Some(b'{'));
+    }
+
+    #[tokio::test]
+    async fn ribocipher_prefix_only_returns_none() {
+        use tokio::io::AsyncWriteExt;
+        let (client, server) = tokio::net::UnixStream::pair().unwrap();
+        let (reader, _) = server.into_split();
+        let mut buf_reader = tokio::io::BufReader::new(reader);
+
+        let (_, mut client_writer) = client.into_split();
+        client_writer.write_all(&[0xEC, 0x01]).await.unwrap();
+        client_writer.shutdown().await.unwrap();
+
+        let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
+        assert_eq!(byte, None);
     }
 }

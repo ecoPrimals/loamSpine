@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,600 (198 source files) |
+| Tests | — | 1,618 (199 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -156,7 +156,7 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 - **Deep debt**: Last 2 `#[allow(` evolved to `#[expect(`. Zero `#[allow(` remaining in codebase.
 - **NeuralAPI / MCP**: 3 new trust tools registered. Resource estimates and dependency graph wired.
 - **Niche**: `"trust"` domain added. 47 methods (up from 44).
-- **Test count**: 1,600 (up from 1,583). 198 source files (up from 194).
+- **Test count**: 1,618 (up from 1,614). 199 source files.
 
 ### Deep Debt — Lint Evolution, Test Cohesion, Clone Audit (June 3, 2026)
 

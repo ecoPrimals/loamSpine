@@ -116,3 +116,13 @@ async fn identity_get_method() {
     assert_eq!(value["domain"], "permanence");
     assert_eq!(value["license"], "AGPL-3.0-or-later");
 }
+
+#[tokio::test]
+async fn bare_health_method_returns_status_primal_version() {
+    let server = LoamSpineJsonRpc::default_server();
+    let value: serde_json::Value = rpc_call_no_params(&server, "health").await.unwrap();
+    assert_eq!(value["status"], "ok");
+    assert_eq!(value["primal"], "loamspine");
+    assert!(value["version"].is_string());
+    assert!(!value["version"].as_str().unwrap().is_empty());
+}

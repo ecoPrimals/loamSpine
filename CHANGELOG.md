@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (June 14, 2026 — Wave 113: Health + riboCipher)
+
+- **Bare `health` JSON-RPC method**: Returns `{status: "ok", primal: "loamspine", version}`. Satisfies guideStone amendment for universal primal health probes. Classified as Public in MethodGate (no auth required).
+- **riboCipher `[0xEC, 0x01]` prefix acceptance**: UDS connections may begin with the 2-byte riboCipher signal. Detected, stripped, then normal protocol detection proceeds. Ecosystem-aware clients can signal without breaking plain JSON-RPC callers.
+- **4 new tests**: bare health dispatch, riboCipher prefix strip, riboCipher passthrough, riboCipher prefix-only EOF.
+
 ### Changed (June 8, 2026 — Idiomatic Evolution)
 
 - **BTSP session key decode**: `Option<&String>` → `Option<&str>` (last `&String` anti-pattern eliminated). Callers evolved from `.as_ref()` to `.as_deref()`.

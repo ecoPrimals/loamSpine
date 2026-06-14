@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 10, 2026
+**Last Updated**: June 14, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 14, 2026** — **Wave 113: Health Method + riboCipher Acceptance**: Bare `health` JSON-RPC method implemented (`{status, primal, version}`). riboCipher `[0xEC, 0x01]` prefix detection on UDS — stripped transparently, normal protocol detection proceeds. Both P2 items from Wave 113 complete. 1,618 tests, 199 source files.
 
 - **June 10, 2026** — **Wave 107 ACK**: No action items for loamSpine. Socket hygiene verified clean (XDG_RUNTIME_DIR, zero `/tmp` violations, `ProtectSystem=strict` compatible). BTSP `Option<&String>` → `Option<&str>` idiomatic evolution. 1,614 tests, 199 source files.
 

@@ -219,7 +219,7 @@ impl LoamSpineJsonRpc {
             "auth.mode" => ser(serde_json::json!({
                 "mode": self.gate.current_mode().as_str(),
                 "public_prefixes": ["health.*", "auth.*"],
-                "public_methods": ["identity.get", "capabilities.list", "lifecycle.status",
+                "public_methods": ["health", "identity.get", "capabilities.list", "lifecycle.status",
                                    "primal.announce", "btsp.capabilities", "tools.list"],
             })),
             "auth.peer_info" => {
@@ -278,6 +278,11 @@ impl LoamSpineJsonRpc {
                 let probe = self.service.readiness().await.map_err(app_err)?;
                 ser(probe)
             }
+            "health" => ser(serde_json::json!({
+                "status": "ok",
+                "primal": loam_spine_core::niche::PRIMAL_ID,
+                "version": env!("CARGO_PKG_VERSION"),
+            })),
 
             "auth.check" | "auth.mode" | "auth.peer_info" => self.dispatch_auth(method, &params),
             "lifecycle.status" | "btsp.capabilities" | "primal.announce" => {

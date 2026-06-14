@@ -97,8 +97,8 @@ pub fn classify_method(method: &str) -> MethodAccess {
         return MethodAccess::Public;
     }
     match method {
-        "identity.get" | "capabilities.list" | "lifecycle.status" | "primal.announce"
-        | "btsp.capabilities" | "tools.list" => MethodAccess::Public,
+        "health" | "identity.get" | "capabilities.list" | "lifecycle.status"
+        | "primal.announce" | "btsp.capabilities" | "tools.list" => MethodAccess::Public,
         _ => MethodAccess::Protected,
     }
 }
@@ -175,6 +175,7 @@ mod tests {
 
     #[test]
     fn classify_public_methods() {
+        assert_eq!(classify_method("health"), MethodAccess::Public);
         assert_eq!(classify_method("health.check"), MethodAccess::Public);
         assert_eq!(classify_method("health.liveness"), MethodAccess::Public);
         assert_eq!(classify_method("health.readiness"), MethodAccess::Public);
