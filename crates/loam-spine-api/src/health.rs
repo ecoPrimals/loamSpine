@@ -9,26 +9,27 @@
 //! - `/health/ready` - Readiness probe (ready for traffic?)
 
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration, SystemTime};
 
 /// Cached version string — initialized once from compile-time `CARGO_PKG_VERSION`.
-static VERSION_CACHE: OnceLock<String> = OnceLock::new();
+static VERSION_CACHE: LazyLock<String> =
+    LazyLock::new(|| env!("CARGO_PKG_VERSION").to_string());
 
 /// Cached capability strings — initialized once from the canonical ADVERTISED set.
-static CAPABILITIES_CACHE: OnceLock<Vec<String>> = OnceLock::new();
+static CAPABILITIES_CACHE: LazyLock<Vec<String>> = LazyLock::new(|| {
+    loam_spine_core::capabilities::identifiers::loamspine::ADVERTISED
+        .iter()
+        .map(|&s| s.to_string())
+        .collect()
+});
 
 fn cached_version() -> &'static str {
-    VERSION_CACHE.get_or_init(|| env!("CARGO_PKG_VERSION").to_string())
+    &VERSION_CACHE
 }
 
 fn cached_capabilities() -> &'static [String] {
-    CAPABILITIES_CACHE.get_or_init(|| {
-        loam_spine_core::capabilities::identifiers::loamspine::ADVERTISED
-            .iter()
-            .map(|&s| s.to_string())
-            .collect()
-    })
+    &CAPABILITIES_CACHE
 }
 
 /// Structured error type for health check failures.

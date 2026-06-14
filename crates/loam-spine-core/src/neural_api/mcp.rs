@@ -6,16 +6,15 @@
 //! the expected `params`. AI agents call `tools/list` to discover what
 //! operations are available, then invoke them via `tools/call`.
 
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
-static MCP_TOOLS_CACHE: OnceLock<serde_json::Value> = OnceLock::new();
+static MCP_TOOLS_CACHE: LazyLock<serde_json::Value> =
+    LazyLock::new(mcp_tools_list_inner);
 
 /// Return MCP `tools/list` response payload.
-///
-/// Uses `OnceLock` to initialize the JSON value once and return a reference thereafter.
 #[must_use]
 pub fn mcp_tools_list() -> &'static serde_json::Value {
-    MCP_TOOLS_CACHE.get_or_init(mcp_tools_list_inner)
+    &MCP_TOOLS_CACHE
 }
 
 #[expect(

@@ -6,7 +6,7 @@
 //! advertising capabilities and socket endpoints so the orchestration layer
 //! can route capability requests to LoamSpine.
 
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
@@ -333,34 +333,33 @@ pub(crate) async fn deregister_at_socket(
 }
 
 /// Cached capability list — initialized once, reused for all subsequent calls.
-static CAPABILITY_LIST_CACHE: OnceLock<serde_json::Value> = OnceLock::new();
+static CAPABILITY_LIST_CACHE: LazyLock<serde_json::Value> =
+    LazyLock::new(capability_list_inner);
 
 /// Return the capability list as a JSON-RPC response payload.
 /// Implements the `capability.list` semantic method.
-///
-/// Uses `OnceLock` to initialize the JSON value once and return a reference thereafter.
 #[must_use]
 pub fn capability_list() -> &'static serde_json::Value {
-    CAPABILITY_LIST_CACHE.get_or_init(capability_list_inner)
+    &CAPABILITY_LIST_CACHE
 }
 
 /// Cached identity response — initialized once.
-static IDENTITY_CACHE: OnceLock<serde_json::Value> = OnceLock::new();
+static IDENTITY_CACHE: LazyLock<serde_json::Value> = LazyLock::new(|| {
+    serde_json::json!({
+        "primal": PRIMAL_NAME,
+        "version": env!("CARGO_PKG_VERSION"),
+        "domain": crate::primal_names::LEGACY_DOMAIN,
+        "capability_domain": crate::primal_names::CAPABILITY_DOMAIN,
+        "license": env!("CARGO_PKG_LICENSE"),
+        "ecobin_grade": "A+",
+        "edition": "2024",
+    })
+});
 
 /// Return the `identity.get` response payload per Capability Wire Standard v1.0.
 #[must_use]
 pub fn identity_response() -> &'static serde_json::Value {
-    IDENTITY_CACHE.get_or_init(|| {
-        serde_json::json!({
-            "primal": PRIMAL_NAME,
-            "version": env!("CARGO_PKG_VERSION"),
-            "domain": crate::primal_names::LEGACY_DOMAIN,
-            "capability_domain": crate::primal_names::CAPABILITY_DOMAIN,
-            "license": env!("CARGO_PKG_LICENSE"),
-            "ecobin_grade": "A+",
-            "edition": "2024",
-        })
-    })
+    &IDENTITY_CACHE
 }
 
 fn capability_list_inner() -> serde_json::Value {
