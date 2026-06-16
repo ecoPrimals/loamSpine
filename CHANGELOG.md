@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Added (June 16, 2026 — Wave 114: Genetics-Layer Eukaryotic Model)
+
+- **Full genetics signal acceptance**: Evolved from `[0xEC, 0x01]` only to all three eukaryotic genetics signals (`0xEC` riboCipher clear, `0xED` mito-beacon, `0xEE` nuclear sealed). Any byte in `0xEC..=0xEE` + version byte is stripped as a 2-byte prefix. Structured tracing logs signal name and version.
+- **3 new tests**: mito-beacon prefix strip, nuclear-sealed prefix strip, non-genetics boundary check (0xEB not stripped).
+
 ### Added (June 14, 2026 — Wave 113: Health + riboCipher)
 
 - **Bare `health` JSON-RPC method**: Returns `{status: "ok", primal: "loamspine", version}`. Satisfies guideStone amendment for universal primal health probes. Classified as Public in MethodGate (no auth required).

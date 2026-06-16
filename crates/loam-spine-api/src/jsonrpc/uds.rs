@@ -176,11 +176,24 @@ pub async fn run_jsonrpc_uds_server_with_gate(
     })
 }
 
-/// Peek the first protocol byte, handling the riboCipher `[0xEC, 0x01]` signal.
+/// Genetics-layer signal bytes (eukaryotic model).
+///
+/// All three bytes indicate an ecosystem-aware client. The second byte is a
+/// version/subtype indicator. Both bytes are stripped before protocol detection.
+///
+/// | Byte | Stream | Purpose |
+/// |------|--------|---------|
+/// | `0xEC` | Clear/legacy riboCipher | Group membership, plaintext |
+/// | `0xED` | MitoBeacon obfuscated | Group membership, tunnel obfuscation |
+/// | `0xEE` | Nuclear sealed | Per-user lineage identity |
+const GENETICS_SIGNAL_RANGE: std::ops::RangeInclusive<u8> = 0xEC..=0xEE;
+
+/// Peek the first protocol byte, handling genetics-layer signal prefixes.
 ///
 /// Returns `None` if the stream is empty (EOF before any data).
-/// When the riboCipher 2-byte prefix is detected, it is consumed and the
-/// next byte (actual protocol indicator) is returned instead.
+/// When a genetics signal byte (`0xEC`..=`0xEE`) is detected as the first
+/// byte and followed by a version byte, the 2-byte prefix is consumed and
+/// the next byte (actual protocol indicator) is returned instead.
 async fn peek_first_protocol_byte(
     buf_reader: &mut tokio::io::BufReader<tokio::net::unix::OwnedReadHalf>,
 ) -> Result<Option<u8>, std::io::Error> {
@@ -192,10 +205,20 @@ async fn peek_first_protocol_byte(
         buf[0]
     };
 
-    if first == 0xEC {
+    if GENETICS_SIGNAL_RANGE.contains(&first) {
         let buf = tokio::io::AsyncBufReadExt::fill_buf(buf_reader).await?;
-        if buf.len() >= 2 && buf[1] == 0x01 {
-            tracing::trace!("riboCipher signal accepted, stripping 2-byte prefix");
+        if buf.len() >= 2 {
+            let signal_name = match first {
+                0xEC => "riboCipher-clear",
+                0xED => "mito-beacon",
+                0xEE => "nuclear-sealed",
+                _ => "genetics",
+            };
+            tracing::trace!(
+                signal = signal_name,
+                version = buf[1],
+                "genetics signal accepted, stripping 2-byte prefix"
+            );
             tokio::io::AsyncBufReadExt::consume(buf_reader, 2);
             let buf = tokio::io::AsyncBufReadExt::fill_buf(buf_reader).await?;
             if buf.is_empty() {
@@ -213,8 +236,10 @@ async fn peek_first_protocol_byte(
 /// Always peeks the first byte(s) to determine wire format, regardless of
 /// whether static BTSP is configured:
 ///
-/// 0. **`[0xEC, 0x01]` → riboCipher signal**: strip 2-byte prefix, then
-///    proceed with normal detection on the remaining stream.
+/// 0. **`0xEC..=0xEE` → genetics signal**: strip 2-byte prefix (tier +
+///    version), then proceed with normal detection on the remaining stream.
+///    Covers riboCipher clear (`0xEC`), mito-beacon (`0xED`), and nuclear
+///    sealed (`0xEE`) per the eukaryotic genetics model.
 /// 1. **`{` → line-based**: read the full first line. If it contains
 ///    `"protocol":"btsp"`, route to NDJSON BTSP handshake (primalSpring-
 ///    compatible). Otherwise, dispatch as JSON-RPC.
@@ -585,5 +610,59 @@ mod tests {
 
         let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
         assert_eq!(byte, None);
+    }
+
+    #[tokio::test]
+    async fn mito_beacon_prefix_stripped() {
+        use tokio::io::AsyncWriteExt;
+        let (client, server) = tokio::net::UnixStream::pair().unwrap();
+        let (reader, _) = server.into_split();
+        let mut buf_reader = tokio::io::BufReader::new(reader);
+
+        let (_, mut client_writer) = client.into_split();
+        client_writer
+            .write_all(&[0xED, 0x01, b'{'])
+            .await
+            .unwrap();
+        client_writer.shutdown().await.unwrap();
+
+        let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
+        assert_eq!(byte, Some(b'{'));
+    }
+
+    #[tokio::test]
+    async fn nuclear_sealed_prefix_stripped() {
+        use tokio::io::AsyncWriteExt;
+        let (client, server) = tokio::net::UnixStream::pair().unwrap();
+        let (reader, _) = server.into_split();
+        let mut buf_reader = tokio::io::BufReader::new(reader);
+
+        let (_, mut client_writer) = client.into_split();
+        client_writer
+            .write_all(&[0xEE, 0x02, b'{'])
+            .await
+            .unwrap();
+        client_writer.shutdown().await.unwrap();
+
+        let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
+        assert_eq!(byte, Some(b'{'));
+    }
+
+    #[tokio::test]
+    async fn non_genetics_byte_not_stripped() {
+        use tokio::io::AsyncWriteExt;
+        let (client, server) = tokio::net::UnixStream::pair().unwrap();
+        let (reader, _) = server.into_split();
+        let mut buf_reader = tokio::io::BufReader::new(reader);
+
+        let (_, mut client_writer) = client.into_split();
+        client_writer
+            .write_all(&[0xEB, 0x01, b'{'])
+            .await
+            .unwrap();
+        client_writer.shutdown().await.unwrap();
+
+        let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
+        assert_eq!(byte, Some(0xEB), "0xEB is outside genetics range, must not strip");
     }
 }
