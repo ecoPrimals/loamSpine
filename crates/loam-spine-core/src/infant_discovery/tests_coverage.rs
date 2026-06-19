@@ -89,7 +89,7 @@ async fn test_is_fresh_with_clock_skew_returns_stale() {
         discovered_via: "test".to_string(),
         metadata: HashMap::new(),
         health: ServiceHealth::Healthy,
-        discovered_at: SystemTime::now() + Duration::from_secs(3600),
+        discovered_at: SystemTime::now() + Duration::from_hours(1),
         ttl_secs: 300,
     };
     assert!(
@@ -312,7 +312,7 @@ async fn test_cache_mix_fresh_and_stale_returns_fresh_only() {
         discovered_via: "test".to_string(),
         metadata: HashMap::new(),
         health: ServiceHealth::Unknown,
-        discovered_at: SystemTime::now() - Duration::from_secs(7200),
+        discovered_at: SystemTime::now() - Duration::from_hours(2),
         ttl_secs: 300,
     };
     let fresh_service = DiscoveredService {
@@ -512,7 +512,7 @@ async fn test_cache_get_fresh_all_stale() {
         discovered_via: "test".to_string(),
         metadata: HashMap::new(),
         health: ServiceHealth::Unknown,
-        discovered_at: SystemTime::now() - Duration::from_secs(7200),
+        discovered_at: SystemTime::now() - Duration::from_hours(2),
         ttl_secs: 300,
     };
     cache.insert("signing".to_string(), vec![stale]).await;

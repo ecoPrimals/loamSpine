@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,614 tests, 47 JSON-RPC methods, 199 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml"
-date = 2026-06-10
+description = "Permanence ledger — 1,623 tests, 47 JSON-RPC methods, 199 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml"
+date = 2026-06-19
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,14 +10,14 @@ springs = []
 
 ## Status
 
-- **1,614 tests** (all passing), 0 failures, 0 ignored
+- **1,623 tests** (all passing), 0 failures, 0 ignored
 - **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
 - **199 source files**, ~61,200 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
-- **Zero DEBT markers**, zero `#[allow]` (all evolved to `#[expect]`)
+- **Zero DEBT markers**, zero `#[allow]` in production (all evolved to `#[expect(reason)]` or `#[cfg_attr]`-gated)
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
 - **Stability tiers**: 41 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
 

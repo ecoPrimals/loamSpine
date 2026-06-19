@@ -27,7 +27,7 @@
 
 pub mod endpoint;
 
-pub use endpoint::{TransportEndpoint, parse_transport_endpoint, TRANSPORT_ENDPOINT_ENV};
+pub use endpoint::{TRANSPORT_ENDPOINT_ENV, TransportEndpoint, parse_transport_endpoint};
 
 use std::future::Future;
 use std::pin::Pin;

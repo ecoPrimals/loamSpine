@@ -103,8 +103,7 @@ impl CircuitBreaker {
         let opened = self.opened_at_secs.load(Ordering::Acquire);
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0);
+            .map_or(0, |d| d.as_secs());
         if now.saturating_sub(opened) >= self.config.recovery_timeout_secs
             && self
                 .state
@@ -167,8 +166,7 @@ impl CircuitBreaker {
                 if prev + 1 >= self.config.failure_threshold {
                     let now = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
-                        .map(|d| d.as_secs())
-                        .unwrap_or(0);
+                        .map_or(0, |d| d.as_secs());
                     if self
                         .state
                         .compare_exchange(
@@ -190,8 +188,7 @@ impl CircuitBreaker {
             STATE_HALF_OPEN => {
                 let now = SystemTime::now()
                     .duration_since(UNIX_EPOCH)
-                    .map(|d| d.as_secs())
-                    .unwrap_or(0);
+                    .map_or(0, |d| d.as_secs());
                 if self
                     .state
                     .compare_exchange(

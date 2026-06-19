@@ -70,9 +70,9 @@ fn retry_policy_exponential_backoff() {
     let d2 = policy.exponential_backoff(2);
 
     assert!(d0 >= Duration::from_millis(1));
-    assert!(d0 <= Duration::from_millis(5_000));
-    assert!(d1 >= d0 || d1 <= Duration::from_millis(5_000));
-    assert!(d2 <= Duration::from_millis(5_000));
+    assert!(d0 <= Duration::from_secs(5));
+    assert!(d1 >= d0 || d1 <= Duration::from_secs(5));
+    assert!(d2 <= Duration::from_secs(5));
 }
 
 #[test]

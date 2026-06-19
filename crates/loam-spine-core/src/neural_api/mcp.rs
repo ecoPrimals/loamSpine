@@ -8,8 +8,7 @@
 
 use std::sync::LazyLock;
 
-static MCP_TOOLS_CACHE: LazyLock<serde_json::Value> =
-    LazyLock::new(mcp_tools_list_inner);
+static MCP_TOOLS_CACHE: LazyLock<serde_json::Value> = LazyLock::new(mcp_tools_list_inner);
 
 /// Return MCP `tools/list` response payload.
 #[must_use]

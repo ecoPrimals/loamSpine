@@ -308,8 +308,7 @@ impl Timestamp {
         // u128 nanoseconds won't overflow u64 until year 2554
         let nanos = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos().try_into().unwrap_or(u64::MAX))
-            .unwrap_or(0);
+            .map_or(0, |d| d.as_nanos().try_into().unwrap_or(u64::MAX));
         Self(nanos)
     }
 

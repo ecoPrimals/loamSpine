@@ -17,7 +17,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![forbid(unsafe_code)]` workspace-wide; test modules use inner/outer function pattern for env injection
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 90.9% line, 1,614 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: 91.58% line, 1,623 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -66,7 +66,7 @@ cargo build-arm64  # aarch64-unknown-linux-musl
 # Build
 cargo build
 
-# Test (1,533 tests, all concurrent)
+# Test (1,623 tests, all concurrent)
 cargo test --workspace
 
 # Linting (must pass, zero warnings)
@@ -318,19 +318,19 @@ Look for issues labeled `good-first-issue`:
 |--------|-------|
 | Version | 0.9.16 |
 | Edition | 2024 |
-| Tests | 1,533 (all concurrent, ~3s, zero flaky) |
-| Coverage | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
-| Max File Size | 605 max production; 787 max test file |
+| Tests | 1,623 (all concurrent, ~3s, zero flaky) |
+| Coverage | 91.58% line / 89.10% branch / 91.89% region (llvm-cov) |
+| Max File Size | 648 max production; 789 max test file |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
-| Lint Exceptions | 4 `#[allow]` in production (2× tarpc `wildcard_imports`, 2× feature-conditional `unused_async`), tests all `#[expect(reason)]` |
+| Lint Exceptions | Zero `#[allow]` in production; all `#[expect(reason)]` or `#[cfg_attr]`-gated |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
-| SPDX Headers | All 193 source files |
-| Source files | 189 `.rs` across workspace (+ 3 fuzz targets) |
+| SPDX Headers | All 199 source files |
+| Source files | 199 `.rs` across workspace (+ 3 fuzz targets) |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |
-| JSON-RPC Methods | 43 (semantic naming) |
+| JSON-RPC Methods | 47 (semantic naming) |
 | Mock isolation | All mocks cfg-gated out of production |
 | Provenance Trio | Tested (ephemeral DAG + attribution primals) |
 

@@ -68,29 +68,32 @@ pub struct LoamSpineJsonRpc {
     pub(crate) service: LoamSpineRpcService,
     gate: MethodGate,
     started_at: std::time::Instant,
-    service_state: std::sync::Arc<std::sync::RwLock<String>>,
+    service_state_tx: tokio::sync::watch::Sender<String>,
+    service_state_rx: tokio::sync::watch::Receiver<String>,
 }
 
 impl LoamSpineJsonRpc {
     /// Create a new handler from a service with the given method gate.
     #[must_use]
     pub fn new(service: LoamSpineRpcService, gate: MethodGate) -> Self {
+        let (tx, rx) = tokio::sync::watch::channel("running".into());
         Self {
             service,
             gate,
             started_at: std::time::Instant::now(),
-            service_state: std::sync::Arc::new(std::sync::RwLock::new("running".into())),
+            service_state_tx: tx,
+            service_state_rx: rx,
         }
     }
 
-    /// Get the shared service state handle for lifecycle integration.
+    /// Get a watch sender for lifecycle integration.
     ///
-    /// The binary or lifecycle manager updates this to reflect actual state
+    /// The binary or lifecycle manager sends updates to reflect actual state
     /// (`STARTING`, `RUNNING`, `DEGRADED`, `STOPPING`, etc.), and
-    /// `lifecycle.status` reports it to callers.
+    /// `lifecycle.status` reports the latest value to callers.
     #[must_use]
-    pub fn service_state_handle(&self) -> std::sync::Arc<std::sync::RwLock<String>> {
-        std::sync::Arc::clone(&self.service_state)
+    pub fn service_state_sender(&self) -> tokio::sync::watch::Sender<String> {
+        self.service_state_tx.clone()
     }
 
     /// Create a handler with default service (in-memory storage, permissive gate).
@@ -162,10 +165,7 @@ impl LoamSpineJsonRpc {
     fn dispatch_infra(&self, method: &str) -> Result<serde_json::Value, wire::JsonRpcError> {
         match method {
             "lifecycle.status" => {
-                let status = self
-                    .service_state
-                    .read()
-                    .map_or_else(|_| "running".to_string(), |s| s.clone());
+                let status = self.service_state_rx.borrow().clone();
                 ser(serde_json::json!({
                     "primal": loam_spine_core::primal_names::SELF_ID,
                     "version": env!("CARGO_PKG_VERSION"),

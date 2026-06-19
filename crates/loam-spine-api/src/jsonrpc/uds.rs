@@ -528,7 +528,7 @@ fn resolve_btsp_provider() -> Option<std::path::PathBuf> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used, reason = "test assertions use unwrap for clarity")]
 mod tests {
     use super::*;
 
@@ -572,10 +572,7 @@ mod tests {
         let mut buf_reader = tokio::io::BufReader::new(reader);
 
         let (_, mut client_writer) = client.into_split();
-        client_writer
-            .write_all(&[0xEC, 0x01, b'{'])
-            .await
-            .unwrap();
+        client_writer.write_all(&[0xEC, 0x01, b'{']).await.unwrap();
         client_writer.shutdown().await.unwrap();
 
         let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
@@ -620,10 +617,7 @@ mod tests {
         let mut buf_reader = tokio::io::BufReader::new(reader);
 
         let (_, mut client_writer) = client.into_split();
-        client_writer
-            .write_all(&[0xED, 0x01, b'{'])
-            .await
-            .unwrap();
+        client_writer.write_all(&[0xED, 0x01, b'{']).await.unwrap();
         client_writer.shutdown().await.unwrap();
 
         let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
@@ -638,10 +632,7 @@ mod tests {
         let mut buf_reader = tokio::io::BufReader::new(reader);
 
         let (_, mut client_writer) = client.into_split();
-        client_writer
-            .write_all(&[0xEE, 0x02, b'{'])
-            .await
-            .unwrap();
+        client_writer.write_all(&[0xEE, 0x02, b'{']).await.unwrap();
         client_writer.shutdown().await.unwrap();
 
         let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
@@ -656,13 +647,14 @@ mod tests {
         let mut buf_reader = tokio::io::BufReader::new(reader);
 
         let (_, mut client_writer) = client.into_split();
-        client_writer
-            .write_all(&[0xEB, 0x01, b'{'])
-            .await
-            .unwrap();
+        client_writer.write_all(&[0xEB, 0x01, b'{']).await.unwrap();
         client_writer.shutdown().await.unwrap();
 
         let byte = peek_first_protocol_byte(&mut buf_reader).await.unwrap();
-        assert_eq!(byte, Some(0xEB), "0xEB is outside genetics range, must not strip");
+        assert_eq!(
+            byte,
+            Some(0xEB),
+            "0xEB is outside genetics range, must not strip"
+        );
     }
 }

@@ -187,52 +187,55 @@ impl CliSigner {
 
 impl Signer for CliSigner {
     async fn sign(&self, data: &[u8]) -> LoamSpineResult<Signature> {
-        // Create temp file for data
-        let temp_dir = std::env::temp_dir();
-        let data_file = temp_dir.join(format!("loamspine-sign-{}.dat", uuid::Uuid::now_v7()));
-        let sig_file = temp_dir.join(format!("loamspine-sig-{}.sig", uuid::Uuid::now_v7()));
+        let binary_path = self.binary_path.clone();
+        let key_id = self.key_id.clone();
+        let data = data.to_vec();
 
-        // Write data to temp file
-        std::fs::write(&data_file, data)
-            .map_err(|e| LoamSpineError::Internal(format!("Failed to write temp data: {e}")))?;
+        tokio::task::spawn_blocking(move || {
+            let temp_dir = std::env::temp_dir();
+            let data_file = temp_dir.join(format!("loamspine-sign-{}.dat", uuid::Uuid::now_v7()));
+            let sig_file = temp_dir.join(format!("loamspine-sig-{}.sig", uuid::Uuid::now_v7()));
 
-        // Run signing service encrypt (signing mode)
-        let output = Command::new(&self.binary_path)
-            .args([
-                "encrypt",
-                "--key",
-                &self.key_id,
-                "--input",
-                data_file.to_str().ok_or_else(|| {
-                    LoamSpineError::Internal("data file path is not valid UTF-8".into())
-                })?,
-                "--output",
-                sig_file.to_str().ok_or_else(|| {
-                    LoamSpineError::Internal("signature file path is not valid UTF-8".into())
-                })?,
-            ])
-            .output()
-            .map_err(|e| LoamSpineError::Internal(format!("Failed to run signing service: {e}")))?;
+            std::fs::write(&data_file, &data)
+                .map_err(|e| LoamSpineError::Internal(format!("Failed to write temp data: {e}")))?;
 
-        // Clean up data file
-        let _ = std::fs::remove_file(&data_file);
+            let output = Command::new(&binary_path)
+                .args([
+                    "encrypt",
+                    "--key",
+                    &key_id,
+                    "--input",
+                    data_file.to_str().ok_or_else(|| {
+                        LoamSpineError::Internal("data file path is not valid UTF-8".into())
+                    })?,
+                    "--output",
+                    sig_file.to_str().ok_or_else(|| {
+                        LoamSpineError::Internal("signature file path is not valid UTF-8".into())
+                    })?,
+                ])
+                .output()
+                .map_err(|e| {
+                    LoamSpineError::Internal(format!("Failed to run signing service: {e}"))
+                })?;
 
-        if !output.status.success() {
+            let _ = std::fs::remove_file(&data_file);
+
+            if !output.status.success() {
+                let _ = std::fs::remove_file(&sig_file);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(LoamSpineError::SignatureVerification(format!(
+                    "Signing failed: {stderr}"
+                )));
+            }
+
+            let sig_bytes = std::fs::read(&sig_file)
+                .map_err(|e| LoamSpineError::Internal(format!("Failed to read signature: {e}")))?;
             let _ = std::fs::remove_file(&sig_file);
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(LoamSpineError::SignatureVerification(format!(
-                "Signing failed: {stderr}"
-            )));
-        }
 
-        // Read signature
-        let sig_bytes = std::fs::read(&sig_file)
-            .map_err(|e| LoamSpineError::Internal(format!("Failed to read signature: {e}")))?;
-
-        // Clean up signature file
-        let _ = std::fs::remove_file(&sig_file);
-
-        Ok(Signature::from_vec(sig_bytes))
+            Ok(Signature::from_vec(sig_bytes))
+        })
+        .await
+        .map_err(|e| LoamSpineError::Internal(format!("signing task panicked: {e}")))?
     }
 
     fn did(&self) -> &Did {
@@ -287,46 +290,50 @@ impl Verifier for CliVerifier {
         signature: &Signature,
         _signer: &Did,
     ) -> LoamSpineResult<SignatureVerification> {
-        // Create temp files
-        let temp_dir = std::env::temp_dir();
-        let data_file = temp_dir.join(format!("loamspine-verify-{}.dat", uuid::Uuid::now_v7()));
-        let sig_file = temp_dir.join(format!("loamspine-verify-{}.sig", uuid::Uuid::now_v7()));
+        let binary_path = self.binary_path.clone();
+        let data = data.to_vec();
+        let sig_bytes = signature.as_bytes().to_vec();
 
-        // Write files
-        std::fs::write(&data_file, data)
-            .map_err(|e| LoamSpineError::Internal(format!("Failed to write temp data: {e}")))?;
-        std::fs::write(&sig_file, signature.as_bytes()).map_err(|e| {
-            LoamSpineError::Internal(format!("Failed to write temp signature: {e}"))
-        })?;
+        tokio::task::spawn_blocking(move || {
+            let temp_dir = std::env::temp_dir();
+            let data_file = temp_dir.join(format!("loamspine-verify-{}.dat", uuid::Uuid::now_v7()));
+            let sig_file = temp_dir.join(format!("loamspine-verify-{}.sig", uuid::Uuid::now_v7()));
 
-        // Run signing service decrypt (verification mode)
-        let output = Command::new(&self.binary_path)
-            .args([
-                "decrypt",
-                "--input",
-                sig_file.to_str().ok_or_else(|| {
-                    LoamSpineError::Internal("signature file path is not valid UTF-8".into())
-                })?,
-                "--output",
-                "/dev/null",
-            ])
-            .output()
-            .map_err(|e| {
-                LoamSpineError::Internal(format!("Failed to run verification service: {e}"))
+            std::fs::write(&data_file, &data)
+                .map_err(|e| LoamSpineError::Internal(format!("Failed to write temp data: {e}")))?;
+            std::fs::write(&sig_file, &sig_bytes).map_err(|e| {
+                LoamSpineError::Internal(format!("Failed to write temp signature: {e}"))
             })?;
 
-        // Clean up
-        let _ = std::fs::remove_file(&data_file);
-        let _ = std::fs::remove_file(&sig_file);
+            let output = Command::new(&binary_path)
+                .args([
+                    "decrypt",
+                    "--input",
+                    sig_file.to_str().ok_or_else(|| {
+                        LoamSpineError::Internal("signature file path is not valid UTF-8".into())
+                    })?,
+                    "--output",
+                    "/dev/null",
+                ])
+                .output()
+                .map_err(|e| {
+                    LoamSpineError::Internal(format!("Failed to run verification service: {e}"))
+                })?;
 
-        if output.status.success() {
-            Ok(SignatureVerification::valid())
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            Ok(SignatureVerification::invalid(format!(
-                "Verification failed: {stderr}"
-            )))
-        }
+            let _ = std::fs::remove_file(&data_file);
+            let _ = std::fs::remove_file(&sig_file);
+
+            if output.status.success() {
+                Ok(SignatureVerification::valid())
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Ok(SignatureVerification::invalid(format!(
+                    "Verification failed: {stderr}"
+                )))
+            }
+        })
+        .await
+        .map_err(|e| LoamSpineError::Internal(format!("verification task panicked: {e}")))?
     }
 
     async fn verify_entry(&self, entry: &Entry) -> LoamSpineResult<SignatureVerification> {

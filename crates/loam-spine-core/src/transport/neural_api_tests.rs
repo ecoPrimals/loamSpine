@@ -170,9 +170,7 @@ fn neural_api_transport_from_env_fallback() {
 /// `NeuralApiTransport::new(None)` errors only when neither explicit socket nor env-based path exists.
 #[test]
 fn neural_api_transport_new_none_errors_without_runtime_or_explicit_socket() {
-    let has_socket = std::env::var("BIOMEOS_NEURAL_API_SOCKET")
-        .map(|s| !s.is_empty())
-        .unwrap_or(false);
+    let has_socket = std::env::var("BIOMEOS_NEURAL_API_SOCKET").is_ok_and(|s| !s.is_empty());
     let has_runtime = std::env::var("XDG_RUNTIME_DIR").is_ok();
     if has_socket || has_runtime {
         return;

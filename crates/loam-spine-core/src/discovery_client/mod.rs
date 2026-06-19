@@ -500,6 +500,22 @@ impl ResilientDiscoveryClient {
         Self { inner, adapter }
     }
 
+    /// Execute an operation through the resilience adapter with the inner client.
+    async fn resilient<T, F, Fut>(&self, op: F) -> LoamSpineResult<T>
+    where
+        T: Send + 'static,
+        F: Fn(DiscoveryClient) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = LoamSpineResult<T>> + Send,
+    {
+        let client = self.inner.clone();
+        self.adapter
+            .execute(move || {
+                let cl = client.clone();
+                op(cl)
+            })
+            .await
+    }
+
     /// Discover services by capability (with retry and circuit-breaker).
     ///
     /// # Errors
@@ -510,14 +526,11 @@ impl ResilientDiscoveryClient {
         capability: &str,
     ) -> LoamSpineResult<Vec<DiscoveredService>> {
         let cap: Arc<str> = Arc::from(capability);
-        let client = self.inner.clone();
-        self.adapter
-            .execute(move || {
-                let c = Arc::clone(&cap);
-                let cl = client.clone();
-                async move { cl.discover_capability(&c).await }
-            })
-            .await
+        self.resilient(move |cl| {
+            let c = Arc::clone(&cap);
+            async move { cl.discover_capability(&c).await }
+        })
+        .await
     }
 
     /// Discover all available services (with retry and circuit-breaker).
@@ -526,12 +539,7 @@ impl ResilientDiscoveryClient {
     ///
     /// Returns error if discovery fails or circuit breaker is open.
     pub async fn discover_all(&self) -> LoamSpineResult<Vec<DiscoveredService>> {
-        let client = self.inner.clone();
-        self.adapter
-            .execute(move || {
-                let cl = client.clone();
-                async move { cl.discover_all().await }
-            })
+        self.resilient(|cl| async move { cl.discover_all().await })
             .await
     }
 
@@ -547,15 +555,12 @@ impl ResilientDiscoveryClient {
     ) -> LoamSpineResult<()> {
         let tarpc: Arc<str> = Arc::from(tarpc_endpoint);
         let jsonrpc: Arc<str> = Arc::from(jsonrpc_endpoint);
-        let client = self.inner.clone();
-        self.adapter
-            .execute(move || {
-                let cl = client.clone();
-                let t = Arc::clone(&tarpc);
-                let j = Arc::clone(&jsonrpc);
-                async move { cl.advertise_self(&t, &j).await }
-            })
-            .await
+        self.resilient(move |cl| {
+            let t = Arc::clone(&tarpc);
+            let j = Arc::clone(&jsonrpc);
+            async move { cl.advertise_self(&t, &j).await }
+        })
+        .await
     }
 
     /// Heartbeat (with retry and circuit-breaker).
@@ -564,12 +569,7 @@ impl ResilientDiscoveryClient {
     ///
     /// Returns error if heartbeat fails or circuit breaker is open.
     pub async fn heartbeat(&self) -> LoamSpineResult<()> {
-        let client = self.inner.clone();
-        self.adapter
-            .execute(move || {
-                let cl = client.clone();
-                async move { cl.heartbeat().await }
-            })
+        self.resilient(|cl| async move { cl.heartbeat().await })
             .await
     }
 
@@ -579,12 +579,7 @@ impl ResilientDiscoveryClient {
     ///
     /// Returns error if deregistration fails or circuit breaker is open.
     pub async fn deregister(&self) -> LoamSpineResult<()> {
-        let client = self.inner.clone();
-        self.adapter
-            .execute(move || {
-                let cl = client.clone();
-                async move { cl.deregister().await }
-            })
+        self.resilient(|cl| async move { cl.deregister().await })
             .await
     }
 

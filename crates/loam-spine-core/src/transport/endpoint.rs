@@ -185,10 +185,7 @@ mod tests {
     fn wire_compat_sourdough_mesh() {
         let json = r#"{"transport":"mesh_relay","peer_id":"strand-gate","capability":"security"}"#;
         let ep: TransportEndpoint = serde_json::from_str(json).unwrap();
-        assert_eq!(
-            ep,
-            TransportEndpoint::mesh_relay("strand-gate", "security")
-        );
+        assert_eq!(ep, TransportEndpoint::mesh_relay("strand-gate", "security"));
     }
 
     #[test]
@@ -237,10 +234,7 @@ mod tests {
     fn parse_env_var_value() {
         let json = r#"{"transport":"uds","path":"/run/membrane/loamspine.sock"}"#;
         let ep = parse_transport_endpoint(json).unwrap();
-        assert_eq!(
-            ep,
-            TransportEndpoint::uds("/run/membrane/loamspine.sock")
-        );
+        assert_eq!(ep, TransportEndpoint::uds("/run/membrane/loamspine.sock"));
     }
 
     #[test]

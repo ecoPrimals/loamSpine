@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 14, 2026
+**Last Updated**: June 19, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 19, 2026** — **Deep Debt Audit & Evolution Pass**: Comprehensive audit against wateringHole standards. 14 clippy errors fixed (duration units, map_unwrap_or, trailing comma, unfulfilled lint expectations). `std::sync::RwLock` → `tokio::sync::watch` in JSON-RPC dispatch. `CliSigner`/`CliVerifier` blocking I/O wrapped in `spawn_blocking`. Zero `#[allow]` remaining in production (all evolved to `#[expect(reason)]` or cfg-gated). Retry helper dedup in discovery client. Certificate escrow clone reduction. All docs updated. 1,623 tests, 91.58% line coverage, 199 source files.
 
 - **June 14, 2026** — **Wave 113: Health Method + riboCipher Acceptance**: Bare `health` JSON-RPC method implemented (`{status, primal, version}`). riboCipher `[0xEC, 0x01]` prefix detection on UDS — stripped transparently, normal protocol detection proceeds. Both P2 items from Wave 113 complete. 1,618 tests, 199 source files.
 

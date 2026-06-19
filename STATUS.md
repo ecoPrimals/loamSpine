@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 10, 2026
+**Last Updated**: June 19, 2026
 
 ---
 
@@ -46,16 +46,16 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,618 (199 source files) |
+| Tests | — | 1,623 (199 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
-| Coverage (llvm-cov) | 90%+ | 90.92% line / 89.09% branch / 92.92% region |
+| Coverage (llvm-cov) | 90%+ | 91.58% line / 89.10% branch / 91.89% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 800 lines | 640 max production (entry/mod.rs); 789 max test file (service_tests.rs) |
-| Source files | — | 198 `.rs` files (+ 3 fuzz targets) |
+| Max file size | < 800 lines | 648 max production (entry/mod.rs); 789 max test file (service_tests.rs) |
+| Source files | — | 199 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
-| `#[allow]` in production | 4 | 2× `clippy::wildcard_imports` (tarpc macro; `#[expect]` unfulfilled in test target) + 2× `clippy::unused_async` (feature-conditional for dns-srv/mdns; `#[expect]` unfulfilled with `--all-features`) |
+| `#[allow]` in production | 0 | Zero. All suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`. |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
 | Unused dependencies | 0 | `serde_bytes` removed (confirmed unused) |
 | Workspace-centralized deps | 100% | All shared deps defined in `[workspace.dependencies]` |
@@ -71,12 +71,12 @@ This document tracks implementation progress against the specification suite in 
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
 | `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 47 operations, 6 consumed capabilities |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 193 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 199 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
-| Zero-copy | PASS | `Did` → `Arc<str>`, `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow`, `capability_list()`/`mcp_tools_list()` → `OnceLock<Value>`, `HealthStatus` version/caps cached via `OnceLock`, `Bytes` for payloads, `[u8; 24]` stack keys, `tip_entry()` zero-copy persistence |
+| Zero-copy | PASS | `Did` → `Arc<str>`, `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow`, `capability_list()`/`mcp_tools_list()` → `LazyLock<Value>`, `HealthStatus` version/caps cached via `LazyLock`, `Bytes` for payloads, `[u8; 24]` stack keys, `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
 | Socket Naming | PASS | `loamspine.sock` / `loamspine-{fid}.sock` per `{primal}-{FAMILY_ID}.sock` convention. `ledger.sock` capability symlink, `permanence.sock` legacy symlink. `BIOMEOS_INSECURE` guard. Cleanup on shutdown. |
 | BTSP Phase 1 | PASS | Family-scoped socket naming (`loamspine-{family_id}.sock`), `BIOMEOS_INSECURE` guard. |

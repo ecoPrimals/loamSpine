@@ -246,9 +246,12 @@ impl InfantDiscovery {
     /// This is the standard production discovery method.
     ///
     /// Note: Disabled in test mode to avoid runtime conflicts. Use environment variables in tests.
-    #[expect(
-        clippy::unused_async,
-        reason = "async required for dns-srv feature builds; lint fires only in no-feature builds"
+    #[cfg_attr(
+        any(not(feature = "dns-srv"), test),
+        expect(
+            clippy::unused_async,
+            reason = "async required for dns-srv production builds; test and no-feature builds skip await"
+        )
     )]
     async fn try_dns_srv_discovery(&self) -> Option<String> {
         tracing::debug!("🔍 Attempting DNS SRV discovery ({DISCOVERY_SRV_QUERY})...");
@@ -320,9 +323,12 @@ impl InfantDiscovery {
     /// and delivers results via async-compatible flume channels.
     ///
     /// For production, prefer DNS SRV or environment variables.
-    #[expect(
-        clippy::unused_async,
-        reason = "async required for mdns feature builds; lint fires only in no-feature builds"
+    #[cfg_attr(
+        not(feature = "mdns"),
+        expect(
+            clippy::unused_async,
+            reason = "async required for mdns feature builds; lint fires only in no-feature builds"
+        )
     )]
     async fn try_mdns_discovery(&self) -> Option<String> {
         tracing::debug!("🔍 Attempting mDNS-SD discovery (local network)...");

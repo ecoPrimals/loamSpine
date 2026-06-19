@@ -13,8 +13,7 @@ use std::sync::{Arc, LazyLock};
 use std::time::{Duration, SystemTime};
 
 /// Cached version string — initialized once from compile-time `CARGO_PKG_VERSION`.
-static VERSION_CACHE: LazyLock<String> =
-    LazyLock::new(|| env!("CARGO_PKG_VERSION").to_string());
+static VERSION_CACHE: LazyLock<String> = LazyLock::new(|| env!("CARGO_PKG_VERSION").to_string());
 
 /// Cached capability strings — initialized once from the canonical ADVERTISED set.
 static CAPABILITIES_CACHE: LazyLock<Vec<String>> = LazyLock::new(|| {

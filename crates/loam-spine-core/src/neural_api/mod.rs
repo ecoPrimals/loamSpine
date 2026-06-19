@@ -333,8 +333,7 @@ pub(crate) async fn deregister_at_socket(
 }
 
 /// Cached capability list — initialized once, reused for all subsequent calls.
-static CAPABILITY_LIST_CACHE: LazyLock<serde_json::Value> =
-    LazyLock::new(capability_list_inner);
+static CAPABILITY_LIST_CACHE: LazyLock<serde_json::Value> = LazyLock::new(capability_list_inner);
 
 /// Return the capability list as a JSON-RPC response payload.
 /// Implements the `capability.list` semantic method.

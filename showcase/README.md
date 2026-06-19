@@ -15,7 +15,7 @@ preserved as fossil record. Active patterns live in `primalSpring/wateringHole/`
 ## Active Validation
 
 API surface validation now lives in `infra/benchScale/validate_roundtrip.sh` —
-51 validations across all 43 JSON-RPC methods via live TCP roundtrip.
+52 validations across all 47 JSON-RPC methods via live TCP roundtrip.
 
 ## Running Examples
 

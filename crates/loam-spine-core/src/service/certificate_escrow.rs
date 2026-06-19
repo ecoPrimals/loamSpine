@@ -80,8 +80,8 @@ impl LoamSpineService {
         let transfer_conditions = TransferConditions {
             escrow_id,
             cert_id,
-            from: from.clone(),
-            to: to.clone(),
+            from,
+            to,
             conditions,
             expires_at,
             created_at: now,
@@ -124,8 +124,6 @@ impl LoamSpineService {
             .await?
             .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
 
-        let to = conditions.to.clone();
-
         match &cert.state {
             CertificateState::PendingTransfer { .. } => {}
             _ => {
@@ -135,7 +133,7 @@ impl LoamSpineService {
             }
         }
 
-        cert.owner = to;
+        cert.owner = conditions.to;
         cert.transfer_count += 1;
         cert.state = CertificateState::Active;
         cert.updated_at = Timestamp::now();

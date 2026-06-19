@@ -421,7 +421,7 @@ async fn uds_concurrent_load_8x5() {
             for req_id in 0..REQUESTS_PER_CLIENT {
                 let id = client_id * REQUESTS_PER_CLIENT + req_id;
                 let request =
-                    format!(r#"{{"jsonrpc":"2.0","method":"health.liveness","id":{id}}}"#,);
+                    format!(r#"{{"jsonrpc":"2.0","method":"health.liveness","id":{id}}}"#);
                 stream.write_all(request.as_bytes()).await.unwrap();
                 stream.write_all(b"\n").await.unwrap();
                 stream.flush().await.unwrap();

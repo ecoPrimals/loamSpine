@@ -6,12 +6,12 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C614%20passing-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-90.9%25%20line-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C623%20passing-brightgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-91.6%25%20line-brightgreen)]()
 [![Methods](https://img.shields.io/badge/JSON--RPC-47%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()
 [![Stadial](https://img.shields.io/badge/stadial-ready-brightgreen)]()
-[![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20OnceLock-green)]()
+[![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20LazyLock-green)]()
 [![Unsafe](https://img.shields.io/badge/unsafe-ZERO%20(forbid)-red)]()
 [![Edition](https://img.shields.io/badge/edition-2024-blue)]()
 [![ecoBin](https://img.shields.io/badge/ecoBin-compliant-green)]()
@@ -209,13 +209,13 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,618 passing (all concurrent, ~3s, zero flaky) |
-| **Coverage** | 90.92% line / 89.09% branch / 92.92% region (llvm-cov) |
+| **Tests** | 1,623 passing (all concurrent, ~3s, zero flaky) |
+| **Coverage** | 91.58% line / 89.10% branch / 91.89% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Lint Exceptions** | 4 `#[allow]` in production (2× tarpc `wildcard_imports`, 1× feature-conditional `unused_mut`, 1× feature-conditional `unused_async`); 4 `#[expect(dead_code)]` for pre-wired strandGate deploy entry points; tests all `#[expect(reason)]` |
-| **Max File Size** | 640 max production; 789 max test file |
-| **Source Files** | 198 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Lint Exceptions** | Zero `#[allow]` in production; all lint suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`; 4 `#[expect(dead_code)]` for pre-wired strandGate deploy entry points |
+| **Max File Size** | 648 max production; 789 max test file |
+| **Source Files** | 199 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

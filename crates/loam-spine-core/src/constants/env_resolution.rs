@@ -218,8 +218,7 @@ pub fn btsp_provider_socket() -> Option<String> {
 #[must_use]
 pub fn discovery_enabled() -> bool {
     env::var(keys::LOAMSPINE_DISCOVERY_ENABLED)
-        .map(|v| !matches!(v.as_str(), "0" | "false" | "no"))
-        .unwrap_or(true)
+        .map_or(true, |v| !matches!(v.as_str(), "0" | "false" | "no"))
 }
 
 /// Read `$DISCOVERY_ENDPOINT` when set.

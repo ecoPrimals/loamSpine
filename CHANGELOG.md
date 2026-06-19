@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (June 19, 2026 — Deep Debt Audit & Evolution Pass)
+
+- **Clippy clean (14 errors → 0)**: `duration_suboptimal_units` (7 sites — `from_hours`/`from_secs`), `map_unwrap_or` (6 sites — `map_or`/`is_ok_and`), `unnecessary_trailing_comma` (1), unfulfilled `#[expect]` (2 — cfg-gated on feature/test).
+- **`std::sync::RwLock` → `tokio::sync::watch`**: `LoamSpineJsonRpc` lifecycle state migrated from `Arc<std::sync::RwLock<String>>` (synchronous read in async dispatch) to `tokio::sync::watch` channel. Eliminates potential Tokio worker blocking, poison-proof, correct "latest value" semantics.
+- **Blocking I/O wrapped in `spawn_blocking`**: `CliSigner::sign` and `CliVerifier::verify` (`std::fs::*`, `Command::output()`) now execute on Tokio's blocking threadpool via `spawn_blocking`. No longer stalls async workers.
+- **Zero `#[allow]` in production**: Last `#[allow(clippy::unwrap_used)]` at `uds.rs:531` evolved to `#[expect(clippy::unwrap_used, reason)]`. All lint suppressions now use `#[expect]` or `#[cfg_attr]`-gated `#[expect]`.
+- **Retry helper deduplication**: 5 near-identical retry wrappers in `ResilientDiscoveryClient` consolidated into shared `resilient()` generic method.
+- **Certificate escrow clone reduction**: 4 redundant `.clone()` calls eliminated via move semantics in `hold_certificate` and `release_certificate`.
+- **cargo fmt**: 4 whitespace diffs resolved.
+- **Coverage maintained**: 91.58% line / 89.10% branch / 91.89% region. 1,623 tests, all passing.
+
 ### Added (June 16, 2026 — Wave 114: Genetics-Layer Eukaryotic Model)
 
 - **Full genetics signal acceptance**: Evolved from `[0xEC, 0x01]` only to all three eukaryotic genetics signals (`0xEC` riboCipher clear, `0xED` mito-beacon, `0xEE` nuclear sealed). Any byte in `0xEC..=0xEE` + version byte is stripped as a 2-byte prefix. Structured tracing logs signal name and version.

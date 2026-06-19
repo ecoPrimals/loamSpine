@@ -177,7 +177,7 @@ async fn test_is_fresh_with_expired_service() {
         discovered_via: "test".to_string(),
         metadata: HashMap::new(),
         health: ServiceHealth::Healthy,
-        discovered_at: SystemTime::now() - std::time::Duration::from_secs(600),
+        discovered_at: SystemTime::now() - std::time::Duration::from_mins(10),
         ttl_secs: 300,
     };
     assert!(!InfantDiscovery::is_fresh(&service));
