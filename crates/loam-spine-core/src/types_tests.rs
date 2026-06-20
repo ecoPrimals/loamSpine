@@ -217,6 +217,109 @@ mod serde_hash_tests {
     }
 }
 
+#[test]
+fn peer_id_create_and_display() {
+    let peer = PeerId::new("peer-001");
+    assert_eq!(peer.as_str(), "peer-001");
+    assert_eq!(peer.to_string(), "peer-001");
+}
+
+#[test]
+fn peer_id_from_str_and_string() {
+    let from_str: PeerId = PeerId::from("peer-str");
+    let from_string: PeerId = PeerId::from("peer-str".to_string());
+    assert_eq!(from_str, from_string);
+}
+
+#[test]
+fn peer_id_equality_with_str() {
+    let peer = PeerId::new("peer-eq");
+    assert!(peer == "peer-eq");
+}
+
+#[test]
+fn peer_id_borrow_str() {
+    use std::borrow::Borrow;
+    let peer = PeerId::new("peer-borrow");
+    let s: &str = peer.borrow();
+    assert_eq!(s, "peer-borrow");
+}
+
+#[test]
+fn peer_id_hash_works() {
+    use std::collections::HashSet;
+    let mut set = HashSet::new();
+    set.insert(PeerId::new("a"));
+    set.insert(PeerId::new("b"));
+    set.insert(PeerId::new("a"));
+    assert_eq!(set.len(), 2);
+}
+
+#[test]
+fn peer_id_serde_roundtrip() {
+    let peer = PeerId::new("peer-serde");
+    let json = serde_json::to_string(&peer).expect("serialize");
+    let back: PeerId = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(peer, back);
+}
+
+#[test]
+fn did_anonymous() {
+    let anon = Did::anonymous();
+    assert!(anon.is_anonymous());
+    assert_eq!(anon.as_str(), "did:primal:anonymous");
+}
+
+#[test]
+fn did_not_anonymous() {
+    let did = Did::new("did:key:z6MkReal");
+    assert!(!did.is_anonymous());
+}
+
+#[test]
+fn did_hash_works() {
+    use std::collections::HashSet;
+    let mut set = HashSet::new();
+    set.insert(Did::new("did:key:a"));
+    set.insert(Did::new("did:key:b"));
+    set.insert(Did::new("did:key:a"));
+    assert_eq!(set.len(), 2);
+}
+
+#[test]
+fn signature_to_base64() {
+    use base64::Engine;
+    let sig = Signature::from_vec(vec![1, 2, 3]);
+    let b64 = sig.to_base64();
+    assert!(!b64.is_empty());
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(&b64)
+        .expect("decode");
+    assert_eq!(decoded, vec![1, 2, 3]);
+}
+
+#[test]
+fn payload_ref_without_mime() {
+    let payload = PayloadRef::new([0u8; 32], 512);
+    assert!(payload.mime_type.is_none());
+}
+
+#[test]
+fn size_constants() {
+    assert_eq!(KB, 1024);
+    assert_eq!(MB, 1024 * 1024);
+    assert_eq!(GB, 1024 * 1024 * 1024);
+}
+
+#[test]
+fn timestamp_ordering() {
+    let t1 = Timestamp::from_nanos(100);
+    let t2 = Timestamp::from_nanos(200);
+    assert!(t1 < t2);
+    assert!(t2 > t1);
+    assert_eq!(t1, Timestamp::from_nanos(100));
+}
+
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod proptest_roundtrips {
     use crate::types::*;

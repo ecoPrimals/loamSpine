@@ -112,6 +112,15 @@ impl ProviderConn {
     }
 }
 
+/// Test-accessible wrapper for `parse_response`.
+#[cfg(test)]
+pub(crate) fn parse_response_for_test<R: serde::de::DeserializeOwned>(
+    response: &serde_json::Value,
+    method: &str,
+) -> Result<R, LoamSpineError> {
+    parse_response(response, method)
+}
+
 /// Parse a BTSP provider JSON-RPC response value into the expected result type.
 fn parse_response<R: serde::de::DeserializeOwned>(
     response: &serde_json::Value,

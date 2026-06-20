@@ -230,6 +230,9 @@ assert_result "health.check (with details)" "$resp" '.result.status'
 resp=$(rpc_call "health.check" '{}')
 assert_result "health.check (default)" "$resp" '.result.status'
 
+resp=$(rpc_call "health")
+assert_result "health (bare method)" "$resp" '.result.status == "ok"'
+
 # ============================================================================
 # PHASE 2: Meta / Discovery
 # ============================================================================

@@ -562,5 +562,9 @@ pub mod serde_opt_content_hash {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "test assertions use expect for concise error paths"
+)]
 #[path = "types_tests.rs"]
 mod tests;

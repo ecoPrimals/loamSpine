@@ -12,13 +12,13 @@
 # Composable: other graphs can reference this as a sub-graph via depends_on.
 # biomeOS orchestrates germination order; discovery mesh is capability-resolved.
 #
-# STATUS: V0.9.16 (April 2026)
+# STATUS: V0.9.16 (June 2026)
 # Run: biomeos deploy graphs/loamspine_deploy.toml
 #      biomeos primal deploy loamspine-permanence
 
 [graph]
 id = "loamspine_deploy"
-description = "LoamSpine permanence layer — certificates, proofs, selective memory, public chain anchoring"
+description = "LoamSpine permanence layer — certificates, proofs, selective memory, public chain anchoring, cross-gate trust"
 coordination = "Sequential"
 
 [graph.metadata]
@@ -34,7 +34,7 @@ protocols = ["jsonrpc", "tarpc"]
 [[nodes]]
 id = "germinate_loamspine"
 output = "loamspine_genesis"
-capabilities = ["permanence", "ledger", "certificates", "proofs"]
+capabilities = ["permanence", "ledger", "certificates", "proofs", "trust"]
 
 [nodes.primal]
 by_capability = "permanence"
@@ -72,7 +72,7 @@ check_loamspine = true
 timeout_seconds = 15
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PHASE 3: OPTIONAL ENHANCEMENT — external signing (BearDog)
+# PHASE 3: OPTIONAL ENHANCEMENT — external signing (capability-discovered)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [[nodes]]
@@ -129,25 +129,31 @@ depends_on = ["validate_loamspine"]
 output = "neural_api_registered"
 
 [nodes.operation]
-name = "lifecycle.register"
+name = "primal.announce"
 
 [nodes.operation.params]
 primal = "loamspine"
 capabilities = [
-    "spine.create", "spine.get", "spine.seal",
-    "entry.append", "entry.get", "entry.get_tip",
+    "spine.create", "spine.get", "spine.list", "spine.seal",
+    "entry.append", "entry.get", "entry.get_tip", "entry.list",
     "certificate.mint", "certificate.transfer", "certificate.loan",
-    "certificate.return", "certificate.get", "certificate.verify",
-    "certificate.lifecycle",
-    "slice.anchor", "slice.checkout", "slice.record_operation", "slice.depart",
+    "certificate.return", "certificate.get",
+    "slice.anchor", "slice.checkout",
     "proof.generate_inclusion", "proof.verify_inclusion",
-    "anchor.publish", "anchor.verify",
-    "session.commit", "braid.commit",
-    "permanence.commit_session", "permanence.verify_commit",
-    "permanence.get_commit", "permanence.health_check",
-    "health.check", "health.liveness", "health.readiness",
+    "session.dehydrate", "session.commit",
+    "braid.commit",
+    "anchor.publish", "anchor.publish_batch", "anchor.verify",
+    "bonding.ledger.store", "bonding.ledger.retrieve", "bonding.ledger.list",
+    "trust.anchor", "trust.query", "trust.event_count",
+    "btsp.negotiate", "btsp.capabilities",
+    "primal.announce",
+    "health", "health.check", "health.liveness", "health.readiness",
+    "lifecycle.status",
+    "auth.check", "auth.mode", "auth.peer_info",
     "capabilities.list", "identity.get",
     "tools.list", "tools.call",
+    "permanence.commit_session", "permanence.verify_commit",
+    "permanence.get_commit", "permanence.health_check",
 ]
 family_id = "${FAMILY_ID}"
 

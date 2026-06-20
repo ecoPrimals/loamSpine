@@ -408,3 +408,114 @@ fn resolve_family_seed_hex_roundtrip() {
         assert_eq!(std::str::from_utf8(&decoded).expect("utf8"), hex_seed);
     });
 }
+
+// ── frame.rs coverage ─────────────────────────────────────────────────
+
+#[test]
+fn serialize_btsp_msg_valid() {
+    let msg = serde_json::json!({"method": "test", "id": 1});
+    let bytes = super::frame::serialize_btsp_msg(&msg, "test").expect("serialize");
+    let parsed: serde_json::Value = serde_json::from_slice(&bytes).expect("parse back");
+    assert_eq!(parsed["method"], "test");
+}
+
+#[test]
+fn deserialize_btsp_msg_valid() {
+    let json = br#"{"method":"test","id":1}"#;
+    let msg: serde_json::Value =
+        super::frame::deserialize_btsp_msg(json, "test").expect("deserialize");
+    assert_eq!(msg["method"], "test");
+}
+
+#[test]
+fn deserialize_btsp_msg_invalid_json() {
+    let result: Result<serde_json::Value, _> =
+        super::frame::deserialize_btsp_msg(b"not json", "test");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("parse"));
+}
+
+#[tokio::test]
+async fn frame_write_read_roundtrip() {
+    let payload = b"hello btsp frame";
+    let mut buf = Vec::new();
+    super::frame::write_frame(&mut buf, payload)
+        .await
+        .expect("write");
+
+    let mut cursor = std::io::Cursor::new(buf);
+    let read_back = super::frame::read_frame(&mut cursor).await.expect("read");
+    assert_eq!(&read_back[..], payload);
+}
+
+#[tokio::test]
+async fn frame_write_oversized_rejected() {
+    let huge = vec![0u8; (super::frame::MAX_FRAME_SIZE as usize) + 1];
+    let mut buf = Vec::new();
+    let result = super::frame::write_frame(&mut buf, &huge).await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("too large"));
+}
+
+#[tokio::test]
+async fn frame_read_oversized_rejected() {
+    let bad_len: u32 = super::frame::MAX_FRAME_SIZE + 1;
+    let mut buf = Vec::new();
+    buf.extend_from_slice(&bad_len.to_be_bytes());
+    buf.extend_from_slice(&[0u8; 32]);
+
+    let mut cursor = std::io::Cursor::new(buf);
+    let result = super::frame::read_frame(&mut cursor).await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("too large"));
+}
+
+// ── provider_client.rs parse_response coverage ────────────────────────
+
+#[test]
+fn parse_response_success() {
+    let resp = serde_json::json!({
+        "jsonrpc": "2.0",
+        "result": {"session_token": "tok123", "challenge": "abc"},
+        "id": 1
+    });
+    let parsed: serde_json::Value =
+        super::provider_client::parse_response_for_test(&resp, "btsp.session.create")
+            .expect("parse");
+    assert_eq!(parsed["session_token"], "tok123");
+}
+
+#[test]
+fn parse_response_error() {
+    let resp = serde_json::json!({
+        "jsonrpc": "2.0",
+        "error": {"code": -32600, "message": "bad request"},
+        "id": 1
+    });
+    let result: Result<serde_json::Value, _> =
+        super::provider_client::parse_response_for_test(&resp, "btsp.session.create");
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("bad request"));
+}
+
+#[test]
+fn parse_response_missing_result() {
+    let resp = serde_json::json!({"jsonrpc": "2.0", "id": 1});
+    let result: Result<serde_json::Value, _> =
+        super::provider_client::parse_response_for_test(&resp, "btsp.test");
+    assert!(result.is_err());
+    assert!(result.unwrap_err().to_string().contains("missing result"));
+}
+
+#[test]
+fn parse_response_error_defaults() {
+    let resp = serde_json::json!({
+        "jsonrpc": "2.0",
+        "error": {},
+        "id": 1
+    });
+    let result: Result<serde_json::Value, _> =
+        super::provider_client::parse_response_for_test(&resp, "btsp.test");
+    assert!(result.is_err());
+}

@@ -60,7 +60,7 @@ description = "BTSP Phase 3 secure transport negotiation"
 methods = ["negotiate", "capabilities"]
 
 [domains.health]
-description = "Health, liveness, and readiness probes"
+description = "Health, liveness, and readiness probes (bare 'health' also accepted)"
 methods = ["check", "liveness", "readiness"]
 
 [domains.lifecycle]
@@ -246,6 +246,11 @@ cost = "low"
 stability = "stable"
 
 [operations."btsp.capabilities"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."health"]
 depends_on = []
 cost = "low"
 stability = "stable"

@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 19, 2026
+**Last Updated**: June 20, 2026
 
 ---
 
 ## Documentation changelog
+
+- **June 20, 2026** — **Coverage Push & Config Refresh**: 31 new tests targeting lowest-coverage production files (btsp/frame.rs, btsp/provider_client.rs, proof.rs, types.rs). Coverage: 92.26% line / 89.50% branch / 92.56% region. Deploy graph refreshed to June 2026 (47 methods, `primal.announce` operation, trust domain). Capability registry bare `health` method added. benchScale bare health validation added. All deps confirmed pure Rust. 1,652 tests, 199 source files.
 
 - **June 19, 2026** — **Deep Debt Audit & Evolution Pass**: Comprehensive audit against wateringHole standards. 14 clippy errors fixed (duration units, map_unwrap_or, trailing comma, unfulfilled lint expectations). `std::sync::RwLock` → `tokio::sync::watch` in JSON-RPC dispatch. `CliSigner`/`CliVerifier` blocking I/O wrapped in `spawn_blocking`. Zero `#[allow]` remaining in production (all evolved to `#[expect(reason)]` or cfg-gated). Retry helper dedup in discovery client. Certificate escrow clone reduction. All docs updated. 1,623 tests, 91.58% line coverage, 199 source files.
 
@@ -621,7 +623,7 @@
 - **RocksDB storage backend** — Same. Demand-driven — implement when a composition requires it.
 - **Full Universal IPC v3 compliance** — Complete protocol alignment
 - **genomeBin readiness** — musl-static resolved (v0.9.16); remaining: checksums.toml musl triple + PIE verification
-- **95%+ test coverage** — Currently 90.92% line / 92.92% region
+- **95%+ test coverage** — Currently 92.26% line / 92.56% region
 - **HTTP health endpoints** — `/health/liveness`, `/health/readiness` (JSON-RPC health triad already complete)
 - **Prometheus metrics** — Request counts, latencies, queue depths
 - **Rate limiting** — Per-capability and per-client limits

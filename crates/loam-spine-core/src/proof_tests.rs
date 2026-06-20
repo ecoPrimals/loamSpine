@@ -359,3 +359,113 @@ fn verification_result_multiple_errors() {
     assert!(!failure.valid);
     assert_eq!(failure.errors.len(), 3);
 }
+
+#[test]
+fn verification_result_success() {
+    let result = VerificationResult::success();
+    assert!(result.valid);
+    assert!(result.errors.is_empty());
+}
+
+#[test]
+fn verification_error_debug_formats() {
+    let err = VerificationError::EntryNotFound { hash: [42u8; 32] };
+    let debug = format!("{err:?}");
+    assert!(debug.contains("EntryNotFound"));
+
+    let err = VerificationError::ChainBroken { at_index: 100 };
+    let debug = format!("{err:?}");
+    assert!(debug.contains("100"));
+}
+
+#[test]
+fn provenance_proof_creation_and_verify() {
+    let entry = create_test_entry();
+    let spine_id = SpineId::now_v7();
+    let tip = entry.compute_hash().expect("hash");
+    let anchor = InclusionProof::new(entry, spine_id, tip).expect("proof");
+
+    let prov = ProvenanceProof::new([7u8; 32], anchor);
+    assert!(prov.custody_chain.is_empty());
+    assert!(prov.verify().expect("verify"));
+}
+
+#[test]
+fn provenance_proof_with_custody_chain() {
+    let entry1 = create_test_entry();
+    let spine_id = SpineId::now_v7();
+    let tip1 = entry1.compute_hash().expect("hash");
+    let anchor = InclusionProof::new(entry1, spine_id, tip1).expect("proof");
+
+    let entry2 = create_test_entry();
+    let tip2 = entry2.compute_hash().expect("hash");
+    let custody = InclusionProof::new(entry2, spine_id, tip2).expect("proof");
+
+    let prov = ProvenanceProof::new([8u8; 32], anchor).with_custody(vec![custody]);
+    assert_eq!(prov.custody_chain.len(), 1);
+    assert!(prov.verify().expect("verify"));
+}
+
+#[test]
+fn certificate_proof_creation_and_verify() {
+    let entry = create_test_entry();
+    let spine_id = SpineId::now_v7();
+    let tip = entry.compute_hash().expect("hash");
+
+    let mint_proof = InclusionProof::new(entry.clone(), spine_id, tip).expect("mint");
+    let current_proof = InclusionProof::new(entry, spine_id, tip).expect("current");
+
+    let cert_proof = CertificateProof::new(
+        uuid::Uuid::now_v7(),
+        Did::new("did:key:z6MkOwner"),
+        mint_proof,
+        current_proof,
+    );
+
+    assert!(cert_proof.transfer_proofs.is_empty());
+    assert!(cert_proof.verify().expect("verify"));
+}
+
+#[test]
+fn certificate_proof_with_transfers_and_verify() {
+    let entry = create_test_entry();
+    let spine_id = SpineId::now_v7();
+    let tip = entry.compute_hash().expect("hash");
+
+    let mint = InclusionProof::new(entry.clone(), spine_id, tip).expect("mint");
+    let current = InclusionProof::new(entry.clone(), spine_id, tip).expect("current");
+    let transfer = InclusionProof::new(entry, spine_id, tip).expect("transfer");
+
+    let cert_proof = CertificateProof::new(
+        uuid::Uuid::now_v7(),
+        Did::new("did:key:z6MkOwner"),
+        mint,
+        current,
+    )
+    .with_transfers(vec![transfer]);
+
+    assert_eq!(cert_proof.transfer_proofs.len(), 1);
+    assert_eq!(cert_proof.history_summary.transfer_count, 1);
+    assert!(cert_proof.verify().expect("verify"));
+}
+
+#[test]
+fn inclusion_proof_attestation_round_trip() {
+    let entry = create_test_entry();
+    let spine_id = SpineId::now_v7();
+    let tip = entry.compute_hash().expect("hash");
+
+    let proof = InclusionProof::new(entry, spine_id, tip)
+        .expect("proof")
+        .with_attestation(Signature::default());
+
+    assert!(proof.owner_attestation.is_some());
+}
+
+#[test]
+fn history_summary_zero_defaults() {
+    let summary = HistorySummary::default();
+    assert_eq!(summary.transfer_count, 0);
+    assert_eq!(summary.loan_count, 0);
+    assert_eq!(summary.age_nanos, 0);
+}
