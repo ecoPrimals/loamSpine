@@ -481,6 +481,38 @@ mod tests {
     }
 
     #[test]
+    fn discovery_cache_ttl_invalid_value_returns_none() {
+        temp_env::with_var("DISCOVERY_CACHE_TTL", Some("not-a-number"), || {
+            assert!(discovery_cache_ttl().is_none());
+        });
+    }
+
+    #[test]
+    fn discovery_cache_ttl_valid_value() {
+        temp_env::with_var("DISCOVERY_CACHE_TTL", Some("300"), || {
+            assert_eq!(discovery_cache_ttl(), Some(300));
+        });
+    }
+
+    #[test]
+    fn discovery_enabled_false_variants() {
+        for val in &["0", "false", "no"] {
+            temp_env::with_var("LOAMSPINE_DISCOVERY_ENABLED", Some(val), || {
+                assert!(!discovery_enabled(), "expected disabled for value '{val}'");
+            });
+        }
+    }
+
+    #[test]
+    fn discovery_enabled_truthy_variants() {
+        for val in &["1", "true", "yes", "anything"] {
+            temp_env::with_var("LOAMSPINE_DISCOVERY_ENABLED", Some(val), || {
+                assert!(discovery_enabled(), "expected enabled for value '{val}'");
+            });
+        }
+    }
+
+    #[test]
     fn loamspine_auth_mode_default_none() {
         assert!(loamspine_auth_mode().is_none());
     }

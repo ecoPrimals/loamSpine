@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C652%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C684%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92.3%25%20line-brightgreen)]()
 [![Methods](https://img.shields.io/badge/JSON--RPC-47%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()
@@ -209,7 +209,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,669 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,684 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 92.26% line / 89.50% branch / 92.56% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |

@@ -295,8 +295,11 @@ impl PrimalLifecycle for LoamSpine {
         self.state = PrimalState::Starting;
         tracing::info!(name = %self.config.name, "LoamSpine starting...");
 
-        // Ensure storage directory exists
-        if let Err(e) = std::fs::create_dir_all(&self.config.storage_path) {
+        let storage_path = self.config.storage_path.clone();
+        if let Err(e) = tokio::task::spawn_blocking(move || std::fs::create_dir_all(storage_path))
+            .await
+            .map_err(|e| PrimalError::Init(format!("storage dir task join: {e}")))?
+        {
             self.state = PrimalState::Failed;
             return Err(PrimalError::Init(format!(
                 "failed to create storage directory: {e}"

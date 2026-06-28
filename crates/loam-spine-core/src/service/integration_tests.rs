@@ -675,6 +675,58 @@ async fn test_get_attribution() {
 }
 
 #[tokio::test]
+async fn test_get_attribution_with_contributors() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkCreatorContrib");
+    let contributor = Did::new("did:key:z6MkContributor");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("ContribAttrTest".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let data_hash = [0xCBu8; 32];
+
+    service
+        .append_entry(
+            spine_id,
+            EntryType::DataAnchor {
+                data_hash,
+                mime_type: Some("text/plain".into()),
+                size: 100,
+            },
+        )
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    service
+        .append_entry(
+            spine_id,
+            EntryType::SessionCommit {
+                session_id: crate::types::SessionId::now_v7(),
+                merkle_root: data_hash,
+                vertex_count: 5,
+                committer: contributor.clone(),
+            },
+        )
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let attr = service
+        .get_attribution(data_hash)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+    assert!(attr.is_some());
+
+    let record = attr.unwrap_or_else(|| unreachable!());
+    assert_eq!(record.creator, owner);
+    assert!(
+        record.contributors.contains(&contributor),
+        "expected contributor in attribution record"
+    );
+}
+
+#[tokio::test]
 async fn test_get_provenance_chain() {
     let service = LoamSpineService::new();
     let owner = Did::new("did:key:z6MkOwner");

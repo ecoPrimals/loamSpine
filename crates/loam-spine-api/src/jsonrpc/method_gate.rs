@@ -262,4 +262,39 @@ mod tests {
         let gate_e = MethodGate::new(AuthMode::Enforced);
         assert_eq!(gate_e.current_mode(), AuthMode::Enforced);
     }
+
+    #[test]
+    fn auth_mode_from_env_enforced() {
+        temp_env::with_var("LOAMSPINE_AUTH_MODE", Some("enforced"), || {
+            assert_eq!(AuthMode::from_env(), AuthMode::Enforced);
+        });
+    }
+
+    #[test]
+    fn auth_mode_from_env_permissive() {
+        temp_env::with_var("LOAMSPINE_AUTH_MODE", Some("permissive"), || {
+            assert_eq!(AuthMode::from_env(), AuthMode::Permissive);
+        });
+    }
+
+    #[test]
+    fn auth_mode_from_env_unrecognized_defaults_permissive() {
+        temp_env::with_var("LOAMSPINE_AUTH_MODE", Some("strict"), || {
+            assert_eq!(AuthMode::from_env(), AuthMode::Permissive);
+        });
+    }
+
+    #[test]
+    fn auth_mode_from_env_case_insensitive() {
+        temp_env::with_var("LOAMSPINE_AUTH_MODE", Some("ENFORCED"), || {
+            assert_eq!(AuthMode::from_env(), AuthMode::Enforced);
+        });
+    }
+
+    #[test]
+    fn auth_mode_from_env_unset_defaults_permissive() {
+        temp_env::with_var("LOAMSPINE_AUTH_MODE", None::<&str>, || {
+            assert_eq!(AuthMode::from_env(), AuthMode::Permissive);
+        });
+    }
 }

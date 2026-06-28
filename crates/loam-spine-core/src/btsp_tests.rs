@@ -519,3 +519,22 @@ fn parse_response_error_defaults() {
         super::provider_client::parse_response_for_test(&resp, "btsp.test");
     assert!(result.is_err());
 }
+
+#[test]
+fn parse_response_result_type_mismatch() {
+    use super::wire::SessionCreateResult;
+
+    let resp = serde_json::json!({
+        "jsonrpc": "2.0",
+        "result": {"wrong_field": 42},
+        "id": 1
+    });
+    let result: Result<SessionCreateResult, _> =
+        super::provider_client::parse_response_for_test(&resp, "btsp.session.create");
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(
+        err_msg.contains("deserialize") || err_msg.contains("missing field"),
+        "expected deserialize error, got: {err_msg}"
+    );
+}

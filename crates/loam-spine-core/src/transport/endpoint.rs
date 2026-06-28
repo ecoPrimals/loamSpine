@@ -4,7 +4,7 @@
 //!
 //! Wire-compatible with `sourdough_core::TransportEndpoint` (same serde
 //! tagged JSON format). Primals accept a `TRANSPORT_ENDPOINT` env var and
-//! let the launcher or Songbird decide the transport — not the primal.
+//! let the launcher or mesh orchestrator decide the transport — not the primal.
 //!
 //! # Wire Format
 //!
@@ -19,8 +19,8 @@ use std::fmt;
 
 /// Structured transport endpoint — describes how to reach a service.
 ///
-/// Wire-compatible with `sourdough_core::TransportEndpoint` and
-/// `songbird_types::TransportEndpoint`. No cross-primal dependency —
+/// Wire-compatible with the canonical `TransportEndpoint` wire format
+/// used across the ecosystem. No cross-primal dependency —
 /// the wire format is the contract.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(tag = "transport")]
@@ -41,7 +41,7 @@ pub enum TransportEndpoint {
         port: u16,
     },
 
-    /// Mesh relay — reachable via Songbird's mesh network.
+    /// Mesh relay — reachable via the mesh orchestrator's overlay network.
     #[serde(rename = "mesh_relay")]
     MeshRelay {
         /// Mesh peer identifier (e.g. `"strand-gate"`).

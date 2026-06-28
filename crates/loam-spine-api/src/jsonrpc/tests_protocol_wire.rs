@@ -284,6 +284,16 @@ fn normalize_method_legacy_aliases() {
 }
 
 #[test]
+fn normalize_method_ledger_and_session_aliases() {
+    assert_eq!(normalize_method("session.create"), "spine.create");
+    assert_eq!(normalize_method("ledger.create"), "spine.create");
+    assert_eq!(normalize_method("session.state"), "spine.get");
+    assert_eq!(normalize_method("ledger.state"), "spine.get");
+    assert_eq!(normalize_method("session.get"), "spine.get");
+    assert_eq!(normalize_method("ledger.get"), "spine.get");
+}
+
+#[test]
 fn normalize_method_passthrough() {
     assert_eq!(normalize_method("spine.create"), "spine.create");
     assert_eq!(normalize_method("health.liveness"), "health.liveness");
