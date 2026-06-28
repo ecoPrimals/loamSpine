@@ -59,7 +59,7 @@ COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/loamspine /usr
 USER loamspine
 WORKDIR /home/loamspine
 
-ENV LOAMSPINE_DATA_DIR=/var/lib/loamspine/data
+ENV LOAMSPINE_STORAGE_PATH=/var/lib/loamspine/data
 ENV LOAMSPINE_LOG_LEVEL=info
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

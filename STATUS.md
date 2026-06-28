@@ -256,7 +256,7 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ## v0.9.16 benchScale Roundtrip Validation (May 25, 2026)
 
-- **`infra/benchScale/validate_roundtrip.sh`**: Full 19-phase roundtrip validation harness. Starts a loamSpine TCP server, exercises all 43 canonical JSON-RPC methods via HTTP POST, validates responses, and reports. Aligned with `DEPLOYMENT_VALIDATION_STANDARD` v1.1.
+- **`infra/benchScale/validate_roundtrip.sh`**: Full 20-phase roundtrip validation harness. Starts a loamSpine TCP server, exercises all 47 canonical JSON-RPC methods via HTTP POST, validates responses, and reports. Aligned with `DEPLOYMENT_VALIDATION_STANDARD` v1.1.
 - **52 validations** across health triad, meta/discovery, auth gate, BTSP, spine CRUD, entry ops, provenance integration (session dehydrate/commit + braid commit + alias), certificate mint/get, slice anchor/checkout, inclusion proofs, public chain anchoring (Bitcoin, Ethereum, RFC 3161 TSA), bond ledger, permanence compat layer, MCP tools, method aliasing, seal + rejection, error handling, lifecycle uptime, and primal.announce.
 - **Transport**: HTTP POST JSON-RPC 2.0 over TCP (curl-based, no nc fragility).
 

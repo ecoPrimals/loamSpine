@@ -351,7 +351,7 @@ loamSpine/
 │
 ├── fuzz/                         # cargo-fuzz targets (separate workspace)
 ├── specs/                        # Specifications
-├── showcase/                     # Fossilized → ecoPrimals/fossilRecord (Wave 49)
+├── infra/benchScale/             # 52-validation TCP roundtrip harness
 └── graphs/                       # Deploy graph (biomeOS TOML)
 ```
 

@@ -86,8 +86,22 @@ Songbird → generic orchestrator in production doc comments:
 
 ```
 cargo fmt --all --check    → PASS
+cargo fmt --all --check    → PASS
 cargo clippy --workspace   → 0 warnings
 cargo test --workspace     → 1,684 passed, 0 failed
 cargo doc --workspace      → PASS
 cargo deny check           → bans ok, licenses ok, sources ok
+cargo clean                → 7.7 GiB removed
 ```
+
+## Doc + Debris Cleanup (pass 2)
+
+- `showcase/` directory removed (content fossilized in ecoPrimals/)
+- Dockerfile + docker-compose.yml: `LOAMSPINE_DATA_DIR` → `LOAMSPINE_STORAGE_PATH` (was never read)
+- README.md: showcase removed from directory tree
+- STATUS.md: benchScale metrics corrected (19→20 phases, 43→47 methods)
+- WHATS_NEXT.md: benchScale metrics corrected in roadmap entry
+- KNOWN_ISSUES.md: Last Updated → June 28, 2026
+- ARCHITECTURE spec: showcase → benchScale in directory tree
+- Zero false positives: no stale TODOs/FIXMEs in any .rs file
+- Handoff archive: 35 files in archive/, 1 active — parent ecoPrimals/ is canonical fossil

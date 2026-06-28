@@ -17,7 +17,7 @@ services:
     volumes:
       - loamspine-data:/var/lib/loamspine/data
     environment:
-      - LOAMSPINE_DATA_DIR=/var/lib/loamspine/data
+      - LOAMSPINE_STORAGE_PATH=/var/lib/loamspine/data
       - LOAMSPINE_LOG_LEVEL=info
       - LOAMSPINE_TARPC_PORT=9001
       - LOAMSPINE_JSONRPC_PORT=8080

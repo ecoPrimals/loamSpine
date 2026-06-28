@@ -120,7 +120,6 @@ loamSpine/
 │           └── error.rs       # API errors
 ├── config/                    # capability_registry.toml (biomeOS runtime overlay)
 ├── specs/                     # 14 specification documents
-├── showcase/                  # Fossilized → ecoPrimals/fossilRecord (Wave 49)
 ├── infra/benchScale/          # 52-validation TCP roundtrip harness
 └── fuzz/                      # Fuzz testing targets
 ```
