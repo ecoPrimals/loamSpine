@@ -96,10 +96,12 @@ fn provenance_link_creation() {
         agent: Did::new("did:key:z6MkAgent"),
         timestamp: crate::types::Timestamp::now(),
         relationship: "derived-from".to_string(),
+        depth: 3,
     };
 
     assert_eq!(link.index, 42);
     assert_eq!(link.relationship, "derived-from");
+    assert_eq!(link.depth, 3);
 }
 
 #[test]
@@ -150,9 +152,11 @@ fn integration_types_debug_clone() {
         agent: Did::new("did:key:test"),
         timestamp: crate::types::Timestamp::now(),
         relationship: "test".to_string(),
+        depth: 0,
     };
     let cloned = link.clone();
     assert_eq!(link.relationship, cloned.relationship);
+    assert_eq!(link.depth, cloned.depth);
     let _ = format!("{link:?}");
 
     let result = SyncResult {

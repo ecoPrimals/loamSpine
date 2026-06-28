@@ -87,6 +87,10 @@ pub struct AttributionRecord {
 }
 
 /// A link in a provenance chain.
+///
+/// Links are ordered by `depth` (0 = earliest in the chain). The `depth` field
+/// tracks the link's position in the provenance chain for a given content hash,
+/// supporting Nest provenance depth tracking (ledger → 5+).
 #[derive(Clone, Debug)]
 pub struct ProvenanceLink {
     /// Entry hash that forms this link.
@@ -99,8 +103,11 @@ pub struct ProvenanceLink {
     pub agent: crate::types::Did,
     /// Timestamp of the link.
     pub timestamp: crate::types::Timestamp,
-    /// Relationship type (e.g., "derived-from", "attributed-to", "certified-by").
+    /// Relationship type (e.g., "anchored-by", "attributed-to", "committed-from",
+    /// "chain-anchored", "certified-by").
     pub relationship: String,
+    /// Position in the provenance chain (0 = earliest).
+    pub depth: u32,
 }
 
 // ============================================================================

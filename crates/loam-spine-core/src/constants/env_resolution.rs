@@ -289,6 +289,10 @@ pub fn tower_signer_did() -> Option<String> {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "test assertions use unwrap for concise error paths"
+)]
 mod tests {
     use super::*;
 
@@ -345,5 +349,144 @@ mod tests {
     #[test]
     fn biomeos_family_id_or_default_without_env() {
         assert_eq!(biomeos_family_id_or_default(), "default");
+    }
+
+    #[test]
+    fn family_seed_primary_env() {
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", Some("primary_seed")),
+                ("BTSP_FAMILY_SEED", Some("btsp_seed")),
+                ("BEARDOG_FAMILY_SEED", Some("beardog_seed")),
+            ],
+            || {
+                assert_eq!(family_seed().unwrap(), "primary_seed");
+            },
+        );
+    }
+
+    #[test]
+    fn family_seed_btsp_fallback() {
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", None::<&str>),
+                ("BTSP_FAMILY_SEED", Some("btsp_seed")),
+                ("BEARDOG_FAMILY_SEED", Some("beardog_seed")),
+            ],
+            || {
+                assert_eq!(family_seed().unwrap(), "btsp_seed");
+            },
+        );
+    }
+
+    #[test]
+    fn family_seed_deprecated_fallback() {
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", None::<&str>),
+                ("BTSP_FAMILY_SEED", None::<&str>),
+                ("BEARDOG_FAMILY_SEED", Some("beardog_seed")),
+            ],
+            || {
+                assert_eq!(family_seed().unwrap(), "beardog_seed");
+            },
+        );
+    }
+
+    #[test]
+    fn family_seed_missing_returns_err() {
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", None::<&str>),
+                ("BTSP_FAMILY_SEED", None::<&str>),
+                ("BEARDOG_FAMILY_SEED", None::<&str>),
+            ],
+            || {
+                assert!(family_seed().is_err());
+            },
+        );
+    }
+
+    #[test]
+    fn tower_signer_socket_primary_env() {
+        temp_env::with_vars(
+            [
+                ("TOWER_SIGNER_SOCKET", Some("/run/tower.sock")),
+                ("BEARDOG_SOCKET", Some("/run/beardog.sock")),
+            ],
+            || {
+                assert_eq!(tower_signer_socket().unwrap(), "/run/tower.sock");
+            },
+        );
+    }
+
+    #[test]
+    fn tower_signer_socket_deprecated_fallback() {
+        temp_env::with_vars(
+            [
+                ("TOWER_SIGNER_SOCKET", None::<&str>),
+                ("BEARDOG_SOCKET", Some("/run/beardog.sock")),
+            ],
+            || {
+                assert_eq!(tower_signer_socket().unwrap(), "/run/beardog.sock");
+            },
+        );
+    }
+
+    #[test]
+    fn tower_signer_socket_missing_returns_none() {
+        temp_env::with_vars(
+            [
+                ("TOWER_SIGNER_SOCKET", None::<&str>),
+                ("BEARDOG_SOCKET", None::<&str>),
+            ],
+            || {
+                assert!(tower_signer_socket().is_none());
+            },
+        );
+    }
+
+    #[test]
+    fn key_constants_are_valid_env_names() {
+        let key_names = [
+            keys::LOAMSPINE_JSONRPC_PORT,
+            keys::JSONRPC_PORT,
+            keys::LOAMSPINE_TARPC_PORT,
+            keys::TARPC_PORT,
+            keys::LOAMSPINE_BIND_ADDRESS,
+            keys::BIND_ADDRESS,
+            keys::USE_OS_ASSIGNED_PORTS,
+            keys::BIOMEOS_FAMILY_ID,
+            keys::BIOMEOS_INSECURE,
+            keys::FAMILY_SEED,
+            keys::BTSP_FAMILY_SEED,
+            keys::BEARDOG_FAMILY_SEED,
+            keys::TOWER_SIGNER_SOCKET,
+            keys::BEARDOG_SOCKET,
+            keys::TOWER_SIGNER_DID,
+            keys::LOAMSPINE_AUTH_MODE,
+        ];
+        for name in key_names {
+            assert!(!name.is_empty(), "env key constant must not be empty");
+            assert!(
+                name.chars().all(|c| c.is_ascii_uppercase() || c == '_'),
+                "env key {name} should be UPPER_SNAKE_CASE"
+            );
+        }
+    }
+
+    #[test]
+    fn discovery_cache_ttl_default_none() {
+        assert!(discovery_cache_ttl().is_none());
+    }
+
+    #[test]
+    fn loamspine_auth_mode_default_none() {
+        assert!(loamspine_auth_mode().is_none());
+    }
+
+    #[test]
+    fn tower_signer_did_default_none() {
+        assert!(tower_signer_did().is_none());
     }
 }

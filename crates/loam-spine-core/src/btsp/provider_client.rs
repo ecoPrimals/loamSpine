@@ -22,7 +22,7 @@ use crate::error::{IpcErrorPhase, LoamSpineError};
 /// Timeout for reading a single JSON-RPC response from the BTSP provider.
 const PROVIDER_READ_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Persistent connection to the BTSP provider (BearDog).
+/// Persistent connection to the BTSP provider.
 ///
 /// Holds a single UDS connection reused across all relay calls within one
 /// handshake (create → verify → negotiate). Per SOURDOUGH §3: do not

@@ -16,7 +16,7 @@ use tracing::debug;
 impl LoamSpineRpcService {
     /// Handle BTSP Phase 3 cipher negotiation.
     ///
-    /// If a handshake key is registered for the session (from `BearDog`'s
+    /// If a handshake key is registered for the session (from the BTSP provider's
     /// `btsp.session.verify` response), derives session keys and returns
     /// `cipher: "chacha20-poly1305"` with a base64-encoded server nonce.
     ///

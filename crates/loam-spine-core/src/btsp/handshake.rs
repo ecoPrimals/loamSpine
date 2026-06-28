@@ -101,8 +101,8 @@ async fn read_and_validate_client_hello<R: AsyncReadExt + Unpin, W: AsyncWriteEx
 
 /// Step 2: Create a BTSP session on the handshake provider.
 ///
-/// Sends only `family_seed` (base64-encoded) per BearDog's
-/// `SessionCreateParams`. BearDog generates the challenge and ephemeral
+/// Sends only `family_seed` (base64-encoded) per the BTSP provider's
+/// `SessionCreateParams`. The provider generates the challenge and ephemeral
 /// keys server-side, returning them in `SessionCreateResponse`.
 async fn create_provider_session(
     conn: &mut ProviderConn,
@@ -149,7 +149,7 @@ async fn read_challenge_response<R: AsyncReadExt + Unpin>(
 
 /// Steps 5–7: Verify via BTSP provider, negotiate cipher, send completion or error.
 ///
-/// Params aligned with BearDog's `SessionVerifyParams` / `SessionNegotiateParams`:
+/// Params aligned with the BTSP provider's `SessionVerifyParams` / `SessionNegotiateParams`:
 /// - verify: `session_token`, `client_ephemeral_pub`, `response`, `preferred_cipher`
 /// - negotiate: `session_token`, `cipher`
 async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(

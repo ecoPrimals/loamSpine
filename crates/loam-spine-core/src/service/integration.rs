@@ -558,6 +558,19 @@ impl ProvenanceSource for LoamSpineService {
                     {
                         Some("committed-from")
                     }
+                    EntryType::PublicChainAnchor { state_hash, .. }
+                        if *state_hash == content_hash =>
+                    {
+                        Some("chain-anchored")
+                    }
+                    EntryType::CertificateMint { .. } => {
+                        let entry_hash = entry.compute_hash()?;
+                        if entry_hash == content_hash {
+                            Some("certified-by")
+                        } else {
+                            None
+                        }
+                    }
                     _ => None,
                 };
                 if let Some(rel) = relationship {
@@ -567,11 +580,20 @@ impl ProvenanceSource for LoamSpineService {
                         index: entry.index,
                         agent: owner.clone(),
                         timestamp: entry.timestamp,
-                        relationship: rel.to_string(),
+                        relationship: rel.into(),
+                        depth: 0,
                     });
                 }
             }
         }
+
+        // Sort by timestamp then spine index for deterministic ordering,
+        // then assign depth for Nest provenance tracking.
+        chain.sort_by(|a, b| a.timestamp.cmp(&b.timestamp).then(a.index.cmp(&b.index)));
+        for (i, link) in chain.iter_mut().enumerate() {
+            link.depth = u32::try_from(i).unwrap_or(u32::MAX);
+        }
+
         Ok(chain)
     }
 }

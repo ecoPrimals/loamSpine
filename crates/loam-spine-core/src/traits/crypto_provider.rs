@@ -459,4 +459,82 @@ mod tests {
             .await;
         assert!(result.is_err());
     }
+
+    #[tokio::test]
+    async fn sign_handles_provider_error_response() {
+        let tmp = tempfile::tempdir().unwrap();
+        let socket_path = tmp.path().join("error-provider.sock");
+        let _ = std::fs::remove_file(&socket_path);
+        let listener = UnixListener::bind(&socket_path).unwrap();
+
+        let _handle = tokio::spawn(async move {
+            if let Ok((stream, _)) = listener.accept().await {
+                let (reader, mut writer) = stream.into_split();
+                let mut buf_reader = tokio::io::BufReader::new(reader);
+                let mut line = String::new();
+                let _ = tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut line).await;
+                let request: serde_json::Value =
+                    serde_json::from_str(line.trim()).unwrap_or_default();
+                let id = request.get("id").cloned().unwrap_or_default();
+                let resp = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": id,
+                    "error": { "code": -32000, "message": "key not found" }
+                });
+                let mut bytes = serde_json::to_vec(&resp).unwrap();
+                bytes.push(b'\n');
+                let _ = writer.write_all(&bytes).await;
+                let _ = writer.flush().await;
+            }
+        });
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+
+        let signer = JsonRpcCryptoSigner::new(socket_path, Did::new("did:key:z6MkErr"), None);
+        let result = signer.sign(b"data").await;
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("key not found"), "unexpected error: {err}");
+    }
+
+    #[tokio::test]
+    async fn verify_entry_delegates_to_verify() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (socket, _handle) = spawn_mock_crypto_provider(tmp.path()).await;
+
+        let verifier = JsonRpcCryptoVerifier::new(socket);
+
+        let entry = crate::entry::Entry::new(
+            0,
+            None,
+            Did::new("did:key:z6MkVerifyEntry"),
+            crate::entry::EntryType::DataAnchor {
+                data_hash: [0xABu8; 32],
+                mime_type: None,
+                size: 10,
+            },
+        );
+
+        let result = verifier.verify_entry(&entry).await.unwrap();
+        assert!(result.valid);
+    }
+
+    #[tokio::test]
+    async fn request_counter_increments() {
+        let signer = JsonRpcCryptoSigner::new(
+            PathBuf::from("/nonexistent.sock"),
+            Did::new("did:key:z6MkCounter"),
+            None,
+        );
+        let id1 = signer.next_id();
+        let id2 = signer.next_id();
+        assert_eq!(id1, 1);
+        assert_eq!(id2, 2);
+
+        let verifier = JsonRpcCryptoVerifier::new(PathBuf::from("/nonexistent.sock"));
+        let vid1 = verifier.next_id();
+        let vid2 = verifier.next_id();
+        assert_eq!(vid1, 1);
+        assert_eq!(vid2, 2);
+    }
 }

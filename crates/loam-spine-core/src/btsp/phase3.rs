@@ -8,7 +8,7 @@
 //!
 //! # Key Acquisition (Pattern B — Tower-Provided)
 //!
-//! loamSpine receives `session_key` from `BearDog`'s `btsp.session.verify`
+//! loamSpine receives `session_key` from the BTSP provider's `btsp.session.verify`
 //! response and stores it as the `handshake_key`. No local derivation from
 //! `FAMILY_SEED` — asymmetric and key derivation authority stays with Tower.
 //!

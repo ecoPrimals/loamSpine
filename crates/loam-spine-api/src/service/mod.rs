@@ -186,7 +186,7 @@ impl LoamSpineRpcService {
         })
     }
 
-    /// Sign an entry via Tower delegation (`BearDog` `crypto.sign_ed25519`).
+    /// Sign an entry via Tower delegation (`crypto.sign_ed25519`).
     ///
     /// Signs the entry's canonical bytes (with empty metadata at this point)
     /// and stores the base64-encoded signature in entry metadata. The chain

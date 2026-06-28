@@ -60,34 +60,34 @@ pub struct HandshakeError {
     pub reason: String,
 }
 
-/// BTSP provider `btsp.session.create` response per `beardog_types::btsp::rpc`.
+/// BTSP provider `btsp.session.create` response.
 #[derive(Debug, Deserialize)]
 pub(crate) struct SessionCreateResult {
-    /// Opaque session token referencing BearDog's server-side state.
+    /// Opaque session token referencing the provider's server-side state.
     pub session_token: String,
     /// Server's ephemeral X25519 public key (base64).
     pub server_ephemeral_pub: String,
-    /// BearDog-generated challenge (base64, 32 bytes).
+    /// Provider-generated challenge (base64, 32 bytes).
     pub challenge: String,
 }
 
-/// BTSP provider `btsp.session.verify` response per `beardog_types::btsp::rpc`.
+/// BTSP provider `btsp.session.verify` response.
 #[derive(Debug, Deserialize)]
 pub(crate) struct SessionVerifyResult {
     pub verified: bool,
-    /// Session ID assigned by BearDog on successful verification.
+    /// Session ID assigned by the provider on successful verification.
     pub session_id: Option<String>,
     /// Negotiated cipher (set on success). Read from the Tower response;
     /// Phase 3 cipher is determined by `btsp.negotiate`, but this field is
     /// logged for protocol tracing.
     pub cipher: Option<String>,
     /// Tower-provided session key (base64, 32 bytes) for Phase 3 HKDF.
-    /// Pattern B: loamSpine receives key material from BearDog rather
-    /// than self-deriving from `FAMILY_SEED`.
+    /// Pattern B: loamSpine receives key material from the BTSP provider
+    /// rather than self-deriving from `FAMILY_SEED`.
     pub session_key: Option<String>,
 }
 
-/// BTSP provider `btsp.negotiate` response per `beardog_types::btsp::rpc`.
+/// BTSP provider `btsp.negotiate` response.
 #[derive(Debug, Deserialize)]
 pub(crate) struct NegotiateResult {
     pub cipher: String,
@@ -102,7 +102,7 @@ pub struct BtspSession {
     /// Negotiated cipher suite (e.g. `"null"`, `"chacha20-poly1305"`).
     pub cipher: String,
     /// Tower-provided handshake key for Phase 3 session key derivation.
-    /// Present when BearDog returns `session_key` in the verify response.
+    /// Present when the provider returns `session_key` in the verify response.
     pub handshake_key: Option<[u8; 32]>,
 }
 
