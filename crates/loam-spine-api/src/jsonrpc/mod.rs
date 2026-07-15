@@ -106,6 +106,7 @@ impl LoamSpineJsonRpc {
     }
 
     /// Access the inner RPC service.
+    #[cfg(unix)]
     pub(crate) const fn service(&self) -> &LoamSpineRpcService {
         &self.service
     }

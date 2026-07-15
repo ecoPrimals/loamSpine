@@ -39,7 +39,9 @@ use loam_spine_core::config::LoamSpineConfig;
 use loam_spine_core::constants::network;
 use loam_spine_core::error::OrExit;
 use loam_spine_core::service::LifecycleManager;
-use tracing::{debug, error, info, warn};
+#[cfg(unix)]
+use tracing::debug;
+use tracing::{error, info, warn};
 
 /// `LoamSpine` — permanent ledger for the `ecoPrimals` ecosystem.
 #[derive(Parser)]

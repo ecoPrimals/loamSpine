@@ -94,7 +94,7 @@ impl SignalHandler {
     /// Windows-specific signal handling (Ctrl+C only).
     #[cfg(not(unix))]
     async fn wait_for_shutdown_windows(&self) -> LoamSpineResult<()> {
-        signal::ctrl_c().await.map_err(|e| {
+        tokio::signal::ctrl_c().await.map_err(|e| {
             crate::error::LoamSpineError::Internal(format!("Failed to setup Ctrl+C handler: {e}"))
         })?;
 

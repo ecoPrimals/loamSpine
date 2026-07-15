@@ -25,10 +25,9 @@
 use std::future::Future;
 use std::path::PathBuf;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicU64, Ordering};
-
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::UnixStream;
+use std::sync::atomic::AtomicU64;
+#[cfg(unix)]
+use std::sync::atomic::Ordering;
 
 use crate::error::{IpcErrorPhase, LoamSpineError};
 
@@ -40,6 +39,7 @@ use super::{DiscoveryTransport, TransportResponse};
 /// NeuralAPI routes the `http.request` capability to a provider that
 /// handles TLS 1.3 and HTTP.
 #[derive(Debug)]
+#[cfg_attr(not(unix), allow(dead_code))]
 pub struct NeuralApiTransport {
     socket_path: PathBuf,
     request_id: AtomicU64,
@@ -77,16 +77,20 @@ impl NeuralApiTransport {
         )
     }
 
+    #[cfg(unix)]
     fn next_id(&self) -> u64 {
         self.request_id.fetch_add(1, Ordering::Relaxed)
     }
 
-    /// Send a JSON-RPC 2.0 request over the Unix socket and read the response.
+    /// Send a JSON-RPC 2.0 request over the platform IPC socket and read the response.
+    #[cfg(unix)]
     async fn jsonrpc_call(
         &self,
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, LoamSpineError> {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
         let id = self.next_id();
         let request = serde_json::json!({
             "jsonrpc": "2.0",
@@ -102,15 +106,17 @@ impl NeuralApiTransport {
             )
         })?;
 
-        let mut stream = UnixStream::connect(&self.socket_path).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Connect,
-                format!(
-                    "NeuralAPI socket connection failed at {}: {e}",
-                    self.socket_path.display()
-                ),
-            )
-        })?;
+        let mut stream = tokio::net::UnixStream::connect(&self.socket_path)
+            .await
+            .map_err(|e| {
+                LoamSpineError::ipc(
+                    IpcErrorPhase::Connect,
+                    format!(
+                        "NeuralAPI socket connection failed at {}: {e}",
+                        self.socket_path.display()
+                    ),
+                )
+            })?;
 
         let len = u32::try_from(request_bytes.len())
             .map_err(|_| LoamSpineError::ipc(IpcErrorPhase::Write, "JSON-RPC request too large"))?;
@@ -175,6 +181,21 @@ impl NeuralApiTransport {
                 "NeuralAPI response missing 'result'",
             )
         })
+    }
+
+    #[cfg(not(unix))]
+    async fn jsonrpc_call(
+        &self,
+        _method: &str,
+        _params: serde_json::Value,
+    ) -> Result<serde_json::Value, LoamSpineError> {
+        Err(LoamSpineError::ipc(
+            IpcErrorPhase::Connect,
+            format!(
+                "NeuralAPI UDS not available on this platform; socket: {}",
+                self.socket_path.display()
+            ),
+        ))
     }
 
     /// Convert a JSON-RPC `http.request` result into a `TransportResponse`.

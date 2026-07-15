@@ -8,7 +8,9 @@
 
 use std::sync::LazyLock;
 
+#[cfg(unix)]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[cfg(unix)]
 use tokio::net::UnixStream;
 
 mod mcp;
@@ -143,6 +145,7 @@ pub fn announce_payload(socket_path: &std::path::Path) -> serde_json::Value {
 }
 
 /// Inner registration logic (pure — no env reads, testable concurrently).
+#[cfg(unix)]
 pub(crate) async fn register_at_socket(
     socket_path: &std::path::Path,
     our_socket: &std::path::Path,
@@ -257,6 +260,7 @@ pub async fn deregister_from_neural_api() -> crate::error::LoamSpineResult<()> {
 }
 
 /// Inner deregistration logic (pure — no env reads, testable concurrently).
+#[cfg(unix)]
 pub(crate) async fn deregister_at_socket(
     socket_path: &std::path::Path,
 ) -> crate::error::LoamSpineResult<()> {
@@ -329,6 +333,23 @@ pub(crate) async fn deregister_at_socket(
         tracing::debug!("NeuralAPI deregister returned error: {message}");
     }
 
+    Ok(())
+}
+
+#[cfg(not(unix))]
+pub(crate) async fn register_at_socket(
+    _socket_path: &std::path::Path,
+    _our_socket: &std::path::Path,
+) -> crate::error::LoamSpineResult<bool> {
+    tracing::debug!("NeuralAPI registration not available on non-Unix platforms");
+    Ok(false)
+}
+
+#[cfg(not(unix))]
+pub(crate) async fn deregister_at_socket(
+    _socket_path: &std::path::Path,
+) -> crate::error::LoamSpineResult<()> {
+    tracing::debug!("NeuralAPI deregistration not available on non-Unix platforms");
     Ok(())
 }
 

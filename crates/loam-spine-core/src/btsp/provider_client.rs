@@ -12,29 +12,38 @@
 //! during relay — only flush after each request line.
 
 use std::path::Path;
-use std::time::Duration;
-
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::unix::{OwnedReadHalf, OwnedWriteHalf};
 
 use crate::error::{IpcErrorPhase, LoamSpineError};
 
 /// Timeout for reading a single JSON-RPC response from the BTSP provider.
-const PROVIDER_READ_TIMEOUT: Duration = Duration::from_secs(10);
+#[cfg(unix)]
+const PROVIDER_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 /// Persistent connection to the BTSP provider.
 ///
 /// Holds a single UDS connection reused across all relay calls within one
 /// handshake (create → verify → negotiate). Per SOURDOUGH §3: do not
 /// reconnect per call; use `flush()`, never `shutdown()`.
+///
+/// On non-Unix platforms, `connect()` returns an error — BTSP provider
+/// transport requires platform-specific IPC (Named Pipes on Windows).
+#[cfg(unix)]
 pub(crate) struct ProviderConn {
-    reader: BufReader<OwnedReadHalf>,
-    writer: OwnedWriteHalf,
+    reader: tokio::io::BufReader<tokio::net::unix::OwnedReadHalf>,
+    writer: tokio::net::unix::OwnedWriteHalf,
 }
 
+#[cfg(not(unix))]
+pub(crate) struct ProviderConn {
+    _private: (),
+}
+
+#[cfg(unix)]
 impl ProviderConn {
     /// Connect to the BTSP provider socket.
     pub(crate) async fn connect(socket: &Path) -> Result<Self, LoamSpineError> {
+        use tokio::io::BufReader;
+
         let stream = tokio::net::UnixStream::connect(socket).await.map_err(|e| {
             LoamSpineError::ipc(
                 IpcErrorPhase::Connect,
@@ -58,6 +67,8 @@ impl ProviderConn {
         params: serde_json::Value,
         request_id: u64,
     ) -> Result<R, LoamSpineError> {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+
         let request = serde_json::json!({
             "jsonrpc": "2.0",
             "method": method,
@@ -112,6 +123,31 @@ impl ProviderConn {
     }
 }
 
+#[cfg(not(unix))]
+impl ProviderConn {
+    pub(crate) async fn connect(socket: &Path) -> Result<Self, LoamSpineError> {
+        Err(LoamSpineError::ipc(
+            IpcErrorPhase::Connect,
+            format!(
+                "BTSP provider UDS not available on this platform; socket: {}",
+                socket.display()
+            ),
+        ))
+    }
+
+    pub(crate) async fn call<R: serde::de::DeserializeOwned>(
+        &mut self,
+        _method: &str,
+        _params: serde_json::Value,
+        _request_id: u64,
+    ) -> Result<R, LoamSpineError> {
+        Err(LoamSpineError::ipc(
+            IpcErrorPhase::Connect,
+            "BTSP provider: UDS not available on this platform",
+        ))
+    }
+}
+
 /// Test-accessible wrapper for `parse_response`.
 #[cfg(test)]
 pub(crate) fn parse_response_for_test<R: serde::de::DeserializeOwned>(
@@ -122,6 +158,7 @@ pub(crate) fn parse_response_for_test<R: serde::de::DeserializeOwned>(
 }
 
 /// Parse a BTSP provider JSON-RPC response value into the expected result type.
+#[cfg(any(unix, test))]
 fn parse_response<R: serde::de::DeserializeOwned>(
     response: &serde_json::Value,
     method: &str,

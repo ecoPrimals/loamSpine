@@ -167,6 +167,7 @@ impl Verifier for JsonRpcCryptoVerifier {
 /// Send a JSON-RPC request to the crypto provider over UDS.
 ///
 /// Reuses the same NDJSON-over-UDS pattern as `btsp::provider_client`.
+#[cfg(unix)]
 async fn crypto_provider_call<R: serde::de::DeserializeOwned>(
     socket: &Path,
     method: &str,
@@ -263,6 +264,22 @@ async fn crypto_provider_call<R: serde::de::DeserializeOwned>(
             format!("crypto provider {method} result deserialize: {e}"),
         )
     })
+}
+
+#[cfg(not(unix))]
+async fn crypto_provider_call<R: serde::de::DeserializeOwned>(
+    socket: &Path,
+    method: &str,
+    _params: serde_json::Value,
+    _request_id: u64,
+) -> Result<R, LoamSpineError> {
+    Err(LoamSpineError::ipc(
+        IpcErrorPhase::Connect,
+        format!(
+            "crypto provider {method}: UDS not available on this platform; socket: {}",
+            socket.display()
+        ),
+    ))
 }
 
 #[cfg(test)]

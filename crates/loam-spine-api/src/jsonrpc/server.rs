@@ -201,6 +201,7 @@ where
 ///
 /// Used by the UDS accept loop when the first line was peeked for BTSP
 /// auto-detection and turned out to be a JSON-RPC request.
+#[cfg(unix)]
 pub(crate) async fn handle_stream_with_first_line<R, W>(
     handler: Arc<LoamSpineJsonRpc>,
     mut buf_reader: BufReader<R>,

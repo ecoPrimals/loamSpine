@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use super::*;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[test]
 fn neural_api_transport_requires_socket() {
