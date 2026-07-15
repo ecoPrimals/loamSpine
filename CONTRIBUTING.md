@@ -320,13 +320,13 @@ Look for issues labeled `good-first-issue`:
 | Edition | 2024 |
 | Tests | 1,684 (all concurrent, ~3s, zero flaky) |
 | Coverage | 92.26% line / 89.50% branch / 92.56% region (llvm-cov) |
-| Max File Size | 648 max production; 789 max test file |
+| Max File Size | 660 max production (`uds.rs`); 789 max test file (`service_tests.rs`) |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | Lint Exceptions | Zero `#[allow]` in production; all `#[expect(reason)]` or `#[cfg_attr]`-gated |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | SPDX Headers | All 199 source files |
-| Source files | 199 `.rs` across workspace (+ 3 fuzz targets) |
+| Source files | 202 `.rs` across workspace (+ 3 fuzz targets) |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |

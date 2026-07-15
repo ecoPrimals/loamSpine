@@ -213,8 +213,8 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | Zero `#[allow]` in production; all lint suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`; 4 `#[expect(dead_code)]` for pre-wired strandGate deploy entry points |
-| **Max File Size** | 648 max production; 789 max test file |
-| **Source Files** | 199 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Max File Size** | 660 max production (`uds.rs`); 789 max test file (`service_tests.rs`) |
+| **Source Files** | 202 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

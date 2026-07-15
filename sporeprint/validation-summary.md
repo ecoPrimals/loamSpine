@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,684 tests, 47 JSON-RPC methods, 199 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml"
-date = 2026-06-28
+description = "Permanence ledger — 1,684 tests, 47 JSON-RPC methods, 202 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
+date = 2026-07-15
 
 [taxonomies]
 primals = ["loamspine"]
@@ -12,7 +12,7 @@ springs = []
 
 - **1,684 tests** (all passing), 0 failures, 0 ignored
 - **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
-- **199 source files**, ~61,200 lines of Rust
+- **202 source files**, ~62,700 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
@@ -33,7 +33,7 @@ springs = []
 | Session | `dehydrate`, `commit` | Provenance trio integration (content-addressed dehydration for rootPulse signing, then commit) |
 | Braid | `commit` | Attribution braid integration (sweetGrass) |
 | Bonding | `ledger.store`, `ledger.retrieve`, `ledger.list` | Ionic bond ledger |
-| Trust | `anchor`, `query`, `event_count` | Cross-gate trust event anchoring (bearDog IPC) |
+| Trust | `anchor`, `query`, `event_count` | Cross-gate trust event anchoring (tower IPC) |
 | BTSP | `negotiate`, `capabilities` | Secure transport negotiation |
 | Auth | `check`, `mode`, `peer_info` | JH-0 method gate introspection |
 | Lifecycle | `status`, `primal.announce` | Service lifecycle + self-registration |
@@ -60,8 +60,10 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 
 | Wave | What landed |
 |------|-------------|
+| Cross-Arch (Wave 141) | `#[cfg(unix)]` gating on all UDS transport, BTSP provider, NeuralAPI; `cargo check --target x86_64-pc-windows-gnu` clean |
+| Deep Debt (Wave 141) | `integration_tests.rs` split (1002L → 3 modules ≤451L), BearDog env deprecation warnings, clone reduction |
 | Transport | `TransportEndpoint` local impl (wire-compat sourDough standard), `TRANSPORT_ENDPOINT` env acceptance |
-| Trust IPC | `trust.anchor`, `trust.query`, `trust.event_count` — bearDog cross-gate trust wiring |
+| Trust IPC | `trust.anchor`, `trust.query`, `trust.event_count` — cross-gate trust wiring |
 | benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across all 47 methods, live TCP roundtrip |
 | Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 194 source files |
 | Wave 47 | Deployment behavioral convergence — `serve`→`server` fix, `LOAMSPINE_DISCOVERY_ENABLED` env gate, `lifecycle.status` `uptime_s` |

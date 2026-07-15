@@ -2,7 +2,7 @@
 
 # Known Issues
 
-**Last Updated**: June 28, 2026
+**Last Updated**: July 15, 2026
 
 ---
 
@@ -63,6 +63,7 @@ The full workspace test suite runs **fully concurrent** (no `#[serial]`; no depe
 | Area | Issue | Notes |
 |------|-------|-------|
 | `/proc/self/status` UID | 5-tier socket discovery reads UID from `/proc/self/status` — Linux-only. Falls through to `temp_dir()` on non-Linux. | Graceful degradation; only applies when XDG_RUNTIME_DIR is unset. |
+| Windows GNU | UDS JSON-RPC server, BTSP `ProviderConn`, NeuralAPI registration, `crypto_provider_call`, PID file, capability symlinks are `#[cfg(unix)]`-gated. Non-Unix builds return stub errors for IPC-dependent paths. | `cargo check --target x86_64-pc-windows-gnu` clean. Named Pipe adoption is future work. |
 
 ---
 

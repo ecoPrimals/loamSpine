@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: June 28, 2026
+**Last Updated**: July 15, 2026
 
 ---
 
 ## Documentation changelog
+
+- **July 15, 2026** — **Wave 141a: Cross-Architecture Adoption + Deep Debt Sweep**: All Unix-specific IPC gated behind `#[cfg(unix)]` with non-Unix error stubs (BTSP `ProviderConn`, NeuralAPI `jsonrpc_call`/`register`/`deregister`, crypto `crypto_provider_call`, signals `ctrl_c()` fix). `cargo check --target x86_64-pc-windows-gnu` clean (0 errors, 0 warnings). `integration_tests.rs` split (1002L → 3 focused modules: `spine_ops` 295L, `slice_mgr` 245L, `provenance` 451L). BearDog env aliases (`BEARDOG_FAMILY_SEED`, `BEARDOG_SOCKET`) emit `tracing::warn` deprecation at runtime. `certificate_loan.rs` clone reduction via `take()`. `register_with_neural_api` test tolerates live NeuralAPI socket environments. 1,684 tests, 202 source files.
 
 - **June 28, 2026** — **Wave 128b: Evolution Audit + Branch Coverage Push**: Full evolution audit against all targets (large files, unsafe, hardcoding, mocks, blocking I/O, external deps, clone patterns, Vec→Bytes). Songbird → generic doc comments in transport/endpoint.rs. Blocking `create_dir_all` wrapped in `spawn_blocking` in async `start()`. Workspace lints tightened: `todo`/`unimplemented` denied, `rust-version = "1.85"` added. 15 new branch coverage tests: normalize_method ledger aliases (+6 branches), AuthMode::from_env all paths (+5), parse_response type mismatch, discovery_cache_ttl invalid parse, discovery_enabled variants, anchor_batch success + minimum guard, verify_anchor aggregate paths, get_attribution with contributors. 1,684 tests, 199 source files.
 
