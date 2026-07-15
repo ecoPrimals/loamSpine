@@ -134,18 +134,18 @@ impl LoamSpineService {
             .await?
             .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
 
-        let loan = cert
-            .active_loan
-            .as_ref()
-            .ok_or_else(|| LoamSpineError::InvalidEntryType("certificate not loaned".into()))?;
-
         if !matches!(&cert.state, CertificateState::Loaned { .. }) {
             return Err(LoamSpineError::InvalidEntryType(
                 "certificate not loaned".into(),
             ));
         }
 
-        let mut chain = loan.relending_chain.clone().unwrap_or_else(|| {
+        let loan = cert
+            .active_loan
+            .take()
+            .ok_or_else(|| LoamSpineError::InvalidEntryType("certificate not loaned".into()))?;
+
+        let mut chain = loan.relending_chain.unwrap_or_else(|| {
             RelendingChain::with_initial(loan.borrower.clone(), loan.loan_entry)
         });
 
@@ -193,7 +193,7 @@ impl LoamSpineService {
                 } else {
                     Some(chain)
                 },
-                ..loan.clone()
+                ..loan
             });
         } else {
             cert.state = CertificateState::Active;
@@ -238,19 +238,18 @@ impl LoamSpineService {
             .await?
             .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
 
-        let loan = cert
-            .active_loan
-            .as_ref()
-            .ok_or_else(|| LoamSpineError::InvalidEntryType("certificate not loaned".into()))?
-            .clone();
-
         if cert.holder.as_ref() != Some(&sublender) {
             return Err(LoamSpineError::LoanTermsViolation(
                 "only current holder can sublend".into(),
             ));
         }
 
-        let mut chain = loan.relending_chain.clone().unwrap_or_else(|| {
+        let loan = cert
+            .active_loan
+            .take()
+            .ok_or_else(|| LoamSpineError::InvalidEntryType("certificate not loaned".into()))?;
+
+        let mut chain = loan.relending_chain.unwrap_or_else(|| {
             RelendingChain::with_initial(loan.borrower.clone(), loan.loan_entry)
         });
 

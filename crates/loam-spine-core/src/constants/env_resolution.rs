@@ -261,25 +261,40 @@ pub fn loamspine_auth_mode() -> Option<String> {
 
 /// Resolve the BTSP family seed from environment.
 ///
-/// Priority: `FAMILY_SEED` > `BTSP_FAMILY_SEED` > `BEARDOG_FAMILY_SEED`.
+/// Priority: `FAMILY_SEED` > `BTSP_FAMILY_SEED` > `BEARDOG_FAMILY_SEED` (deprecated).
 ///
 /// # Errors
 ///
 /// Returns [`env::VarError`] when none of the seed variables are set.
 pub fn family_seed() -> Result<String, env::VarError> {
-    env::var(keys::FAMILY_SEED)
-        .or_else(|_| env::var(keys::BTSP_FAMILY_SEED))
-        .or_else(|_| env::var(keys::BEARDOG_FAMILY_SEED))
+    if let Ok(v) = env::var(keys::FAMILY_SEED) {
+        return Ok(v);
+    }
+    if let Ok(v) = env::var(keys::BTSP_FAMILY_SEED) {
+        return Ok(v);
+    }
+    if let Ok(v) = env::var(keys::BEARDOG_FAMILY_SEED) {
+        tracing::warn!(
+            "BEARDOG_FAMILY_SEED is deprecated — migrate to FAMILY_SEED or BTSP_FAMILY_SEED"
+        );
+        return Ok(v);
+    }
+    Err(env::VarError::NotPresent)
 }
 
 /// Resolve the Tower signer socket from environment.
 ///
-/// Priority: `TOWER_SIGNER_SOCKET` > `BEARDOG_SOCKET`.
+/// Priority: `TOWER_SIGNER_SOCKET` > `BEARDOG_SOCKET` (deprecated).
 #[must_use]
 pub fn tower_signer_socket() -> Option<String> {
-    env::var(keys::TOWER_SIGNER_SOCKET)
-        .or_else(|_| env::var(keys::BEARDOG_SOCKET))
-        .ok()
+    if let Ok(v) = env::var(keys::TOWER_SIGNER_SOCKET) {
+        return Some(v);
+    }
+    if let Ok(v) = env::var(keys::BEARDOG_SOCKET) {
+        tracing::warn!("BEARDOG_SOCKET is deprecated — migrate to TOWER_SIGNER_SOCKET");
+        return Some(v);
+    }
+    None
 }
 
 /// Read `$TOWER_SIGNER_DID` when set.
