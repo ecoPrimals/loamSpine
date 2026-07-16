@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,684 (202 source files) |
+| Tests | — | 1,696 (204 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
 | Max file size | < 800 lines | 660 max production (`uds.rs`); 789 max test file (`service_tests.rs`) |
-| Source files | — | 202 `.rs` files (+ 3 fuzz targets) |
+| Source files | — | 204 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | Zero. All suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`. |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -71,7 +71,7 @@ This document tracks implementation progress against the specification suite in 
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
 | `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 47 operations, 6 consumed capabilities |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 202 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 204 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |

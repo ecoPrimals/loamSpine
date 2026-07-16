@@ -25,9 +25,7 @@
 use std::future::Future;
 use std::path::PathBuf;
 use std::pin::Pin;
-use std::sync::atomic::AtomicU64;
-#[cfg(unix)]
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::error::{IpcErrorPhase, LoamSpineError};
 
@@ -35,11 +33,10 @@ use super::{DiscoveryTransport, TransportResponse};
 
 /// NeuralAPI transport for ecoBin-compliant HTTP via capability-discovered provider.
 ///
-/// Sends JSON-RPC 2.0 requests to NeuralAPI over a Unix domain socket.
+/// Sends JSON-RPC 2.0 requests to NeuralAPI via `TransportStream`.
 /// NeuralAPI routes the `http.request` capability to a provider that
 /// handles TLS 1.3 and HTTP.
 #[derive(Debug)]
-#[cfg_attr(not(unix), allow(dead_code))]
 pub struct NeuralApiTransport {
     socket_path: PathBuf,
     request_id: AtomicU64,
@@ -77,125 +74,22 @@ impl NeuralApiTransport {
         )
     }
 
-    #[cfg(unix)]
     fn next_id(&self) -> u64 {
         self.request_id.fetch_add(1, Ordering::Relaxed)
     }
 
-    /// Send a JSON-RPC 2.0 request over the platform IPC socket and read the response.
-    #[cfg(unix)]
+    /// Send a JSON-RPC 2.0 request via `TransportStream` and read the response.
+    ///
+    /// Platform dispatch is handled by `connect_transport` — no `#[cfg]` needed.
     async fn jsonrpc_call(
         &self,
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, LoamSpineError> {
-        use tokio::io::{AsyncReadExt, AsyncWriteExt};
-
-        let id = self.next_id();
-        let request = serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": params,
-            "id": id,
-        });
-
-        let request_bytes = serde_json::to_vec(&request).map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Serialization,
-                format!("Failed to serialize JSON-RPC request: {e}"),
-            )
-        })?;
-
-        let mut stream = tokio::net::UnixStream::connect(&self.socket_path)
+        let endpoint = super::endpoint_from_path(&self.socket_path);
+        let mut stream = super::connect_transport(&endpoint).await?;
+        super::length_prefixed_rpc_call(&mut stream, method, params, self.next_id(), "NeuralAPI")
             .await
-            .map_err(|e| {
-                LoamSpineError::ipc(
-                    IpcErrorPhase::Connect,
-                    format!(
-                        "NeuralAPI socket connection failed at {}: {e}",
-                        self.socket_path.display()
-                    ),
-                )
-            })?;
-
-        let len = u32::try_from(request_bytes.len())
-            .map_err(|_| LoamSpineError::ipc(IpcErrorPhase::Write, "JSON-RPC request too large"))?;
-        stream.write_all(&len.to_be_bytes()).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Write,
-                format!("Failed to write to NeuralAPI socket: {e}"),
-            )
-        })?;
-        stream.write_all(&request_bytes).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Write,
-                format!("Failed to write to NeuralAPI socket: {e}"),
-            )
-        })?;
-        stream.flush().await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Write,
-                format!("Failed to flush NeuralAPI socket: {e}"),
-            )
-        })?;
-
-        let mut len_buf = [0u8; 4];
-        stream.read_exact(&mut len_buf).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Read,
-                format!("Failed to read NeuralAPI response length: {e}"),
-            )
-        })?;
-        let resp_len = usize::try_from(u32::from_be_bytes(len_buf)).map_err(|_| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Read,
-                "NeuralAPI response length exceeds platform capacity",
-            )
-        })?;
-
-        let mut resp_buf = vec![0u8; resp_len];
-        stream.read_exact(&mut resp_buf).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Read,
-                format!("Failed to read NeuralAPI response: {e}"),
-            )
-        })?;
-
-        let response: serde_json::Value = serde_json::from_slice(&resp_buf).map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::InvalidJson,
-                format!("Failed to parse NeuralAPI JSON-RPC response: {e}"),
-            )
-        })?;
-
-        if let Some((code, message)) = crate::error::extract_rpc_error(&response) {
-            return Err(LoamSpineError::ipc(
-                IpcErrorPhase::JsonRpcError(code),
-                format!("NeuralAPI error: {message}"),
-            ));
-        }
-
-        response.get("result").cloned().ok_or_else(|| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::NoResult,
-                "NeuralAPI response missing 'result'",
-            )
-        })
-    }
-
-    #[cfg(not(unix))]
-    async fn jsonrpc_call(
-        &self,
-        _method: &str,
-        _params: serde_json::Value,
-    ) -> Result<serde_json::Value, LoamSpineError> {
-        Err(LoamSpineError::ipc(
-            IpcErrorPhase::Connect,
-            format!(
-                "NeuralAPI UDS not available on this platform; socket: {}",
-                self.socket_path.display()
-            ),
-        ))
     }
 
     /// Convert a JSON-RPC `http.request` result into a `TransportResponse`.

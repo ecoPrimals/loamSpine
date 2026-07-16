@@ -8,11 +8,6 @@
 
 use std::sync::LazyLock;
 
-#[cfg(unix)]
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-#[cfg(unix)]
-use tokio::net::UnixStream;
-
 mod mcp;
 mod socket;
 
@@ -145,97 +140,23 @@ pub fn announce_payload(socket_path: &std::path::Path) -> serde_json::Value {
 }
 
 /// Inner registration logic (pure — no env reads, testable concurrently).
-#[cfg(unix)]
+///
+/// Platform dispatch is handled by `connect_transport` — no `#[cfg]` needed.
 pub(crate) async fn register_at_socket(
     socket_path: &std::path::Path,
     our_socket: &std::path::Path,
 ) -> crate::error::LoamSpineResult<bool> {
     let params = announce_payload(our_socket);
-
-    let request = serde_json::json!({
-        "jsonrpc": "2.0",
-        "method": "primal.announce",
-        "params": params,
-        "id": 1u64,
-    });
-
-    let request_bytes = serde_json::to_vec(&request).map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Serialization,
-            format!("Failed to serialize NeuralAPI registration: {e}"),
-        )
-    })?;
-
-    let mut stream = UnixStream::connect(&socket_path).await.map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Connect,
-            format!(
-                "NeuralAPI connection failed at {}: {e}",
-                socket_path.display()
-            ),
-        )
-    })?;
-
-    let len = u32::try_from(request_bytes.len()).map_err(|_| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Serialization,
-            "Registration payload too large",
-        )
-    })?;
-    stream.write_all(&len.to_be_bytes()).await.map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Write,
-            format!("NeuralAPI write failed: {e}"),
-        )
-    })?;
-    stream.write_all(&request_bytes).await.map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Write,
-            format!("NeuralAPI write failed: {e}"),
-        )
-    })?;
-    stream.flush().await.map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Write,
-            format!("NeuralAPI flush failed: {e}"),
-        )
-    })?;
-
-    let mut len_buf = [0u8; 4];
-    stream.read_exact(&mut len_buf).await.map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Read,
-            format!("NeuralAPI response length read failed: {e}"),
-        )
-    })?;
-    let resp_len = usize::try_from(u32::from_be_bytes(len_buf)).map_err(|_| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Read,
-            "NeuralAPI response length exceeds platform capacity",
-        )
-    })?;
-    let mut resp_buf = vec![0u8; resp_len];
-    stream.read_exact(&mut resp_buf).await.map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Read,
-            format!("NeuralAPI response read failed: {e}"),
-        )
-    })?;
-
-    let response: serde_json::Value = serde_json::from_slice(&resp_buf).map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::InvalidJson,
-            format!("NeuralAPI response parse failed: {e}"),
-        )
-    })?;
-
-    if let Some((code, message)) = crate::error::extract_rpc_error(&response) {
-        return Err(crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::JsonRpcError(code),
-            format!("NeuralAPI registration error: {message}"),
-        ));
-    }
-
+    let endpoint = crate::transport::endpoint_from_path(socket_path);
+    let mut stream = crate::transport::connect_transport(&endpoint).await?;
+    let _result = crate::transport::length_prefixed_rpc_call(
+        &mut stream,
+        "primal.announce",
+        params,
+        1,
+        "NeuralAPI registration",
+    )
+    .await?;
     Ok(true)
 }
 
@@ -260,96 +181,32 @@ pub async fn deregister_from_neural_api() -> crate::error::LoamSpineResult<()> {
 }
 
 /// Inner deregistration logic (pure — no env reads, testable concurrently).
-#[cfg(unix)]
+///
+/// Tolerates connection failures gracefully — deregistration is best-effort.
 pub(crate) async fn deregister_at_socket(
     socket_path: &std::path::Path,
 ) -> crate::error::LoamSpineResult<()> {
     let params = serde_json::json!({ "name": crate::primal_names::SELF_ID });
-    let request = serde_json::json!({
-        "jsonrpc": "2.0",
-        "method": "lifecycle.deregister",
-        "params": params,
-        "id": 2u64,
-    });
-
-    let request_bytes = serde_json::to_vec(&request).map_err(|e| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Serialization,
-            format!("Failed to serialize NeuralAPI deregister: {e}"),
-        )
-    })?;
-
-    let mut stream = match UnixStream::connect(&socket_path).await {
+    let endpoint = crate::transport::endpoint_from_path(socket_path);
+    let mut stream = match crate::transport::connect_transport(&endpoint).await {
         Ok(s) => s,
         Err(e) => {
             tracing::debug!("NeuralAPI deregister connection failed: {e}");
             return Ok(());
         }
     };
-
-    let len = u32::try_from(request_bytes.len()).map_err(|_| {
-        crate::error::LoamSpineError::ipc(
-            crate::error::IpcErrorPhase::Serialization,
-            "Deregister payload too large",
-        )
-    })?;
-    if let Err(e) = stream.write_all(&len.to_be_bytes()).await {
-        tracing::debug!("NeuralAPI deregister write failed: {e}");
-        return Ok(());
+    match crate::transport::length_prefixed_rpc_call(
+        &mut stream,
+        "lifecycle.deregister",
+        params,
+        2,
+        "NeuralAPI deregistration",
+    )
+    .await
+    {
+        Ok(_) => {}
+        Err(e) => tracing::debug!("NeuralAPI deregister returned error: {e}"),
     }
-    if let Err(e) = stream.write_all(&request_bytes).await {
-        tracing::debug!("NeuralAPI deregister write failed: {e}");
-        return Ok(());
-    }
-    if let Err(e) = stream.flush().await {
-        tracing::debug!("NeuralAPI deregister flush failed: {e}");
-        return Ok(());
-    }
-
-    let mut len_buf = [0u8; 4];
-    if let Err(e) = stream.read_exact(&mut len_buf).await {
-        tracing::debug!("NeuralAPI deregister response read failed: {e}");
-        return Ok(());
-    }
-    let Ok(resp_len) = usize::try_from(u32::from_be_bytes(len_buf)) else {
-        tracing::debug!("NeuralAPI deregister response length overflow");
-        return Ok(());
-    };
-    let mut resp_buf = vec![0u8; resp_len];
-    if let Err(e) = stream.read_exact(&mut resp_buf).await {
-        tracing::debug!("NeuralAPI deregister response read failed: {e}");
-        return Ok(());
-    }
-
-    let response: serde_json::Value = match serde_json::from_slice(&resp_buf) {
-        Ok(v) => v,
-        Err(e) => {
-            tracing::debug!("NeuralAPI deregister response parse failed: {e}");
-            return Ok(());
-        }
-    };
-
-    if let Some((_code, message)) = crate::error::extract_rpc_error(&response) {
-        tracing::debug!("NeuralAPI deregister returned error: {message}");
-    }
-
-    Ok(())
-}
-
-#[cfg(not(unix))]
-pub(crate) async fn register_at_socket(
-    _socket_path: &std::path::Path,
-    _our_socket: &std::path::Path,
-) -> crate::error::LoamSpineResult<bool> {
-    tracing::debug!("NeuralAPI registration not available on non-Unix platforms");
-    Ok(false)
-}
-
-#[cfg(not(unix))]
-pub(crate) async fn deregister_at_socket(
-    _socket_path: &std::path::Path,
-) -> crate::error::LoamSpineResult<()> {
-    tracing::debug!("NeuralAPI deregistration not available on non-Unix platforms");
     Ok(())
 }
 

@@ -199,9 +199,12 @@ where
 
 /// Variant of [`handle_stream`] where the first line has already been read.
 ///
-/// Used by the UDS accept loop when the first line was peeked for BTSP
+/// Used by the local IPC accept loop when the first line was peeked for BTSP
 /// auto-detection and turned out to be a JSON-RPC request.
-#[cfg(unix)]
+#[cfg_attr(
+    not(unix),
+    expect(dead_code, reason = "called from uds.rs, gated on unix")
+)]
 pub(crate) async fn handle_stream_with_first_line<R, W>(
     handler: Arc<LoamSpineJsonRpc>,
     mut buf_reader: BufReader<R>,

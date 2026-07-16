@@ -87,8 +87,8 @@ async fn neural_api_get_fails_no_socket() {
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(
-        err.contains("NeuralAPI") || err.contains("socket"),
-        "error should mention NeuralAPI: {err}"
+        err.contains("UDS connection") || err.contains("connect"),
+        "error should mention connection failure: {err}"
     );
 }
 

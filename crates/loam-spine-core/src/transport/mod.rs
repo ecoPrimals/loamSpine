@@ -26,8 +26,15 @@
 //! ```
 
 pub mod endpoint;
+pub mod framing;
+pub mod stream;
 
 pub use endpoint::{TRANSPORT_ENDPOINT_ENV, TransportEndpoint, parse_transport_endpoint};
+pub use framing::{
+    DEFAULT_IPC_TIMEOUT, length_prefixed_rpc_call, ndjson_rpc_call, read_length_prefixed,
+    read_ndjson_response, write_length_prefixed, write_ndjson_request,
+};
+pub use stream::{TransportStream, connect_transport, endpoint_from_path};
 
 use std::future::Future;
 use std::pin::Pin;

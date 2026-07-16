@@ -1,6 +1,6 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,684 tests, 47 JSON-RPC methods, 202 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
+description = "Permanence ledger — 1,696 tests, 47 JSON-RPC methods, 204 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
 date = 2026-07-15
 
 [taxonomies]
@@ -10,9 +10,9 @@ springs = []
 
 ## Status
 
-- **1,684 tests** (all passing), 0 failures, 0 ignored
+- **1,696 tests** (all passing), 0 failures, 0 ignored
 - **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
-- **202 source files**, ~62,700 lines of Rust
+- **204 source files**, ~63,200 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key

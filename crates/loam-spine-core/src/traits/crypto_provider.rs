@@ -164,122 +164,31 @@ impl Verifier for JsonRpcCryptoVerifier {
     }
 }
 
-/// Send a JSON-RPC request to the crypto provider over UDS.
+/// Send a JSON-RPC request to the crypto provider via `TransportStream`.
 ///
-/// Reuses the same NDJSON-over-UDS pattern as `btsp::provider_client`.
-#[cfg(unix)]
+/// Uses the shared NDJSON framing helpers. Platform dispatch is handled
+/// by `connect_transport` — no `#[cfg]` needed here.
 async fn crypto_provider_call<R: serde::de::DeserializeOwned>(
     socket: &Path,
     method: &str,
     params: serde_json::Value,
     request_id: u64,
 ) -> Result<R, LoamSpineError> {
-    use tokio::io::AsyncWriteExt;
+    use crate::transport::{
+        DEFAULT_IPC_TIMEOUT, connect_transport, endpoint_from_path, ndjson_rpc_call,
+    };
 
-    let request = serde_json::json!({
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": params,
-        "id": request_id,
-    });
-    let request_bytes = serde_json::to_vec(&request).map_err(|e| {
-        LoamSpineError::ipc(
-            IpcErrorPhase::Serialization,
-            format!("crypto provider request serialize: {e}"),
-        )
-    })?;
-
-    let stream = tokio::net::UnixStream::connect(socket).await.map_err(|e| {
-        LoamSpineError::ipc(
-            IpcErrorPhase::Connect,
-            format!(
-                "crypto provider socket {} unreachable: {e}",
-                socket.display()
-            ),
-        )
-    })?;
-
-    let (reader, mut writer) = stream.into_split();
-
-    writer.write_all(&request_bytes).await.map_err(|e| {
-        LoamSpineError::ipc(IpcErrorPhase::Write, format!("crypto provider write: {e}"))
-    })?;
-    writer.write_all(b"\n").await.map_err(|e| {
-        LoamSpineError::ipc(
-            IpcErrorPhase::Write,
-            format!("crypto provider newline: {e}"),
-        )
-    })?;
-    writer.flush().await.map_err(|e| {
-        LoamSpineError::ipc(IpcErrorPhase::Write, format!("crypto provider flush: {e}"))
-    })?;
-
-    let mut response_line = String::new();
-    let mut buf_reader = tokio::io::BufReader::new(reader);
-    tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        tokio::io::AsyncBufReadExt::read_line(&mut buf_reader, &mut response_line),
+    let endpoint = endpoint_from_path(socket);
+    let stream = connect_transport(&endpoint).await?;
+    ndjson_rpc_call(
+        stream,
+        method,
+        params,
+        request_id,
+        DEFAULT_IPC_TIMEOUT,
+        "crypto provider",
     )
     .await
-    .map_err(|_| {
-        LoamSpineError::ipc(
-            IpcErrorPhase::Read,
-            format!("crypto provider {method}: read timeout (10s)"),
-        )
-    })?
-    .map_err(|e| LoamSpineError::ipc(IpcErrorPhase::Read, format!("crypto provider read: {e}")))?;
-
-    let response: serde_json::Value = serde_json::from_str(response_line.trim()).map_err(|e| {
-        LoamSpineError::ipc(
-            IpcErrorPhase::InvalidJson,
-            format!("crypto provider {method} response parse: {e}"),
-        )
-    })?;
-
-    if let Some(err) = response.get("error") {
-        let code = err
-            .get("code")
-            .and_then(serde_json::Value::as_i64)
-            .unwrap_or(-1);
-        let msg = err
-            .get("message")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or("unknown crypto provider error");
-        return Err(LoamSpineError::ipc(
-            IpcErrorPhase::JsonRpcError(code),
-            format!("crypto provider {method}: {msg}"),
-        ));
-    }
-
-    let result = response.get("result").ok_or_else(|| {
-        LoamSpineError::ipc(
-            IpcErrorPhase::NoResult,
-            format!("crypto provider {method}: missing result field"),
-        )
-    })?;
-
-    R::deserialize(result).map_err(|e| {
-        LoamSpineError::ipc(
-            IpcErrorPhase::InvalidJson,
-            format!("crypto provider {method} result deserialize: {e}"),
-        )
-    })
-}
-
-#[cfg(not(unix))]
-async fn crypto_provider_call<R: serde::de::DeserializeOwned>(
-    socket: &Path,
-    method: &str,
-    _params: serde_json::Value,
-    _request_id: u64,
-) -> Result<R, LoamSpineError> {
-    Err(LoamSpineError::ipc(
-        IpcErrorPhase::Connect,
-        format!(
-            "crypto provider {method}: UDS not available on this platform; socket: {}",
-            socket.display()
-        ),
-    ))
 }
 
 #[cfg(test)]

@@ -105,8 +105,11 @@ impl LoamSpineJsonRpc {
         )
     }
 
-    /// Access the inner RPC service.
-    #[cfg(unix)]
+    /// Access the inner RPC service (used by UDS/local IPC BTSP post-handshake).
+    #[cfg_attr(
+        not(unix),
+        expect(dead_code, reason = "called from uds.rs, gated on unix")
+    )]
     pub(crate) const fn service(&self) -> &LoamSpineRpcService {
         &self.service
     }

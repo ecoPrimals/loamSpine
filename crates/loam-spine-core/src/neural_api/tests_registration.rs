@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use super::*;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 // ── Register / Deregister via mock sockets (no env vars) ─────────────────
 
