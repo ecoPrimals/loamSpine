@@ -224,5 +224,21 @@ mod tests;
     clippy::expect_used,
     reason = "tests use expect for concise error paths"
 )]
+#[path = "service_tests_integration.rs"]
+mod tests_integration;
+
+#[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise error paths"
+)]
+#[path = "service_tests_btsp.rs"]
+mod tests_btsp;
+
+#[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise error paths"
+)]
 #[path = "service_tests_tower_signing.rs"]
 mod tests_tower_signing;

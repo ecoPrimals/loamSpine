@@ -432,4 +432,189 @@ mod tests {
         assert!(r.is_err());
         assert!(r.unwrap_err().to_string().contains("missing result"));
     }
+
+    #[tokio::test]
+    async fn length_prefixed_zero_length_frame() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut len_buf = [0u8; 4];
+            stream.read_exact(&mut len_buf).await.unwrap();
+            let req_len = u32::from_be_bytes(len_buf) as usize;
+            let mut req_buf = vec![0u8; req_len];
+            stream.read_exact(&mut req_buf).await.unwrap();
+            // respond with zero-length frame
+            stream.write_all(&0u32.to_be_bytes()).await.unwrap();
+            stream.flush().await.unwrap();
+        });
+
+        let ep = super::super::TransportEndpoint::tcp("127.0.0.1", addr.port());
+        let mut stream = super::super::stream::connect_transport(&ep).await.unwrap();
+
+        let result: Result<serde_json::Value, _> =
+            length_prefixed_rpc_call(&mut stream, "test.zero", serde_json::json!({}), 1, "test")
+                .await;
+
+        assert!(result.is_err());
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn length_prefixed_server_disconnect() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut len_buf = [0u8; 4];
+            stream.read_exact(&mut len_buf).await.unwrap();
+            let req_len = u32::from_be_bytes(len_buf) as usize;
+            let mut req_buf = vec![0u8; req_len];
+            stream.read_exact(&mut req_buf).await.unwrap();
+            drop(stream);
+        });
+
+        let ep = super::super::TransportEndpoint::tcp("127.0.0.1", addr.port());
+        let mut stream = super::super::stream::connect_transport(&ep).await.unwrap();
+
+        let result: Result<serde_json::Value, _> =
+            length_prefixed_rpc_call(&mut stream, "test.dc", serde_json::json!({}), 1, "test")
+                .await;
+
+        assert!(result.is_err());
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn ndjson_server_sends_empty_line_then_response() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+
+        let server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let (reader, mut writer) = stream.into_split();
+            let mut buf_reader = BufReader::new(reader);
+            let mut line = String::new();
+            buf_reader.read_line(&mut line).await.unwrap();
+            let req: serde_json::Value = serde_json::from_str(line.trim()).unwrap();
+            let id = req.get("id").cloned().unwrap_or_default();
+            let resp = serde_json::json!({
+                "jsonrpc": "2.0", "id": id,
+                "result": "ok"
+            });
+            let mut bytes = serde_json::to_vec(&resp).unwrap();
+            bytes.push(b'\n');
+            writer.write_all(&bytes).await.unwrap();
+            writer.flush().await.unwrap();
+        });
+
+        let ep = super::super::TransportEndpoint::tcp("127.0.0.1", addr.port());
+        let stream = super::super::stream::connect_transport(&ep).await.unwrap();
+
+        let result: String = ndjson_rpc_call(
+            stream,
+            "test.echo",
+            serde_json::json!({}),
+            1,
+            DEFAULT_IPC_TIMEOUT,
+            "test",
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result, "ok");
+        server.await.unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn ndjson_roundtrip_via_uds() {
+        let dir = tempfile::tempdir().unwrap();
+        let sock_path = dir.path().join("test.sock");
+        let sock_path_str = sock_path.display().to_string();
+
+        let listener = tokio::net::UnixListener::bind(&sock_path).unwrap();
+
+        let server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let (reader, mut writer) = stream.into_split();
+            let mut buf_reader = BufReader::new(reader);
+            let mut line = String::new();
+            buf_reader.read_line(&mut line).await.unwrap();
+            let req: serde_json::Value = serde_json::from_str(line.trim()).unwrap();
+            let id = req.get("id").cloned().unwrap_or_default();
+            let resp = serde_json::json!({
+                "jsonrpc": "2.0", "id": id,
+                "result": { "transport": "uds" }
+            });
+            let mut bytes = serde_json::to_vec(&resp).unwrap();
+            bytes.push(b'\n');
+            writer.write_all(&bytes).await.unwrap();
+            writer.flush().await.unwrap();
+        });
+
+        let ep = super::super::TransportEndpoint::Uds {
+            path: sock_path_str,
+        };
+        let stream = super::super::stream::connect_transport(&ep).await.unwrap();
+
+        let result: serde_json::Value = ndjson_rpc_call(
+            stream,
+            "test.uds",
+            serde_json::json!({}),
+            1,
+            DEFAULT_IPC_TIMEOUT,
+            "uds-test",
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result["transport"], "uds");
+        server.await.unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn length_prefixed_roundtrip_via_uds() {
+        let dir = tempfile::tempdir().unwrap();
+        let sock_path = dir.path().join("test_lp.sock");
+        let sock_path_str = sock_path.display().to_string();
+
+        let listener = tokio::net::UnixListener::bind(&sock_path).unwrap();
+
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut len_buf = [0u8; 4];
+            stream.read_exact(&mut len_buf).await.unwrap();
+            let req_len = u32::from_be_bytes(len_buf) as usize;
+            let mut req_buf = vec![0u8; req_len];
+            stream.read_exact(&mut req_buf).await.unwrap();
+            let req: serde_json::Value = serde_json::from_slice(&req_buf).unwrap();
+            let id = req.get("id").cloned().unwrap_or_default();
+            let resp = serde_json::json!({
+                "jsonrpc": "2.0", "id": id,
+                "result": { "via": "uds_lp" }
+            });
+            let resp_bytes = serde_json::to_vec(&resp).unwrap();
+            let len = u32::try_from(resp_bytes.len()).unwrap().to_be_bytes();
+            stream.write_all(&len).await.unwrap();
+            stream.write_all(&resp_bytes).await.unwrap();
+            stream.flush().await.unwrap();
+        });
+
+        let ep = super::super::TransportEndpoint::Uds {
+            path: sock_path_str,
+        };
+        let mut stream = super::super::stream::connect_transport(&ep).await.unwrap();
+
+        let result: serde_json::Value =
+            length_prefixed_rpc_call(&mut stream, "test.lp_uds", serde_json::json!({}), 1, "test")
+                .await
+                .unwrap();
+
+        assert_eq!(result["via"], "uds_lp");
+        server.await.unwrap();
+    }
 }

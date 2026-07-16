@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,697 (204 source files) |
+| Tests | — | 1,704 (206 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
 | Max file size | < 800 lines | 660 max production (`uds.rs`); 789 max test file (`service_tests.rs`) |
-| Source files | — | 204 `.rs` files (+ 3 fuzz targets) |
+| Source files | — | 206 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | Zero. All suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`. |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -71,7 +71,7 @@ This document tracks implementation progress against the specification suite in 
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
 | `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 47 operations, 6 consumed capabilities |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 204 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 206 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -149,13 +149,22 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+### Wave 143b: Transport Endpoint Wiring + Test Coverage (July 16, 2026)
+
+- **`TRANSPORT_ENDPOINT` functional dispatch**: `main.rs` wired to use injected `TransportEndpoint` for server startup — UDS path override, TCP host:port and bind address from launcher/orchestrator. Previously log-only.
+- **Test file split**: `service_tests.rs` (789L → 3 modules): core spine/cert/proof (388L), `permanent_storage.*`/`commit_session` integration (270L), BTSP negotiate/key-derivation (111L).
+- **Framing edge-case tests**: 7 new tests — zero-length frame, server disconnect, NDJSON string result, UDS roundtrip (NDJSON + length-prefixed).
+- **Metrics**: 1,704 tests, 206 source files, max production 660L (`uds.rs`), max test 779L (`lifecycle_tests.rs`).
+
+---
+
 ### Wave 142b: Silicon Atheism Phase 2 + Deep Debt (July 16, 2026)
 
 - **Phase 2 transport abstraction**: Custom `base64_decode` (40L hand-rolled) replaced with workspace `base64` crate. All outbound IPC clients (`provider_client.rs`, `crypto_provider.rs`, `neural_api.rs`, `neural_api/mod.rs`) migrated to `TransportStream` + framing helpers (prior wave). `urlencoding_encode` retained (14L, no dependency needed).
 - **Async fs hygiene**: All blocking `std::fs` calls in async functions wrapped in `tokio::task::spawn_blocking` — `uds.rs` startup (`create_dir_all`, `remove_file`), `main.rs` PID file write, symlink creation/removal, shutdown cleanup.
 - **Clone reduction**: `integration.rs` and `handshake.rs` — 4 gratuitous `.clone()` calls eliminated via move semantics (partial struct moves, field extraction before last use). `commit_session` committer moved directly. `checkout_slice` owner extracted after save. BTSP session built once, fields borrowed for `HandshakeComplete`.
 - **Doc drift**: Production comments referencing `biomeOS` → generic "orchestrator". `trust_ledger.rs` `"e.g. bearDog"` → `"a signing primal"`.
-- **Metrics**: 1,697 tests, 204 source files, max production 660L (`uds.rs`).
+- **Metrics**: 1,704 tests, 206 source files, max production 660L (`uds.rs`).
 
 ---
 
@@ -166,7 +175,7 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 - **BearDog deprecation**: `BEARDOG_FAMILY_SEED` and `BEARDOG_SOCKET` env aliases now emit `tracing::warn` at runtime, guiding operators to canonical `LOAMSPINE_*` / `TOWER_SIGNER_SOCKET` names.
 - **Clone reduction**: `certificate_loan.rs` uses `active_loan.take()` instead of deep clones during ownership transfer — zero-copy per loan operation.
 - **Test reliability**: `register_with_neural_api` test now tolerates live NeuralAPI socket environments (sporeGate, eastGate).
-- **Metrics**: 1,684 tests, 202 source files, max production 660L (`uds.rs`), max test 789L (`service_tests.rs`).
+- **Metrics**: 1,684 tests, 202 source files, max production 660L (`uds.rs`), max test 779L (`lifecycle_tests.rs`).
 
 ---
 

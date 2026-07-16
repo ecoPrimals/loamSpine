@@ -159,26 +159,40 @@ async fn run_server(
 
     // Transport injection: accept TRANSPORT_ENDPOINT from launcher/Tower Atomic.
     // When set, the launcher decides the transport — the primal does not self-bind.
-    if let Ok(te_json) = std::env::var(loam_spine_core::transport::TRANSPORT_ENDPOINT_ENV) {
-        match loam_spine_core::transport::parse_transport_endpoint(&te_json) {
-            Ok(endpoint) => {
-                info!("Transport endpoint injected: {endpoint}");
-            }
-            Err(e) => {
-                tracing::warn!("Invalid TRANSPORT_ENDPOINT value: {e}");
-            }
-        }
-    }
+    let injected_endpoint = std::env::var(loam_spine_core::transport::TRANSPORT_ENDPOINT_ENV)
+        .ok()
+        .and_then(
+            |json| match loam_spine_core::transport::parse_transport_endpoint(&json) {
+                Ok(ep) => {
+                    info!("Transport endpoint injected: {ep}");
+                    Some(ep)
+                }
+                Err(e) => {
+                    warn!("Invalid TRANSPORT_ENDPOINT value: {e}");
+                    None
+                }
+            },
+        );
 
     // TCP is opt-in (ecosystem convention): only start TCP servers
-    // when explicitly requested via CLI flags or environment variables.
-    // UDS socket is always started as the primary transport.
+    // when explicitly requested via CLI flags, environment variables,
+    // or a TCP transport endpoint injection.
     let tcp_requested = tarpc_port_override.is_some()
         || jsonrpc_port_override.is_some()
-        || network::has_explicit_tcp_config();
+        || network::has_explicit_tcp_config()
+        || matches!(
+            &injected_endpoint,
+            Some(loam_spine_core::transport::TransportEndpoint::Tcp { .. })
+        );
 
     let resolved_bind: Cow<'static, str> =
-        bind_address_override.map_or_else(network::bind_address, Cow::Owned);
+        if let Some(loam_spine_core::transport::TransportEndpoint::Tcp { ref host, .. }) =
+            injected_endpoint
+        {
+            Cow::Owned(host.clone())
+        } else {
+            bind_address_override.map_or_else(network::bind_address, Cow::Owned)
+        };
 
     // PRIMAL_SELF_KNOWLEDGE_STANDARD §3: refuse to start if FAMILY_ID + INSECURE
     loam_spine_core::neural_api::validate_security_config_from_env()
@@ -241,10 +255,15 @@ async fn run_server(
     };
 
     // Only start TCP servers when explicitly requested.
+    let injected_tcp_port = match &injected_endpoint {
+        Some(loam_spine_core::transport::TransportEndpoint::Tcp { port, .. }) => Some(*port),
+        _ => None,
+    };
     let tarpc_handle = if tcp_requested {
         let resolved_tarpc_port = tarpc_port_override.unwrap_or_else(network::actual_tarpc_port);
-        let resolved_jsonrpc_port =
-            jsonrpc_port_override.unwrap_or_else(network::actual_jsonrpc_port);
+        let resolved_jsonrpc_port = injected_tcp_port
+            .or(jsonrpc_port_override)
+            .unwrap_or_else(network::actual_jsonrpc_port);
 
         let ip: IpAddr = resolved_bind.parse().or_exit("Invalid bind address");
         let tarpc_addr = SocketAddr::new(ip, resolved_tarpc_port);
@@ -275,11 +294,16 @@ async fn run_server(
         None
     };
 
-    // --socket flag takes priority, then env-based resolution
-    let socket_path = socket_override.map_or_else(
-        loam_spine_core::neural_api::resolve_socket_path,
-        std::path::PathBuf::from,
-    );
+    // Injected UDS endpoint takes priority, then --socket flag, then env resolution
+    let socket_path = match &injected_endpoint {
+        Some(loam_spine_core::transport::TransportEndpoint::Uds { path }) => {
+            std::path::PathBuf::from(path)
+        }
+        _ => socket_override.map_or_else(
+            loam_spine_core::neural_api::resolve_socket_path,
+            std::path::PathBuf::from,
+        ),
+    };
 
     // BTSP Phase 2: resolve handshake config from environment.
     // When BIOMEOS_FAMILY_ID is set (non-default), BTSP handshake is mandatory
