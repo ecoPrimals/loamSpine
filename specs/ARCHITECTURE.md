@@ -618,10 +618,9 @@ let spine = loam.create_spine(owner_did, config).await?;
 LoamSpine runs as a standalone service:
 
 ```bash
-loam-spine-service \
-    --config /etc/loamspine/config.toml \
-    --grpc-addr 0.0.0.0:50052 \
-    --rest-addr 0.0.0.0:8081
+loam-spine-service server \
+    --socket /run/user/$UID/biomeos/loamspine.sock \
+    --jsonrpc-port 8080
 ```
 
 ### 10.3 Federated Mode

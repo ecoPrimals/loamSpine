@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
 description = "Permanence ledger — 1,697 tests, 47 JSON-RPC methods, 204 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
-date = 2026-07-15
+date = 2026-07-16
 
 [taxonomies]
 primals = ["loamspine"]
@@ -64,8 +64,9 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Deep Debt (Wave 141) | `integration_tests.rs` split (1002L → 3 modules ≤451L), BearDog env deprecation warnings, clone reduction |
 | Transport | `TransportEndpoint` local impl (wire-compat sourDough standard), `TRANSPORT_ENDPOINT` env acceptance |
 | Trust IPC | `trust.anchor`, `trust.query`, `trust.event_count` — cross-gate trust wiring |
-| benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across all 47 methods, live TCP roundtrip |
-| Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 194 source files |
+| Phase 2 Transport (Wave 142b) | `TransportStream` enum + `connect_transport()` dispatch, NDJSON/length-prefixed framing helpers, `base64` crate migration, `spawn_blocking` async fs hygiene |
+| benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across 44 methods (trust.* pending), live TCP roundtrip |
+| Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 204 source files |
 | Wave 47 | Deployment behavioral convergence — `serve`→`server` fix, `LOAMSPINE_DISCOVERY_ENABLED` env gate, `lifecycle.status` `uptime_s` |
 | Wave 43 | Neural API `primal.announce` adoption — startup announce with capabilities, signal_tiers, cost_hints, latency_estimates |
 | Anchoring Architecture | `anchor.publish_batch`, aggregation Merkle tree, ANCHORING_ARCHITECTURE.md, upstream propagation |

@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 16, 2026 — Wave 142b: Silicon Atheism Phase 2 + Deep Debt)
+
+- **Phase 2 transport abstraction**: `TransportStream` enum (UDS/TCP) + `connect_transport()` dispatch + NDJSON and length-prefixed framing helpers (`transport/stream.rs`, `transport/framing.rs`). All outbound IPC clients (`provider_client.rs`, `crypto_provider.rs`, `neural_api.rs`, `neural_api/mod.rs`) migrated from raw `#[cfg(unix)] UnixStream` to `TransportEndpoint`-based dispatch. Generic server code un-gated.
+- **`base64` crate migration**: Custom 40-line hand-rolled `base64_decode` replaced with workspace `base64` crate (stricter: rejects newlines, requires padding).
+- **Async filesystem hygiene**: All blocking `std::fs` calls in async functions wrapped in `tokio::task::spawn_blocking` — `uds.rs` startup, `main.rs` PID file, symlink creation/removal, shutdown cleanup.
+- **Clone reduction**: 4 gratuitous `.clone()` eliminated in `integration.rs` (move semantics for `committer`, `owner` extraction after save) and `handshake.rs` (build `BtspSession` once, borrow fields for `HandshakeComplete`).
+- **Doc drift**: Production comments referencing `biomeOS` → generic "orchestrator". `trust_ledger.rs` removed external primal name.
+- 1,697 tests, 204 source files, all checks clean.
+
+### Changed (July 15, 2026 — Wave 141a: Cross-Architecture Adoption + Deep Debt Sweep)
+
+- **Cross-architecture**: All Unix-specific IPC (`UnixStream`, `tokio::signal::unix`) gated behind `#[cfg(unix)]` with non-Unix error stubs. `cargo check --target x86_64-pc-windows-gnu` clean (0 errors, 0 warnings).
+- **Integration test refactor**: `integration_tests.rs` (1,002L) split into 3 domain modules: `spine_ops` (295L), `slice_mgr` (245L), `provenance` (451L). Source files 199 → 202.
+- **BearDog deprecation**: `BEARDOG_FAMILY_SEED` and `BEARDOG_SOCKET` env aliases emit `tracing::warn` at runtime.
+- **Clone reduction**: `certificate_loan.rs` uses `active_loan.take()` instead of deep clones.
+- 1,684 tests → 1,696 tests, 202 → 204 source files.
+
+### Changed (June 28, 2026 — Wave 128b: Evolution Audit + Branch Coverage Push)
+
+- **Evolution audit**: Full sweep against large files, unsafe, hardcoding, mocks, blocking I/O, external deps, clone patterns.
+- **Branch coverage**: 15 new tests targeting under-covered branches (normalize_method, AuthMode, parse_response, discovery_cache, anchor_batch, verify_anchor, get_attribution).
+- **Workspace lints**: `todo`/`unimplemented` denied, `rust-version = "1.85"` added.
+
+### Changed (June 28, 2026 — Wave 128: Convergence)
+
+- **Provenance depth**: `ProvenanceLink.depth` field for Nest provenance depth tracking (5+ links). Sorts by timestamp/index, assigns depth. Matches `PublicChainAnchor` and `CertificateMint` in provenance chain.
+- **BearDog → generic**: BTSP provider terminology cleaned across production doc comments.
+- **Coverage**: 11 new env_resolution tests, 4 new crypto_provider tests.
+
+### Changed (June 20, 2026 — Coverage Push & Config Refresh)
+
+- 31 new tests targeting lowest-coverage files (btsp/frame, provider_client, proof, types).
+- Deploy graph refreshed to 47 methods. benchScale bare health validation added.
+- Coverage: 92.26% line / 89.50% branch / 92.56% region.
+
 ### Changed (June 19, 2026 — Deep Debt Audit & Evolution Pass)
 
 - **Clippy clean (14 errors → 0)**: `duration_suboptimal_units` (7 sites — `from_hours`/`from_secs`), `map_unwrap_or` (6 sites — `map_or`/`is_ok_and`), `unnecessary_trailing_comma` (1), unfulfilled `#[expect]` (2 — cfg-gated on feature/test).

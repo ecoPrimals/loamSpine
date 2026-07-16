@@ -325,7 +325,7 @@ Look for issues labeled `good-first-issue`:
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
 | Lint Exceptions | Zero `#[allow]` in production; all `#[expect(reason)]` or `#[cfg_attr]`-gated |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
-| SPDX Headers | All 199 source files |
+| SPDX Headers | All 204 source files |
 | Source files | 204 `.rs` across workspace (+ 3 fuzz targets) |
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |

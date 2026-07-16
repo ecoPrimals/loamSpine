@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C684%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C697%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92.3%25%20line-brightgreen)]()
 [![Methods](https://img.shields.io/badge/JSON--RPC-47%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()

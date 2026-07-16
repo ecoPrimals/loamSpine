@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: July 15, 2026
+**Last Updated**: July 16, 2026
 
 ---
 
 ## Documentation changelog
+
+- **July 16, 2026** — **Wave 142b: Silicon Atheism Phase 2 + Deep Debt**: Phase 2 transport abstraction — `TransportStream` enum + `connect_transport()` dispatch + NDJSON/length-prefixed framing helpers (`transport/stream.rs`, `transport/framing.rs`). All outbound IPC clients migrated from raw `#[cfg(unix)] UnixStream` to `TransportEndpoint`-based dispatch. Custom 40-line `base64_decode` replaced with workspace `base64` crate. All blocking `std::fs` calls in async functions wrapped in `spawn_blocking`. Clone reduction in `integration.rs` and `handshake.rs` (4 gratuitous `.clone()` eliminated via move semantics). Production doc comments genericized (`biomeOS` → orchestrator). 1,697 tests, 204 source files.
 
 - **July 15, 2026** — **Wave 141a: Cross-Architecture Adoption + Deep Debt Sweep**: All Unix-specific IPC gated behind `#[cfg(unix)]` with non-Unix error stubs (BTSP `ProviderConn`, NeuralAPI `jsonrpc_call`/`register`/`deregister`, crypto `crypto_provider_call`, signals `ctrl_c()` fix). `cargo check --target x86_64-pc-windows-gnu` clean (0 errors, 0 warnings). `integration_tests.rs` split (1002L → 3 focused modules: `spine_ops` 295L, `slice_mgr` 245L, `provenance` 451L). BearDog env aliases (`BEARDOG_FAMILY_SEED`, `BEARDOG_SOCKET`) emit `tracing::warn` deprecation at runtime. `certificate_loan.rs` clone reduction via `take()`. `register_with_neural_api` test tolerates live NeuralAPI socket environments. 1,684 tests, 202 source files.
 
