@@ -1,6 +1,6 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,696 tests, 47 JSON-RPC methods, 204 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
+description = "Permanence ledger — 1,697 tests, 47 JSON-RPC methods, 204 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
 date = 2026-07-15
 
 [taxonomies]
@@ -10,7 +10,7 @@ springs = []
 
 ## Status
 
-- **1,696 tests** (all passing), 0 failures, 0 ignored
+- **1,697 tests** (all passing), 0 failures, 0 ignored
 - **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
 - **204 source files**, ~63,200 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`

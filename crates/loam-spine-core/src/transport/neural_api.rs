@@ -3,7 +3,7 @@
 //! Tower Atomic transport via NeuralAPI HTTP capability routing.
 //!
 //! This transport delegates all HTTP operations to a capability-discovered HTTP provider
-//! through BiomeOS's **NeuralAPI** orchestration layer,
+//! through the **NeuralAPI** orchestration layer,
 //! communicating over a Unix domain socket with JSON-RPC 2.0.
 //!
 //! **Zero C dependencies** — this is the ecoBin-compliant production path.
@@ -94,6 +94,8 @@ impl NeuralApiTransport {
 
     /// Convert a JSON-RPC `http.request` result into a `TransportResponse`.
     fn parse_http_result(result: &serde_json::Value) -> Result<TransportResponse, LoamSpineError> {
+        use base64::Engine as _;
+
         let status = result
             .get("status")
             .and_then(serde_json::Value::as_u64)
@@ -105,10 +107,14 @@ impl NeuralApiTransport {
             })?;
 
         let body = if let Some(b64) = result.get("body").and_then(serde_json::Value::as_str) {
-            use std::io::Read;
-            let decoded = base64_decode(b64)?;
-            let _ = decoded.bytes(); // validate utf8 isn't required
-            decoded
+            base64::engine::general_purpose::STANDARD
+                .decode(b64)
+                .map_err(|e| {
+                    LoamSpineError::ipc(
+                        IpcErrorPhase::InvalidJson,
+                        format!("base64 decode failed: {e}"),
+                    )
+                })?
         } else {
             Vec::new()
         };
@@ -118,49 +124,6 @@ impl NeuralApiTransport {
             body,
         ))
     }
-}
-
-/// Minimal base64 decoder (avoids pulling in a base64 crate).
-///
-/// NeuralAPI encodes HTTP response bodies as standard base64. This handles
-/// the common case; production deployments should validate against the
-/// NeuralAPI response specification.
-fn base64_decode(input: &str) -> Result<Vec<u8>, LoamSpineError> {
-    fn sextet(c: u8) -> Result<u32, LoamSpineError> {
-        match c {
-            b'A'..=b'Z' => Ok(u32::from(c - b'A')),
-            b'a'..=b'z' => Ok(u32::from(c - b'a') + 26),
-            b'0'..=b'9' => Ok(u32::from(c - b'0') + 52),
-            b'+' => Ok(62),
-            b'/' => Ok(63),
-            _ => Err(LoamSpineError::ipc(
-                IpcErrorPhase::InvalidJson,
-                format!("Invalid base64 character: {c}"),
-            )),
-        }
-    }
-
-    let input = input.as_bytes();
-    let mut out = Vec::with_capacity(input.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-
-    for &byte in input {
-        if byte == b'=' || byte == b'\n' || byte == b'\r' {
-            continue;
-        }
-        buf = (buf << 6) | sextet(byte)?;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            // bits ∈ [0,6] after subtraction ⇒ (buf >> bits) ∈ [0,255], fits u8.
-            let byte = u8::try_from(buf >> bits).unwrap_or(0);
-            out.push(byte);
-            buf &= (1 << bits) - 1;
-        }
-    }
-
-    Ok(out)
 }
 
 impl DiscoveryTransport for NeuralApiTransport {

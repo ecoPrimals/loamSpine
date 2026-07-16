@@ -2,7 +2,7 @@
 
 //! Trust event ledger for cross-gate trust establishment.
 //!
-//! When a signing primal (e.g. bearDog) registers a trusted issuer,
+//! When a signing primal registers a trusted issuer,
 //! exchanges keys with a remote gate, or verifies a cross-gate token,
 //! it calls loamSpine to anchor the event as a permanent ledger entry.
 //!

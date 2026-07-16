@@ -54,7 +54,7 @@ impl CommitAcceptor for LoamSpineService {
             session_id: summary.session_id,
             merkle_root: summary.merkle_root,
             vertex_count: summary.vertex_count,
-            committer: committer.clone(),
+            committer,
         });
 
         let entry_hash = spine.append(entry)?;
@@ -120,6 +120,7 @@ impl SliceManager for LoamSpineService {
             holder: holder.clone(),
         });
 
+        let entry_index = entry.index;
         let _checkout_hash = spine.append(checkout_entry)?;
         let appended = spine
             .tip_entry()
@@ -127,12 +128,14 @@ impl SliceManager for LoamSpineService {
         self.entry_storage.save_entry(appended).await?;
         self.spine_storage.save_spine(&spine).await?;
 
+        let owner = spine.owner;
+
         let origin = SliceOrigin {
             spine_id,
             entry_hash,
-            entry_index: entry.index,
+            entry_index,
             certificate_id: None,
-            owner: spine.owner.clone(),
+            owner: owner.clone(),
         };
 
         {
@@ -142,9 +145,9 @@ impl SliceManager for LoamSpineService {
                 super::ActiveSliceInfo {
                     spine_id,
                     entry_hash,
-                    holder: holder.clone(),
-                    entry_index: entry.index,
-                    owner: spine.owner.clone(),
+                    holder,
+                    entry_index,
+                    owner,
                     session_id,
                     checked_out_at: crate::types::Timestamp::now(),
                 },

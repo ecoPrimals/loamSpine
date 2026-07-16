@@ -81,10 +81,6 @@ pub async fn run_jsonrpc_uds_server(
 /// # Errors
 ///
 /// Returns error if the socket cannot be bound.
-#[expect(
-    clippy::unused_async,
-    reason = "async context needed by callers that await shutdown"
-)]
 pub async fn run_jsonrpc_uds_server_with_gate(
     path: impl Into<std::path::PathBuf>,
     service: LoamSpineRpcService,
@@ -94,21 +90,35 @@ pub async fn run_jsonrpc_uds_server_with_gate(
     let path = path.into();
 
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| ServerError::Bind {
-            context: "cannot create socket directory".into(),
-            source: e,
-        })?;
+        let parent = parent.to_owned();
+        tokio::task::spawn_blocking(move || std::fs::create_dir_all(parent))
+            .await
+            .map_err(|e| ServerError::Bind {
+                context: format!("spawn_blocking join: {e}"),
+                source: std::io::Error::other(e.to_string()),
+            })?
+            .map_err(|e| ServerError::Bind {
+                context: "cannot create socket directory".into(),
+                source: e,
+            })?;
     }
 
     // Remove stale socket from a prior crash/shutdown — unconditional to
     // avoid TOCTOU between exists() and remove_file(). NotFound is harmless.
-    match std::fs::remove_file(&path) {
-        Ok(()) => debug!("Removed stale socket at {}", path.display()),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => {
+    let path_for_rm = path.clone();
+    match tokio::task::spawn_blocking(move || std::fs::remove_file(&path_for_rm)).await {
+        Ok(Ok(())) => debug!("Removed stale socket at {}", path.display()),
+        Ok(Err(e)) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Ok(Err(e)) => {
             return Err(ServerError::Bind {
                 context: "cannot remove stale socket".into(),
                 source: e,
+            });
+        }
+        Err(e) => {
+            return Err(ServerError::Bind {
+                context: format!("spawn_blocking join: {e}"),
+                source: std::io::Error::other(e.to_string()),
             });
         }
     }

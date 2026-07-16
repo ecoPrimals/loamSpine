@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: July 15, 2026
+**Last Updated**: July 16, 2026
 
 ---
 
@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,696 (204 source files) |
+| Tests | — | 1,697 (204 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -146,6 +146,16 @@ When loamSpine is unavailable:
 ### ecoBin Grade: A+
 
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
+
+---
+
+### Wave 142b: Silicon Atheism Phase 2 + Deep Debt (July 16, 2026)
+
+- **Phase 2 transport abstraction**: Custom `base64_decode` (40L hand-rolled) replaced with workspace `base64` crate. All outbound IPC clients (`provider_client.rs`, `crypto_provider.rs`, `neural_api.rs`, `neural_api/mod.rs`) migrated to `TransportStream` + framing helpers (prior wave). `urlencoding_encode` retained (14L, no dependency needed).
+- **Async fs hygiene**: All blocking `std::fs` calls in async functions wrapped in `tokio::task::spawn_blocking` — `uds.rs` startup (`create_dir_all`, `remove_file`), `main.rs` PID file write, symlink creation/removal, shutdown cleanup.
+- **Clone reduction**: `integration.rs` and `handshake.rs` — 4 gratuitous `.clone()` calls eliminated via move semantics (partial struct moves, field extraction before last use). `commit_session` committer moved directly. `checkout_slice` owner extracted after save. BTSP session built once, fields borrowed for `HandshakeComplete`.
+- **Doc drift**: Production comments referencing `biomeOS` → generic "orchestrator". `trust_ledger.rs` `"e.g. bearDog"` → `"a signing primal"`.
+- **Metrics**: 1,697 tests, 204 source files, max production 660L (`uds.rs`).
 
 ---
 

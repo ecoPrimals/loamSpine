@@ -214,29 +214,32 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         ));
     }
 
+    let session = BtspSession {
+        session_id,
+        cipher: negotiate.cipher,
+        handshake_key,
+    };
+
     let complete = HandshakeComplete {
         status: "ok".into(),
-        cipher: negotiate.cipher.clone(),
-        session_id: session_id.clone(),
+        cipher: session.cipher.clone(),
+        session_id: session.session_id.clone(),
     };
     let bytes = serialize_btsp_msg(&complete, "HandshakeComplete")?;
     write_frame(writer, &bytes).await?;
 
     debug!(
-        "BTSP: handshake complete (session={session_id}, cipher={}, key={})",
-        negotiate.cipher,
-        if handshake_key.is_some() {
+        "BTSP: handshake complete (session={}, cipher={}, key={})",
+        session.session_id,
+        session.cipher,
+        if session.handshake_key.is_some() {
             "tower-provided"
         } else {
             "none"
         }
     );
 
-    Ok(BtspSession {
-        session_id,
-        cipher: negotiate.cipher,
-        handshake_key,
-    })
+    Ok(session)
 }
 
 /// Serialize a `HandshakeError` and send it as a length-prefixed frame.
@@ -411,28 +414,31 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         ));
     }
 
+    let session = BtspSession {
+        session_id,
+        cipher: negotiate.cipher,
+        handshake_key,
+    };
+
     let complete = HandshakeComplete {
         status: "ok".into(),
-        cipher: negotiate.cipher.clone(),
-        session_id: session_id.clone(),
+        cipher: session.cipher.clone(),
+        session_id: session.session_id.clone(),
     };
     ndjson_send(writer, &complete, "HandshakeComplete").await?;
 
     debug!(
-        "BTSP NDJSON: handshake complete (session={session_id}, cipher={}, key={})",
-        negotiate.cipher,
-        if handshake_key.is_some() {
+        "BTSP NDJSON: handshake complete (session={}, cipher={}, key={})",
+        session.session_id,
+        session.cipher,
+        if session.handshake_key.is_some() {
             "tower-provided"
         } else {
             "none"
         }
     );
 
-    Ok(BtspSession {
-        session_id,
-        cipher: negotiate.cipher,
-        handshake_key,
-    })
+    Ok(session)
 }
 
 /// Send a serialized JSON object followed by `\n` (NDJSON framing).

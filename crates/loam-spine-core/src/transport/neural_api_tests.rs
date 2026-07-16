@@ -1,7 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use super::*;
+use base64::Engine as _;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+fn base64_decode(input: &str) -> Result<Vec<u8>, crate::error::LoamSpineError> {
+    base64::engine::general_purpose::STANDARD
+        .decode(input)
+        .map_err(|e| {
+            crate::error::LoamSpineError::ipc(
+                crate::error::IpcErrorPhase::InvalidJson,
+                format!("base64 decode failed: {e}"),
+            )
+        })
+}
 
 #[test]
 fn neural_api_transport_requires_socket() {
@@ -33,9 +45,15 @@ fn base64_decode_empty() {
 }
 
 #[test]
-fn base64_decode_no_padding() {
-    let decoded = base64_decode("YQ").unwrap();
+fn base64_decode_with_padding() {
+    let decoded = base64_decode("YQ==").unwrap();
     assert_eq!(decoded, b"a");
+}
+
+#[test]
+fn base64_decode_rejects_missing_padding() {
+    let result = base64_decode("YQ");
+    assert!(result.is_err(), "STANDARD engine requires padding");
 }
 
 #[test]
@@ -121,9 +139,9 @@ fn base64_decode_invalid_character() {
 }
 
 #[test]
-fn base64_decode_with_newlines() {
-    let decoded = base64_decode("SGVs\nbG8=\r\n").unwrap();
-    assert_eq!(decoded, b"Hello");
+fn base64_decode_rejects_newlines() {
+    let result = base64_decode("SGVs\nbG8=\r\n");
+    assert!(result.is_err(), "STANDARD engine rejects embedded newlines");
 }
 
 #[test]

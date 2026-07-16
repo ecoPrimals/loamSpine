@@ -29,7 +29,7 @@ pub const PRIMAL_NAME: &str = crate::primal_names::SELF_ID;
 pub const SIGNAL_TIERS: &[&str] = &["nest"];
 
 /// Semantic capability domains for Neural API announce (Wave 43 schema).
-/// These are the high-level routing labels biomeOS uses for `capability.call`.
+/// High-level routing labels the orchestrator uses for `capability.call`.
 pub const ANNOUNCE_CAPABILITIES: &[&str] = &["anchor", "ledger", "permanence"];
 
 /// Per-domain cost hints for Neural API routing weights.
@@ -84,7 +84,7 @@ pub const CAPABILITIES: &[&str] = &[
 
 /// Register LoamSpine with the ecosystem NeuralAPI via `primal.announce`.
 ///
-/// Sends a Wave 43 `primal.announce` JSON-RPC request to biomeOS's NeuralAPI
+/// Sends a Wave 43 `primal.announce` JSON-RPC request to the orchestrator's NeuralAPI
 /// Unix socket. Includes semantic capabilities, signal tiers, cost hints,
 /// latency estimates, and socket path for routing intelligence.
 ///

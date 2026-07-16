@@ -316,13 +316,19 @@ async fn run_server(
     #[cfg(unix)]
     let pid_path = {
         let p = socket_path.with_extension("pid");
-        match std::fs::write(&p, std::process::id().to_string()) {
-            Ok(()) => {
+        let pid_str = std::process::id().to_string();
+        let p_clone = p.clone();
+        match tokio::task::spawn_blocking(move || std::fs::write(&p_clone, pid_str)).await {
+            Ok(Ok(())) => {
                 debug!("PID file written: {}", p.display());
                 Some(p)
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 warn!("Could not write PID file {}: {e}", p.display());
+                None
+            }
+            Err(e) => {
+                warn!("PID file write join error: {e}");
                 None
             }
         }
@@ -340,9 +346,15 @@ async fn run_server(
             family_id.as_deref(),
         );
         if link_path != socket_path {
-            let _ = std::fs::remove_file(&link_path);
-            match std::os::unix::fs::symlink(&socket_path, &link_path) {
-                Ok(()) => {
+            let target = socket_path.clone();
+            let link = link_path.clone();
+            match tokio::task::spawn_blocking(move || {
+                let _ = std::fs::remove_file(&link);
+                std::os::unix::fs::symlink(&target, &link)
+            })
+            .await
+            {
+                Ok(Ok(())) => {
                     info!(
                         "Domain symlink: {} → {}",
                         link_path.display(),
@@ -350,11 +362,15 @@ async fn run_server(
                     );
                     Some(link_path)
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     warn!(
                         "Could not create domain symlink {}: {e}",
                         link_path.display()
                     );
+                    None
+                }
+                Err(e) => {
+                    warn!("Symlink creation join error: {e}");
                     None
                 }
             }
@@ -372,9 +388,15 @@ async fn run_server(
             family_id.as_deref(),
         );
         if link_path != socket_path {
-            let _ = std::fs::remove_file(&link_path);
-            match std::os::unix::fs::symlink(&socket_path, &link_path) {
-                Ok(()) => {
+            let target = socket_path.clone();
+            let link = link_path.clone();
+            match tokio::task::spawn_blocking(move || {
+                let _ = std::fs::remove_file(&link);
+                std::os::unix::fs::symlink(&target, &link)
+            })
+            .await
+            {
+                Ok(Ok(())) => {
                     info!(
                         "Legacy symlink: {} → {}",
                         link_path.display(),
@@ -382,11 +404,15 @@ async fn run_server(
                     );
                     Some(link_path)
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     warn!(
                         "Could not create legacy symlink {}: {e}",
                         link_path.display()
                     );
+                    None
+                }
+                Err(e) => {
+                    warn!("Legacy symlink creation join error: {e}");
                     None
                 }
             }
@@ -448,15 +474,21 @@ async fn run_server(
     #[cfg(unix)]
     {
         drop(uds_handle);
-        if let Some(link) = capability_symlink {
-            let _ = std::fs::remove_file(&link);
-        }
-        if let Some(link) = legacy_symlink {
-            let _ = std::fs::remove_file(&link);
-        }
-        if let Some(ref p) = pid_path {
-            let _ = std::fs::remove_file(p);
-        }
+        let cap = capability_symlink;
+        let leg = legacy_symlink;
+        let pid = pid_path;
+        let _ = tokio::task::spawn_blocking(move || {
+            if let Some(link) = cap {
+                let _ = std::fs::remove_file(&link);
+            }
+            if let Some(link) = leg {
+                let _ = std::fs::remove_file(&link);
+            }
+            if let Some(ref p) = pid {
+                let _ = std::fs::remove_file(p);
+            }
+        })
+        .await;
     }
 
     info!("LoamSpine service stopped");
