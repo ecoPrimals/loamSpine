@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 #![no_main]
+#![forbid(unsafe_code)]
 
 use arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;

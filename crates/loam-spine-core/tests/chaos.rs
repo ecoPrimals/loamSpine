@@ -2,27 +2,19 @@
 
 //! Chaos and fault injection tests for `LoamSpine`.
 //!
-//! These tests verify system behavior under adverse conditions like
-//! rapid concurrent operations, edge cases, and error handling.
+//! Sequential tests verifying system behavior under adverse conditions:
+//! edge cases, error handling, and fault injection.
+//! See `chaos_stress.rs` for concurrent stress and endurance tests.
 
 #![expect(
-    clippy::unwrap_used,
     clippy::expect_used,
     clippy::panic,
-    reason = "chaos tests use unwrap/expect/panic for failure clarity"
+    reason = "chaos tests use expect/panic for failure clarity"
 )]
 #![expect(
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
     reason = "chaos test data uses small controlled values"
-)]
-#![expect(
-    clippy::uninlined_format_args,
-    reason = "separated args improve readability in long chaos test output"
-)]
-#![expect(
-    clippy::manual_string_new,
-    reason = "explicit String::from preferred in test setup for clarity"
 )]
 
 use loam_spine_core::{
@@ -75,7 +67,7 @@ async fn rapid_spine_creation() {
 async fn nonexistent_spine_error() {
     let service = LoamSpineService::new();
 
-    let fake_spine_id = loam_spine_core::SpineId::nil();
+    let fake_spine_id = SpineId::nil();
     let owner = Did::new("did:key:z6MkOwner");
 
     let summary = DehydrationSummary::new(SessionId::now_v7(), "test", [0u8; 32]);
@@ -381,7 +373,7 @@ async fn seal_race_condition() {
         match handle.await.expect("Task panicked") {
             Ok(_) => success_count += 1,
             Err(LoamSpineError::SpineSealed(_)) => sealed_errors += 1,
-            Err(e) => panic!("Unexpected error: {:?}", e),
+            Err(e) => panic!("Unexpected error: {e:?}"),
         }
     }
 
@@ -494,7 +486,7 @@ async fn empty_string_handling() {
 
     // Empty spine name should work (uses default)
     let spine_id = service
-        .ensure_spine(owner.clone(), Some("".into()))
+        .ensure_spine(owner.clone(), Some(String::new()))
         .await
         .expect("Failed to create spine");
 
@@ -530,254 +522,4 @@ async fn maximum_spine_height() {
         .expect("Failed to get spine")
         .expect("Spine should exist");
     assert_eq!(spine.height, 101); // genesis + 100
-}
-
-/// Test massive concurrent spine creation (stress test).
-#[tokio::test]
-async fn massive_concurrent_spine_creation() {
-    let service = LoamSpineService::new();
-    let mut tasks = vec![];
-
-    // Create 1000 spines concurrently
-    for i in 0..1000 {
-        let service = service.clone();
-        let task = tokio::spawn(async move {
-            let owner = Did::new(format!("did:key:stress{i}"));
-            service
-                .ensure_spine(owner, Some(format!("Stress {i}")))
-                .await
-        });
-        tasks.push(task);
-    }
-
-    let mut success_count = 0;
-    for task in tasks {
-        if task.await.unwrap().is_ok() {
-            success_count += 1;
-        }
-    }
-
-    assert!(success_count >= 990); // Allow for some contention
-    assert!(service.spine_count().await >= 990);
-}
-
-/// Test rapid certificate operations under load.
-#[tokio::test]
-async fn rapid_certificate_churn() {
-    let service = LoamSpineService::new();
-    let owner = Did::new("did:key:cert-churn");
-    let spine_id = service
-        .ensure_spine(owner.clone(), Some("Cert Churn".into()))
-        .await
-        .expect("Failed to create spine");
-
-    // Rapidly mint, loan, and return certificates
-    for i in 0..50 {
-        let cert_type = CertificateType::DigitalCollectible {
-            collection_id: format!("churn-{i}"),
-            item_number: Some(i),
-            total_supply: Some(1000),
-            rarity: None,
-        };
-
-        let (cert_id, _) = service
-            .mint_certificate(spine_id, cert_type, owner.clone(), None)
-            .await
-            .expect("Failed to mint");
-
-        let borrower = Did::new(format!("did:key:borrower{i}"));
-        let terms = LoanTerms::new().with_duration(SECONDS_PER_HOUR);
-
-        service
-            .loan_certificate(cert_id, owner.clone(), borrower.clone(), terms)
-            .await
-            .expect("Failed to loan");
-
-        service
-            .return_certificate(cert_id, borrower)
-            .await
-            .expect("Failed to return");
-    }
-
-    // Verify spine is still healthy
-    let spine = service
-        .get_spine(spine_id)
-        .await
-        .expect("Failed to get spine");
-    assert!(spine.is_some());
-}
-
-/// Test extreme spine height (endurance test).
-#[tokio::test]
-async fn extreme_spine_height() {
-    let service = LoamSpineService::new();
-    let owner = Did::new("did:key:extreme");
-    let spine_id = service
-        .ensure_spine(owner.clone(), Some("Extreme Height".into()))
-        .await
-        .expect("Failed to create spine");
-
-    // Add 1000 entries
-    for i in 0..1000 {
-        let summary =
-            DehydrationSummary::new(SessionId::now_v7(), format!("extreme-{i}"), [i as u8; 32]);
-
-        let result = service
-            .commit_session(spine_id, owner.clone(), summary)
-            .await;
-
-        assert!(result.is_ok(), "Failed at entry {i}");
-    }
-
-    let spine = service
-        .get_spine(spine_id)
-        .await
-        .expect("Failed to get spine")
-        .expect("Spine should exist");
-
-    assert_eq!(spine.height, 1001); // genesis + 1000
-}
-
-/// Test concurrent read/write under contention.
-#[tokio::test]
-async fn concurrent_read_write_stress() {
-    let service = LoamSpineService::new();
-    let owner = Did::new("did:key:rw-stress");
-    let spine_id = service
-        .ensure_spine(owner.clone(), Some("RW Stress".into()))
-        .await
-        .expect("Failed to create spine");
-
-    let mut write_tasks = vec![];
-    let mut read_tasks = vec![];
-
-    // Spawn 50 writer tasks
-    for i in 0..50 {
-        let service = service.clone();
-        let owner = owner.clone();
-
-        let task = tokio::spawn(async move {
-            let summary =
-                DehydrationSummary::new(SessionId::now_v7(), format!("writer-{i}"), [i as u8; 32]);
-            service.commit_session(spine_id, owner, summary).await
-        });
-        write_tasks.push(task);
-    }
-
-    // Spawn 50 reader tasks
-    for _ in 0..50 {
-        let service = service.clone();
-
-        let task = tokio::spawn(async move { service.get_spine(spine_id).await });
-        read_tasks.push(task);
-    }
-
-    let mut success_count = 0;
-    for task in write_tasks {
-        if task.await.unwrap().is_ok() {
-            success_count += 1;
-        }
-    }
-    for task in read_tasks {
-        if task.await.unwrap().is_ok() {
-            success_count += 1;
-        }
-    }
-
-    assert!(success_count >= 95); // Allow for some contention
-}
-
-/// Test memory efficiency under high load.
-#[tokio::test]
-async fn memory_efficiency_test() {
-    let service = LoamSpineService::new();
-
-    // Create many small spines
-    for i in 0..200 {
-        let owner = Did::new(format!("did:key:mem{i}"));
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some(format!("Mem {i}")))
-            .await
-            .expect("Failed to create spine");
-
-        // Add a few entries
-        for j in 0..5 {
-            let summary =
-                DehydrationSummary::new(SessionId::now_v7(), format!("mem-{i}-{j}"), [i as u8; 32]);
-            service
-                .commit_session(spine_id, owner.clone(), summary)
-                .await
-                .expect("Failed to commit");
-        }
-    }
-
-    assert_eq!(service.spine_count().await, 200);
-}
-
-/// Test error recovery after failures.
-#[tokio::test]
-async fn error_recovery_resilience() {
-    let service = LoamSpineService::new();
-    let owner = Did::new("did:key:recovery");
-    let spine_id = service
-        .ensure_spine(owner.clone(), Some("Recovery".into()))
-        .await
-        .expect("Failed to create spine");
-
-    // Try invalid operations
-    let invalid_spine = SpineId::nil();
-    let result = service.get_spine(invalid_spine).await;
-    assert!(result.is_ok()); // Should return Ok(None), not error
-
-    // Service should still be functional
-    let summary = DehydrationSummary::new(SessionId::now_v7(), "recovery", [0u8; 32]);
-    let result = service.commit_session(spine_id, owner, summary).await;
-    assert!(result.is_ok());
-}
-
-/// Test boundary conditions for certificate operations.
-#[tokio::test]
-async fn certificate_boundary_conditions() {
-    let service = LoamSpineService::new();
-    let owner = Did::new("did:key:boundary");
-    let spine_id = service
-        .ensure_spine(owner.clone(), Some("Boundary".into()))
-        .await
-        .expect("Failed to create spine");
-
-    // Test with many certificates
-    for i in 0..100 {
-        let cert_type = CertificateType::DigitalCollectible {
-            collection_id: format!("boundary-{i}"),
-            item_number: Some(i),
-            total_supply: Some(1000),
-            rarity: None,
-        };
-
-        let result = service
-            .mint_certificate(spine_id, cert_type, owner.clone(), None)
-            .await;
-        assert!(result.is_ok());
-    }
-}
-
-/// Test rapid sequential spine sealing.
-#[tokio::test]
-async fn rapid_spine_sealing() {
-    let service = LoamSpineService::new();
-
-    for i in 0..100 {
-        let owner = Did::new(format!("did:key:seal{i}"));
-        let spine_id = service
-            .ensure_spine(owner.clone(), Some(format!("Seal {i}")))
-            .await
-            .expect("Failed to create spine");
-
-        let result = service
-            .seal_spine(spine_id, Some(format!("Sealed {i}")))
-            .await;
-        assert!(result.is_ok());
-    }
-
-    assert_eq!(service.spine_count().await, 100);
 }

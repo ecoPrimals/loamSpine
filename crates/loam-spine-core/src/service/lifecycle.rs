@@ -450,3 +450,12 @@ impl Drop for LifecycleManager {
 )]
 #[path = "lifecycle_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "tests use unwrap/expect for conciseness"
+)]
+#[path = "lifecycle_tests_heartbeat.rs"]
+mod tests_heartbeat;

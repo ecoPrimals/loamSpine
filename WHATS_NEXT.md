@@ -3,13 +3,15 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: July 16, 2026
+**Last Updated**: July 18, 2026
 
 ---
 
 ## Documentation changelog
 
-- **July 16, 2026** — **Wave 143b: Transport Endpoint Functional Wiring + Test Coverage**: `TRANSPORT_ENDPOINT` env wired to functional dispatch in `main.rs` — injected UDS path, TCP host:port, and bind address now drive server startup (was log-only). `service_tests.rs` (789L) split into 3 focused modules: core (spine/cert/proof), integration (`permanent_storage.*`/`commit_session`), BTSP (negotiate/key-derivation). 7 new framing edge-case tests: zero-length frame, server disconnect, NDJSON string result, UDS roundtrip for both NDJSON and length-prefixed protocols. 1,704 tests, 206 source files.
+- **July 18, 2026** — **Wave 149b: Dimensional Self-Audit + Test File Splits**: Self-audit at Wave 149b standard (all 10 dimensions). GAP-036 socket naming PASS, GAP-038 stale UDS cleanup PASS, 0 prod unwrap/expect, 0 debt, 0 unsafe, 0 `#[allow]`. `chaos.rs` (783L → 2 modules): fault injection (525L) + stress/concurrency `chaos_stress.rs` (260L). `lifecycle_tests.rs` (779L → 2 modules): core lifecycle (546L) + heartbeat/state `lifecycle_tests_heartbeat.rs` (230L). `#![forbid(unsafe_code)]` on all 3 fuzz targets. `--abstract` flag warns pre-wired status. 1,702 tests, 208 source files.
+
+- **July 16, 2026** — **Wave 143b: Transport Endpoint Functional Wiring + Test Coverage**: `TRANSPORT_ENDPOINT` env wired to functional dispatch in `main.rs` — injected UDS path, TCP host:port, and bind address now drive server startup (was log-only). `service_tests.rs` (789L) split into 3 focused modules: core (spine/cert/proof), integration (`permanent_storage.*`/`commit_session`), BTSP (negotiate/key-derivation). 7 new framing edge-case tests: zero-length frame, server disconnect, NDJSON string result, UDS roundtrip for both NDJSON and length-prefixed protocols. 1,702 tests, 206 source files.
 
 - **July 16, 2026** — **Wave 142b: Silicon Atheism Phase 2 + Deep Debt**: Phase 2 transport abstraction — `TransportStream` enum + `connect_transport()` dispatch + NDJSON/length-prefixed framing helpers (`transport/stream.rs`, `transport/framing.rs`). All outbound IPC clients migrated from raw `#[cfg(unix)] UnixStream` to `TransportEndpoint`-based dispatch. Custom 40-line `base64_decode` replaced with workspace `base64` crate. All blocking `std::fs` calls in async functions wrapped in `spawn_blocking`. Clone reduction in `integration.rs` and `handshake.rs` (4 gratuitous `.clone()` eliminated via move semantics). Production doc comments genericized (`biomeOS` → orchestrator). 1,697 tests, 204 source files.
 

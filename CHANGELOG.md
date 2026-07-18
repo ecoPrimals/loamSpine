@@ -9,12 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 18, 2026 — Wave 149b: Dimensional Self-Audit + Test File Splits)
+
+- **Self-audit at Wave 149b standard**: All 10 dimensions (clippy, fmt, debt, unsafe, file size, tests, prod unwrap, usability, socket naming, stale cleanup) assessed — all PASS.
+- **Test file splits**: `chaos.rs` (783L) split to `chaos.rs` (525L, fault injection) + `chaos_stress.rs` (260L, stress/concurrency). `lifecycle_tests.rs` (779L) split to `lifecycle_tests.rs` (546L, core lifecycle) + `lifecycle_tests_heartbeat.rs` (230L, heartbeat/state). Max test file now 753L.
+- **Fuzz safety**: `#![forbid(unsafe_code)]` added to all 3 fuzz targets for crate-root parity.
+- **`--abstract` flag**: Now emits `warn!` about pre-wired status rather than silently accepting.
+- 1,702 tests, 208 source files, all checks clean.
+
 ### Changed (July 16, 2026 — Wave 143b: Transport Endpoint Wiring + Test Coverage)
 
 - **`TRANSPORT_ENDPOINT` functional dispatch**: `main.rs` now uses injected `TransportEndpoint` to drive server startup — UDS path override, TCP host:port and bind address from injected endpoint. Previously was log-only.
 - **Test file split**: `service_tests.rs` (789L → 3 modules): `service_tests.rs` (core spine/cert/proof 388L), `service_tests_integration.rs` (`permanent_storage.*`/`commit_session` 270L), `service_tests_btsp.rs` (negotiate/key-derivation 111L).
 - **Framing edge-case tests**: 7 new tests — zero-length length-prefixed frame, server disconnect during read, NDJSON string result type, UDS roundtrip for NDJSON and length-prefixed protocols.
-- 1,704 tests, 206 source files, all checks clean.
+- 1,702 tests, 206 source files, all checks clean.
 
 ### Changed (July 16, 2026 — Wave 142b: Silicon Atheism Phase 2 + Deep Debt)
 

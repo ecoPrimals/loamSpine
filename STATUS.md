@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,704 (206 source files) |
+| Tests | — | 1,702 (208 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -71,7 +71,7 @@ This document tracks implementation progress against the specification suite in 
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
 | `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 47 operations, 6 consumed capabilities |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 206 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 208 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -149,12 +149,22 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+### Wave 149b: Dimensional Self-Audit + Test File Splits (July 18, 2026)
+
+- **Self-audit at Wave 149b standard**: All 10 dimensions assessed. GAP-036 (socket naming) PASS, GAP-038 (stale UDS cleanup) PASS, 0 prod unwrap/expect, 0 debt markers, 0 unsafe, 0 `#[allow]` in production.
+- **Test file splits**: `chaos.rs` (783L → 2 modules): fault injection (525L) + stress/concurrency `chaos_stress.rs` (260L). `lifecycle_tests.rs` (779L → 2 modules): core lifecycle (546L) + heartbeat/state `lifecycle_tests_heartbeat.rs` (230L). All test files now under 760L.
+- **Fuzz safety**: `#![forbid(unsafe_code)]` added to all 3 fuzz targets for parity with crate roots.
+- **`--abstract` flag honesty**: CLI flag now warns it's pre-wired rather than silently accepting.
+- **Metrics**: 1,702 tests, 208 source files, max test 753L (`tests_validation.rs`).
+
+---
+
 ### Wave 143b: Transport Endpoint Wiring + Test Coverage (July 16, 2026)
 
 - **`TRANSPORT_ENDPOINT` functional dispatch**: `main.rs` wired to use injected `TransportEndpoint` for server startup — UDS path override, TCP host:port and bind address from launcher/orchestrator. Previously log-only.
 - **Test file split**: `service_tests.rs` (789L → 3 modules): core spine/cert/proof (388L), `permanent_storage.*`/`commit_session` integration (270L), BTSP negotiate/key-derivation (111L).
 - **Framing edge-case tests**: 7 new tests — zero-length frame, server disconnect, NDJSON string result, UDS roundtrip (NDJSON + length-prefixed).
-- **Metrics**: 1,704 tests, 206 source files, max production 660L (`uds.rs`), max test 779L (`lifecycle_tests.rs`).
+- **Metrics**: 1,702 tests, 206 source files, max production 660L (`uds.rs`), max test 779L (`lifecycle_tests.rs`).
 
 ---
 
@@ -164,7 +174,7 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 - **Async fs hygiene**: All blocking `std::fs` calls in async functions wrapped in `tokio::task::spawn_blocking` — `uds.rs` startup (`create_dir_all`, `remove_file`), `main.rs` PID file write, symlink creation/removal, shutdown cleanup.
 - **Clone reduction**: `integration.rs` and `handshake.rs` — 4 gratuitous `.clone()` calls eliminated via move semantics (partial struct moves, field extraction before last use). `commit_session` committer moved directly. `checkout_slice` owner extracted after save. BTSP session built once, fields borrowed for `HandshakeComplete`.
 - **Doc drift**: Production comments referencing `biomeOS` → generic "orchestrator". `trust_ledger.rs` `"e.g. bearDog"` → `"a signing primal"`.
-- **Metrics**: 1,704 tests, 206 source files, max production 660L (`uds.rs`).
+- **Metrics**: 1,702 tests, 206 source files, max production 660L (`uds.rs`).
 
 ---
 

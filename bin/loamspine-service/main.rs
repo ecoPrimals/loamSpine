@@ -211,7 +211,9 @@ async fn run_server(
         info!("  TCP transports: disabled (use --port/--tarpc-port to enable)");
     }
     if abstract_socket {
-        info!("  UDS namespace: abstract (Linux)");
+        warn!(
+            "  --abstract flag accepted but not yet wired (pre-wired for abstract UDS namespace)"
+        );
     }
 
     let service = LoamSpineService::new();
