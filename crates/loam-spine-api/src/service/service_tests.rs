@@ -19,6 +19,69 @@ async fn test_service_creation() {
 }
 
 #[tokio::test]
+async fn health_check_reports_storage_details() {
+    let service = LoamSpineRpcService::default_service();
+    let owner = Did::new("did:key:z6MkHealth");
+    service
+        .create_spine(CreateSpineRequest {
+            name: "health-test".to_string(),
+            owner,
+            config: None,
+        })
+        .await
+        .expect("create should succeed");
+
+    let resp = service
+        .health_check(HealthCheckRequest {
+            include_details: true,
+        })
+        .await
+        .expect("health check should succeed");
+    assert!(matches!(resp.status, HealthStatus::Healthy));
+    let report = resp.report.expect("details should be present");
+    assert!(!report.components.is_empty());
+    let component_text = format!("{:?}", report.components[0]);
+    assert!(component_text.contains("1 spines"));
+}
+
+#[tokio::test]
+async fn readiness_probe_returns_storage_count() {
+    let service = LoamSpineRpcService::default_service();
+    let probe = service.readiness().await.expect("readiness should succeed");
+    assert!(probe.ready);
+    assert!(probe.reason.is_some());
+    let reason = probe.reason.expect("reason should be set");
+    assert!(reason.contains("storage accessible"));
+}
+
+#[tokio::test]
+async fn liveness_probe_returns_alive() {
+    let service = LoamSpineRpcService::default_service();
+    let probe = service.liveness().await;
+    assert_eq!(probe.status, "alive");
+}
+
+#[tokio::test]
+async fn permanence_healthy_reports_counts() {
+    let service = LoamSpineRpcService::default_service();
+    let owner = Did::new("did:key:z6MkPerm");
+    service
+        .create_spine(CreateSpineRequest {
+            name: "perm-test".to_string(),
+            owner,
+            config: None,
+        })
+        .await
+        .expect("create should succeed");
+
+    let val = service.permanence_healthy().await;
+    assert_eq!(val["healthy"], true);
+    assert_eq!(val["spine_count"], 1);
+    assert!(val["entry_count"].as_u64().expect("entry count") >= 1);
+    assert!(val["uptime_s"].as_u64().is_some());
+}
+
+#[tokio::test]
 async fn test_create_and_get_spine() {
     let service = LoamSpineRpcService::default_service();
     let owner = Did::new("did:key:test");

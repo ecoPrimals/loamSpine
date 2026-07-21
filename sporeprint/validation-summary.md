@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,702 tests, 47 JSON-RPC methods, 208 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
-date = 2026-07-18
+description = "Permanence ledger — 1,711 tests, 47 JSON-RPC methods, 208 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
+date = 2026-07-21
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,9 +10,9 @@ springs = []
 
 ## Status
 
-- **1,702 tests** (all passing), 0 failures, 0 ignored
+- **1,711 tests** (all passing), 0 failures, 0 ignored
 - **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
-- **208 source files**, ~63,250 lines of Rust
+- **208 source files**, ~63,470 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
 - **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
@@ -65,6 +65,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Transport | `TransportEndpoint` local impl (wire-compat sourDough standard), `TRANSPORT_ENDPOINT` env acceptance |
 | Trust IPC | `trust.anchor`, `trust.query`, `trust.event_count` — cross-gate trust wiring |
 | Phase 2 Transport (Wave 142b) | `TransportStream` enum + `connect_transport()` dispatch, NDJSON/length-prefixed framing helpers, `base64` crate migration, `spawn_blocking` async fs hygiene |
+| Wave 150t Health Probes | Honest readiness (5s timeout, `ready: false` on lock timeout), honest health_check (`Unhealthy` on timeout), 9 new tests, stale Cargo.toml comment fix |
 | Wave 149b Self-Audit | Dimensional review (10 dims), `chaos.rs`/`lifecycle_tests.rs` splits, fuzz `#![forbid(unsafe_code)]`, `--abstract` flag warning |
 | benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across 44 methods (trust.* pending), live TCP roundtrip |
 | Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 204 source files |

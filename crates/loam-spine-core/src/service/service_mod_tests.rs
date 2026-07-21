@@ -161,3 +161,127 @@ async fn test_with_capabilities() {
     let service = LoamSpineService::with_capabilities(caps);
     assert_eq!(service.spine_count().await, 0);
 }
+
+#[tokio::test]
+async fn prepare_entry_missing_spine() {
+    let service = LoamSpineService::new();
+    let bogus = SpineId::nil();
+    let entry_type = crate::entry::EntryType::MetadataUpdate {
+        field: "f".into(),
+        value: "v".into(),
+    };
+    let result = service.prepare_entry(bogus, entry_type).await;
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        format!("{err}").contains("not found") || matches!(err, LoamSpineError::SpineNotFound(_)),
+    );
+}
+
+#[tokio::test]
+async fn prepare_entry_sealed_spine() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkSealTest");
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Seal".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    service
+        .seal_spine(spine_id, Some("done".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let entry_type = crate::entry::EntryType::MetadataUpdate {
+        field: "f".into(),
+        value: "v".into(),
+    };
+    let result = service.prepare_entry(spine_id, entry_type).await;
+    assert!(result.is_err());
+    assert!(matches!(
+        result.unwrap_err(),
+        LoamSpineError::SpineSealed(_)
+    ));
+}
+
+#[tokio::test]
+async fn prepare_and_append_entry_roundtrip() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkPrepare");
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Prep".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let entry_type = crate::entry::EntryType::MetadataUpdate {
+        field: "key".into(),
+        value: "val".into(),
+    };
+    let entry = service
+        .prepare_entry(spine_id, entry_type)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let entry_with_meta = entry.with_metadata("custom_sig", "abc123");
+
+    let hash = service
+        .append_prepared_entry(spine_id, entry_with_meta)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert_ne!(hash, [0u8; 32]);
+}
+
+#[tokio::test]
+async fn append_prepared_entry_missing_spine() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkAppendGhost");
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Ghost".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let entry_type = crate::entry::EntryType::MetadataUpdate {
+        field: "f".into(),
+        value: "v".into(),
+    };
+    let entry = service
+        .prepare_entry(spine_id, entry_type)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let bogus = SpineId::nil();
+    let result = service.append_prepared_entry(bogus, entry).await;
+    assert!(result.is_err());
+    assert!(matches!(
+        result.unwrap_err(),
+        LoamSpineError::SpineNotFound(_)
+    ));
+}
+
+#[tokio::test]
+async fn append_prepared_entry_sealed_spine() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkAppendSeal");
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Seal".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let entry_type = crate::entry::EntryType::MetadataUpdate {
+        field: "f".into(),
+        value: "v".into(),
+    };
+    let entry = service
+        .prepare_entry(spine_id, entry_type)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    service
+        .seal_spine(spine_id, Some("done".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let result = service.append_prepared_entry(spine_id, entry).await;
+    assert!(result.is_err());
+}

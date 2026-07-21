@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 21, 2026 — Wave 150t: Health Probe Honesty + Entry Path Coverage)
+
+- **Health probe evolution**: `readiness()` now wraps storage probe in 5-second timeout — returns `ready: false` when storage lock times out, instead of hardcoding `ready: true`. `health_check()` now returns `Unhealthy` with component detail on timeout, instead of hardcoding `Healthy`. Both methods now genuinely async.
+- **Entry path test coverage**: 5 new tests for `prepare_entry`/`append_prepared_entry` error paths (tower-signing delegation path).
+- **Health probe tests**: 4 new tests for readiness, liveness, permanence health, and detailed storage reporting.
+- **Stale comment fix**: Cargo.toml `dns-srv` feature comment corrected — `hickory-resolver 0.26` is pure Rust.
+- 1,711 tests, 208 source files, all checks clean.
+
 ### Changed (July 18, 2026 — Wave 149b: Dimensional Self-Audit + Test File Splits)
 
 - **Self-audit at Wave 149b standard**: All 10 dimensions (clippy, fmt, debt, unsafe, file size, tests, prod unwrap, usability, socket naming, stale cleanup) assessed — all PASS.

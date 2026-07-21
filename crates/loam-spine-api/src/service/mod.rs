@@ -114,6 +114,9 @@ impl LoamSpineRpcService {
 
     /// Health check.
     ///
+    /// Queries storage with a 5-second timeout. Returns `Unhealthy` if the
+    /// storage lock times out (indicates deadlock or extreme contention).
+    ///
     /// # Errors
     ///
     /// Returns error if health check fails.
@@ -121,21 +124,37 @@ impl LoamSpineRpcService {
         &self,
         request: HealthCheckRequest,
     ) -> ApiResult<HealthCheckResponse> {
-        let spine_count = {
+        let storage_probe = tokio::time::timeout(std::time::Duration::from_secs(5), async {
             let core = self.core().await;
-            core.spine_count().await
+            (core.spine_count().await, core.entry_count().await)
+        })
+        .await;
+
+        let (status, components) = match storage_probe {
+            Ok((spine_count, entry_count)) => (
+                HealthStatus::Healthy,
+                vec![loam_spine_core::primal::ComponentHealth::healthy(format!(
+                    "storage: {spine_count} spines, {entry_count} entries"
+                ))],
+            ),
+            Err(_) => (
+                HealthStatus::Unhealthy {
+                    reason: "storage check timed out".into(),
+                },
+                vec![loam_spine_core::primal::ComponentHealth::unhealthy(
+                    "storage",
+                    "lock timed out — possible deadlock or extreme contention",
+                )],
+            ),
         };
 
-        let status = HealthStatus::Healthy;
         let report = if request.include_details {
             Some(HealthReport {
                 name: loam_spine_core::primal_names::SELF_ID.to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 status: status.clone(),
                 uptime_secs: Some(self.started_at.elapsed().as_secs()),
-                components: vec![loam_spine_core::primal::ComponentHealth::healthy(format!(
-                    "storage: {spine_count} spines"
-                ))],
+                components,
             })
         } else {
             None
@@ -171,19 +190,29 @@ impl LoamSpineRpcService {
     /// Readiness probe (standard container orchestrator endpoint).
     ///
     /// Returns whether the service is ready for traffic.
+    /// A 5-second timeout on the storage probe prevents hung locks from
+    /// reporting false readiness to orchestrators.
     ///
     /// # Errors
     ///
     /// Returns error if readiness check fails.
     pub async fn readiness(&self) -> ApiResult<crate::health::ReadinessProbe> {
-        let core = self.core().await;
-        let spine_count = core.spine_count().await;
-        drop(core);
-
-        Ok(crate::health::ReadinessProbe {
-            ready: true,
-            reason: Some(format!("storage accessible, {spine_count} spines")),
+        let probe = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            let core = self.core().await;
+            core.spine_count().await
         })
+        .await;
+
+        match probe {
+            Ok(spine_count) => Ok(crate::health::ReadinessProbe {
+                ready: true,
+                reason: Some(format!("storage accessible, {spine_count} spines")),
+            }),
+            Err(_) => Ok(crate::health::ReadinessProbe {
+                ready: false,
+                reason: Some("storage check timed out".into()),
+            }),
+        }
     }
 
     /// Sign an entry via Tower delegation (`crypto.sign_ed25519`).

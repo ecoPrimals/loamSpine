@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: July 18, 2026
+**Last Updated**: July 21, 2026
 
 ---
 
 ## Documentation changelog
+
+- **July 21, 2026** — **Wave 150t: Health Probe Honesty + Entry Path Coverage**: `readiness()` and `health_check()` evolved from hardcoded `ready: true`/`Healthy` to honest storage probes with 5-second timeouts — returns `ready: false` / `Unhealthy` on storage lock timeout. 5 new tests for `prepare_entry`/`append_prepared_entry` error paths (tower-signing delegation). 4 new health probe tests. Stale `ring` comment in Cargo.toml corrected (`hickory-resolver 0.26` is pure Rust). 1,711 tests, 208 source files.
 
 - **July 18, 2026** — **Wave 149b: Dimensional Self-Audit + Test File Splits**: Self-audit at Wave 149b standard (all 10 dimensions). GAP-036 socket naming PASS, GAP-038 stale UDS cleanup PASS, 0 prod unwrap/expect, 0 debt, 0 unsafe, 0 `#[allow]`. `chaos.rs` (783L → 2 modules): fault injection (525L) + stress/concurrency `chaos_stress.rs` (260L). `lifecycle_tests.rs` (779L → 2 modules): core lifecycle (546L) + heartbeat/state `lifecycle_tests_heartbeat.rs` (230L). `#![forbid(unsafe_code)]` on all 3 fuzz targets. `--abstract` flag warns pre-wired status. 1,702 tests, 208 source files.
 

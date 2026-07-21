@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,702 (208 source files) |
+| Tests | — | 1,711 (208 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 800 lines | 660 max production (`uds.rs`); 789 max test file (`service_tests.rs`) |
-| Source files | — | 206 `.rs` files (+ 3 fuzz targets) |
+| Max file size | < 800 lines | 670 max production (`uds.rs`); 753 max test file (`tests_validation.rs`) |
+| Source files | — | 208 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | Zero. All suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`. |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -146,6 +146,16 @@ When loamSpine is unavailable:
 ### ecoBin Grade: A+
 
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
+
+---
+
+### Wave 150t: Health Probe Honesty + Entry Path Coverage (July 21, 2026)
+
+- **Health probe evolution**: `readiness()` now wraps storage probe in 5s timeout — returns `ready: false` on storage lock timeout instead of hardcoding `ready: true`. `health_check()` now reports `Unhealthy` with storage component detail on timeout instead of hardcoding `Healthy`. Both methods now truly async (await timeout).
+- **Entry path test coverage**: 5 new tests for `prepare_entry`/`append_prepared_entry` error paths — missing spine, sealed spine, roundtrip with metadata injection, wrong spine append, append on sealed spine. These are the tower-signing delegation code paths that previously lacked direct unit tests.
+- **Health probe tests**: 4 new tests — storage detail reporting, readiness probe storage count, liveness probe, permanence health endpoint counts.
+- **Stale comment fix**: Cargo.toml `dns-srv` feature comment corrected — `hickory-resolver 0.26` is pure Rust (no `ring` dependency in current tree).
+- **Metrics**: 1,711 tests, 208 source files, ~63,470 lines, all checks clean.
 
 ---
 

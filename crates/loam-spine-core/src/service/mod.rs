@@ -343,5 +343,9 @@ impl LoamSpineService {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "tests use unwrap for concise error inspection"
+)]
 #[path = "service_mod_tests.rs"]
 mod tests;

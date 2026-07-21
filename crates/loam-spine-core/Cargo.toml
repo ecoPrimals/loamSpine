@@ -67,8 +67,8 @@ discovery-http = ["dep:ureq"]
 # This is the ecoBin-compliant production transport — zero C dependencies.
 tower-atomic = []
 # Enable DNS SRV discovery (RFC 2782) for production service discovery.
-# Opt-in: pulls hickory-resolver which transitively depends on `ring` (C/asm).
-# Without this feature, the default build is pure Rust with zero C dependencies.
+# Opt-in: pulls hickory-resolver (pure Rust as of 0.26 — no ring/C dependency).
+# Without this feature, the dependency footprint is smaller.
 dns-srv = ["dep:hickory-resolver"]
 # Enable mDNS-SD local network service discovery (pure Rust, no async runtime dep)
 mdns = ["dep:mdns-sd"]
