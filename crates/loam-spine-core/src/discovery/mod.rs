@@ -129,24 +129,30 @@ impl CapabilityRegistry {
             })?
         };
 
-        if let Ok(services) = client.discover_capability("signing").await
-            && let Some(service) = services.first()
-        {
-            tracing::info!(
-                "Discovered signing service: {} at {}",
-                service.name,
-                service.endpoint
-            );
+        match client.discover_capability("signing").await {
+            Ok(services) if !services.is_empty() => {
+                let service = &services[0];
+                tracing::info!(
+                    "Discovered signing service: {} at {}",
+                    service.name,
+                    service.endpoint
+                );
+            }
+            Ok(_) => tracing::debug!("No signing services discovered"),
+            Err(e) => tracing::debug!("Signing discovery unavailable: {e}"),
         }
 
-        if let Ok(services) = client.discover_capability("verification").await
-            && let Some(service) = services.first()
-        {
-            tracing::info!(
-                "Discovered verification service: {} at {}",
-                service.name,
-                service.endpoint
-            );
+        match client.discover_capability("verification").await {
+            Ok(services) if !services.is_empty() => {
+                let service = &services[0];
+                tracing::info!(
+                    "Discovered verification service: {} at {}",
+                    service.name,
+                    service.endpoint
+                );
+            }
+            Ok(_) => tracing::debug!("No verification services discovered"),
+            Err(e) => tracing::debug!("Verification discovery unavailable: {e}"),
         }
 
         // Discover attestation provider (capability-based discovery)
@@ -415,7 +421,6 @@ impl DiscoveredAttestationProvider {
     ) -> LoamSpineResult<serde_json::Value> {
         use crate::error::IpcErrorPhase;
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-        use tokio::net::TcpStream;
 
         let request = serde_json::json!({
             "jsonrpc": "2.0",
@@ -432,24 +437,25 @@ impl DiscoveredAttestationProvider {
         })?;
 
         let timeout = std::time::Duration::from_secs(5);
-        let mut stream = match tokio::time::timeout(timeout, TcpStream::connect(endpoint)).await {
-            Ok(Ok(s)) => {
-                let _ = s.set_nodelay(true);
-                s
-            }
-            Ok(Err(e)) => {
-                return Err(LoamSpineError::ipc(
-                    IpcErrorPhase::Connect,
-                    format!("attestation provider at {endpoint}: {e}"),
-                ));
-            }
-            Err(_) => {
-                return Err(LoamSpineError::ipc(
-                    IpcErrorPhase::Connect,
-                    format!("attestation provider at {endpoint} timed out"),
-                ));
-            }
-        };
+        let transport_ep = crate::transport::endpoint_from_addr(endpoint)?;
+        let mut stream =
+            match tokio::time::timeout(timeout, crate::transport::connect_transport(&transport_ep))
+                .await
+            {
+                Ok(Ok(s)) => s,
+                Ok(Err(e)) => {
+                    return Err(LoamSpineError::ipc(
+                        IpcErrorPhase::Connect,
+                        format!("attestation provider at {endpoint}: {e}"),
+                    ));
+                }
+                Err(_) => {
+                    return Err(LoamSpineError::ipc(
+                        IpcErrorPhase::Connect,
+                        format!("attestation provider at {endpoint} timed out"),
+                    ));
+                }
+            };
 
         stream.write_all(payload.as_bytes()).await.map_err(|e| {
             LoamSpineError::ipc(IpcErrorPhase::Write, format!("attestation write: {e}"))

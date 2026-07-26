@@ -150,3 +150,52 @@ async fn read_ndjson_stream_skips_empty_lines() {
     assert!(matches!(items[0], StreamItem::Data { .. }));
     assert!(items[1].is_end());
 }
+
+#[tokio::test]
+async fn read_ndjson_stream_bounded_respects_limit() {
+    let mut lines = String::new();
+    for i in 0..10 {
+        lines.push_str(
+            StreamItem::data(serde_json::json!({"i": i}))
+                .to_ndjson_line()
+                .unwrap()
+                .trim_end(),
+        );
+        lines.push('\n');
+    }
+    let mut cursor = std::io::Cursor::new(lines.as_bytes().to_vec());
+    let mut reader = tokio::io::BufReader::new(&mut cursor);
+    let items = super::read_ndjson_stream_bounded(&mut reader, 3)
+        .await
+        .unwrap();
+    assert_eq!(items.len(), 4);
+    assert!(matches!(
+        items[3],
+        StreamItem::Error {
+            recoverable: false,
+            ..
+        }
+    ));
+}
+
+#[tokio::test]
+async fn read_ndjson_stream_bounded_under_limit() {
+    let mut lines = String::new();
+    for i in 0..2 {
+        lines.push_str(
+            StreamItem::data(serde_json::json!({"i": i}))
+                .to_ndjson_line()
+                .unwrap()
+                .trim_end(),
+        );
+        lines.push('\n');
+    }
+    let mut cursor = std::io::Cursor::new(lines.as_bytes().to_vec());
+    let mut reader = tokio::io::BufReader::new(&mut cursor);
+    let items = super::read_ndjson_stream_bounded(&mut reader, 10)
+        .await
+        .unwrap();
+    assert_eq!(items.len(), 2);
+    assert!(matches!(items[0], StreamItem::Data { .. }));
+    assert!(matches!(items[1], StreamItem::Data { .. }));
+}

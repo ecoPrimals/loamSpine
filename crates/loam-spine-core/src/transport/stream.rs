@@ -116,7 +116,9 @@ pub async fn connect_transport(
                         format!("TCP connection to {host}:{port} failed: {e}"),
                     )
                 })?;
-            let _ = stream.set_nodelay(true);
+            if let Err(e) = stream.set_nodelay(true) {
+                tracing::trace!("TCP set_nodelay failed (non-fatal): {e}");
+            }
             Ok(TransportStream::Tcp(stream))
         }
         TransportEndpoint::MeshRelay {
@@ -165,6 +167,27 @@ async fn connect_local(path: &std::path::Path) -> Result<TransportStream, LoamSp
 #[must_use]
 pub fn endpoint_from_path(path: &std::path::Path) -> TransportEndpoint {
     TransportEndpoint::uds(path.to_string_lossy())
+}
+
+/// Parse a `"host:port"` string into a TCP [`TransportEndpoint`].
+///
+/// # Errors
+///
+/// Returns `LoamSpineError::Ipc` if the string cannot be parsed.
+pub fn endpoint_from_addr(addr: &str) -> Result<TransportEndpoint, LoamSpineError> {
+    let (host, port_str) = addr.rsplit_once(':').ok_or_else(|| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Connect,
+            format!("invalid address (expected host:port): {addr}"),
+        )
+    })?;
+    let port: u16 = port_str.parse().map_err(|e| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Connect,
+            format!("invalid port in {addr}: {e}"),
+        )
+    })?;
+    Ok(TransportEndpoint::tcp(host, port))
 }
 
 #[cfg(test)]
@@ -276,5 +299,27 @@ mod tests {
         assert_eq!(&buf, b"pong");
 
         server.await.unwrap();
+    }
+
+    #[test]
+    fn endpoint_from_addr_valid_ipv4() {
+        let ep = endpoint_from_addr("192.168.1.1:8080").unwrap();
+        assert_eq!(ep, TransportEndpoint::tcp("192.168.1.1", 8080));
+    }
+
+    #[test]
+    fn endpoint_from_addr_valid_localhost() {
+        let ep = endpoint_from_addr("localhost:9001").unwrap();
+        assert_eq!(ep, TransportEndpoint::tcp("localhost", 9001));
+    }
+
+    #[test]
+    fn endpoint_from_addr_missing_port() {
+        assert!(endpoint_from_addr("192.168.1.1").is_err());
+    }
+
+    #[test]
+    fn endpoint_from_addr_invalid_port() {
+        assert!(endpoint_from_addr("localhost:xyz").is_err());
     }
 }

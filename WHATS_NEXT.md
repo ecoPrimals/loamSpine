@@ -9,6 +9,8 @@
 
 ## Recent Changes
 
+- **July 26, 2026** — **Wave 151c: TransportEndpoint Compliance + Deep Debt**: Evolved `sync/mod.rs` and `discovery/mod.rs` from raw `TcpStream::connect` to `connect_transport(&TransportEndpoint)` — all outbound IPC now routes through platform-abstracted transport. `endpoint_from_addr()` parser added. Error swallowing fixed: discovery capability failures now log at debug level, progress channel drops traced. `set_nodelay` failures traced instead of silently ignored. Dead `let _ = &request_line` borrow removed from HTTP server. 11 new tests: `generate_aggregate_proof` coverage (5), `read_ndjson_stream_bounded` (2), `endpoint_from_addr` parsing (4). 1,731 tests, 210 source files.
+
 - **July 26, 2026** — **Wave 151b: BTSP ClientHello Handshake**: Implemented BTSP client-side 4-step handshake following songBird reference. Local HMAC-SHA256 challenge-response with family seed. Wired into `crypto_provider_call` (Tower signer) and `ProviderConn` (BTSP provider relay). `hmac 0.13` added. 5 new integration tests (mock bearDog server). Seed resolution aligned to songBird standard (`FAMILY_SEED` first). 1,723 tests, 210 source files.
 
 - **July 21, 2026** — **Wave 150t: Health Probe Honesty + Entry Path Coverage**: `readiness()` and `health_check()` evolved from hardcoded `ready: true`/`Healthy` to honest storage probes with 5-second timeouts — returns `ready: false` / `Unhealthy` on storage lock timeout. 5 new tests for `prepare_entry`/`append_prepared_entry` error paths (tower-signing delegation). 4 new health probe tests. Stale `ring` comment in Cargo.toml corrected (`hickory-resolver 0.26` is pure Rust). 1,711 tests, 208 source files.

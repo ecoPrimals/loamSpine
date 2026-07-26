@@ -299,7 +299,6 @@ where
             buf_reader.read_exact(&mut body).await?;
         }
 
-        let _ = &request_line;
         let response_body = process_request(handler, &body).await;
 
         let connection_header = if client_wants_close {

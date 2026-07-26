@@ -469,3 +469,65 @@ fn history_summary_zero_defaults() {
     assert_eq!(summary.loan_count, 0);
     assert_eq!(summary.age_nanos, 0);
 }
+
+#[test]
+fn aggregate_proof_single_leaf() {
+    let leaf = crate::types::hash_bytes(b"leaf-0");
+    let proof = generate_aggregate_proof(&[leaf], 0).expect("single leaf");
+    assert_eq!(proof.leaf, leaf);
+    assert_eq!(proof.leaf_index, 0);
+    assert!(proof.siblings.is_empty());
+}
+
+#[test]
+fn aggregate_proof_two_leaves_roundtrip() {
+    let leaves: Vec<_> = (0..2)
+        .map(|i| crate::types::hash_bytes(format!("leaf-{i}").as_bytes()))
+        .collect();
+
+    for idx in 0..2 {
+        let proof = generate_aggregate_proof(&leaves, idx).expect("two leaves");
+        assert_eq!(proof.leaf, leaves[idx]);
+        assert_eq!(proof.leaf_index, idx);
+        assert_eq!(proof.siblings.len(), 1);
+    }
+}
+
+#[test]
+fn aggregate_proof_four_leaves_verifiable() {
+    let leaves: Vec<_> = (0..4)
+        .map(|i| crate::types::hash_bytes(format!("leaf-{i}").as_bytes()))
+        .collect();
+
+    for idx in 0..4 {
+        let proof = generate_aggregate_proof(&leaves, idx).expect("four leaves");
+        assert_eq!(proof.leaf, leaves[idx]);
+        assert_eq!(proof.leaf_index, idx);
+        assert_eq!(proof.siblings.len(), 2);
+    }
+}
+
+#[test]
+fn aggregate_proof_out_of_bounds_returns_none() {
+    let leaves: Vec<_> = (0..3)
+        .map(|i| crate::types::hash_bytes(format!("leaf-{i}").as_bytes()))
+        .collect();
+
+    assert!(generate_aggregate_proof(&leaves, 3).is_none());
+    assert!(generate_aggregate_proof(&leaves, 100).is_none());
+    assert!(generate_aggregate_proof(&[], 0).is_none());
+}
+
+#[test]
+fn aggregate_proof_odd_leaf_count() {
+    let leaves: Vec<_> = (0..5)
+        .map(|i| crate::types::hash_bytes(format!("leaf-{i}").as_bytes()))
+        .collect();
+
+    for idx in 0..5 {
+        let proof = generate_aggregate_proof(&leaves, idx).expect("five leaves");
+        assert_eq!(proof.leaf, leaves[idx]);
+        assert_eq!(proof.leaf_index, idx);
+        assert_eq!(proof.siblings.len(), 3);
+    }
+}

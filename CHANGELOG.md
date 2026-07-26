@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 26, 2026 — Wave 151c: TransportEndpoint Compliance + Deep Debt)
+
+- **TransportEndpoint compliance**: `sync/mod.rs` and `discovery/mod.rs` evolved from raw `TcpStream::connect` to `connect_transport(&TransportEndpoint)` — all outbound IPC now routes through platform-abstracted transport dispatch (UDS/TCP/mesh_relay).
+- **New helper**: `endpoint_from_addr("host:port")` parses address strings into `TransportEndpoint::Tcp`.
+- **Error visibility**: Discovery capability failures now log at debug level instead of being silently swallowed. Progress channel drops traced. TCP `set_nodelay` failures traced instead of `let _ =` ignored.
+- **Dead code removal**: Stale `let _ = &request_line` borrow removed from HTTP server.
+- **11 new tests**: `generate_aggregate_proof` Merkle tree coverage (5), `read_ndjson_stream_bounded` backpressure (2), `endpoint_from_addr` parsing (4).
+- 1,731 tests, 210 source files, all checks clean.
+
 ### Changed (July 26, 2026 — Wave 151b: BTSP ClientHello Handshake)
 
 - **BTSP client-side handshake**: 4-step `ClientHello` → `ServerHello` → `ChallengeResponse` → `HandshakeComplete` following songBird reference. Local HMAC-SHA256 challenge-response with family seed.

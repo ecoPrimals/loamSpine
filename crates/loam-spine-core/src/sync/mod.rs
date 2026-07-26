@@ -28,7 +28,6 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
 use tokio::sync::RwLock;
 use tracing::{debug, warn};
 
@@ -143,25 +142,27 @@ impl SyncEngine {
             )
         })?;
 
-        let mut stream =
-            match tokio::time::timeout(self.connect_timeout, TcpStream::connect(endpoint)).await {
-                Ok(Ok(s)) => {
-                    let _ = s.set_nodelay(true);
-                    s
-                }
-                Ok(Err(e)) => {
-                    return Err(LoamSpineError::ipc(
-                        IpcErrorPhase::Connect,
-                        format!("sync peer {endpoint}: {e}"),
-                    ));
-                }
-                Err(_) => {
-                    return Err(LoamSpineError::ipc(
-                        IpcErrorPhase::Connect,
-                        format!("sync peer {endpoint} timed out"),
-                    ));
-                }
-            };
+        let transport_ep = crate::transport::endpoint_from_addr(endpoint)?;
+        let mut stream = match tokio::time::timeout(
+            self.connect_timeout,
+            crate::transport::connect_transport(&transport_ep),
+        )
+        .await
+        {
+            Ok(Ok(s)) => s,
+            Ok(Err(e)) => {
+                return Err(LoamSpineError::ipc(
+                    IpcErrorPhase::Connect,
+                    format!("sync peer {endpoint}: {e}"),
+                ));
+            }
+            Err(_) => {
+                return Err(LoamSpineError::ipc(
+                    IpcErrorPhase::Connect,
+                    format!("sync peer {endpoint} timed out"),
+                ));
+            }
+        };
 
         let len = u32::try_from(request_bytes.len()).map_err(|_| {
             LoamSpineError::ipc(IpcErrorPhase::Write, "sync request payload too large")

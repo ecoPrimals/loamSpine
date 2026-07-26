@@ -34,9 +34,13 @@ impl SyncEngine {
         let endpoint = self.best_peer_endpoint().await?;
         let entry_count = u64::try_from(entries.len()).unwrap_or(u64::MAX);
 
-        let _ = progress
+        if progress
             .send(StreamItem::progress(0, Some(entry_count)))
-            .await;
+            .await
+            .is_err()
+        {
+            tracing::trace!("sync progress receiver dropped before push start");
+        }
 
         let push_result = self.push_to_peer(&endpoint, spine_id, &entries).await;
 
@@ -54,10 +58,12 @@ impl SyncEngine {
                     "Pushed {} entries to peer {} for spine {}",
                     result.accepted, endpoint, spine_id
                 );
-                let _ = progress
-                    .send(StreamItem::progress(result.accepted, Some(entry_count)))
-                    .await;
-                let _ = progress.send(StreamItem::end()).await;
+                drop(
+                    progress
+                        .send(StreamItem::progress(result.accepted, Some(entry_count)))
+                        .await,
+                );
+                drop(progress.send(StreamItem::end()).await);
                 Ok(result)
             }
             Err(e) => {
@@ -65,10 +71,12 @@ impl SyncEngine {
                     "Streaming push to {} failed (entries queued locally): {e}",
                     endpoint
                 );
-                let _ = progress
-                    .send(StreamItem::error(format!("push to {endpoint}: {e}")))
-                    .await;
-                let _ = progress.send(StreamItem::end()).await;
+                drop(
+                    progress
+                        .send(StreamItem::error(format!("push to {endpoint}: {e}")))
+                        .await,
+                );
+                drop(progress.send(StreamItem::end()).await);
                 Ok(SyncResult {
                     accepted: entry_count,
                     rejected: 0,
@@ -91,7 +99,7 @@ impl SyncEngine {
         progress: &tokio::sync::mpsc::Sender<StreamItem>,
     ) -> LoamSpineResult<Vec<Entry>> {
         let endpoint = self.best_peer_endpoint().await?;
-        let _ = progress.send(StreamItem::progress(0, None)).await;
+        drop(progress.send(StreamItem::progress(0, None)).await);
 
         match self
             .pull_from_peer(&endpoint, spine_id, from_index, limit)
@@ -105,10 +113,12 @@ impl SyncEngine {
                     endpoint,
                     spine_id
                 );
-                let _ = progress
-                    .send(StreamItem::progress(count, Some(count)))
-                    .await;
-                let _ = progress.send(StreamItem::end()).await;
+                drop(
+                    progress
+                        .send(StreamItem::progress(count, Some(count)))
+                        .await,
+                );
+                drop(progress.send(StreamItem::end()).await);
                 Ok(entries)
             }
             Err(e) => {
@@ -116,10 +126,12 @@ impl SyncEngine {
                     "Streaming pull from {} failed, returning local queue: {e}",
                     endpoint
                 );
-                let _ = progress
-                    .send(StreamItem::error(format!("pull from {endpoint}: {e}")))
-                    .await;
-                let _ = progress.send(StreamItem::end()).await;
+                drop(
+                    progress
+                        .send(StreamItem::error(format!("pull from {endpoint}: {e}")))
+                        .await,
+                );
+                drop(progress.send(StreamItem::end()).await);
                 let limit_usize = usize::try_from(limit).unwrap_or(usize::MAX);
                 let states = self.spine_states.read().await;
                 Ok(states.get(&spine_id).map_or_else(Vec::new, |state| {
