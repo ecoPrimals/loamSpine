@@ -120,7 +120,7 @@ loamSpine/
 │           └── error.rs       # API errors
 ├── config/                    # capability_registry.toml (biomeOS runtime overlay)
 ├── specs/                     # 14 specification documents
-├── infra/benchScale/          # 52-validation TCP roundtrip harness
+├── infra/benchScale/          # 20-phase, 44-method TCP roundtrip harness
 └── fuzz/                      # Fuzz testing targets
 ```
 
@@ -208,11 +208,11 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,723 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,731 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 92.26% line / 89.50% branch / 92.56% region (llvm-cov) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
-| **Lint Exceptions** | Zero `#[allow]` in production; all lint suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`; 4 `#[expect(dead_code)]` for pre-wired strandGate deploy entry points |
+| **Lint Exceptions** | 2 `#![allow(clippy::wildcard_imports)]` (tarpc macro requirement, unfulfillable with `expect`); all other suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated; 3 `#[expect(dead_code)]` for pre-wired BTSP wire fields |
 | **Max File Size** | 670 max production (`uds.rs`); 753 max test file (`tests_validation.rs`) |
 | **Source Files** | 210 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |

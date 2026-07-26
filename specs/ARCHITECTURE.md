@@ -351,7 +351,7 @@ loamSpine/
 │
 ├── fuzz/                         # cargo-fuzz targets (separate workspace)
 ├── specs/                        # Specifications
-├── infra/benchScale/             # 52-validation TCP roundtrip harness
+├── infra/benchScale/             # 20-phase, 44-method TCP roundtrip harness
 └── graphs/                       # Deploy graph (biomeOS TOML)
 ```
 

@@ -323,7 +323,7 @@ Look for issues labeled `good-first-issue`:
 | Max File Size | 670 max production (`uds.rs`); 753 max test file (`tests_validation.rs`) |
 | Clippy | pedantic + nursery + `missing_const_for_fn` (0 warnings) |
 | Unsafe Code | 0 (`#![forbid(unsafe_code)]`) |
-| Lint Exceptions | Zero `#[allow]` in production; all `#[expect(reason)]` or `#[cfg_attr]`-gated |
+| Lint Exceptions | 2 `#![allow]` (tarpc macro, unfulfillable with `expect`); all others `#[expect(reason)]` or `#[cfg_attr]`-gated |
 | License | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | SPDX Headers | All 210 source files |
 | Source files | 210 `.rs` across workspace (+ 3 fuzz targets) |

@@ -17,7 +17,7 @@ springs = []
 - **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
 - **BTSP Phase 2+3** — ClientHello handshake (client + server), ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
-- **Zero DEBT markers**, zero `#[allow]` in production (all evolved to `#[expect(reason)]` or `#[cfg_attr]`-gated)
+- **Zero DEBT markers**; 2 `#![allow(clippy::wildcard_imports)]` (tarpc macro, unfulfillable with `expect`); all other suppressions `#[expect(reason)]` or `#[cfg_attr]`-gated
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
 - **Stability tiers**: 41 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
 
@@ -68,7 +68,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Wave 151b BTSP Client | ClientHello handshake (4-step, HMAC-SHA256), wired into crypto_provider_call + ProviderConn, hmac 0.13, 9 new tests |
 | Wave 150t Health Probes | Honest readiness (5s timeout, `ready: false` on lock timeout), honest health_check (`Unhealthy` on timeout), 9 new tests, stale Cargo.toml comment fix |
 | Wave 149b Self-Audit | Dimensional review (10 dims), `chaos.rs`/`lifecycle_tests.rs` splits, fuzz `#![forbid(unsafe_code)]`, `--abstract` flag warning |
-| benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across 44 methods (trust.* pending), live TCP roundtrip |
+| benchScale | `infra/benchScale/validate_roundtrip.sh` — 20 phases, 44 methods (trust.* pending), live TCP roundtrip |
 | Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 204 source files |
 | Wave 47 | Deployment behavioral convergence — `serve`→`server` fix, `LOAMSPINE_DISCOVERY_ENABLED` env gate, `lifecycle.status` `uptime_s` |
 | Wave 43 | Neural API `primal.announce` adoption — startup announce with capabilities, signal_tiers, cost_hints, latency_estimates |
