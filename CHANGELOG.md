@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 26, 2026 — Wave 151b: BTSP ClientHello Handshake)
+
+- **BTSP client-side handshake**: 4-step `ClientHello` → `ServerHello` → `ChallengeResponse` → `HandshakeComplete` following songBird reference. Local HMAC-SHA256 challenge-response with family seed.
+- **Outbound connection wiring**: Handshake wired into both `crypto_provider_call` (Tower signer) and `ProviderConn::connect` (BTSP provider relay). When `BEARDOG_UDS_REQUIRE_BTSP=1`, outbound connections to bearDog perform handshake before JSON-RPC.
+- **Seed resolution fix**: Aligned to songBird standard (`FAMILY_SEED` → `BTSP_FAMILY_SEED` → `BEARDOG_FAMILY_SEED`).
+- **New dependency**: `hmac 0.13` (digest 0.11 family, compatible with sha2 0.11).
+- **5 new integration tests**: Mock bearDog server validates full handshake (success, rejection, no seed, error on hello, server disconnect).
+- 1,723 tests, 210 source files, all checks clean.
+
 ### Changed (July 21, 2026 — Wave 150t: Health Probe Honesty + Entry Path Coverage)
 
 - **Health probe evolution**: `readiness()` now wraps storage probe in 5-second timeout — returns `ready: false` when storage lock times out, instead of hardcoding `ready: true`. `health_check()` now returns `Unhealthy` with component detail on timeout, instead of hardcoding `Healthy`. Both methods now genuinely async.

@@ -101,11 +101,10 @@ pub enum BtspClientError {
 
 /// Resolve the raw family seed from environment.
 ///
-/// Priority: `BTSP_FAMILY_SEED` > `FAMILY_SEED` > `BIOMEOS_FAMILY_SEED`.
+/// Uses the shared env resolution chain (`FAMILY_SEED` → `BTSP_FAMILY_SEED`
+/// → `BEARDOG_FAMILY_SEED`), matching songBird standard priority.
 fn resolve_family_seed_raw() -> Option<String> {
-    std::env::var("BTSP_FAMILY_SEED")
-        .or_else(|_| std::env::var("FAMILY_SEED"))
-        .or_else(|_| std::env::var("BIOMEOS_FAMILY_SEED"))
+    crate::constants::env_resolution::family_seed()
         .ok()
         .filter(|s| !s.trim().is_empty())
 }
@@ -235,6 +234,10 @@ pub async fn perform_client_handshake(
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "tests use unwrap for concise assertions"
+)]
 mod tests {
     use super::*;
 

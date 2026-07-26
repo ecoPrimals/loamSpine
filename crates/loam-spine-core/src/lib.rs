@@ -63,6 +63,9 @@
 pub mod backup;
 pub mod btsp;
 pub mod btsp_client;
+#[cfg(test)]
+#[path = "btsp_client_tests.rs"]
+mod btsp_client_tests;
 pub mod capabilities;
 pub mod certificate;
 pub mod config;

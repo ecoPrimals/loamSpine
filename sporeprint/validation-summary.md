@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,711 tests, 47 JSON-RPC methods, 208 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
-date = 2026-07-21
+description = "Permanence ledger — 1,723 tests, 47 JSON-RPC methods, 210 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint adoption, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
+date = 2026-07-26
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,12 +10,12 @@ springs = []
 
 ## Status
 
-- **1,711 tests** (all passing), 0 failures, 0 ignored
+- **1,723 tests** (all passing), 0 failures, 0 ignored
 - **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
-- **208 source files**, ~63,470 lines of Rust
+- **210 source files**, ~64,120 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
-- **BTSP Phase 3** — ChaCha20-Poly1305 AEAD, capability-discovered handshake key
+- **BTSP Phase 2+3** — ClientHello handshake (client + server), ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
 - **Zero DEBT markers**, zero `#[allow]` in production (all evolved to `#[expect(reason)]` or `#[cfg_attr]`-gated)
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
@@ -65,6 +65,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Transport | `TransportEndpoint` local impl (wire-compat sourDough standard), `TRANSPORT_ENDPOINT` env acceptance |
 | Trust IPC | `trust.anchor`, `trust.query`, `trust.event_count` — cross-gate trust wiring |
 | Phase 2 Transport (Wave 142b) | `TransportStream` enum + `connect_transport()` dispatch, NDJSON/length-prefixed framing helpers, `base64` crate migration, `spawn_blocking` async fs hygiene |
+| Wave 151b BTSP Client | ClientHello handshake (4-step, HMAC-SHA256), wired into crypto_provider_call + ProviderConn, hmac 0.13, 9 new tests |
 | Wave 150t Health Probes | Honest readiness (5s timeout, `ready: false` on lock timeout), honest health_check (`Unhealthy` on timeout), 9 new tests, stale Cargo.toml comment fix |
 | Wave 149b Self-Audit | Dimensional review (10 dims), `chaos.rs`/`lifecycle_tests.rs` splits, fuzz `#![forbid(unsafe_code)]`, `--abstract` flag warning |
 | benchScale | `infra/benchScale/validate_roundtrip.sh` — 52 validations across 44 methods (trust.* pending), live TCP roundtrip |

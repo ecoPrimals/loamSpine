@@ -2,24 +2,30 @@
 
 //! BTSP (Bonded Tunnel Secure Protocol) handshake integration.
 //!
-//! Implements the **consumer side** of BTSP Phase 2 for LoamSpine's UDS listener.
-//! LoamSpine does NOT implement cryptographic operations directly — all crypto
-//! is delegated to the BTSP provider via JSON-RPC ("handshake-as-a-service").
+//! Implements both **server-side** and **client-side** BTSP Phase 2 handshakes.
+//! Server-side delegates crypto to the BTSP provider via JSON-RPC. Client-side
+//! (in [`super::btsp_client`]) computes HMAC-SHA256 locally for outbound
+//! connections to bearDog/Tower.
 //!
 //! ## Architecture
+//!
+//! ### Server-side (incoming connections)
 //!
 //! ```text
 //! Client ──connect──▶ LoamSpine UDS
 //!                        │
-//!                        ├─ Read ClientHello (length-prefixed frame)
-//!                        ├─ Call BTSP provider btsp.session.create → get server keys
+//!                        ├─ Read ClientHello
+//!                        ├─ Call BTSP provider btsp.session.create
 //!                        ├─ Send ServerHello to client
-//!                        ├─ Read ChallengeResponse from client
-//!                        ├─ Call BTSP provider btsp.session.verify → verify HMAC
-//!                        ├─ Call BTSP provider btsp.negotiate → cipher suite
-//!                        ├─ Send HandshakeComplete / HandshakeError
-//!                        └─ Return BtspSession on success
+//!                        ├─ Read ChallengeResponse → btsp.session.verify
+//!                        ├─ Call btsp.negotiate → HandshakeComplete
+//!                        └─ Return BtspSession
 //! ```
+//!
+//! ### Client-side (outbound to bearDog)
+//!
+//! See [`super::btsp_client`] — wired into `crypto_provider_call` and
+//! `ProviderConn::connect`.
 //!
 //! ## Module Structure
 //!

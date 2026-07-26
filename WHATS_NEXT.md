@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: July 21, 2026
+**Last Updated**: July 26, 2026
 
 ---
 
 ## Recent Changes
+
+- **July 26, 2026** — **Wave 151b: BTSP ClientHello Handshake**: Implemented BTSP client-side 4-step handshake following songBird reference. Local HMAC-SHA256 challenge-response with family seed. Wired into `crypto_provider_call` (Tower signer) and `ProviderConn` (BTSP provider relay). `hmac 0.13` added. 5 new integration tests (mock bearDog server). Seed resolution aligned to songBird standard (`FAMILY_SEED` first). 1,723 tests, 210 source files.
 
 - **July 21, 2026** — **Wave 150t: Health Probe Honesty + Entry Path Coverage**: `readiness()` and `health_check()` evolved from hardcoded `ready: true`/`Healthy` to honest storage probes with 5-second timeouts — returns `ready: false` / `Unhealthy` on storage lock timeout. 5 new tests for `prepare_entry`/`append_prepared_entry` error paths (tower-signing delegation). 4 new health probe tests. Stale `ring` comment in Cargo.toml corrected (`hickory-resolver 0.26` is pure Rust). 1,711 tests, 208 source files.
 

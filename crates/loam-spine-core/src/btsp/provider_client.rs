@@ -34,9 +34,23 @@ pub(crate) struct ProviderConn {
 
 impl ProviderConn {
     /// Connect to the BTSP provider socket.
+    ///
+    /// When BTSP strict mode is expected, performs a `ClientHello`
+    /// handshake before returning the connection. Falls back to plain
+    /// connection on handshake failure.
     pub(crate) async fn connect(socket: &Path) -> Result<Self, LoamSpineError> {
         let endpoint = crate::transport::endpoint_from_path(socket);
-        let stream = crate::transport::connect_transport(&endpoint).await?;
+        let mut stream = crate::transport::connect_transport(&endpoint).await?;
+
+        if crate::btsp_client::btsp_strict_mode_expected()
+            && let Err(e) = crate::btsp_client::perform_client_handshake(&mut stream).await
+        {
+            tracing::warn!(
+                error = %e,
+                "BTSP client handshake to provider failed — proceeding with plain JSON-RPC"
+            );
+        }
+
         let (reader, writer) = stream.split();
         Ok(Self {
             reader: tokio::io::BufReader::new(reader),
