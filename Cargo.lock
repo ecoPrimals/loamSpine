@@ -1255,6 +1255,7 @@ dependencies = [
  "getrandom 0.4.2",
  "hickory-resolver",
  "hkdf",
+ "hmac",
  "mdns-sd",
  "proptest",
  "redb",

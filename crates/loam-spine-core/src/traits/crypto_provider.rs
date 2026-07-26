@@ -174,12 +174,23 @@ async fn crypto_provider_call<R: serde::de::DeserializeOwned>(
     params: serde_json::Value,
     request_id: u64,
 ) -> Result<R, LoamSpineError> {
+    use crate::btsp_client::{btsp_strict_mode_expected, perform_client_handshake};
     use crate::transport::{
         DEFAULT_IPC_TIMEOUT, connect_transport, endpoint_from_path, ndjson_rpc_call,
     };
 
     let endpoint = endpoint_from_path(socket);
-    let stream = connect_transport(&endpoint).await?;
+    let mut stream = connect_transport(&endpoint).await?;
+
+    if btsp_strict_mode_expected()
+        && let Err(e) = perform_client_handshake(&mut stream).await
+    {
+        tracing::warn!(
+            error = %e,
+            "BTSP client handshake failed — proceeding with plain JSON-RPC"
+        );
+    }
+
     ndjson_rpc_call(
         stream,
         method,

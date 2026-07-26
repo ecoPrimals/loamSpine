@@ -62,6 +62,7 @@
 // Core modules
 pub mod backup;
 pub mod btsp;
+pub mod btsp_client;
 pub mod capabilities;
 pub mod certificate;
 pub mod config;
