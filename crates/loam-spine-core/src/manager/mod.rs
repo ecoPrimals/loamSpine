@@ -18,9 +18,11 @@ use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::spine::Spine;
 use crate::types::{CertificateId, Did, EntryHash, Timestamp};
 
-/// Certificate manager for a spine.
+/// Certificate manager for a spine (legacy).
 ///
-/// Provides operations for minting, transferring, loaning, and returning certificates.
+/// **Superseded** by [`crate::service::LoamSpineService`]. This is a legacy
+/// in-memory implementation that predates the async storage-backed service.
+/// Retained for test reference only; will be removed in 0.10.
 pub struct CertificateManager {
     /// The underlying spine.
     spine: Spine,

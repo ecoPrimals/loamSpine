@@ -109,14 +109,19 @@ fn resolve_family_seed_raw() -> Option<String> {
         .filter(|s| !s.trim().is_empty())
 }
 
-/// Check whether BTSP strict mode is expected (bearDog requires handshake).
+/// Check whether BTSP strict mode is expected (Tower requires handshake).
 ///
-/// Returns `true` if `BEARDOG_UDS_REQUIRE_BTSP=1` or `BTSP_STRICT_MODE=1`.
+/// Priority: `BTSP_STRICT_MODE` (canonical) > `BEARDOG_UDS_REQUIRE_BTSP` (deprecated).
 #[must_use]
 pub fn btsp_strict_mode_expected() -> bool {
-    std::env::var("BEARDOG_UDS_REQUIRE_BTSP")
-        .or_else(|_| std::env::var("BTSP_STRICT_MODE"))
-        .is_ok_and(|v| v.trim() == "1")
+    if let Ok(v) = std::env::var("BTSP_STRICT_MODE") {
+        return v.trim() == "1";
+    }
+    if let Ok(v) = std::env::var("BEARDOG_UDS_REQUIRE_BTSP") {
+        tracing::warn!("BEARDOG_UDS_REQUIRE_BTSP is deprecated — migrate to BTSP_STRICT_MODE");
+        return v.trim() == "1";
+    }
+    false
 }
 
 /// Perform the client-side BTSP handshake over an NDJSON stream.

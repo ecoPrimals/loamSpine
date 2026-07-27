@@ -214,19 +214,19 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         ));
     }
 
-    let session = BtspSession {
-        session_id,
-        cipher: negotiate.cipher,
-        handshake_key,
-    };
-
     let complete = HandshakeComplete {
         status: "ok".into(),
-        cipher: session.cipher.clone(),
-        session_id: session.session_id.clone(),
+        cipher: negotiate.cipher,
+        session_id: session_id.clone(),
     };
     let bytes = serialize_btsp_msg(&complete, "HandshakeComplete")?;
     write_frame(writer, &bytes).await?;
+
+    let session = BtspSession {
+        session_id: complete.session_id,
+        cipher: complete.cipher,
+        handshake_key,
+    };
 
     debug!(
         "BTSP: handshake complete (session={}, cipher={}, key={})",
@@ -414,18 +414,18 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         ));
     }
 
-    let session = BtspSession {
-        session_id,
-        cipher: negotiate.cipher,
-        handshake_key,
-    };
-
     let complete = HandshakeComplete {
         status: "ok".into(),
-        cipher: session.cipher.clone(),
-        session_id: session.session_id.clone(),
+        cipher: negotiate.cipher,
+        session_id: session_id.clone(),
     };
     ndjson_send(writer, &complete, "HandshakeComplete").await?;
+
+    let session = BtspSession {
+        session_id: complete.session_id,
+        cipher: complete.cipher,
+        handshake_key,
+    };
 
     debug!(
         "BTSP NDJSON: handshake complete (session={}, cipher={}, key={})",

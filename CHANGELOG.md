@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 27, 2026 — Wave 155b++: Deep Debt + Provenance Trio Convergence)
+
+- **`CertificateManager` marked legacy**: Doc-level superseded notice added — `LoamSpineService` is the canonical async storage-backed API. `CertificateManager` will be removed in 0.10.
+- **Clone density reduction**: Certificate loan/sublend/return paths deduped — `borrower` and `holder` clones consolidated via reordered assignments (3 fewer clones per loan lifecycle).
+- **BTSP handshake move semantics**: `HandshakeComplete` fields moved into `BtspSession` instead of cloned — 4 fewer String allocations per connection (both length-prefixed and NDJSON paths).
+- **BTSP env priority fix**: `BTSP_STRICT_MODE` now checked before deprecated `BEARDOG_UDS_REQUIRE_BTSP`. Deprecation warning logged on fallback.
+- **Provenance Trio AAR**: Cross-primal convergence analysis for G3 (loamSpine + rhizoCrypt + sweetGrass) published to wateringHole with 8 action items and 4-phase convergence path.
+- 1,736 tests, 210 source files, all checks clean.
+
 ### Changed (July 27, 2026 — Wave 155b+: G3 Verification Path + RPC Surface)
 
 - **Semantic certificate verification**: `verify_certificate` evolved from storage-existence-only to semantic integrity checks — new `MintEntryValid` validates entry type + cert_id match, `OwnerConsistent` validates initial_owner matches minter. `ChainValid` now requires all semantic checks pass.

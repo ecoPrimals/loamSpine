@@ -74,6 +74,8 @@ pub mod discovery_client;
 pub mod entry;
 pub mod error;
 pub mod infant_discovery;
+/// Legacy in-memory certificate manager — superseded by
+/// [`service::LoamSpineService`]. Will be removed in 0.10.
 pub mod manager;
 pub mod primal;
 pub mod proof;
@@ -178,7 +180,7 @@ pub use proof::{
     VerificationError, VerificationResult,
 };
 
-/// Manager types.
+/// Legacy manager type — use [`service::LoamSpineService`] instead.
 pub use manager::CertificateManager;
 
 /// Storage types.

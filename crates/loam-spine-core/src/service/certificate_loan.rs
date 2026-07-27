@@ -67,10 +67,10 @@ impl LoamSpineService {
         let expires_at = terms
             .duration_secs
             .map(|secs| Timestamp::from_nanos(now.as_nanos() + secs * 1_000_000_000));
+        let relending_chain = RelendingChain::with_initial(borrower.clone(), entry_hash);
         cert.state = CertificateState::Loaned {
             loan_entry: entry_hash,
         };
-        cert.holder = Some(borrower.clone());
         cert.active_loan = Some(LoanInfo {
             loan_entry: entry_hash,
             borrower: borrower.clone(),
@@ -79,8 +79,9 @@ impl LoamSpineService {
             expires_at,
             waypoint: None,
             waypoint_anchor: None,
-            relending_chain: Some(RelendingChain::with_initial(borrower, entry_hash)),
+            relending_chain: Some(relending_chain),
         });
+        cert.holder = Some(borrower);
         cert.current_location = CertificateLocation {
             spine: spine_id,
             entry: entry_hash,
@@ -185,9 +186,8 @@ impl LoamSpineService {
             .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         if let Some(holder) = new_holder {
-            cert.holder = Some(holder.clone());
             cert.active_loan = Some(LoanInfo {
-                borrower: holder,
+                borrower: holder.clone(),
                 relending_chain: if chain.links.is_empty() {
                     None
                 } else {
@@ -195,6 +195,7 @@ impl LoamSpineService {
                 },
                 ..loan
             });
+            cert.holder = Some(holder);
         } else {
             cert.state = CertificateState::Active;
             cert.holder = None;
@@ -279,12 +280,12 @@ impl LoamSpineService {
             loan_entry: entry_hash,
         });
 
-        cert.holder = Some(new_borrower.clone());
         cert.active_loan = Some(LoanInfo {
-            borrower: new_borrower,
+            borrower: new_borrower.clone(),
             relending_chain: Some(chain),
             ..loan
         });
+        cert.holder = Some(new_borrower);
         cert.current_location = CertificateLocation {
             spine: spine_id,
             entry: entry_hash,
