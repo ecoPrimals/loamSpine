@@ -57,7 +57,7 @@ pub(crate) fn discover_manifests_from(base: &Path) -> Vec<PrimalManifest> {
     not(test),
     expect(
         dead_code,
-        reason = "injectable variant tested directly; production uses env-reading wrapper"
+        reason = "injectable variant; wires up in Nest Atomic Phase 0 (G3)"
     )
 )]
 pub(crate) fn find_by_capability_from(base: &Path, capability: &str) -> Option<PrimalManifest> {
@@ -72,7 +72,7 @@ pub(crate) fn find_by_capability_from(base: &Path, capability: &str) -> Option<P
     not(test),
     expect(
         dead_code,
-        reason = "injectable variant tested directly; production uses env-reading wrapper"
+        reason = "injectable variant; wires up in Nest Atomic Phase 0 (G3)"
     )
 )]
 pub(crate) fn find_by_name_from(base: &Path, name: &str) -> Option<PrimalManifest> {
@@ -112,7 +112,7 @@ pub(crate) fn discover_manifests() -> Vec<PrimalManifest> {
 #[must_use]
 #[expect(
     dead_code,
-    reason = "pre-wired for capability-based primal discovery (strandGate deploy)"
+    reason = "pre-wired for Nest Atomic Phase 0 capability-based primal discovery (G3)"
 )]
 pub(crate) fn find_by_capability(capability: &str) -> Option<PrimalManifest> {
     discover_manifests()
@@ -124,7 +124,7 @@ pub(crate) fn find_by_capability(capability: &str) -> Option<PrimalManifest> {
 #[must_use]
 #[expect(
     dead_code,
-    reason = "pre-wired for name-based primal discovery (strandGate deploy)"
+    reason = "pre-wired for Nest Atomic Phase 0 name-based primal discovery (G3)"
 )]
 pub(crate) fn find_by_name(name: &str) -> Option<PrimalManifest> {
     discover_manifests().into_iter().find(|m| m.name == name)

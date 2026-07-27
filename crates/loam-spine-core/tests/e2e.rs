@@ -156,6 +156,69 @@ async fn full_certificate_lifecycle() {
     assert_eq!(cert.transfer_count, 1);
 }
 
+/// Full certificate lifecycle: mint → loan → return → transfer → seal.
+///
+/// Validates that sealing a spine prevents further certificate operations
+/// while preserving the existing certificate state as permanent record.
+#[tokio::test]
+async fn full_certificate_lifecycle_with_seal() {
+    let service = LoamSpineService::new();
+
+    let owner = Did::new("did:key:z6MkOwnerSeal");
+    let borrower = Did::new("did:key:z6MkBorrowerSeal");
+    let recipient = Did::new("did:key:z6MkRecipientSeal");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Seal Test".into()))
+        .await
+        .expect("create spine");
+
+    let (cert_id, _) = service
+        .mint_certificate(spine_id, test_cert_type(), owner.clone(), None)
+        .await
+        .expect("mint");
+
+    let terms = LoanTerms::new().with_duration(SECONDS_PER_HOUR);
+    service
+        .loan_certificate(cert_id, owner.clone(), borrower.clone(), terms)
+        .await
+        .expect("loan");
+
+    service
+        .return_certificate(cert_id, borrower.clone())
+        .await
+        .expect("return");
+
+    service
+        .transfer_certificate(cert_id, owner.clone(), recipient.clone())
+        .await
+        .expect("transfer");
+
+    let cert = service
+        .get_certificate(cert_id)
+        .await
+        .expect("get cert after transfer");
+    assert_eq!(cert.owner, recipient);
+    assert_eq!(cert.transfer_count, 1);
+
+    service
+        .seal_spine(spine_id, Some("lifecycle complete".into()))
+        .await
+        .expect("seal spine");
+
+    let spine = service
+        .get_spine(spine_id)
+        .await
+        .expect("get sealed spine")
+        .expect("spine must exist");
+    assert!(spine.is_sealed());
+
+    let seal_err = service
+        .mint_certificate(spine_id, test_cert_type(), recipient.clone(), None)
+        .await;
+    assert!(seal_err.is_err(), "minting on a sealed spine must fail");
+}
+
 /// Test slice checkout and resolve flow.
 #[tokio::test]
 async fn slice_checkout_resolve_flow() {

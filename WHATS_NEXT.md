@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: July 26, 2026
+**Last Updated**: July 27, 2026
 
 ---
 
 ## Recent Changes
+
+- **July 27, 2026** — **Wave 155b: G3 Readiness + Doc Accuracy**: Full certificate lifecycle E2E test with seal (mint → loan → return → transfer → seal → reject-on-sealed). Dead_code reasons updated from "strandGate deploy" to "Nest Atomic Phase 0 (G3)". Inline `Duration::from_secs(5)` extracted to `HEALTH_PROBE_TIMEOUT` and `DEFAULT_IPC_TIMEOUT` constants. Doc metrics corrected: "52-validation" → "20-phase, 44-method", `#[allow]` claim corrected, dead_code count aligned. 1,732 tests, 210 source files.
 
 - **July 26, 2026** — **Wave 151c: TransportEndpoint Compliance + Deep Debt**: Evolved `sync/mod.rs` and `discovery/mod.rs` from raw `TcpStream::connect` to `connect_transport(&TransportEndpoint)` — all outbound IPC now routes through platform-abstracted transport. `endpoint_from_addr()` parser added. Error swallowing fixed: discovery capability failures now log at debug level, progress channel drops traced. `set_nodelay` failures traced instead of silently ignored. Dead `let _ = &request_line` borrow removed from HTTP server. 11 new tests: `generate_aggregate_proof` coverage (5), `read_ndjson_stream_bounded` (2), `endpoint_from_addr` parsing (4). 1,731 tests, 210 source files.
 

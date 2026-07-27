@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 27, 2026 — Wave 155b: G3 Readiness + Doc Accuracy)
+
+- **Full certificate lifecycle E2E with seal**: New integration test covers mint → loan → return → transfer → seal → reject-on-sealed. Closes the last certificate lifecycle gap.
+- **Dead code reasons aligned to G3**: All pre-wired discovery/protocol helpers updated from "strandGate deploy" to "Nest Atomic Phase 0 (G3)" to reflect current roadmap.
+- **Configurable timeouts**: Inline `Duration::from_secs(5)` in health probes extracted to named `HEALTH_PROBE_TIMEOUT` constant. Attestation timeout now uses `DEFAULT_IPC_TIMEOUT`.
+- **Doc accuracy pass**: "52-validation" → "20-phase, 44-method" benchScale; `#[allow]` claim corrected (2 justified tarpc module `#![allow]`); dead_code count corrected (3 BTSP wire fields).
+- 1,732 tests, 210 source files, all checks clean.
+
 ### Changed (July 26, 2026 — Wave 151c: TransportEndpoint Compliance + Deep Debt)
 
 - **TransportEndpoint compliance**: `sync/mod.rs` and `discovery/mod.rs` evolved from raw `TcpStream::connect` to `connect_transport(&TransportEndpoint)` — all outbound IPC now routes through platform-abstracted transport dispatch (UDS/TCP/mesh_relay).

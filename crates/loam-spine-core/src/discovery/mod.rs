@@ -436,26 +436,27 @@ impl DiscoveredAttestationProvider {
             )
         })?;
 
-        let timeout = std::time::Duration::from_secs(5);
         let transport_ep = crate::transport::endpoint_from_addr(endpoint)?;
-        let mut stream =
-            match tokio::time::timeout(timeout, crate::transport::connect_transport(&transport_ep))
-                .await
-            {
-                Ok(Ok(s)) => s,
-                Ok(Err(e)) => {
-                    return Err(LoamSpineError::ipc(
-                        IpcErrorPhase::Connect,
-                        format!("attestation provider at {endpoint}: {e}"),
-                    ));
-                }
-                Err(_) => {
-                    return Err(LoamSpineError::ipc(
-                        IpcErrorPhase::Connect,
-                        format!("attestation provider at {endpoint} timed out"),
-                    ));
-                }
-            };
+        let mut stream = match tokio::time::timeout(
+            crate::transport::DEFAULT_IPC_TIMEOUT,
+            crate::transport::connect_transport(&transport_ep),
+        )
+        .await
+        {
+            Ok(Ok(s)) => s,
+            Ok(Err(e)) => {
+                return Err(LoamSpineError::ipc(
+                    IpcErrorPhase::Connect,
+                    format!("attestation provider at {endpoint}: {e}"),
+                ));
+            }
+            Err(_) => {
+                return Err(LoamSpineError::ipc(
+                    IpcErrorPhase::Connect,
+                    format!("attestation provider at {endpoint} timed out"),
+                ));
+            }
+        };
 
         stream.write_all(payload.as_bytes()).await.map_err(|e| {
             LoamSpineError::ipc(IpcErrorPhase::Write, format!("attestation write: {e}"))

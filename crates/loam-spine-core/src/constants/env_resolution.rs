@@ -152,7 +152,7 @@ pub fn has_explicit_tcp_config() -> bool {
     not(test),
     expect(
         dead_code,
-        reason = "pre-wired for provenance trio socket resolution (strandGate deploy)"
+        reason = "pre-wired for Nest Atomic Phase 0 provenance trio socket resolution (G3)"
     )
 )]
 pub(crate) fn resolve_primal_socket_with_env(primal: &str, family_id: &str) -> std::path::PathBuf {

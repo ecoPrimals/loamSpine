@@ -1,6 +1,6 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,731 tests, 47 JSON-RPC methods, 210 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
+description = "Permanence ledger — 1,732 tests, 47 JSON-RPC methods, 210 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
 date = 2026-07-26
 
 [taxonomies]
@@ -10,7 +10,7 @@ springs = []
 
 ## Status
 
-- **1,731 tests** (all passing), 0 failures, 0 ignored
+- **1,732 tests** (all passing), 0 failures, 0 ignored
 - **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
 - **210 source files**, ~64,292 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
@@ -80,6 +80,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | GAP-36 | Session alias wire reconciliation, `lifecycle.status` |
 | Wave 151b BTSP Client | ClientHello handshake (consumer-side), HMAC-SHA256, 5 mock-server tests |
 | Wave 151c TransportEndpoint | All outbound IPC via `connect_transport`, `endpoint_from_addr`, error visibility |
+| Wave 155b G3 Readiness | Full lifecycle E2E with seal, configurable timeouts, doc accuracy, dead_code reasons |
 
 ## Consumed Capabilities
 

@@ -30,7 +30,14 @@ use loam_spine_core::service::LoamSpineService as CoreService;
 use loam_spine_core::traits::crypto_provider::JsonRpcCryptoSigner;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::RwLock;
+
+/// Timeout for storage health probes (`spine_count`, `entry_count`).
+///
+/// If the storage lock cannot be acquired within this window,
+/// health/readiness reports unhealthy/not-ready rather than hanging.
+const HEALTH_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// RPC service implementation backed by the core `LoamSpineService`.
 ///
@@ -124,7 +131,7 @@ impl LoamSpineRpcService {
         &self,
         request: HealthCheckRequest,
     ) -> ApiResult<HealthCheckResponse> {
-        let storage_probe = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        let storage_probe = tokio::time::timeout(HEALTH_PROBE_TIMEOUT, async {
             let core = self.core().await;
             (core.spine_count().await, core.entry_count().await)
         })
@@ -197,7 +204,7 @@ impl LoamSpineRpcService {
     ///
     /// Returns error if readiness check fails.
     pub async fn readiness(&self) -> ApiResult<crate::health::ReadinessProbe> {
-        let probe = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        let probe = tokio::time::timeout(HEALTH_PROBE_TIMEOUT, async {
             let core = self.core().await;
             core.spine_count().await
         })

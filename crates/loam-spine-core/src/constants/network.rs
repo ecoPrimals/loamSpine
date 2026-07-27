@@ -272,7 +272,7 @@ pub fn resolve_primal_tarpc_socket_from(
 #[must_use]
 #[expect(
     dead_code,
-    reason = "pre-wired for provenance trio IPC negotiation (strandGate deploy)"
+    reason = "pre-wired for Nest Atomic Phase 0 provenance trio IPC negotiation (G3)"
 )]
 pub(crate) fn negotiate_protocol(
     primal: &str,
