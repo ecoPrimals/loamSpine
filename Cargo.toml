@@ -13,6 +13,8 @@ rust-version = "1.85"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/ecoPrimals/loamSpine"
 authors = ["ecoPrimals Project"]
+homepage = "https://sporeprint.primals.eco"
+documentation = "https://sporeprint.primals.eco/lab/"
 
 [workspace.dependencies]
 # Async runtime
