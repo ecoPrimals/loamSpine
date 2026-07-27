@@ -19,7 +19,7 @@
 
 pub mod anchor;
 mod bond_ledger;
-mod certificate;
+pub mod certificate;
 mod certificate_escrow;
 mod certificate_loan;
 pub mod expiry_sweeper;

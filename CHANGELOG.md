@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 27, 2026 — Wave 155b+: G3 Verification Path + RPC Surface)
+
+- **Semantic certificate verification**: `verify_certificate` evolved from storage-existence-only to semantic integrity checks — new `MintEntryValid` validates entry type + cert_id match, `OwnerConsistent` validates initial_owner matches minter. `ChainValid` now requires all semantic checks pass.
+- **New JSON-RPC methods**: `certificate.verify` (returns progressive check results) and `certificate.lifecycle` (returns ordered lifecycle entries). Both protected by method gate.
+- **Delegated minting builder**: `MintInfo::with_authority(MintingAuthority)` builder method for Nest Atomic G3 delegation path.
+- **Wire-ready types**: `CertificateVerification` and `VerificationCheck` now derive `Serialize`/`Deserialize` for JSON-RPC transport. `certificate` module promoted to `pub` for cross-crate access.
+- **mDNS observability**: `let _ = daemon.shutdown()` in 3 mDNS sites evolved to traced errors at trace level.
+- 4 new tests (semantic verification checks + API service tests). 1,736 tests, 210 source files, all checks clean.
+
 ### Changed (July 27, 2026 — Wave 155b: G3 Readiness + Doc Accuracy)
 
 - **Full certificate lifecycle E2E with seal**: New integration test covers mint → loan → return → transfer → seal → reject-on-sealed. Closes the last certificate lifecycle gap.

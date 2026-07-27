@@ -275,6 +275,8 @@ impl LoamSpineJsonRpc {
             "certificate.loan" => rpc!(params, loan_certificate),
             "certificate.return" => rpc!(params, return_certificate),
             "certificate.get" => rpc!(params, get_certificate),
+            "certificate.verify" => rpc!(params, verify_certificate),
+            "certificate.lifecycle" => rpc!(params, certificate_lifecycle),
 
             "health.check" => rpc!(params, health_check),
             "health.liveness" => ser(self.service.liveness().await),

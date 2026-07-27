@@ -48,7 +48,9 @@ pub(super) async fn mdns_discover_impl(
         Ok(r) => r,
         Err(e) => {
             warn!("mDNS-SD browse failed for {service_type}: {e}");
-            let _ = daemon.shutdown();
+            if let Err(e) = daemon.shutdown() {
+                tracing::trace!("mDNS daemon shutdown on browse failure (non-fatal): {e}");
+            }
             return vec![];
         }
     };
@@ -69,8 +71,10 @@ pub(super) async fn mdns_discover_impl(
         }
     };
 
-    let _ = tokio::time::timeout(MDNS_TIMEOUT, collect).await;
-    let _ = daemon.shutdown();
+    drop(tokio::time::timeout(MDNS_TIMEOUT, collect).await);
+    if let Err(e) = daemon.shutdown() {
+        tracing::trace!("mDNS daemon shutdown (non-fatal): {e}");
+    }
 
     if services.is_empty() {
         debug!("No mDNS-SD services found for {service_type}");

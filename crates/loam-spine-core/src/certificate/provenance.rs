@@ -38,6 +38,13 @@ impl MintInfo {
             authority: None,
         }
     }
+
+    /// Attach a delegated minting authority.
+    #[must_use]
+    pub fn with_authority(mut self, authority: MintingAuthority) -> Self {
+        self.authority = Some(authority);
+        self
+    }
 }
 
 /// Minting authority (for delegated minting).

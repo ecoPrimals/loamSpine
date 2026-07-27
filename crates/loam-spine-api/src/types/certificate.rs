@@ -106,3 +106,37 @@ pub struct GetCertificateResponse {
     /// The certificate if found
     pub certificate: Option<Certificate>,
 }
+
+/// Request to verify a certificate's integrity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VerifyCertificateRequest {
+    /// Certificate ID to verify
+    pub certificate_id: CertificateId,
+}
+
+/// Response from certificate verification.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VerifyCertificateResponse {
+    /// Whether the certificate exists.
+    pub exists: bool,
+    /// Whether all integrity checks passed.
+    pub valid: bool,
+    /// Individual checks that passed.
+    pub checks_passed: Vec<loam_spine_core::service::certificate::VerificationCheck>,
+}
+
+/// Request to retrieve a certificate's lifecycle history.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CertificateLifecycleRequest {
+    /// Certificate ID
+    pub certificate_id: CertificateId,
+}
+
+/// Response containing the certificate lifecycle history.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CertificateLifecycleResponse {
+    /// Number of lifecycle events.
+    pub count: usize,
+    /// Ordered lifecycle entries (mint, transfer, loan, return).
+    pub entries: Vec<loam_spine_core::entry::Entry>,
+}

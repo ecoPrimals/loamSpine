@@ -423,3 +423,93 @@ async fn test_generate_inclusion_proof() {
     assert!(proof_resp.proof.verify().expect("verify"));
     assert_eq!(proof_resp.proof.spine_id, create_resp.spine_id);
 }
+
+#[tokio::test]
+async fn verify_certificate_rpc_returns_semantic_checks() {
+    let service = LoamSpineRpcService::default_service();
+    let owner = Did::new("did:key:test-verify-rpc");
+
+    let spine_resp = service
+        .create_spine(CreateSpineRequest {
+            name: "verify-rpc".to_string(),
+            owner: owner.clone(),
+            config: None,
+        })
+        .await
+        .expect("create spine");
+
+    let mint_resp = service
+        .mint_certificate(MintCertificateRequest {
+            spine_id: spine_resp.spine_id,
+            cert_type: CertificateType::DigitalGame {
+                platform: "steam".into(),
+                game_id: "verify-test".into(),
+                edition: None,
+            },
+            owner: owner.clone(),
+            metadata: None,
+        })
+        .await
+        .expect("mint");
+
+    let verify_resp = service
+        .verify_certificate(VerifyCertificateRequest {
+            certificate_id: mint_resp.certificate_id,
+        })
+        .await
+        .expect("verify");
+
+    assert!(verify_resp.exists);
+    assert!(verify_resp.valid);
+    assert_eq!(verify_resp.checks_passed.len(), 6);
+}
+
+#[tokio::test]
+async fn certificate_lifecycle_rpc_returns_events() {
+    let service = LoamSpineRpcService::default_service();
+    let owner = Did::new("did:key:test-lifecycle-rpc");
+    let buyer = Did::new("did:key:test-lifecycle-buyer");
+
+    let spine_resp = service
+        .create_spine(CreateSpineRequest {
+            name: "lifecycle-rpc".to_string(),
+            owner: owner.clone(),
+            config: None,
+        })
+        .await
+        .expect("create spine");
+
+    let mint_resp = service
+        .mint_certificate(MintCertificateRequest {
+            spine_id: spine_resp.spine_id,
+            cert_type: CertificateType::ArtworkProvenance {
+                artist: "test".into(),
+                title: "lifecycle-art".into(),
+                medium: "digital".into(),
+                year_created: None,
+            },
+            owner: owner.clone(),
+            metadata: None,
+        })
+        .await
+        .expect("mint");
+
+    service
+        .transfer_certificate(TransferCertificateRequest {
+            certificate_id: mint_resp.certificate_id,
+            from: owner.clone(),
+            to: buyer.clone(),
+        })
+        .await
+        .expect("transfer");
+
+    let lifecycle_resp = service
+        .certificate_lifecycle(CertificateLifecycleRequest {
+            certificate_id: mint_resp.certificate_id,
+        })
+        .await
+        .expect("lifecycle");
+
+    assert_eq!(lifecycle_resp.count, 2);
+    assert_eq!(lifecycle_resp.entries.len(), 2);
+}

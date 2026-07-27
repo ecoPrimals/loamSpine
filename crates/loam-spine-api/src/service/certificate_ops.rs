@@ -129,4 +129,47 @@ impl LoamSpineRpcService {
             },
         })
     }
+
+    /// Verify a certificate's integrity.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if storage lookup fails.
+    pub async fn verify_certificate(
+        &self,
+        request: VerifyCertificateRequest,
+    ) -> ApiResult<VerifyCertificateResponse> {
+        let core = self.core().await;
+        let verification = core
+            .verify_certificate(request.certificate_id)
+            .await
+            .map_err(ApiError::from)?;
+
+        Ok(VerifyCertificateResponse {
+            exists: verification.exists(),
+            valid: verification.is_valid(),
+            checks_passed: verification.passed,
+        })
+    }
+
+    /// Retrieve a certificate's lifecycle history.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if certificate not found or storage fails.
+    pub async fn certificate_lifecycle(
+        &self,
+        request: CertificateLifecycleRequest,
+    ) -> ApiResult<CertificateLifecycleResponse> {
+        let core = self.core().await;
+        let entries = core
+            .certificate_lifecycle(request.certificate_id)
+            .await
+            .map_err(ApiError::from)?;
+
+        Ok(CertificateLifecycleResponse {
+            count: entries.len(),
+            entries,
+        })
+    }
 }

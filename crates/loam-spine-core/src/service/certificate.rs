@@ -25,7 +25,7 @@ use crate::types::{CertificateId, Did, EntryHash, SpineId, Timestamp};
 use super::LoamSpineService;
 
 /// Result of certificate integrity verification.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CertificateVerification {
     /// Certificate ID that was verified.
     pub cert_id: CertificateId,
@@ -48,7 +48,7 @@ impl CertificateVerification {
 }
 
 /// Individual verification checks for a certificate.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum VerificationCheck {
     /// Certificate record exists in storage.
     Exists,
@@ -56,6 +56,10 @@ pub enum VerificationCheck {
     SpineExists,
     /// Mint entry present in entry storage.
     MintEntryExists,
+    /// Mint entry is a `CertificateMint` with matching `cert_id`.
+    MintEntryValid,
+    /// The initial owner in the mint entry matches the certificate's minter.
+    OwnerConsistent,
     /// Full chain (spine + mint + current location) is intact.
     ChainValid,
 }
@@ -216,11 +220,13 @@ impl LoamSpineService {
 
     /// Verify a certificate's integrity.
     ///
-    /// Checks that:
-    /// - The certificate exists in storage
-    /// - Its associated spine exists
-    /// - The mint entry is present in storage
-    /// - Chain integrity (owner matches spine records)
+    /// Performs progressive checks:
+    /// 1. **Exists** — certificate record in storage
+    /// 2. **SpineExists** — associated spine in storage
+    /// 3. **MintEntryExists** — mint entry hash resolves
+    /// 4. **MintEntryValid** — entry is a `CertificateMint` with matching `cert_id`
+    /// 5. **OwnerConsistent** — mint entry `initial_owner` matches certificate minter
+    /// 6. **ChainValid** — all above pass and current location entry exists
     ///
     /// # Errors
     ///
@@ -244,13 +250,30 @@ impl LoamSpineService {
             passed.push(VerificationCheck::SpineExists);
         }
 
-        let mint_entry_exists = self
-            .entry_storage
-            .get_entry(cert.mint_info.entry)
-            .await?
-            .is_some();
+        let mint_entry = self.entry_storage.get_entry(cert.mint_info.entry).await?;
+
+        let mint_entry_exists = mint_entry.is_some();
         if mint_entry_exists {
             passed.push(VerificationCheck::MintEntryExists);
+        }
+
+        let mut mint_valid = false;
+        let mut owner_consistent = false;
+        if let Some(ref entry) = mint_entry
+            && let crate::entry::EntryType::CertificateMint {
+                cert_id: minted_id,
+                initial_owner,
+                ..
+            } = &entry.entry_type
+        {
+            if *minted_id == cert_id {
+                passed.push(VerificationCheck::MintEntryValid);
+                mint_valid = true;
+            }
+            if *initial_owner == cert.mint_info.minter {
+                passed.push(VerificationCheck::OwnerConsistent);
+                owner_consistent = true;
+            }
         }
 
         let location_entry_exists = self
@@ -259,7 +282,12 @@ impl LoamSpineService {
             .await?
             .is_some();
 
-        if spine_exists && mint_entry_exists && location_entry_exists {
+        if spine_exists
+            && mint_entry_exists
+            && mint_valid
+            && owner_consistent
+            && location_entry_exists
+        {
             passed.push(VerificationCheck::ChainValid);
         }
 

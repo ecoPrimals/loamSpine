@@ -413,7 +413,9 @@ async fn mdns_discover_service_impl(service_query: &str) -> Option<String> {
         Ok(r) => r,
         Err(e) => {
             tracing::debug!("mDNS-SD browse failed for {service_query}: {e}");
-            let _ = daemon.shutdown();
+            if let Err(e) = daemon.shutdown() {
+                tracing::trace!("mDNS daemon shutdown on browse failure (non-fatal): {e}");
+            }
             return None;
         }
     };
@@ -434,7 +436,9 @@ async fn mdns_discover_service_impl(service_query: &str) -> Option<String> {
     })
     .await;
 
-    let _ = daemon.shutdown();
+    if let Err(e) = daemon.shutdown() {
+        tracing::trace!("mDNS daemon shutdown (non-fatal): {e}");
+    }
     result.unwrap_or(None)
 }
 

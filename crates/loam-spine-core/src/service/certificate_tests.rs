@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::certificate::CertificateType;
+use crate::service::certificate::VerificationCheck;
 
 #[tokio::test]
 async fn test_mint_certificate() {
@@ -533,4 +534,90 @@ async fn test_generate_provenance_proof_not_found() {
 
     let result = service.generate_provenance_proof(fake_id).await;
     assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn verify_certificate_passes_semantic_checks() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkSemanticOwner");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Semantic".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let cert_type = CertificateType::SoftwareLicense {
+        software_id: "semantic-verify".into(),
+        license_type: "perpetual".into(),
+        seats: Some(1),
+        expires: None,
+    };
+
+    let (cert_id, _hash) = service
+        .mint_certificate(spine_id, cert_type, owner.clone(), None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let v = service
+        .verify_certificate(cert_id)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert!(v.is_valid());
+    assert!(v.passed.contains(&VerificationCheck::Exists));
+    assert!(v.passed.contains(&VerificationCheck::SpineExists));
+    assert!(v.passed.contains(&VerificationCheck::MintEntryExists));
+    assert!(v.passed.contains(&VerificationCheck::MintEntryValid));
+    assert!(v.passed.contains(&VerificationCheck::OwnerConsistent));
+    assert!(v.passed.contains(&VerificationCheck::ChainValid));
+}
+
+#[tokio::test]
+async fn verify_certificate_lifecycle_returns_ordered_events() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkLifecycleOwner");
+    let buyer = Did::new("did:key:z6MkLifecycleBuyer");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("Lifecycle".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let cert_type = CertificateType::ArtworkProvenance {
+        artist: "test".into(),
+        title: "Test Art".into(),
+        medium: "digital".into(),
+        year_created: None,
+    };
+
+    let (cert_id, _) = service
+        .mint_certificate(spine_id, cert_type, owner.clone(), None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    service
+        .transfer_certificate(cert_id, owner.clone(), buyer.clone())
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let history = service
+        .certificate_lifecycle(cert_id)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert_eq!(history.len(), 2, "mint + transfer = 2 events");
+    assert!(
+        matches!(
+            &history[0].entry_type,
+            crate::entry::EntryType::CertificateMint { .. }
+        ),
+        "first event must be mint"
+    );
+    assert!(
+        matches!(
+            &history[1].entry_type,
+            crate::entry::EntryType::CertificateTransfer { .. }
+        ),
+        "second event must be transfer"
+    );
 }
