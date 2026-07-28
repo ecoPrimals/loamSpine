@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
-### Changed (July 28, 2026 — Wave 155d: Structural Extraction + Schema Evolution)
+### Changed (July 28, 2026 — Wave 155f: Structural Extraction + Schema Evolution + BTSP Dedup)
 
 - **Entry module extraction**: `EntryType` (21 variants), `AnchorTarget`, `SpineConfig`, `SpineType` extracted from `entry/mod.rs` (648L) into `entry/types.rs` (437L). Parent module reduced to 227L (Entry struct + methods only). All existing imports preserved via re-exports.
 - **Schema orphan evolution**: `CertificateHistory`, `OwnershipRecord`, `LoanRecord` evolved from unused type definitions to populated, functional records. New `CertificateHistory::from_certificate_and_entries()` parses raw lifecycle entries into structured ownership/loan records with proper `AcquisitionType` tracking and loan correlation.
 - **New JSON-RPC method**: `certificate.history` returns structured `CertificateHistoryResponse` with typed ownership records and loan records (48 total methods).
 - **New service method**: `LoamSpineService::certificate_history()` builds structured history from raw entries.
+- **BTSP handshake dedup**: `verify_and_complete` and `ndjson_verify_and_complete` consolidated — shared verify/negotiate/session-build logic extracted into `verify_and_negotiate()` with `AsyncErrorSender` trait for wire-format-specific error framing. Core handshake logic now single-sourced.
+- **Deep debt audit**: Zero production `unwrap`/`expect` confirmed. Zero TODOs/FIXMEs. Zero files over 800L. Only 3 justified `#[expect(dead_code)]` (BTSP wire fields).
 - 3 new tests (structured history core + loan tracking + API endpoint). 1,739 tests, 211 source files, all checks clean.
 
 ### Changed (July 27, 2026 — Wave 155b++: Deep Debt + Provenance Trio Convergence)

@@ -147,18 +147,32 @@ async fn read_challenge_response<R: AsyncReadExt + Unpin>(
     Ok(cr)
 }
 
-/// Steps 5–7: Verify via BTSP provider, negotiate cipher, send completion or error.
+/// Verified handshake state after provider delegation, before wire send.
+struct VerifiedHandshake {
+    session_id: String,
+    cipher: String,
+    handshake_key: Option<[u8; 32]>,
+}
+
+/// Core verify + negotiate logic shared by both framing modes.
 ///
-/// Params aligned with the BTSP provider's `SessionVerifyParams` / `SessionNegotiateParams`:
-/// - verify: `session_token`, `client_ephemeral_pub`, `response`, `preferred_cipher`
-/// - negotiate: `session_token`, `cipher`
-async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
+/// Delegates challenge verification and cipher negotiation to the BTSP
+/// provider, returning the verified session state. The caller is responsible
+/// for sending the `HandshakeComplete` in the appropriate wire format and
+/// for sending error frames via `on_error`.
+async fn verify_and_negotiate<W, E>(
     writer: &mut W,
     conn: &mut ProviderConn,
     client_hello: &ClientHello,
     create_result: &SessionCreateResult,
     challenge_response: &ChallengeResponse,
-) -> Result<BtspSession, LoamSpineError> {
+    on_error: E,
+    label: &str,
+) -> Result<VerifiedHandshake, LoamSpineError>
+where
+    W: AsyncWriteExt + Unpin + Send,
+    E: AsyncErrorSender<W>,
+{
     let verify: SessionVerifyResult = conn
         .call(
             "btsp.session.verify",
@@ -173,15 +187,17 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         .await?;
 
     if !verify.verified {
-        send_handshake_error(writer, "handshake_failed", "family_verification").await?;
+        on_error
+            .send_error(writer, "handshake_failed", "family_verification")
+            .await?;
         return Err(LoamSpineError::ipc(
             IpcErrorPhase::Read,
-            "BTSP handshake failed: family verification",
+            format!("{label} handshake failed: family verification"),
         ));
     }
     debug!(
         cipher = ?verify.cipher,
-        "BTSP: client verified"
+        "{label}: client verified"
     );
 
     let handshake_key = decode_session_key(verify.session_key.as_deref());
@@ -202,34 +218,71 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
         .await?;
 
     if !negotiate.accepted {
-        send_handshake_error(
-            writer,
-            "cipher_rejected",
-            "requested cipher not allowed by bond policy",
-        )
-        .await?;
+        on_error
+            .send_error(
+                writer,
+                "cipher_rejected",
+                "requested cipher not allowed by bond policy",
+            )
+            .await?;
         return Err(LoamSpineError::ipc(
             IpcErrorPhase::Read,
-            "BTSP cipher negotiation rejected",
+            format!("{label} cipher negotiation rejected"),
         ));
     }
 
-    let complete = HandshakeComplete {
-        status: "ok".into(),
+    Ok(VerifiedHandshake {
+        session_id,
         cipher: negotiate.cipher,
-        session_id: session_id.clone(),
-    };
-    let bytes = serialize_btsp_msg(&complete, "HandshakeComplete")?;
-    write_frame(writer, &bytes).await?;
-
-    let session = BtspSession {
-        session_id: complete.session_id,
-        cipher: complete.cipher,
         handshake_key,
-    };
+    })
+}
 
+/// Trait for sending handshake errors in either wire format.
+trait AsyncErrorSender<W: AsyncWriteExt + Unpin + Send> {
+    fn send_error(
+        &self,
+        writer: &mut W,
+        error: &str,
+        reason: &str,
+    ) -> impl std::future::Future<Output = Result<(), LoamSpineError>> + Send;
+}
+
+struct LengthPrefixedErrorSender;
+
+impl<W: AsyncWriteExt + Unpin + Send> AsyncErrorSender<W> for LengthPrefixedErrorSender {
+    async fn send_error(
+        &self,
+        writer: &mut W,
+        error: &str,
+        reason: &str,
+    ) -> Result<(), LoamSpineError> {
+        send_handshake_error(writer, error, reason).await
+    }
+}
+
+struct NdjsonErrorSender;
+
+impl<W: AsyncWriteExt + Unpin + Send> AsyncErrorSender<W> for NdjsonErrorSender {
+    async fn send_error(
+        &self,
+        writer: &mut W,
+        error: &str,
+        reason: &str,
+    ) -> Result<(), LoamSpineError> {
+        ndjson_send_error(writer, error, reason).await
+    }
+}
+
+/// Build final `BtspSession` from verified handshake and log completion.
+fn build_session(verified: VerifiedHandshake, label: &str) -> BtspSession {
+    let session = BtspSession {
+        session_id: verified.session_id,
+        cipher: verified.cipher,
+        handshake_key: verified.handshake_key,
+    };
     debug!(
-        "BTSP: handshake complete (session={}, cipher={}, key={})",
+        "{label}: handshake complete (session={}, cipher={}, key={})",
         session.session_id,
         session.cipher,
         if session.handshake_key.is_some() {
@@ -238,8 +291,36 @@ async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
             "none"
         }
     );
+    session
+}
 
-    Ok(session)
+async fn verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
+    writer: &mut W,
+    conn: &mut ProviderConn,
+    client_hello: &ClientHello,
+    create_result: &SessionCreateResult,
+    challenge_response: &ChallengeResponse,
+) -> Result<BtspSession, LoamSpineError> {
+    let verified = verify_and_negotiate(
+        writer,
+        conn,
+        client_hello,
+        create_result,
+        challenge_response,
+        LengthPrefixedErrorSender,
+        "BTSP",
+    )
+    .await?;
+
+    let complete = HandshakeComplete {
+        status: "ok".into(),
+        cipher: verified.cipher.clone(),
+        session_id: verified.session_id.clone(),
+    };
+    let bytes = serialize_btsp_msg(&complete, "HandshakeComplete")?;
+    write_frame(writer, &bytes).await?;
+
+    Ok(build_session(verified, "BTSP"))
 }
 
 /// Serialize a `HandshakeError` and send it as a length-prefixed frame.
@@ -351,7 +432,6 @@ where
     .await
 }
 
-/// NDJSON verify + complete: same logic as length-prefixed but line-delimited output.
 async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     writer: &mut W,
     conn: &mut ProviderConn,
@@ -359,86 +439,25 @@ async fn ndjson_verify_and_complete<W: AsyncWriteExt + Unpin + Send>(
     create_result: &SessionCreateResult,
     challenge_response: &ChallengeResponse,
 ) -> Result<BtspSession, LoamSpineError> {
-    let verify: SessionVerifyResult = conn
-        .call(
-            "btsp.session.verify",
-            serde_json::json!({
-                "session_token": create_result.session_token,
-                "client_ephemeral_pub": client_hello.client_ephemeral_pub,
-                "response": challenge_response.response,
-                "preferred_cipher": challenge_response.preferred_cipher,
-            }),
-            rpc_id::SESSION_VERIFY,
-        )
-        .await?;
-
-    if !verify.verified {
-        ndjson_send_error(writer, "handshake_failed", "family_verification").await?;
-        return Err(LoamSpineError::ipc(
-            IpcErrorPhase::Read,
-            "BTSP NDJSON handshake failed: family verification",
-        ));
-    }
-    debug!(
-        cipher = ?verify.cipher,
-        "BTSP NDJSON: client verified"
-    );
-
-    let handshake_key = decode_session_key(verify.session_key.as_deref());
-
-    let session_id = verify
-        .session_id
-        .unwrap_or_else(|| create_result.session_token.clone());
-
-    let negotiate: NegotiateResult = conn
-        .call(
-            "btsp.negotiate",
-            serde_json::json!({
-                "session_token": create_result.session_token,
-                "cipher": challenge_response.preferred_cipher,
-            }),
-            rpc_id::NEGOTIATE,
-        )
-        .await?;
-
-    if !negotiate.accepted {
-        ndjson_send_error(
-            writer,
-            "cipher_rejected",
-            "requested cipher not allowed by bond policy",
-        )
-        .await?;
-        return Err(LoamSpineError::ipc(
-            IpcErrorPhase::Read,
-            "BTSP NDJSON cipher negotiation rejected",
-        ));
-    }
+    let verified = verify_and_negotiate(
+        writer,
+        conn,
+        client_hello,
+        create_result,
+        challenge_response,
+        NdjsonErrorSender,
+        "BTSP NDJSON",
+    )
+    .await?;
 
     let complete = HandshakeComplete {
         status: "ok".into(),
-        cipher: negotiate.cipher,
-        session_id: session_id.clone(),
+        cipher: verified.cipher.clone(),
+        session_id: verified.session_id.clone(),
     };
     ndjson_send(writer, &complete, "HandshakeComplete").await?;
 
-    let session = BtspSession {
-        session_id: complete.session_id,
-        cipher: complete.cipher,
-        handshake_key,
-    };
-
-    debug!(
-        "BTSP NDJSON: handshake complete (session={}, cipher={}, key={})",
-        session.session_id,
-        session.cipher,
-        if session.handshake_key.is_some() {
-            "tower-provided"
-        } else {
-            "none"
-        }
-    );
-
-    Ok(session)
+    Ok(build_session(verified, "BTSP NDJSON"))
 }
 
 /// Send a serialized JSON object followed by `\n` (NDJSON framing).
