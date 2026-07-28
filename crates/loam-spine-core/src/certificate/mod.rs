@@ -330,13 +330,111 @@ impl Certificate {
 
 /// Full certificate history.
 ///
-/// Contains the certificate and its complete ownership and loan records.
-#[derive(Clone, Debug)]
+/// Contains the certificate and its complete ownership and loan records,
+/// parsed from raw lifecycle entries.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CertificateHistory {
     /// The certificate.
     pub certificate: Certificate,
-    /// Ownership records.
+    /// Ownership records (mint + transfers), chronological.
     pub ownership_records: Vec<OwnershipRecord>,
-    /// Loan records.
+    /// Loan records, chronological.
     pub loan_records: Vec<LoanRecord>,
+}
+
+impl CertificateHistory {
+    /// Build a structured history from a certificate and its lifecycle entries.
+    ///
+    /// Parses `CertificateMint`, `CertificateTransfer`, `CertificateLoan`, and
+    /// `CertificateReturn` entries into typed records. Unknown or unrelated
+    /// entries are silently skipped.
+    #[must_use]
+    pub fn from_certificate_and_entries(
+        certificate: Certificate,
+        entries: &[crate::entry::Entry],
+    ) -> Self {
+        let mut ownership_records = Vec::new();
+        let mut loan_records = Vec::new();
+        let mut pending_loans: std::collections::HashMap<crate::types::EntryHash, usize> =
+            std::collections::HashMap::new();
+
+        for entry in entries {
+            let entry_hash = entry.compute_hash().unwrap_or_default();
+            match &entry.entry_type {
+                crate::entry::EntryType::CertificateMint { initial_owner, .. } => {
+                    ownership_records.push(OwnershipRecord {
+                        owner: initial_owner.clone(),
+                        entry: entry_hash,
+                        spine: entry.spine_id,
+                        from: entry.timestamp,
+                        until: None,
+                        acquisition: AcquisitionType::Mint,
+                    });
+                }
+                crate::entry::EntryType::CertificateTransfer { from, to, .. } => {
+                    if let Some(last) = ownership_records.last_mut()
+                        && last.until.is_none()
+                    {
+                        last.until = Some(entry.timestamp);
+                    }
+                    ownership_records.push(OwnershipRecord {
+                        owner: to.clone(),
+                        entry: entry_hash,
+                        spine: entry.spine_id,
+                        from: entry.timestamp,
+                        until: None,
+                        acquisition: AcquisitionType::Transfer { from: from.clone() },
+                    });
+                }
+                crate::entry::EntryType::CertificateLoan {
+                    lender,
+                    borrower,
+                    duration_secs,
+                    auto_return,
+                    ..
+                } => {
+                    let idx = loan_records.len();
+                    loan_records.push(LoanRecord {
+                        loan_entry: entry_hash,
+                        lender: lender.clone(),
+                        borrower: borrower.clone(),
+                        terms: LoanTerms {
+                            duration_secs: *duration_secs,
+                            grace_period_secs: None,
+                            auto_return: *auto_return,
+                            allowed_operations: Vec::new(),
+                            forbidden_operations: Vec::new(),
+                            allow_sublend: false,
+                            max_sublend_depth: None,
+                        },
+                        started_at: entry.timestamp,
+                        ended_at: None,
+                        return_entry: None,
+                        usage_summary: None,
+                    });
+                    pending_loans.insert(entry_hash, idx);
+                }
+                crate::entry::EntryType::CertificateReturn {
+                    loan_entry,
+                    usage_summary,
+                    ..
+                } => {
+                    if let Some(&idx) = pending_loans.get(loan_entry)
+                        && let Some(loan) = loan_records.get_mut(idx)
+                    {
+                        loan.ended_at = Some(entry.timestamp);
+                        loan.return_entry = Some(entry_hash);
+                        loan.usage_summary.clone_from(usage_summary);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Self {
+            certificate,
+            ownership_records,
+            loan_records,
+        }
+    }
 }

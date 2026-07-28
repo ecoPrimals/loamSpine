@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 28, 2026 — Wave 155d: Structural Extraction + Schema Evolution)
+
+- **Entry module extraction**: `EntryType` (21 variants), `AnchorTarget`, `SpineConfig`, `SpineType` extracted from `entry/mod.rs` (648L) into `entry/types.rs` (437L). Parent module reduced to 227L (Entry struct + methods only). All existing imports preserved via re-exports.
+- **Schema orphan evolution**: `CertificateHistory`, `OwnershipRecord`, `LoanRecord` evolved from unused type definitions to populated, functional records. New `CertificateHistory::from_certificate_and_entries()` parses raw lifecycle entries into structured ownership/loan records with proper `AcquisitionType` tracking and loan correlation.
+- **New JSON-RPC method**: `certificate.history` returns structured `CertificateHistoryResponse` with typed ownership records and loan records (48 total methods).
+- **New service method**: `LoamSpineService::certificate_history()` builds structured history from raw entries.
+- 3 new tests (structured history core + loan tracking + API endpoint). 1,739 tests, 211 source files, all checks clean.
+
 ### Changed (July 27, 2026 — Wave 155b++: Deep Debt + Provenance Trio Convergence)
 
 - **`CertificateManager` marked legacy**: Doc-level superseded notice added — `LoamSpineService` is the canonical async storage-backed API. `CertificateManager` will be removed in 0.10.

@@ -140,3 +140,21 @@ pub struct CertificateLifecycleResponse {
     /// Ordered lifecycle entries (mint, transfer, loan, return).
     pub entries: Vec<loam_spine_core::entry::Entry>,
 }
+
+/// Request to retrieve structured certificate history.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CertificateHistoryRequest {
+    /// Certificate ID
+    pub certificate_id: CertificateId,
+}
+
+/// Structured certificate history with typed ownership and loan records.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CertificateHistoryResponse {
+    /// The certificate.
+    pub certificate: Certificate,
+    /// Ownership records (chronological).
+    pub ownership_records: Vec<loam_spine_core::certificate::OwnershipRecord>,
+    /// Loan records (chronological).
+    pub loan_records: Vec<loam_spine_core::certificate::LoanRecord>,
+}

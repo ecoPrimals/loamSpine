@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use super::*;
-use crate::certificate::CertificateType;
+use crate::certificate::{AcquisitionType, CertificateType};
 use crate::service::certificate::VerificationCheck;
 
 #[tokio::test]
@@ -619,5 +619,128 @@ async fn verify_certificate_lifecycle_returns_ordered_events() {
             crate::entry::EntryType::CertificateTransfer { .. }
         ),
         "second event must be transfer"
+    );
+}
+
+#[tokio::test]
+async fn certificate_history_returns_typed_records() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkHistOwner");
+    let buyer = Did::new("did:key:z6MkHistBuyer");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("History".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let cert_type = CertificateType::SoftwareLicense {
+        software_id: "hist-test".into(),
+        license_type: "perpetual".into(),
+        seats: Some(1),
+        expires: None,
+    };
+
+    let (cert_id, _) = service
+        .mint_certificate(spine_id, cert_type, owner.clone(), None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    service
+        .transfer_certificate(cert_id, owner.clone(), buyer.clone())
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let hist = service
+        .certificate_history(cert_id)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert_eq!(hist.certificate.id, cert_id);
+    assert_eq!(
+        hist.ownership_records.len(),
+        2,
+        "mint + transfer = 2 ownership records"
+    );
+    assert!(
+        matches!(hist.ownership_records[0].acquisition, AcquisitionType::Mint),
+        "first record must be mint"
+    );
+    assert!(
+        hist.ownership_records[0].until.is_some(),
+        "first owner must have an end timestamp"
+    );
+    assert!(
+        matches!(&hist.ownership_records[1].acquisition, AcquisitionType::Transfer { from } if *from == owner),
+        "second record must be transfer from original owner"
+    );
+    assert!(
+        hist.ownership_records[1].until.is_none(),
+        "current owner has no end timestamp"
+    );
+    assert!(hist.loan_records.is_empty(), "no loans in this test");
+}
+
+#[tokio::test]
+async fn certificate_history_tracks_loan_records() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkLoanHistOwner");
+    let borrower = Did::new("did:key:z6MkLoanHistBorrower");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("LoanHist".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let cert_type = CertificateType::ArtworkProvenance {
+        artist: "test-artist".into(),
+        title: "Loan Art".into(),
+        medium: "digital".into(),
+        year_created: None,
+    };
+
+    let (cert_id, _) = service
+        .mint_certificate(spine_id, cert_type, owner.clone(), None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    service
+        .loan_certificate(
+            cert_id,
+            owner.clone(),
+            borrower.clone(),
+            crate::certificate::LoanTerms {
+                duration_secs: Some(3600),
+                grace_period_secs: None,
+                auto_return: true,
+                allowed_operations: vec![],
+                forbidden_operations: vec![],
+                allow_sublend: false,
+                max_sublend_depth: None,
+            },
+        )
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    service
+        .return_certificate(cert_id, borrower.clone())
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let hist = service
+        .certificate_history(cert_id)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert_eq!(hist.ownership_records.len(), 1, "only mint — no transfer");
+    assert_eq!(hist.loan_records.len(), 1, "one loan");
+    assert_eq!(hist.loan_records[0].lender, owner);
+    assert_eq!(hist.loan_records[0].borrower, borrower);
+    assert!(
+        hist.loan_records[0].ended_at.is_some(),
+        "loan should be ended after return"
+    );
+    assert!(
+        hist.loan_records[0].return_entry.is_some(),
+        "return entry hash should be populated"
     );
 }

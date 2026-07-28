@@ -513,3 +513,54 @@ async fn certificate_lifecycle_rpc_returns_events() {
     assert_eq!(lifecycle_resp.count, 2);
     assert_eq!(lifecycle_resp.entries.len(), 2);
 }
+
+#[tokio::test]
+async fn certificate_history_rpc_returns_typed_records() {
+    let service = LoamSpineRpcService::default_service();
+    let owner = Did::new("did:key:test-history-rpc");
+    let buyer = Did::new("did:key:test-history-buyer");
+
+    let spine_resp = service
+        .create_spine(CreateSpineRequest {
+            name: "history-rpc".to_string(),
+            owner: owner.clone(),
+            config: None,
+        })
+        .await
+        .expect("create spine");
+
+    let mint_resp = service
+        .mint_certificate(MintCertificateRequest {
+            spine_id: spine_resp.spine_id,
+            cert_type: CertificateType::SoftwareLicense {
+                software_id: "hist-rpc".into(),
+                license_type: "perpetual".into(),
+                seats: Some(1),
+                expires: None,
+            },
+            owner: owner.clone(),
+            metadata: None,
+        })
+        .await
+        .expect("mint");
+
+    service
+        .transfer_certificate(TransferCertificateRequest {
+            certificate_id: mint_resp.certificate_id,
+            from: owner.clone(),
+            to: buyer.clone(),
+        })
+        .await
+        .expect("transfer");
+
+    let hist_resp = service
+        .certificate_history(CertificateHistoryRequest {
+            certificate_id: mint_resp.certificate_id,
+        })
+        .await
+        .expect("history");
+
+    assert_eq!(hist_resp.certificate.id, mint_resp.certificate_id);
+    assert_eq!(hist_resp.ownership_records.len(), 2);
+    assert!(hist_resp.loan_records.is_empty());
+}

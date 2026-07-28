@@ -9,6 +9,8 @@
 
 ## Recent Changes
 
+- **July 28, 2026** — **Wave 155d: Structural Extraction + Schema Evolution**: `EntryType` + `AnchorTarget` + `SpineConfig` + `SpineType` extracted from `entry/mod.rs` (648L) into `entry/types.rs` (437L), reducing parent to 227L. Schema orphans evolved: `CertificateHistory::from_certificate_and_entries()` now parses lifecycle entries into typed `OwnershipRecord`/`LoanRecord` with `AcquisitionType` tracking and loan correlation. New `certificate.history` JSON-RPC method (48 total). 3 new tests. 1,739 tests, 211 source files.
+
 - **July 27, 2026** — **Wave 155b+: G3 Verification Path + RPC Surface**: `verify_certificate` evolved from storage-existence to semantic checks: `MintEntryValid` (entry type + cert_id match) and `OwnerConsistent` (initial_owner matches minter). New JSON-RPC methods: `certificate.verify`, `certificate.lifecycle`. `MintInfo::with_authority` builder for delegated minting path. `CertificateVerification` + `VerificationCheck` now `Serialize`/`Deserialize` for wire transport. `certificate` module promoted to `pub` for cross-crate verification types. mDNS `let _ = daemon.shutdown()` evolved to traced errors. 4 new tests. 1,736 tests, 210 source files.
 
 - **July 27, 2026** — **Wave 155b: G3 Readiness + Doc Accuracy**: Full certificate lifecycle E2E test with seal (mint → loan → return → transfer → seal → reject-on-sealed). Dead_code reasons updated from "strandGate deploy" to "Nest Atomic Phase 0 (G3)". Inline `Duration::from_secs(5)` extracted to `HEALTH_PROBE_TIMEOUT` and `DEFAULT_IPC_TIMEOUT` constants. Doc metrics corrected: "52-validation" → "20-phase, 44-method", `#[allow]` claim corrected, dead_code count aligned. 1,732 tests, 210 source files.

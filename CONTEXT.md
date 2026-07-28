@@ -26,7 +26,7 @@ when they need to commit, verify, or query permanent records.
 - **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,736 (all concurrent, ~3s, zero flaky)
+- **Tests:** 1,739 (all concurrent, ~3s, zero flaky)
 - **Coverage:** 92.26% line
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
@@ -52,7 +52,7 @@ when they need to commit, verify, or query permanent records.
 - `capabilities.list`, `identity.get` — Capability discovery (Wire Standard L3)
 - `tools.list`, `tools.call` — MCP tool discovery and invocation
 - `permanence.*` (4) — Legacy naming compat
-- **47 methods total** (41 stable, 2 evolving, 4 compat). Storage backends: redb (default) and in-memory.
+- **48 methods total** (42 stable, 2 evolving, 4 compat). Storage backends: redb (default) and in-memory.
 
 ## What This Does NOT Do
 

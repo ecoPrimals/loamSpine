@@ -335,6 +335,43 @@ impl LoamSpineService {
         Ok(history)
     }
 
+    /// Build a structured certificate history with typed ownership and loan records.
+    ///
+    /// Delegates to [`CertificateHistory::from_certificate_and_entries`] after
+    /// fetching the certificate and its lifecycle entries.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if certificate or spine not found, or storage fails.
+    pub async fn certificate_history(
+        &self,
+        cert_id: CertificateId,
+    ) -> LoamSpineResult<crate::certificate::CertificateHistory> {
+        let (cert, spine_id) = self
+            .certificate_storage
+            .get_certificate(cert_id)
+            .await?
+            .ok_or(LoamSpineError::CertificateNotFound(cert_id))?;
+
+        let spine = self
+            .spine_storage
+            .get_spine(spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
+
+        let entries = self
+            .entry_storage
+            .get_entries_for_spine(spine_id, 0, spine.height)
+            .await?;
+
+        let lifecycle: Vec<crate::entry::Entry> = entries
+            .into_iter()
+            .filter(|e| entry_references_certificate(&e.entry_type, cert_id))
+            .collect();
+
+        Ok(crate::certificate::CertificateHistory::from_certificate_and_entries(cert, &lifecycle))
+    }
+
     /// Generate a cryptographic proof of a certificate's ownership chain.
     ///
     /// Collects all ownership-establishing entries (mint and transfers),

@@ -172,4 +172,26 @@ impl LoamSpineRpcService {
             entries,
         })
     }
+
+    /// Retrieve structured certificate history with typed records.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if certificate not found or storage fails.
+    pub async fn certificate_history(
+        &self,
+        request: CertificateHistoryRequest,
+    ) -> ApiResult<CertificateHistoryResponse> {
+        let core = self.core().await;
+        let history = core
+            .certificate_history(request.certificate_id)
+            .await
+            .map_err(ApiError::from)?;
+
+        Ok(CertificateHistoryResponse {
+            certificate: history.certificate,
+            ownership_records: history.ownership_records,
+            loan_records: history.loan_records,
+        })
+    }
 }
