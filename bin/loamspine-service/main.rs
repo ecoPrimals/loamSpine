@@ -76,7 +76,9 @@ enum Command {
         jsonrpc_port: Option<u16>,
 
         /// Bind address (env: `LOAMSPINE_BIND_ADDRESS`, `BIND_ADDRESS`).
-        #[arg(long)]
+        ///
+        /// Also accepts `--bind` for biomeOS compatibility.
+        #[arg(long, alias = "bind")]
         bind_address: Option<String>,
 
         /// UDS socket path override (env: `LOAMSPINE_SOCKET`).
@@ -606,6 +608,16 @@ mod tests {
         {
             assert_eq!(port, Some(7070));
             assert!(jsonrpc_port.is_none());
+        } else {
+            panic!("expected Server variant");
+        }
+    }
+
+    #[test]
+    fn cli_parse_server_bind_alias() {
+        let cli = Cli::parse_from(["loamspine", "server", "--bind", "0.0.0.0"]);
+        if let Command::Server { bind_address, .. } = cli.command {
+            assert_eq!(bind_address.as_deref(), Some("0.0.0.0"));
         } else {
             panic!("expected Server variant");
         }

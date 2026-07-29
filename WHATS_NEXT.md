@@ -9,6 +9,8 @@
 
 ## Recent Changes
 
+- **July 29, 2026** — **Wave 155i: CLI Standardization + Deep Audit**: `--bind` alias for `--bind-address` (biomeOS P2). Deep audit: zero production unwrap/expect, zero TODOs, zero `#[allow]` in non-test code. 1,740 tests, 211 source files.
+
 - **July 28, 2026** — **Wave 155f: Structural Extraction + Schema Evolution + BTSP Dedup**: Entry module extraction (648L → 227L + 437L). Schema orphans populated: `CertificateHistory::from_certificate_and_entries()`. New `certificate.history` RPC (48 methods). BTSP handshake dedup: `verify_and_negotiate()` + `AsyncErrorSender` trait consolidates both framing modes. Deep audit confirmed zero production unwrap/expect, zero TODOs. 1,739 tests, 211 source files.
 
 - **July 27, 2026** — **Wave 155b+: G3 Verification Path + RPC Surface**: `verify_certificate` evolved from storage-existence to semantic checks: `MintEntryValid` (entry type + cert_id match) and `OwnerConsistent` (initial_owner matches minter). New JSON-RPC methods: `certificate.verify`, `certificate.lifecycle`. `MintInfo::with_authority` builder for delegated minting path. `CertificateVerification` + `VerificationCheck` now `Serialize`/`Deserialize` for wire transport. `certificate` module promoted to `pub` for cross-crate verification types. mDNS `let _ = daemon.shutdown()` evolved to traced errors. 4 new tests. 1,736 tests, 210 source files.

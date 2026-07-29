@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (July 29, 2026 — Wave 155i: CLI Standardization + Deep Audit)
+
+- **CLI bind flag standardization**: Added `--bind` as alias for `--bind-address`, enabling biomeOS composition lifecycle to uniformly start primals with `--bind`. Resolves P2 from NUCLEUS convergence audit.
+- **Deep audit confirmed**: Zero production unwrap/expect, zero TODOs, zero files >800L, zero `#[allow]` directives in non-test code. All production files well under limits (largest: 670L `uds.rs`).
+- 1 new test (`cli_parse_server_bind_alias`). 1,740 tests, 211 source files, all checks clean.
+
 ### Changed (July 28, 2026 — Wave 155f: Structural Extraction + Schema Evolution + BTSP Dedup)
 
 - **Entry module extraction**: `EntryType` (21 variants), `AnchorTarget`, `SpineConfig`, `SpineType` extracted from `entry/mod.rs` (648L) into `entry/types.rs` (437L). Parent module reduced to 227L (Entry struct + methods only). All existing imports preserved via re-exports.
