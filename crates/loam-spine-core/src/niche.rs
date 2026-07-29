@@ -63,6 +63,9 @@ pub const METHODS: &[&str] = &[
     "certificate.loan",
     "certificate.return",
     "certificate.get",
+    "certificate.verify",
+    "certificate.lifecycle",
+    "certificate.history",
     // Waypoint slices
     "slice.anchor",
     "slice.checkout",

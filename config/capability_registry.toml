@@ -25,7 +25,7 @@ methods = ["append", "get", "get_tip", "list"]
 
 [domains.certificate]
 description = "Loam Certificates — memory-bound objects (Novel Ferment Transcripts)"
-methods = ["mint", "transfer", "loan", "return", "get"]
+methods = ["mint", "transfer", "loan", "return", "get", "verify", "lifecycle", "history"]
 
 [domains.proof]
 description = "Merkle inclusion proofs"
@@ -157,6 +157,21 @@ stability = "stable"
 
 [operations."certificate.get"]
 depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."certificate.verify"]
+depends_on = ["certificate.mint"]
+cost = "low"
+stability = "stable"
+
+[operations."certificate.lifecycle"]
+depends_on = ["certificate.mint"]
+cost = "low"
+stability = "stable"
+
+[operations."certificate.history"]
+depends_on = ["certificate.mint"]
 cost = "low"
 stability = "stable"
 

@@ -126,6 +126,27 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 },
                 "required": ["certificate_id", "returner"]
             })),
+            mcp_tool("certificate_verify", "Verify a certificate's integrity and provenance checks", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID" }
+                },
+                "required": ["certificate_id"]
+            })),
+            mcp_tool("certificate_lifecycle", "Get ordered lifecycle entries for a certificate", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID" }
+                },
+                "required": ["certificate_id"]
+            })),
+            mcp_tool("certificate_history", "Get structured certificate history with ownership and loan records", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "certificate_id": { "type": "string", "description": "Certificate ID" }
+                },
+                "required": ["certificate_id"]
+            })),
             mcp_tool("slice_anchor", "Anchor a slice on a waypoint spine", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -313,6 +334,9 @@ pub fn mcp_tool_to_rpc(
         "certificate_transfer" => "certificate.transfer",
         "certificate_loan" => "certificate.loan",
         "certificate_return" => "certificate.return",
+        "certificate_verify" => "certificate.verify",
+        "certificate_lifecycle" => "certificate.lifecycle",
+        "certificate_history" => "certificate.history",
         "slice_anchor" => "slice.anchor",
         "slice_checkout" => "slice.checkout",
         "proof_generate_inclusion" => "proof.generate_inclusion",
