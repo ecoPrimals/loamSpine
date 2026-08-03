@@ -266,11 +266,13 @@ impl LoamSpineJsonRpc {
             "spine.seal" => rpc!(params, seal_spine),
 
             "entry.append" => rpc!(params, append_entry),
+            "entry.append_batch" => rpc!(params, append_entry_batch),
             "entry.get" => rpc!(params, get_entry),
             "entry.get_tip" => rpc!(params, get_tip),
             "entry.list" => rpc!(params, list_entries),
 
             "certificate.mint" => rpc!(params, mint_certificate),
+            "certificate.mint_batch" => rpc!(params, mint_certificate_batch),
             "certificate.transfer" => rpc!(params, transfer_certificate),
             "certificate.loan" => rpc!(params, loan_certificate),
             "certificate.return" => rpc!(params, return_certificate),
@@ -281,15 +283,10 @@ impl LoamSpineJsonRpc {
 
             "health.check" => rpc!(params, health_check),
             "health.liveness" => ser(self.service.liveness().await),
-            "health.readiness" => {
-                let probe = self.service.readiness().await.map_err(app_err)?;
-                ser(probe)
-            }
-            "health" => ser(serde_json::json!({
-                "status": "ok",
-                "primal": loam_spine_core::niche::PRIMAL_ID,
-                "version": env!("CARGO_PKG_VERSION"),
-            })),
+            "health.readiness" => ser(self.service.readiness().await.map_err(app_err)?),
+            "health" => ser(
+                serde_json::json!({"status":"ok","primal":loam_spine_core::niche::PRIMAL_ID,"version":env!("CARGO_PKG_VERSION")}),
+            ),
 
             "auth.check" | "auth.mode" | "auth.peer_info" => self.dispatch_auth(method, &params),
             "lifecycle.status" | "btsp.capabilities" | "primal.announce" => {

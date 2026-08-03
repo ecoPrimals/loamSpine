@@ -34,6 +34,40 @@ impl LoamSpineRpcService {
         })
     }
 
+    /// Mint multiple certificates in a single batch.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if spine not found or any mint fails.
+    pub async fn mint_certificate_batch(
+        &self,
+        request: MintCertificateBatchRequest,
+    ) -> ApiResult<MintCertificateBatchResponse> {
+        let items: Vec<_> = request
+            .items
+            .into_iter()
+            .map(|item| (item.cert_type, item.owner, item.metadata))
+            .collect();
+
+        let core = self.core_mut().await;
+        let minted = core
+            .mint_certificate_batch(request.spine_id, items)
+            .await
+            .map_err(ApiError::from)?;
+        drop(core);
+
+        let count = minted.len();
+        let results = minted
+            .into_iter()
+            .map(|(certificate_id, mint_hash)| BatchMintResult {
+                certificate_id,
+                mint_hash,
+            })
+            .collect();
+
+        Ok(MintCertificateBatchResponse { results, count })
+    }
+
     /// Transfer a certificate.
     ///
     /// # Errors

@@ -206,6 +206,37 @@ pub struct AppendEntryResponse {
     pub index: u64,
 }
 
+/// Request to append multiple entries to a spine in a single batch.
+///
+/// All entries target the same spine and are chained sequentially.
+/// Amortizes RPC and storage overhead for bulk ingestion (G31).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppendEntryBatchRequest {
+    /// Target spine ID (all entries appended here)
+    pub spine_id: SpineId,
+    /// Entry types to append (in order)
+    pub entries: Vec<EntryType>,
+}
+
+/// Per-entry result within a batch append.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchEntryResult {
+    /// Hash of the appended entry
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
+    pub entry_hash: EntryHash,
+    /// Entry index on the spine
+    pub index: u64,
+}
+
+/// Response from a batch append.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppendEntryBatchResponse {
+    /// Per-entry results (same order as request)
+    pub results: Vec<BatchEntryResult>,
+    /// Total entries appended
+    pub count: usize,
+}
+
 /// Request to get an entry by hash.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetEntryRequest {

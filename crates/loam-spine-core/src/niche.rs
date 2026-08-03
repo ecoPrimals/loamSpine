@@ -54,11 +54,13 @@ pub const METHODS: &[&str] = &[
     "spine.seal",
     // Entry CRUD
     "entry.append",
+    "entry.append_batch",
     "entry.get",
     "entry.get_tip",
     "entry.list",
     // Certificate lifecycle
     "certificate.mint",
+    "certificate.mint_batch",
     "certificate.transfer",
     "certificate.loan",
     "certificate.return",

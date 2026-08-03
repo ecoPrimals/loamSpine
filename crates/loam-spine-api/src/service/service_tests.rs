@@ -564,3 +564,91 @@ async fn certificate_history_rpc_returns_typed_records() {
     assert_eq!(hist_resp.ownership_records.len(), 2);
     assert!(hist_resp.loan_records.is_empty());
 }
+
+#[tokio::test]
+async fn append_entry_batch_rpc_returns_ordered_results() {
+    let service = LoamSpineRpcService::default_service();
+    let owner = Did::new("did:key:test-batch-entry-rpc");
+
+    let spine_resp = service
+        .create_spine(CreateSpineRequest {
+            name: "batch-entry-rpc".to_string(),
+            owner: owner.clone(),
+            config: None,
+        })
+        .await
+        .expect("create spine");
+
+    let entries: Vec<_> = (0..5)
+        .map(|i| loam_spine_core::entry::EntryType::MetadataUpdate {
+            field: format!("field_{i}"),
+            value: format!("value_{i}"),
+        })
+        .collect();
+
+    let batch_resp = service
+        .append_entry_batch(AppendEntryBatchRequest {
+            spine_id: spine_resp.spine_id,
+            entries,
+        })
+        .await
+        .expect("batch append");
+
+    assert_eq!(batch_resp.count, 5);
+    assert_eq!(batch_resp.results.len(), 5);
+
+    for i in 0..4 {
+        assert!(
+            batch_resp.results[i].index < batch_resp.results[i + 1].index,
+            "indices must be monotonically increasing"
+        );
+    }
+}
+
+#[tokio::test]
+async fn mint_certificate_batch_rpc_creates_all() {
+    let service = LoamSpineRpcService::default_service();
+    let owner = Did::new("did:key:test-batch-mint-rpc");
+
+    let spine_resp = service
+        .create_spine(CreateSpineRequest {
+            name: "batch-mint-rpc".to_string(),
+            owner: owner.clone(),
+            config: None,
+        })
+        .await
+        .expect("create spine");
+
+    let items: Vec<_> = (0..5)
+        .map(|i| BatchMintItem {
+            cert_type: CertificateType::SoftwareLicense {
+                software_id: format!("batch-rpc-sw-{i}"),
+                license_type: "perpetual".into(),
+                seats: Some(1),
+                expires: None,
+            },
+            owner: owner.clone(),
+            metadata: None,
+        })
+        .collect();
+
+    let batch_resp = service
+        .mint_certificate_batch(MintCertificateBatchRequest {
+            spine_id: spine_resp.spine_id,
+            items,
+        })
+        .await
+        .expect("batch mint");
+
+    assert_eq!(batch_resp.count, 5);
+    assert_eq!(batch_resp.results.len(), 5);
+
+    let mut ids: Vec<_> = batch_resp
+        .results
+        .iter()
+        .map(|r| r.certificate_id)
+        .collect();
+    ids.sort();
+    ids.dedup();
+    assert_eq!(ids.len(), 5, "all certificate IDs should be unique");
+}

@@ -31,6 +31,46 @@ pub struct MintCertificateResponse {
     pub mint_hash: EntryHash,
 }
 
+/// A single item in a batch mint request.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchMintItem {
+    /// Certificate type
+    pub cert_type: CertificateType,
+    /// Owner DID
+    pub owner: Did,
+    /// Certificate metadata
+    pub metadata: Option<CertificateMetadata>,
+}
+
+/// Request to mint multiple certificates on a spine in a single batch.
+///
+/// Amortizes RPC and storage overhead for bulk ingestion (G31).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MintCertificateBatchRequest {
+    /// Spine ID to mint on (all certificates on this spine)
+    pub spine_id: SpineId,
+    /// Items to mint (in order)
+    pub items: Vec<BatchMintItem>,
+}
+
+/// Per-certificate result within a batch mint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchMintResult {
+    /// Certificate ID
+    pub certificate_id: CertificateId,
+    /// Mint entry hash
+    pub mint_hash: EntryHash,
+}
+
+/// Response from a batch mint.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MintCertificateBatchResponse {
+    /// Per-certificate results (same order as request)
+    pub results: Vec<BatchMintResult>,
+    /// Total certificates minted
+    pub count: usize,
+}
+
 /// Request to transfer a certificate.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferCertificateRequest {

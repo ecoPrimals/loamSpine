@@ -50,6 +50,48 @@ impl LoamSpineRpcService {
         Ok(AppendEntryResponse { entry_hash, index })
     }
 
+    /// Append multiple entries in a single batch.
+    ///
+    /// Delegates creation and chaining to the core batch method, which
+    /// amortizes spine lookup and persistence. Tower signing is not yet
+    /// supported for batch (entries are unsigned in batch mode).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if spine not found, sealed, or any entry fails.
+    pub async fn append_entry_batch(
+        &self,
+        request: AppendEntryBatchRequest,
+    ) -> ApiResult<AppendEntryBatchResponse> {
+        let core = self.core_mut().await;
+
+        let hashes = core
+            .append_entry_batch(request.spine_id, request.entries)
+            .await
+            .map_err(ApiError::from)?;
+
+        let spine = core
+            .get_spine(request.spine_id)
+            .await
+            .map_err(ApiError::from)?
+            .ok_or_else(|| ApiError::SpineNotFound(format!("{:?}", request.spine_id)))?;
+        let final_height = spine.height;
+        drop(core);
+
+        let count = hashes.len();
+        let base_index = final_height - count as u64;
+        let results = hashes
+            .into_iter()
+            .enumerate()
+            .map(|(i, entry_hash)| BatchEntryResult {
+                entry_hash,
+                index: base_index + i as u64,
+            })
+            .collect();
+
+        Ok(AppendEntryBatchResponse { results, count })
+    }
+
     /// Get an entry by hash.
     ///
     /// # Errors

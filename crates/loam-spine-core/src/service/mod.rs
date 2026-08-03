@@ -340,6 +340,61 @@ impl LoamSpineService {
 
         Ok(entry_hash)
     }
+
+    /// Append multiple entries to a spine in a single batch.
+    ///
+    /// Amortizes spine lookup and persistence — one read and one write for
+    /// N entries instead of N reads and N writes. Each entry is created from
+    /// the spine's evolving state (correct chaining), then appended.
+    ///
+    /// Returns a callback-friendly vec of `(EntryHash, Entry)` pairs so
+    /// callers can inspect or sign entries post-creation. For Tower signing,
+    /// use [`append_entry_batch_with`].
+    ///
+    /// # Errors
+    ///
+    /// Returns error if spine not found, sealed, or any entry fails chain
+    /// validation. On error, no entries are persisted (all-or-nothing).
+    pub async fn append_entry_batch(
+        &self,
+        spine_id: SpineId,
+        entry_types: Vec<EntryType>,
+    ) -> LoamSpineResult<Vec<EntryHash>> {
+        if entry_types.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut spine = self
+            .spine_storage
+            .get_spine(spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
+
+        if !spine.is_active() {
+            return Err(LoamSpineError::SpineSealed(spine_id));
+        }
+
+        let mut hashes = Vec::with_capacity(entry_types.len());
+        let mut appended_entries = Vec::with_capacity(entry_types.len());
+
+        for entry_type in entry_types {
+            let entry = spine.create_entry(entry_type);
+            let entry_hash = spine.append(entry)?;
+            let appended = spine
+                .tip_entry()
+                .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?
+                .clone();
+            hashes.push(entry_hash);
+            appended_entries.push(appended);
+        }
+
+        for entry in &appended_entries {
+            self.entry_storage.save_entry(entry).await?;
+        }
+        self.spine_storage.save_spine(&spine).await?;
+
+        Ok(hashes)
+    }
 }
 
 #[cfg(test)]

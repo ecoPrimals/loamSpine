@@ -145,6 +145,92 @@ impl LoamSpineService {
         Ok((cert_id, entry_hash))
     }
 
+    /// Mint multiple certificates on a spine in a single batch.
+    ///
+    /// Amortizes spine lookup and persistence — one read and one write for
+    /// N mints. Each mint chains from the previous entry, preserving
+    /// append-only integrity.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if spine not found, sealed, or any mint fails.
+    /// On error, no mints are persisted (all-or-nothing).
+    pub async fn mint_certificate_batch(
+        &self,
+        spine_id: SpineId,
+        items: Vec<(CertificateType, Did, Option<CertificateMetadata>)>,
+    ) -> LoamSpineResult<Vec<(CertificateId, EntryHash)>> {
+        if items.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut spine = self
+            .spine_storage
+            .get_spine(spine_id)
+            .await?
+            .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
+
+        if !spine.is_active() {
+            return Err(LoamSpineError::SpineSealed(spine_id));
+        }
+
+        let mut results = Vec::with_capacity(items.len());
+        let mut appended_entries = Vec::with_capacity(items.len());
+        let mut certificates = Vec::with_capacity(items.len());
+
+        for (cert_type, owner, metadata) in items {
+            let cert_id = uuid::Uuid::now_v7();
+            let cert_type_str = format!("{cert_type:?}");
+
+            let entry = spine.create_entry(EntryType::CertificateMint {
+                cert_id,
+                cert_type: cert_type_str,
+                initial_owner: owner.clone(),
+            });
+
+            let entry_hash = spine.append(entry)?;
+            let appended = spine
+                .tip_entry()
+                .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?
+                .clone();
+
+            let mint_info = MintInfo {
+                minter: owner.clone(),
+                spine: spine_id,
+                entry: entry_hash,
+                timestamp: Timestamp::now(),
+                authority: None,
+            };
+
+            let mut cert = Certificate::new(cert_id, cert_type, &owner, &mint_info);
+            cert.current_location = CertificateLocation {
+                spine: spine_id,
+                entry: entry_hash,
+                index: spine.height - 1,
+            };
+
+            if let Some(meta) = metadata {
+                cert.metadata = meta;
+            }
+
+            results.push((cert_id, entry_hash));
+            appended_entries.push(appended);
+            certificates.push((cert, spine_id));
+        }
+
+        for entry in &appended_entries {
+            self.entry_storage.save_entry(entry).await?;
+        }
+        self.spine_storage.save_spine(&spine).await?;
+        for (cert, sid) in &certificates {
+            self.certificate_storage
+                .save_certificate(cert, *sid)
+                .await?;
+        }
+
+        Ok(results)
+    }
+
     /// Get a certificate by ID.
     pub async fn get_certificate(&self, cert_id: CertificateId) -> Option<Certificate> {
         self.certificate_storage

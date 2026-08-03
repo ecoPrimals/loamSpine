@@ -21,11 +21,11 @@ methods = ["create", "get", "list", "seal"]
 
 [domains.entry]
 description = "Content-addressed entry management"
-methods = ["append", "get", "get_tip", "list"]
+methods = ["append", "append_batch", "get", "get_tip", "list"]
 
 [domains.certificate]
 description = "Loam Certificates — memory-bound objects (Novel Ferment Transcripts)"
-methods = ["mint", "transfer", "loan", "return", "get", "verify", "lifecycle", "history"]
+methods = ["mint", "mint_batch", "transfer", "loan", "return", "get", "verify", "lifecycle", "history"]
 
 [domains.proof]
 description = "Merkle inclusion proofs"
@@ -120,6 +120,11 @@ depends_on = ["spine.create"]
 cost = "low"
 stability = "stable"
 
+[operations."entry.append_batch"]
+depends_on = ["spine.create"]
+cost = "medium"
+stability = "stable"
+
 [operations."entry.get"]
 depends_on = []
 cost = "low"
@@ -138,6 +143,11 @@ stability = "stable"
 [operations."certificate.mint"]
 depends_on = ["spine.create"]
 cost = "low"
+stability = "stable"
+
+[operations."certificate.mint_batch"]
+depends_on = ["spine.create"]
+cost = "medium"
 stability = "stable"
 
 [operations."certificate.transfer"]

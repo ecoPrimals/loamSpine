@@ -285,3 +285,90 @@ async fn append_prepared_entry_sealed_spine() {
     let result = service.append_prepared_entry(spine_id, entry).await;
     assert!(result.is_err());
 }
+
+#[tokio::test]
+async fn append_entry_batch_chains_correctly() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkBatchOwner");
+
+    let spine_id = service
+        .ensure_spine(owner, Some("BatchSpine".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let entry_types: Vec<_> = (0..5)
+        .map(|i| crate::entry::EntryType::MetadataUpdate {
+            field: format!("field_{i}"),
+            value: format!("value_{i}"),
+        })
+        .collect();
+
+    let hashes = service
+        .append_entry_batch(spine_id, entry_types)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert_eq!(hashes.len(), 5, "should return 5 hashes");
+
+    for (i, hash) in hashes.iter().enumerate() {
+        let entry = service
+            .entry_storage
+            .get_entry(*hash)
+            .await
+            .unwrap_or_else(|_| unreachable!())
+            .unwrap_or_else(|| unreachable!());
+        assert!(
+            matches!(
+                entry.entry_type,
+                crate::entry::EntryType::MetadataUpdate { .. }
+            ),
+            "entry {i} should be MetadataUpdate"
+        );
+    }
+}
+
+#[tokio::test]
+async fn append_entry_batch_empty_is_noop() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkBatchEmpty");
+
+    let spine_id = service
+        .ensure_spine(owner, None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let hashes = service
+        .append_entry_batch(spine_id, Vec::new())
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert!(hashes.is_empty(), "empty batch returns empty vec");
+}
+
+#[tokio::test]
+async fn append_entry_batch_sealed_spine_fails() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkBatchSealed");
+
+    let spine_id = service
+        .ensure_spine(owner, None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    service
+        .seal_spine(spine_id, Some("sealed".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let entry = service
+        .prepare_entry(
+            spine_id,
+            crate::entry::EntryType::MetadataUpdate {
+                field: "f".into(),
+                value: "v".into(),
+            },
+        )
+        .await;
+
+    assert!(entry.is_err(), "prepare on sealed spine should fail");
+}

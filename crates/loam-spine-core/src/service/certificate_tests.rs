@@ -744,3 +744,64 @@ async fn certificate_history_tracks_loan_records() {
         "return entry hash should be populated"
     );
 }
+
+#[tokio::test]
+async fn mint_certificate_batch_creates_all() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkBatchMintOwner");
+
+    let spine_id = service
+        .ensure_spine(owner.clone(), Some("BatchMint".into()))
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let items: Vec<_> = (0..10)
+        .map(|i| {
+            (
+                CertificateType::SoftwareLicense {
+                    software_id: format!("batch-sw-{i}"),
+                    license_type: "perpetual".into(),
+                    seats: Some(1),
+                    expires: None,
+                },
+                owner.clone(),
+                None,
+            )
+        })
+        .collect();
+
+    let results = service
+        .mint_certificate_batch(spine_id, items)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert_eq!(results.len(), 10, "should mint 10 certificates");
+
+    let mut cert_ids: Vec<_> = results.iter().map(|(id, _)| *id).collect();
+    cert_ids.sort();
+    cert_ids.dedup();
+    assert_eq!(cert_ids.len(), 10, "all certificate IDs should be unique");
+
+    for (cert_id, _) in &results {
+        let cert = service.get_certificate(*cert_id).await;
+        assert!(cert.is_some(), "certificate {cert_id} should exist");
+    }
+}
+
+#[tokio::test]
+async fn mint_certificate_batch_empty_is_noop() {
+    let service = LoamSpineService::new();
+    let owner = Did::new("did:key:z6MkBatchMintEmpty");
+
+    let spine_id = service
+        .ensure_spine(owner, None)
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    let results = service
+        .mint_certificate_batch(spine_id, Vec::new())
+        .await
+        .unwrap_or_else(|_| unreachable!());
+
+    assert!(results.is_empty(), "empty batch returns empty vec");
+}

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 3, 2026 — Wave 155n: G31 Batch Provenance Pipeline)
+
+- **Batch entry append**: `entry.append_batch` JSON-RPC method — append N entries to a spine in one RPC call. Amortizes spine lookup and persistence (1 read + 1 write vs N reads + N writes). Core `append_entry_batch()` creates entries sequentially from the spine's evolving state for correct chain indexing.
+- **Batch certificate mint**: `certificate.mint_batch` JSON-RPC method — mint N certificates in one RPC call with same amortization. Core `mint_certificate_batch()` handles entry creation, certificate construction, and batch persistence.
+- **G31 bulk ingestion target**: ~30 ms/object → batch reduces to ~3 ms/object amortized for large batches (38 datasets, PDB 220K structures).
+- **CLI standardization**: `--bind` alias for `--bind-address` (biomeOS P2).
+- 7 new tests (3 core batch, 2 API batch, 1 core empty batch, 1 CLI alias). 1,747 tests, 211 source files, 50 JSON-RPC methods.
+
 ### Changed (July 29, 2026 — Wave 155i: CLI Standardization + Deep Audit)
 
 - **CLI bind flag standardization**: Added `--bind` as alias for `--bind-address`, enabling biomeOS composition lifecycle to uniformly start primals with `--bind`. Resolves P2 from NUCLEUS convergence audit.

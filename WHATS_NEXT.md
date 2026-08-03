@@ -9,6 +9,8 @@
 
 ## Recent Changes
 
+- **August 3, 2026** — **Wave 155n: G31 Batch Provenance Pipeline**: `entry.append_batch` and `certificate.mint_batch` JSON-RPC methods for 10× faster bulk ingestion. Amortizes spine I/O (1 read + 1 write vs N+N). CLI `--bind` alias. 1,747 tests, 50 JSON-RPC methods.
+
 - **July 29, 2026** — **Wave 155i: CLI Standardization + Deep Audit**: `--bind` alias for `--bind-address` (biomeOS P2). Deep audit: zero production unwrap/expect, zero TODOs, zero `#[allow]` in non-test code. 1,740 tests, 211 source files.
 
 - **July 28, 2026** — **Wave 155f: Structural Extraction + Schema Evolution + BTSP Dedup**: Entry module extraction (648L → 227L + 437L). Schema orphans populated: `CertificateHistory::from_certificate_and_entries()`. New `certificate.history` RPC (48 methods). BTSP handshake dedup: `verify_and_negotiate()` + `AsyncErrorSender` trait consolidates both framing modes. Deep audit confirmed zero production unwrap/expect, zero TODOs. 1,739 tests, 211 source files.
