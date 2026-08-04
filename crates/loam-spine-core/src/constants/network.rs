@@ -312,14 +312,24 @@ fn resolve_socket_base_dir() -> std::path::PathBuf {
 /// Detect the current user's runtime directory via `/proc/self/status`.
 ///
 /// Returns `Some(path)` only if the directory actually exists on disk.
+/// The UID is cached on first call to avoid repeated blocking reads of
+/// `/proc/self/status` from async contexts.
 #[cfg(target_os = "linux")]
 pub(crate) fn linux_run_user_biomeos() -> Option<std::path::PathBuf> {
-    let status = std::fs::read_to_string("/proc/self/status").ok()?;
-    let uid_str = status
-        .lines()
-        .find(|l| l.starts_with("Uid:"))
-        .and_then(|l| l.split_whitespace().nth(1))?;
-    let path = std::path::PathBuf::from(format!("/run/user/{uid_str}"));
+    use std::sync::OnceLock;
+    static CACHED_UID: OnceLock<Option<String>> = OnceLock::new();
+
+    let uid_str = CACHED_UID.get_or_init(|| {
+        let status = std::fs::read_to_string("/proc/self/status").ok()?;
+        status
+            .lines()
+            .find(|l| l.starts_with("Uid:"))
+            .and_then(|l| l.split_whitespace().nth(1))
+            .map(String::from)
+    });
+
+    let uid = uid_str.as_ref()?.as_str();
+    let path = std::path::PathBuf::from(format!("/run/user/{uid}"));
     path.exists()
         .then(|| path.join(crate::primal_names::BIOMEOS_SOCKET_DIR))
 }

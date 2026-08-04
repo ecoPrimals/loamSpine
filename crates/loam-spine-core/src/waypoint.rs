@@ -181,7 +181,7 @@ pub struct AttestationResult {
     /// Attestation timestamp.
     pub timestamp: Timestamp,
 
-    /// Opaque attestation token for verification.
+    /// Opaque attestation token for verification (small, serde-derived).
     pub token: Vec<u8>,
 
     /// Reason for denial, if applicable.

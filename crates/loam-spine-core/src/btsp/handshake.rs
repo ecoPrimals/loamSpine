@@ -527,7 +527,7 @@ fn decode_session_key(session_key: Option<&str>) -> Option<[u8; 32]> {
 /// Resolution order:
 /// 1. `FAMILY_SEED` — canonical seed variable set by primalSpring guidestone
 /// 2. `BTSP_FAMILY_SEED` — BTSP-scoped alias
-/// 3. `BEARDOG_FAMILY_SEED` — deprecated BearDog-era alias (backward compat)
+/// 3. `BEARDOG_FAMILY_SEED` — deprecated alias (backward compat)
 ///
 /// The env value is typically a hex string (64 ASCII chars = 32 seed bytes).
 /// The raw UTF-8 bytes are base64-encoded for the `family_seed` JSON-RPC param.
@@ -537,7 +537,7 @@ pub(crate) fn resolve_family_seed() -> Result<String, LoamSpineError> {
     let raw = crate::constants::env_resolution::family_seed().map_err(|_| {
         LoamSpineError::ipc(
             IpcErrorPhase::Connect,
-            "FAMILY_SEED not set (checked FAMILY_SEED, BTSP_FAMILY_SEED, and BEARDOG_FAMILY_SEED)",
+            "FAMILY_SEED not set (checked FAMILY_SEED, BTSP_FAMILY_SEED, and deprecated aliases)",
         )
     })?;
 

@@ -5,7 +5,7 @@
 //! Implements both **server-side** and **client-side** BTSP Phase 2 handshakes.
 //! Server-side delegates crypto to the BTSP provider via JSON-RPC. Client-side
 //! (in [`super::btsp_client`]) computes HMAC-SHA256 locally for outbound
-//! connections to bearDog/Tower.
+//! connections to the custodian/Tower provider.
 //!
 //! ## Architecture
 //!
@@ -22,7 +22,7 @@
 //!                        └─ Return BtspSession
 //! ```
 //!
-//! ### Client-side (outbound to bearDog)
+//! ### Client-side (outbound to custodian/Tower provider)
 //!
 //! See [`super::btsp_client`] — wired into `crypto_provider_call` and
 //! `ProviderConn::connect`.

@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! BTSP client-side handshake for connecting to bearDog in strict mode.
+//! BTSP client-side handshake for outbound connections in strict mode.
 //!
-//! When `BEARDOG_UDS_REQUIRE_BTSP=1` is set, bearDog rejects plain JSON-RPC
-//! with `-32600`. This module implements the consumer-side of the 4-step BTSP
-//! handshake so loamSpine can authenticate before sending requests.
+//! When `BTSP_STRICT_MODE=1` is set, the custodian/Tower provider rejects
+//! plain JSON-RPC with `-32600`. This module implements the consumer-side of
+//! the 4-step BTSP handshake so loamSpine can authenticate before sending
+//! requests.
 //!
 //! The challenge response uses LOCAL HMAC-SHA256 with the family seed — this
-//! avoids the chicken-and-egg of needing bearDog to compute HMAC for the
-//! handshake that authenticates us TO bearDog.
+//! avoids the chicken-and-egg of needing the provider to compute HMAC for the
+//! handshake that authenticates us TO it.
 //!
 //! ## Wire Format (NDJSON — newline-delimited)
 //!
@@ -102,16 +103,16 @@ pub enum BtspClientError {
 /// Resolve the raw family seed from environment.
 ///
 /// Uses the shared env resolution chain (`FAMILY_SEED` → `BTSP_FAMILY_SEED`
-/// → `BEARDOG_FAMILY_SEED`), matching songBird standard priority.
+/// → deprecated aliases), matching songBird standard priority.
 fn resolve_family_seed_raw() -> Option<String> {
     crate::constants::env_resolution::family_seed()
         .ok()
         .filter(|s| !s.trim().is_empty())
 }
 
-/// Check whether BTSP strict mode is expected (Tower requires handshake).
+/// Check whether BTSP strict mode is expected (custodian requires handshake).
 ///
-/// Priority: `BTSP_STRICT_MODE` (canonical) > `BEARDOG_UDS_REQUIRE_BTSP` (deprecated).
+/// Priority: `BTSP_STRICT_MODE` (canonical) > deprecated aliases.
 #[must_use]
 pub fn btsp_strict_mode_expected() -> bool {
     if let Ok(v) = std::env::var("BTSP_STRICT_MODE") {
@@ -126,8 +127,8 @@ pub fn btsp_strict_mode_expected() -> bool {
 
 /// Perform the client-side BTSP handshake over an NDJSON stream.
 ///
-/// Authenticates to bearDog using the family seed from environment.
-/// After success, the stream is ready for JSON-RPC traffic.
+/// Authenticates to the custodian/Tower provider using the family seed
+/// from environment. After success, the stream is ready for JSON-RPC traffic.
 ///
 /// # Errors
 ///
