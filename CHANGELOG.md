@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 4, 2026 — Wave 155u: Niche Completeness + MCP Batch Tools)
+
+- **Semantic mapping completeness**: `SEMANTIC_MAPPINGS` expanded from 33 to 52 entries — every method in `METHODS` now has an orchestrator-routable semantic mapping. Added batch ops (`append_entry_batch`, `mint_certificate_batch`), certificate introspection (`verify_certificate`, `certificate_lifecycle`, `certificate_history`), listing ops (`list_spines`, `list_entries`), infrastructure probes (`health_liveness`, `health_readiness`, `lifecycle_status`), auth introspection (`auth_check`, `auth_mode`, `auth_peer_info`), BTSP (`btsp_negotiate`, `btsp_capabilities`), and permanence compat layer (4 methods).
+- **Cost estimate completeness**: `COST_ESTIMATES` expanded from 32 to 52 entries — every method now has scheduling hints. Batch ops: `entry.append_batch` 10ms, `certificate.mint_batch` 15ms (amortized I/O). `session.dehydrate` 3ms added.
+- **MCP batch tool exposure**: `entry_append_batch` and `certificate_mint_batch` MCP tool definitions added — AI agents can discover and invoke batch operations via `tools/list` and `tools/call`.
+- **Doc alignment**: README badge 48→52 methods. STATUS.md method/operation counts aligned. CONTEXT.md method list includes batch + certificate introspection. sporeprint validation summary refreshed.
+- 1,747 tests, 211 source files, 52 JSON-RPC methods, all checks clean.
+
 ### Changed (August 3, 2026 — Wave 155n: G31 Batch Provenance Pipeline)
 
 - **Batch entry append**: `entry.append_batch` JSON-RPC method — append N entries to a spine in one RPC call. Amortizes spine lookup and persistence (1 read + 1 write vs N reads + N writes). Core `append_entry_batch()` creates entries sequentially from the spine's evolving state for correct chain indexing.

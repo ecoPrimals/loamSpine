@@ -8,7 +8,7 @@
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
 [![Tests](https://img.shields.io/badge/tests-1%2C747%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92.3%25%20line-brightgreen)]()
-[![Methods](https://img.shields.io/badge/JSON--RPC-48%20methods-blue)]()
+[![Methods](https://img.shields.io/badge/JSON--RPC-52%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()
 [![Stadial](https://img.shields.io/badge/stadial-ready-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20LazyLock-green)]()

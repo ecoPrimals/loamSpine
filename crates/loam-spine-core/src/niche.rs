@@ -119,39 +119,70 @@ pub const METHODS: &[&str] = &[
 /// `capability.call { domain: "spine", operation: "create" }`
 /// routes to `spine.create` on our socket.
 pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
+    // Spine lifecycle
     ("create_spine", "spine.create"),
     ("get_spine", "spine.get"),
+    ("list_spines", "spine.list"),
     ("seal_spine", "spine.seal"),
+    // Entry CRUD
     ("append_entry", "entry.append"),
+    ("append_entry_batch", "entry.append_batch"),
     ("get_entry", "entry.get"),
     ("get_tip", "entry.get_tip"),
+    ("list_entries", "entry.list"),
+    // Certificate lifecycle
     ("mint_certificate", "certificate.mint"),
+    ("mint_certificate_batch", "certificate.mint_batch"),
     ("transfer_certificate", "certificate.transfer"),
     ("loan_certificate", "certificate.loan"),
     ("return_certificate", "certificate.return"),
     ("get_certificate", "certificate.get"),
+    ("verify_certificate", "certificate.verify"),
+    ("certificate_lifecycle", "certificate.lifecycle"),
+    ("certificate_history", "certificate.history"),
+    // Waypoint slices
     ("anchor_slice", "slice.anchor"),
     ("checkout_slice", "slice.checkout"),
+    // Proofs
     ("generate_inclusion_proof", "proof.generate_inclusion"),
     ("verify_inclusion_proof", "proof.verify_inclusion"),
+    // Provenance trio
     ("dehydrate_session", "session.dehydrate"),
     ("commit_session", "session.commit"),
     ("commit_braid", "braid.commit"),
+    // Public chain anchoring
     ("publish_anchor", "anchor.publish"),
     ("publish_anchor_batch", "anchor.publish_batch"),
     ("verify_anchor", "anchor.verify"),
+    // Ionic bond ledger
     ("bond_ledger_store", "bonding.ledger.store"),
     ("bond_ledger_retrieve", "bonding.ledger.retrieve"),
     ("bond_ledger_list", "bonding.ledger.list"),
+    // Cross-gate trust ledger
     ("trust_anchor", "trust.anchor"),
     ("trust_query", "trust.query"),
     ("trust_event_count", "trust.event_count"),
+    // BTSP Phase 3
+    ("btsp_negotiate", "btsp.negotiate"),
+    ("btsp_capabilities", "btsp.capabilities"),
+    // Infrastructure
     ("primal_announce", "primal.announce"),
     ("health_check", "health.check"),
+    ("health_liveness", "health.liveness"),
+    ("health_readiness", "health.readiness"),
+    ("lifecycle_status", "lifecycle.status"),
     ("capability_list", "capabilities.list"),
     ("identity_get", "identity.get"),
     ("tools_list", "tools.list"),
     ("tools_call", "tools.call"),
+    ("auth_check", "auth.check"),
+    ("auth_mode", "auth.mode"),
+    ("auth_peer_info", "auth.peer_info"),
+    // Permanence compat layer
+    ("permanence_commit_session", "permanence.commit_session"),
+    ("permanence_verify_commit", "permanence.verify_commit"),
+    ("permanence_get_commit", "permanence.get_commit"),
+    ("permanence_health_check", "permanence.health_check"),
 ];
 
 /// Consumed capabilities — what LoamSpine calls on other primals.
@@ -211,38 +242,70 @@ pub const DEPENDENCIES: &[(&str, bool, &str)] = &[
 ///
 /// Each entry: `(method, estimated_ms, gpu_beneficial)`.
 pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
+    // Spine lifecycle
     ("spine.create", 1, false),
     ("spine.get", 1, false),
+    ("spine.list", 1, false),
     ("spine.seal", 1, false),
+    // Entry CRUD
     ("entry.append", 2, false),
+    ("entry.append_batch", 10, false),
     ("entry.get", 1, false),
     ("entry.get_tip", 1, false),
+    ("entry.list", 2, false),
+    // Certificate lifecycle
     ("certificate.mint", 3, false),
+    ("certificate.mint_batch", 15, false),
     ("certificate.transfer", 2, false),
     ("certificate.loan", 2, false),
     ("certificate.return", 2, false),
     ("certificate.get", 1, false),
+    ("certificate.verify", 2, false),
+    ("certificate.lifecycle", 2, false),
+    ("certificate.history", 3, false),
+    // Waypoint slices
     ("slice.anchor", 2, false),
     ("slice.checkout", 1, false),
+    // Proofs
     ("proof.generate_inclusion", 10, false),
     ("proof.verify_inclusion", 5, false),
+    // Provenance trio
+    ("session.dehydrate", 3, false),
     ("session.commit", 5, false),
     ("braid.commit", 5, false),
+    // Public chain anchoring
     ("anchor.publish", 2, false),
     ("anchor.publish_batch", 10, false),
     ("anchor.verify", 2, false),
+    // Ionic bond ledger
     ("bonding.ledger.store", 2, false),
     ("bonding.ledger.retrieve", 1, false),
     ("bonding.ledger.list", 1, false),
+    // Cross-gate trust ledger
     ("trust.anchor", 2, false),
     ("trust.query", 5, false),
     ("trust.event_count", 1, false),
+    // BTSP Phase 3
+    ("btsp.negotiate", 2, false),
+    ("btsp.capabilities", 1, false),
+    // Infrastructure
     ("primal.announce", 1, false),
     ("health.check", 1, false),
+    ("health.liveness", 1, false),
+    ("health.readiness", 1, false),
+    ("lifecycle.status", 1, false),
     ("capabilities.list", 1, false),
     ("identity.get", 1, false),
     ("tools.list", 1, false),
     ("tools.call", 5, false),
+    ("auth.check", 1, false),
+    ("auth.mode", 1, false),
+    ("auth.peer_info", 1, false),
+    // Permanence compat layer
+    ("permanence.commit_session", 5, false),
+    ("permanence.verify_commit", 2, false),
+    ("permanence.get_commit", 1, false),
+    ("permanence.health_check", 1, false),
 ];
 
 /// Protocols supported by this primal.

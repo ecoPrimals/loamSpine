@@ -1,5 +1,10 @@
-# LoamSpine Primal Capability Registry
+# LoamSpine Primal Capability Registry — Runtime Discovery Configuration
 # 
+# NOTE: The canonical biomeOS deployment descriptor is config/capability_registry.toml
+# (19 domains, 52 operations, per-operation metadata). This file is the runtime
+# discovery configuration used by the service itself at startup for advertisement,
+# health checks, retry policies, and capability-based service location.
+#
 # Philosophy: "Each primal knows only itself. Everything else is discovered."
 #
 # LoamSpine advertises its capabilities for runtime discovery by other primals

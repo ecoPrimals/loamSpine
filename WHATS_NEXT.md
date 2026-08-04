@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: July 27, 2026
+**Last Updated**: August 4, 2026
 
 ---
 
 ## Recent Changes
+
+- **August 4, 2026** — **Wave 155u: Niche Completeness + MCP Batch Tools**: Semantic mappings 33→52 (100% coverage). Cost estimates 32→52 (100% coverage). Batch MCP tool definitions (`entry_append_batch`, `certificate_mint_batch`). Doc alignment across all root docs. 1,747 tests, 52 JSON-RPC methods.
 
 - **August 3, 2026** — **Wave 155n: G31 Batch Provenance Pipeline**: `entry.append_batch` and `certificate.mint_batch` JSON-RPC methods for 10× faster bulk ingestion. Amortizes spine I/O (1 read + 1 write vs N+N). CLI `--bind` alias. 1,747 tests, 50 JSON-RPC methods.
 

@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: July 28, 2026
+**Last Updated**: August 4, 2026
 
 ---
 
@@ -23,7 +23,7 @@ This document tracks implementation progress against the specification suite in 
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
 | [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | COMPLETE | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig` with `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective). `AttestationResult` for capability-discovered attestation providers. `PropagationPolicy`, `SliceTerms`, `SliceOperationType`, `WaypointSummary` types defined. `RelendingChain` with multi-hop sublend/return. `ExpirySweeper` for auto-return. |
 | [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | COMPLETE | Core CRUD + loan/return + sublend + `verify_certificate` + `generate_provenance_proof` + escrow + `UsageSummary` integrated into `CertificateReturn` and `LoanRecord`. `WaypointSummary` re-used from waypoint module. Scyborg license schema. Certificate module: types, lifecycle, metadata, provenance, escrow, usage, tests. |
-| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 50 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
+| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 52 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory and redb (default); sled and SQLite removed (stadial compliance). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
@@ -70,7 +70,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 47 operations, 6 consumed capabilities |
+| `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 52 operations, 6 consumed capabilities |
 | AGPL-3.0-or-later | PASS | SPDX headers on all 210 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
@@ -118,8 +118,8 @@ This document tracks implementation progress against the specification suite in 
 
 ### Stability Tiers
 
-All 47 methods have stability annotations in `capabilities.list` response:
-- **stable**: spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, lifecycle, health, auth, primal, capabilities, identity, tools (40 methods)
+All 52 methods have stability annotations in `capabilities.list` response:
+- **stable**: spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, lifecycle, health, auth, primal, capabilities, identity, tools (46 methods)
 - **evolving**: slice (2 methods)
 - **compat**: permanence (4 methods — legacy naming)
 
@@ -146,6 +146,15 @@ When loamSpine is unavailable:
 ### ecoBin Grade: A+
 
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
+
+---
+
+### Wave 155u: Niche Completeness + MCP Batch Tools (August 4, 2026)
+
+- **Semantic mapping completeness**: `SEMANTIC_MAPPINGS` expanded from 33 to 52 entries — 100% coverage of `METHODS`. Added batch ops (`append_entry_batch`, `mint_certificate_batch`), certificate introspection (`verify_certificate`, `certificate_lifecycle`, `certificate_history`), listing ops (`list_spines`, `list_entries`), infrastructure probes (`health_liveness`, `health_readiness`, `lifecycle_status`), auth introspection (`auth_check`, `auth_mode`, `auth_peer_info`), BTSP (`btsp_negotiate`, `btsp_capabilities`), and permanence compat layer (4 methods).
+- **Cost estimate completeness**: `COST_ESTIMATES` expanded from 32 to 52 entries — 100% coverage. Batch ops: `entry.append_batch` 10ms, `certificate.mint_batch` 15ms (amortized I/O). `session.dehydrate` 3ms added.
+- **MCP tool exposure**: `entry_append_batch` and `certificate_mint_batch` MCP tool definitions added to `mcp_tools_list` — AI agents can now discover and invoke batch operations.
+- **Metrics**: 1,747 tests, 211 source files, all checks clean.
 
 ---
 

@@ -83,6 +83,25 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 },
                 "required": ["spine_id"]
             })),
+            mcp_tool("entry_append_batch", "Append multiple entries to a spine in one batch (amortized I/O)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Target spine ID" },
+                    "entries": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "domain": { "type": "string", "description": "Entry domain" },
+                                "payload": { "type": "string", "description": "Entry payload (base64 or JSON string)" }
+                            },
+                            "required": ["domain", "payload"]
+                        },
+                        "description": "Array of entries to append"
+                    }
+                },
+                "required": ["spine_id", "entries"]
+            })),
             mcp_tool("certificate_mint", "Mint a new certificate (memory-bound object)", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -92,6 +111,26 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                     "name": { "type": "string", "description": "Certificate name" }
                 },
                 "required": ["spine_id", "owner", "cert_type"]
+            })),
+            mcp_tool("certificate_mint_batch", "Mint multiple certificates in one batch (amortized I/O)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Target spine ID" },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "cert_type": { "type": "string", "description": "Certificate type" },
+                                "owner": { "type": "string", "description": "Owner DID" },
+                                "metadata": { "type": "object", "description": "Optional certificate metadata" }
+                            },
+                            "required": ["cert_type", "owner"]
+                        },
+                        "description": "Array of certificates to mint"
+                    }
+                },
+                "required": ["spine_id", "items"]
             })),
             mcp_tool("certificate_get", "Get certificate by ID", &serde_json::json!({
                 "type": "object",

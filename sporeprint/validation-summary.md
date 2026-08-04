@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,736 tests, 47 JSON-RPC methods, 210 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity"
-date = 2026-07-26
+description = "Permanence ledger — 1,747 tests, 52 JSON-RPC methods, 211 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
+date = 2026-08-04
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,24 +10,29 @@ springs = []
 
 ## Status
 
-- **1,736 tests** (all passing), 0 failures, 0 ignored
-- **47 JSON-RPC methods** across 16 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, meta, mcp, permanence)
-- **210 source files**, ~64,292 lines of Rust
+- **1,747 tests** (all passing), 0 failures, 0 ignored
+- **52 JSON-RPC methods** across 19 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, capabilities, identity, tools, primal, permanence)
+- **211 source files**, ~65,000 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
-- **JH-0 ADOPTED** — method gate classifies all 47 methods as Public or Protected
+- **JH-0 ADOPTED** — method gate classifies all 52 methods as Public or Protected
 - **BTSP Phase 2+3** — ClientHello handshake (client + server), ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
-- **Zero DEBT markers**; 2 `#![allow(clippy::wildcard_imports)]` (tarpc macro, unfulfillable with `expect`); all other suppressions `#[expect(reason)]` or `#[cfg_attr]`-gated
+- **Zero DEBT markers** — zero TODO/FIXME/HACK in production code
+- **Zero `#[allow]`** — all suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated
+- **Zero unsafe** — `#![forbid(unsafe_code)]` on all crates + fuzz targets
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
-- **Stability tiers**: 41 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
+- **Stability tiers**: 46 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
+- **Semantic mappings**: 52/52 (100% — every method routable by orchestrator)
+- **Cost estimates**: 52/52 (100% — every method has scheduling hints)
+- **MCP tools**: 36 tools exposed via `tools/list` (including batch operations)
 
 ## Key Capabilities
 
 | Domain | Methods | Description |
 |--------|---------|-------------|
 | Spine | `create`, `get`, `list`, `seal` | Append-only spine lifecycle |
-| Entry | `append`, `get`, `get_tip`, `list` | Content-addressed entry management |
-| Certificate | `mint`, `transfer`, `loan`, `return`, `get` | Memory-bound objects (Novel Ferment Transcripts) |
+| Entry | `append`, `append_batch`, `get`, `get_tip`, `list` | Content-addressed entry management |
+| Certificate | `mint`, `mint_batch`, `transfer`, `loan`, `return`, `get`, `verify`, `lifecycle`, `history` | Memory-bound objects (Novel Ferment Transcripts) |
 | Proof | `generate_inclusion`, `verify_inclusion` | Merkle inclusion proofs |
 | Anchor | `publish`, `publish_batch`, `verify` | Public chain anchoring + aggregate batch (Bitcoin, Ethereum, RFC 3161, Data Commons) |
 | Session | `dehydrate`, `commit` | Provenance trio integration (content-addressed dehydration for rootPulse signing, then commit) |
@@ -38,8 +43,9 @@ springs = []
 | Auth | `check`, `mode`, `peer_info` | JH-0 method gate introspection |
 | Lifecycle | `status`, `primal.announce` | Service lifecycle + self-registration |
 | Health | `check`, `liveness`, `readiness` | Health probes |
-| Meta | `capabilities.list`, `identity.get` | Capability discovery (Wire Standard L3) |
-| MCP | `tools.list`, `tools.call` | MCP tool discovery and invocation |
+| Capabilities | `list` | Capability discovery (Wire Standard L3) |
+| Identity | `get` | Primal identity |
+| Tools | `list`, `call` | MCP tool discovery and invocation |
 | Compat | `permanence.*` (4) | Legacy naming compatibility |
 
 ## Provenance Trio Role
@@ -56,31 +62,28 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 - `anchor.publish` stamps spine state to public immutable ledgers (Bitcoin OP_RETURN, Ethereum, RFC 3161 TSA)
 - Loam Certificates are Novel Ferment Transcripts — value from accumulated history
 
+## G31 Batch Provenance Pipeline
+
+- `entry.append_batch` — append N entries in one RPC call, amortized I/O (1 read + 1 write)
+- `certificate.mint_batch` — mint N certificates in one RPC call, same amortization
+- Target: ~30 ms/object → ~3 ms/object amortized for bulk ingestion
+- Addresses 12× throughput gap identified in westGate provenance × acquisition divergence
+
 ## Recent Evolution (v0.9.16)
 
 | Wave | What landed |
 |------|-------------|
-| Cross-Arch (Wave 141) | `#[cfg(unix)]` gating on all UDS transport, BTSP provider, NeuralAPI; `cargo check --target x86_64-pc-windows-gnu` clean |
-| Deep Debt (Wave 141) | `integration_tests.rs` split (1002L → 3 modules ≤451L), BearDog env deprecation warnings, clone reduction |
-| Transport | `TransportEndpoint` local impl (wire-compat sourDough standard), `TRANSPORT_ENDPOINT` env acceptance |
-| Trust IPC | `trust.anchor`, `trust.query`, `trust.event_count` — cross-gate trust wiring |
-| Phase 2 Transport (Wave 142b) | `TransportStream` enum + `connect_transport()` dispatch, NDJSON/length-prefixed framing helpers, `base64` crate migration, `spawn_blocking` async fs hygiene |
-| Wave 151b BTSP Client | ClientHello handshake (4-step, HMAC-SHA256), wired into crypto_provider_call + ProviderConn, hmac 0.13, 9 new tests |
-| Wave 150t Health Probes | Honest readiness (5s timeout, `ready: false` on lock timeout), honest health_check (`Unhealthy` on timeout), 9 new tests, stale Cargo.toml comment fix |
-| Wave 149b Self-Audit | Dimensional review (10 dims), `chaos.rs`/`lifecycle_tests.rs` splits, fuzz `#![forbid(unsafe_code)]`, `--abstract` flag warning |
-| benchScale | `infra/benchScale/validate_roundtrip.sh` — 20 phases, 44 methods (trust.* pending), live TCP roundtrip |
-| Deep Debt Cleanup | Safe casts (`try_from`), dead code wiring (cipher tracing), test cohesion split (876→5 modules), 204 source files |
-| Wave 47 | Deployment behavioral convergence — `serve`→`server` fix, `LOAMSPINE_DISCOVERY_ENABLED` env gate, `lifecycle.status` `uptime_s` |
-| Wave 43 | Neural API `primal.announce` adoption — startup announce with capabilities, signal_tiers, cost_hints, latency_estimates |
-| Anchoring Architecture | `anchor.publish_batch`, aggregation Merkle tree, ANCHORING_ARCHITECTURE.md, upstream propagation |
-| Wave 22 (Stadial Gate) | `btsp.capabilities`, `primal.announce`, stability tiers, 40 methods |
-| Stale Socket | TOCTOU-safe `unlink` before `bind`, PID file |
-| River Delta (WS-2/WS-3) | `spine.list`, `entry.list`, `AnchorTarget::Rfc3161Tsa`, PUBLIC_TIMESTAMPING.md spec |
-| Deep Debt | Typed `HexError`, `#[expect(reason)]` migration, test file splits |
-| GAP-36 | Session alias wire reconciliation, `lifecycle.status` |
-| Wave 151b BTSP Client | ClientHello handshake (consumer-side), HMAC-SHA256, 5 mock-server tests |
-| Wave 151c TransportEndpoint | All outbound IPC via `connect_transport`, `endpoint_from_addr`, error visibility |
-| Wave 155b G3 Readiness | Full lifecycle E2E with seal, configurable timeouts, doc accuracy, dead_code reasons |
+| Wave 155u (Aug 4) | Semantic mappings 33→52, cost estimates 32→52, MCP batch tools, doc alignment |
+| Wave 155n (Aug 3) | G31 batch provenance: `entry.append_batch`, `certificate.mint_batch`, CLI `--bind` |
+| Wave 155f (Jul 28) | Entry extraction, `certificate.history`, BTSP handshake dedup |
+| Wave 155b+ (Jul 27) | G3 verification path, semantic certificate checks, delegated minting |
+| Wave 151c (Jul 26) | TransportEndpoint compliance, error visibility, endpoint parsing |
+| Wave 151b (Jul 26) | BTSP ClientHello handshake (4-step, HMAC-SHA256) |
+| Wave 150t (Jul 21) | Health probe honesty (5s timeout), entry path coverage |
+| Wave 149b (Jul 18) | Dimensional self-audit, test file splits, fuzz safety |
+| Wave 143b (Jul 16) | Transport endpoint functional wiring, framing edge cases |
+| Wave 142b (Jul 16) | Silicon atheism phase 2, async fs hygiene, clone reduction |
+| Wave 141a (Jul 15) | Cross-architecture `#[cfg(unix)]` parity, integration test splits |
 
 ## Consumed Capabilities
 
@@ -95,7 +98,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Spec | Status |
 |------|--------|
 | [LOAMSPINE_SPECIFICATION.md](../specs/LOAMSPINE_SPECIFICATION.md) | Complete |
-| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (47 methods) |
+| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (52 methods) |
 | [DATA_MODEL.md](../specs/DATA_MODEL.md) | Complete |
 | [CERTIFICATE_LAYER.md](../specs/CERTIFICATE_LAYER.md) | Complete |
 | [ANCHORING_ARCHITECTURE.md](../specs/ANCHORING_ARCHITECTURE.md) | Complete |

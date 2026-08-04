@@ -37,8 +37,8 @@ when they need to commit, verify, or query permanent records.
 ## Key Capabilities (JSON-RPC methods)
 
 - `spine.create`, `spine.get`, `spine.list`, `spine.seal` — Spine lifecycle
-- `entry.append`, `entry.get`, `entry.get_tip`, `entry.list` — Entry management
-- `certificate.mint`, `certificate.transfer`, `certificate.loan`, `certificate.return`, `certificate.get` — Loam Certificates
+- `entry.append`, `entry.append_batch`, `entry.get`, `entry.get_tip`, `entry.list` — Entry management
+- `certificate.mint`, `certificate.mint_batch`, `certificate.transfer`, `certificate.loan`, `certificate.return`, `certificate.get`, `certificate.verify`, `certificate.lifecycle`, `certificate.history` — Loam Certificates
 - `session.dehydrate`, `session.commit`, `braid.commit` — Provenance trio coordination
 - `slice.anchor`, `slice.checkout` — Waypoint anchoring
 - `anchor.publish`, `anchor.publish_batch`, `anchor.verify` — Public chain anchoring (single + aggregate Merkle batch)
@@ -52,7 +52,7 @@ when they need to commit, verify, or query permanent records.
 - `capabilities.list`, `identity.get` — Capability discovery (Wire Standard L3)
 - `tools.list`, `tools.call` — MCP tool discovery and invocation
 - `permanence.*` (4) — Legacy naming compat
-- **48 methods total** (42 stable, 2 evolving, 4 compat). Storage backends: redb (default) and in-memory.
+- **52 methods total** (46 stable, 2 evolving, 4 compat). Storage backends: redb (default) and in-memory.
 
 ## What This Does NOT Do
 
