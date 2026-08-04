@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
-### Changed (August 4, 2026 — Wave 155u: Niche Completeness + MCP Batch Tools)
+### Changed (August 4, 2026 — Wave 155u: Deep Debt + Niche Completeness + MCP Batch Tools)
 
+- **BTSP doc evolution**: Module docs evolved from bearDog-centric to capability-agnostic Tower/custodian terminology — `btsp_client.rs`, `btsp/mod.rs`, `btsp/handshake.rs`. Error messages updated to reference canonical env vars.
+- **UID cache**: `linux_run_user_biomeos()` now caches `/proc/self/status` UID via `OnceLock` — eliminates repeated blocking filesystem reads from async contexts.
+- **Deep debt audit complete**: Clone density (Did=Arc\<str\>, O(1)), LazyLock clones (cold-path justified), Vec\<u8\> on wire (immediately consumed), dead_code expects (G3 Phase 0 justified), mocks (all cfg(test)-gated), hardcoding (none in production), unsafe (zero, forbid) — all reviewed and confirmed optimal.
 - **Semantic mapping completeness**: `SEMANTIC_MAPPINGS` expanded from 33 to 52 entries — every method in `METHODS` now has an orchestrator-routable semantic mapping. Added batch ops (`append_entry_batch`, `mint_certificate_batch`), certificate introspection (`verify_certificate`, `certificate_lifecycle`, `certificate_history`), listing ops (`list_spines`, `list_entries`), infrastructure probes (`health_liveness`, `health_readiness`, `lifecycle_status`), auth introspection (`auth_check`, `auth_mode`, `auth_peer_info`), BTSP (`btsp_negotiate`, `btsp_capabilities`), and permanence compat layer (4 methods).
 - **Cost estimate completeness**: `COST_ESTIMATES` expanded from 32 to 52 entries — every method now has scheduling hints. Batch ops: `entry.append_batch` 10ms, `certificate.mint_batch` 15ms (amortized I/O). `session.dehydrate` 3ms added.
 - **MCP batch tool exposure**: `entry_append_batch` and `certificate_mint_batch` MCP tool definitions added — AI agents can discover and invoke batch operations via `tools/list` and `tools/call`.

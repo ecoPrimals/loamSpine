@@ -9,6 +9,12 @@
 
 ## What Shipped
 
+### 0. Deep Debt Evolution
+
+- **BTSP doc debeardogification**: Module docs evolved from bearDog-centric to capability-agnostic Tower/custodian terminology across `btsp_client.rs`, `btsp/mod.rs`, `btsp/handshake.rs`.
+- **UID cache**: `linux_run_user_biomeos()` caches `/proc/self/status` UID via `OnceLock` — eliminates repeated blocking filesystem reads from async contexts.
+- **Full audit confirmed**: Clone density optimal (Did=Arc\<str\>), LazyLock clones justified (cold-path), Vec\<u8\> wire paths optimal (immediately consumed by from_slice), all dead_code expects justified (G3 Phase 0), zero mocks in production, zero hardcoding, zero unsafe.
+
 ### 1. Semantic Mapping Completeness (33 → 52)
 
 Every method in `METHODS` now has an orchestrator-routable semantic mapping in `SEMANTIC_MAPPINGS`. Previously 19 methods were missing mappings, meaning `capability.call { domain, operation }` would silently fail for those operations.
@@ -71,6 +77,10 @@ cargo doc --workspace           # 0 warnings
 
 | File | Change |
 |------|--------|
+| `crates/loam-spine-core/src/btsp_client.rs` | Doc evolution bearDog→Tower/custodian |
+| `crates/loam-spine-core/src/btsp/mod.rs` | Doc evolution |
+| `crates/loam-spine-core/src/btsp/handshake.rs` | Doc evolution + error message update |
+| `crates/loam-spine-core/src/constants/network.rs` | UID cache via OnceLock |
 | `crates/loam-spine-core/src/niche.rs` | SEMANTIC_MAPPINGS 33→52, COST_ESTIMATES 32→52 |
 | `crates/loam-spine-core/src/neural_api/mcp.rs` | 2 batch MCP tool definitions |
 | `README.md` | Badge 48→52 |

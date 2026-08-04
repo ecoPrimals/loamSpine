@@ -18,10 +18,12 @@ LOAMSPINE_PORT=8080 ./infra/benchScale/validate_roundtrip.sh
 
 ## What It Does
 
-Starts a loamSpine TCP server on `127.0.0.1:19710`, exercises **all 44
+Starts a loamSpine TCP server on `127.0.0.1:19710`, exercises **44+
 canonical JSON-RPC methods** via HTTP POST, validates responses, and
 reports results. Server lifecycle is fully managed (start → validate →
-cleanup).
+cleanup). Note: batch methods (`entry.append_batch`, `certificate.mint_batch`)
+and newer certificate introspection methods added in Wave 155 are not
+yet covered by this script — they require multi-step state setup.
 
 ## Validation Phases
 
