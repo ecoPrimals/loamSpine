@@ -347,9 +347,8 @@ impl LoamSpineService {
     /// N entries instead of N reads and N writes. Each entry is created from
     /// the spine's evolving state (correct chaining), then appended.
     ///
-    /// Returns a callback-friendly vec of `(EntryHash, Entry)` pairs so
-    /// callers can inspect or sign entries post-creation. For Tower signing,
-    /// use [`append_entry_batch_with`].
+    /// Returns a vec of `EntryHash` values for each appended entry.
+    /// Callers can inspect entries post-creation via `get_spine` + `entries()`.
     ///
     /// # Errors
     ///

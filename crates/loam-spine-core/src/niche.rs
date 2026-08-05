@@ -51,6 +51,7 @@ pub const METHODS: &[&str] = &[
     "spine.create",
     "spine.get",
     "spine.list",
+    "spine.status",
     "spine.seal",
     // Entry CRUD
     "entry.append",
@@ -123,6 +124,7 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
     ("create_spine", "spine.create"),
     ("get_spine", "spine.get"),
     ("list_spines", "spine.list"),
+    ("spine_status", "spine.status"),
     ("seal_spine", "spine.seal"),
     // Entry CRUD
     ("append_entry", "entry.append"),
@@ -246,6 +248,7 @@ pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
     ("spine.create", 1, false),
     ("spine.get", 1, false),
     ("spine.list", 1, false),
+    ("spine.status", 2, false),
     ("spine.seal", 1, false),
     // Entry CRUD
     ("entry.append", 2, false),

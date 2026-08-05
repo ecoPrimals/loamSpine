@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,747 tests, 52 JSON-RPC methods, 211 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
-date = 2026-08-04
+description = "Permanence ledger — 1,752 tests, 53 JSON-RPC methods, 211 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
+date = 2026-08-05
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,21 +10,21 @@ springs = []
 
 ## Status
 
-- **1,747 tests** (all passing), 0 failures, 0 ignored
-- **52 JSON-RPC methods** across 19 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, capabilities, identity, tools, primal, permanence)
+- **1,752 tests** (all passing), 0 failures, 0 ignored
+- **53 JSON-RPC methods** across 19 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, capabilities, identity, tools, primal, permanence)
 - **211 source files**, ~65,000 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
-- **JH-0 ADOPTED** — method gate classifies all 52 methods as Public or Protected
+- **JH-0 ADOPTED** — method gate classifies all 53 methods as Public or Protected
 - **BTSP Phase 2+3** — ClientHello handshake (client + server), ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
 - **Zero DEBT markers** — zero TODO/FIXME/HACK in production code
 - **Zero `#[allow]`** — all suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated
 - **Zero unsafe** — `#![forbid(unsafe_code)]` on all crates + fuzz targets
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
-- **Stability tiers**: 46 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
-- **Semantic mappings**: 52/52 (100% — every method routable by orchestrator)
-- **Cost estimates**: 52/52 (100% — every method has scheduling hints)
-- **MCP tools**: 36 tools exposed via `tools/list` (including batch operations)
+- **Stability tiers**: 47 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
+- **Semantic mappings**: 53/53 (100% — every method routable by orchestrator)
+- **Cost estimates**: 53/53 (100% — every method has scheduling hints)
+- **MCP tools**: 37 tools exposed via `tools/list` (including batch + status operations)
 
 ## Key Capabilities
 

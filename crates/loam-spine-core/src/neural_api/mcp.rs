@@ -42,6 +42,13 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 "type": "object",
                 "properties": {}
             })),
+            mcp_tool("spine_status", "Get comprehensive spine status: entry count, tip, state, and associated sessions", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "spine_id": { "type": "integer", "description": "Spine ID to query" }
+                },
+                "required": ["spine_id"]
+            })),
             mcp_tool("spine_seal", "Seal a spine (make permanently read-only)", &serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -363,6 +370,7 @@ pub fn mcp_tool_to_rpc(
         "spine_create" => "spine.create",
         "spine_get" => "spine.get",
         "spine_list" => "spine.list",
+        "spine_status" => "spine.status",
         "spine_seal" => "spine.seal",
         "entry_append" => "entry.append",
         "entry_append_batch" => "entry.append_batch",

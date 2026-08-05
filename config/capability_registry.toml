@@ -17,7 +17,7 @@ transport = ["uds", "tcp", "tarpc"]
 
 [domains.spine]
 description = "Append-only spine lifecycle"
-methods = ["create", "get", "list", "seal"]
+methods = ["create", "get", "list", "status", "seal"]
 
 [domains.entry]
 description = "Content-addressed entry management"
@@ -107,6 +107,11 @@ stability = "stable"
 
 [operations."spine.list"]
 depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."spine.status"]
+depends_on = ["spine.create"]
 cost = "low"
 stability = "stable"
 

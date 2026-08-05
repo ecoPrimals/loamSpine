@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 5, 2026 — Wave 156e: spine.status Observability + Doc Debt)
+
+- **`spine.status` JSON-RPC method**: New observability endpoint — reports entry count, tip/genesis hashes, spine state, timestamps, and all associated sessions (session ID, Merkle root, vertex count, committer, entry index). Sessions returned most-recent-first. Full-stack: API types, RPC handler, dispatch, niche (53 methods), MCP tool, capability registry.
+- **Broken doc link fixes**: `append_entry_batch_with` (stale ref removed), `CertificateHistory::from_certificate_and_entries` (full path added).
+- **5 new tests**: spine_status basic info, session reporting, not-found, sealed state, multi-session ordering. **1,752 tests total.**
+- **Doc alignment**: All counts updated (52→53 methods, 1,747→1,752 tests) across README, STATUS, CONTEXT, CONTRIBUTING, sporeprint.
+
 ### Changed (August 4, 2026 — Wave 155u: Deep Debt + Niche Completeness + MCP Batch Tools)
 
 - **BTSP doc evolution**: Module docs evolved from bearDog-centric to capability-agnostic Tower/custodian terminology — `btsp_client.rs`, `btsp/mod.rs`, `btsp/handshake.rs`. Error messages updated to reference canonical env vars.

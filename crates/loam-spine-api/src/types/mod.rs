@@ -177,6 +177,64 @@ pub struct ListEntriesResponse {
 }
 
 // ============================================================================
+// Spine Status (observability)
+// ============================================================================
+
+/// Request to get comprehensive status of a spine.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpineStatusRequest {
+    /// Spine ID to query.
+    pub spine_id: SpineId,
+}
+
+/// Summary of a session committed to this spine.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionSummary {
+    /// Session identifier.
+    pub session_id: Uuid,
+    /// Merkle root of the session DAG.
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
+    pub merkle_root: ContentHash,
+    /// Number of vertices in the session.
+    pub vertex_count: u64,
+    /// DID of the committer.
+    pub committer: Did,
+    /// Timestamp of the entry containing this session commit.
+    pub committed_at: Timestamp,
+    /// Entry index where this session was committed.
+    pub entry_index: u64,
+}
+
+/// Comprehensive status report for a spine.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpineStatusResponse {
+    /// Spine ID.
+    pub spine_id: SpineId,
+    /// Spine name.
+    pub name: Option<String>,
+    /// Spine owner.
+    pub owner: Did,
+    /// Current state (Active, Sealed, etc.).
+    pub state: SpineState,
+    /// Total entry count (including genesis).
+    pub entry_count: u64,
+    /// Current tip hash.
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
+    pub tip_hash: EntryHash,
+    /// Genesis hash.
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
+    pub genesis_hash: EntryHash,
+    /// Spine creation timestamp.
+    pub created_at: Timestamp,
+    /// Last activity timestamp.
+    pub updated_at: Timestamp,
+    /// Sessions committed to this spine (most recent first).
+    pub sessions: Vec<SessionSummary>,
+    /// Number of sessions committed.
+    pub session_count: usize,
+}
+
+// ============================================================================
 // Entry Operations
 // ============================================================================
 

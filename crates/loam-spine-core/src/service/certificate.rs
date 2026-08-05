@@ -423,7 +423,7 @@ impl LoamSpineService {
 
     /// Build a structured certificate history with typed ownership and loan records.
     ///
-    /// Delegates to [`CertificateHistory::from_certificate_and_entries`] after
+    /// Delegates to [`crate::certificate::CertificateHistory::from_certificate_and_entries`] after
     /// fetching the certificate and its lifecycle entries.
     ///
     /// # Errors

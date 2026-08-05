@@ -263,6 +263,7 @@ impl LoamSpineJsonRpc {
             "spine.create" => rpc!(params, create_spine),
             "spine.get" => rpc!(params, get_spine),
             "spine.list" => rpc!(params, list_spines),
+            "spine.status" => rpc!(params, spine_status),
             "spine.seal" => rpc!(params, seal_spine),
 
             "entry.append" => rpc!(params, append_entry),

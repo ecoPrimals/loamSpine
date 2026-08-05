@@ -69,6 +69,68 @@ impl LoamSpineRpcService {
         Ok(ListSpinesResponse { spine_ids, count })
     }
 
+    /// Get comprehensive spine status for observability.
+    ///
+    /// Scans entries for `SessionCommit` variants to report associated
+    /// sessions alongside structural metrics (entry count, tip, state).
+    ///
+    /// # Errors
+    ///
+    /// Returns error if spine not found or storage query fails.
+    pub async fn spine_status(
+        &self,
+        request: SpineStatusRequest,
+    ) -> ApiResult<SpineStatusResponse> {
+        let core = self.core().await;
+        let spine = core
+            .get_spine(request.spine_id)
+            .await
+            .map_err(ApiError::from)?
+            .ok_or_else(|| ApiError::SpineNotFound(format!("{:?}", request.spine_id)))?;
+
+        let mut sessions: Vec<SessionSummary> = spine
+            .entries()
+            .iter()
+            .filter_map(|entry| {
+                if let loam_spine_core::entry::EntryType::SessionCommit {
+                    session_id,
+                    merkle_root,
+                    vertex_count,
+                    ref committer,
+                } = entry.entry_type
+                {
+                    Some(SessionSummary {
+                        session_id,
+                        merkle_root,
+                        vertex_count,
+                        committer: committer.clone(),
+                        committed_at: entry.timestamp,
+                        entry_index: entry.index,
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        sessions.reverse();
+        let session_count = sessions.len();
+
+        Ok(SpineStatusResponse {
+            spine_id: spine.id,
+            name: spine.name.clone(),
+            owner: spine.owner.clone(),
+            state: spine.state.clone(),
+            entry_count: spine.height,
+            tip_hash: spine.tip,
+            genesis_hash: spine.genesis,
+            created_at: spine.created_at,
+            updated_at: spine.updated_at,
+            sessions,
+            session_count,
+        })
+    }
+
     /// Seal a spine.
     ///
     /// # Errors

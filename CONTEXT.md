@@ -26,7 +26,7 @@ when they need to commit, verify, or query permanent records.
 - **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
 - **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,747 (all concurrent, ~3s, zero flaky)
+- **Tests:** 1,752 (all concurrent, ~3s, zero flaky)
 - **Coverage:** 92.26% line
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
@@ -36,7 +36,7 @@ when they need to commit, verify, or query permanent records.
 
 ## Key Capabilities (JSON-RPC methods)
 
-- `spine.create`, `spine.get`, `spine.list`, `spine.seal` — Spine lifecycle
+- `spine.create`, `spine.get`, `spine.list`, `spine.status`, `spine.seal` — Spine lifecycle
 - `entry.append`, `entry.append_batch`, `entry.get`, `entry.get_tip`, `entry.list` — Entry management
 - `certificate.mint`, `certificate.mint_batch`, `certificate.transfer`, `certificate.loan`, `certificate.return`, `certificate.get`, `certificate.verify`, `certificate.lifecycle`, `certificate.history` — Loam Certificates
 - `session.dehydrate`, `session.commit`, `braid.commit` — Provenance trio coordination
@@ -52,7 +52,7 @@ when they need to commit, verify, or query permanent records.
 - `capabilities.list`, `identity.get` — Capability discovery (Wire Standard L3)
 - `tools.list`, `tools.call` — MCP tool discovery and invocation
 - `permanence.*` (4) — Legacy naming compat
-- **52 methods total** (46 stable, 2 evolving, 4 compat). Storage backends: redb (default) and in-memory.
+- **53 methods total** (47 stable, 2 evolving, 4 compat). Storage backends: redb (default) and in-memory.
 
 ## What This Does NOT Do
 

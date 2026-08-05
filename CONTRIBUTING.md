@@ -17,7 +17,7 @@ Thank you for your interest in contributing to LoamSpine! This document provides
 ### Code Quality
 - **Zero Unsafe in Production**: `#![forbid(unsafe_code)]` workspace-wide; test modules use inner/outer function pattern for env injection
 - **Pedantic Linting**: `clippy::pedantic` and `clippy::nursery` must pass
-- **High Coverage**: Aim for 90%+ line coverage (current: 92.26% line, 1,747 tests)
+- **High Coverage**: Aim for 90%+ line coverage (current: 92.26% line, 1,752 tests)
 - **File Size**: Keep files under 1000 lines; refactor smartly, not just split
 - **Modular Design**: Use domain-specific modules (see `service/` pattern)
 - **Zero-Copy**: Use `bytes::Bytes` for network buffers when possible
@@ -330,7 +330,7 @@ Look for issues labeled `good-first-issue`:
 | ecoBin | Zero C dependencies (pure Rust) |
 | cargo deny | advisories, bans, licenses, sources pass |
 | UniBin | `loamspine server`, `capabilities`, `socket` subcommands |
-| JSON-RPC Methods | 52 (semantic naming) |
+| JSON-RPC Methods | 53 (semantic naming) |
 | Mock isolation | All mocks cfg-gated out of production |
 | Provenance Trio | Tested (ephemeral DAG + attribution primals) |
 

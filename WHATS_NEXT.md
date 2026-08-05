@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: August 4, 2026
+**Last Updated**: August 5, 2026
 
 ---
 
 ## Recent Changes
+
+- **August 5, 2026** — **Wave 156e: spine.status Observability + Doc Debt**: New `spine.status` JSON-RPC method — comprehensive observability (entry count, tip/genesis, state, associated sessions with Merkle roots). Full-stack: types, handler, dispatch, niche (53 methods), MCP tool, capability registry. 2 broken doc links fixed. 5 new tests. 1,752 tests, 53 JSON-RPC methods.
 
 - **August 4, 2026** — **Wave 155u: Niche Completeness + MCP Batch Tools**: Semantic mappings 33→52 (100% coverage). Cost estimates 32→52 (100% coverage). Batch MCP tool definitions (`entry_append_batch`, `certificate_mint_batch`). Doc alignment across all root docs. 1,747 tests, 52 JSON-RPC methods.
 
