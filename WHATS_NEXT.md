@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: August 5, 2026
+**Last Updated**: August 6, 2026
 
 ---
 
 ## Recent Changes
+
+- **August 6, 2026** — **Wave 156j: C2 Dual-Socket Pattern — tarpc UDS Server**: tarpc UDS server binds alongside JSON-RPC UDS (`loamspine.tarpc.sock`). C2 dual-socket pattern shipped (matching songBird + petalTongue). Socket path derivation, cooperative shutdown, protocol negotiation ready. 1,755 tests.
 
 - **August 5, 2026** — **Wave 156h: G64 Cephalization — tarpc Convergence**: tarpc trait expanded 24→37 domain methods. Full parity on all performance-critical operations (spine, entry, certificate, proof, anchor, session, braid, bond, trust, BTSP). 16 meta/diagnostic methods remain JSON-RPC-only. 1,752 tests, 53 JSON-RPC + 37 tarpc methods.
 

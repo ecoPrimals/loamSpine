@@ -210,6 +210,35 @@ fn resolve_neural_api_socket_with_family_id() {
     );
 }
 
+// ── tarpc dual-socket path derivation (C2 pattern) ──────────────────
+
+#[test]
+fn tarpc_socket_from_jsonrpc_basic() {
+    let jsonrpc = std::path::Path::new("/run/user/1000/biomeos/loamspine.sock");
+    let tarpc = tarpc_socket_from_jsonrpc(jsonrpc);
+    assert_eq!(
+        tarpc.to_string_lossy(),
+        "/run/user/1000/biomeos/loamspine.tarpc.sock"
+    );
+}
+
+#[test]
+fn tarpc_socket_from_jsonrpc_with_family() {
+    let jsonrpc = std::path::Path::new("/run/user/1000/biomeos/loamspine-prod.sock");
+    let tarpc = tarpc_socket_from_jsonrpc(jsonrpc);
+    assert_eq!(
+        tarpc.to_string_lossy(),
+        "/run/user/1000/biomeos/loamspine-prod.tarpc.sock"
+    );
+}
+
+#[test]
+fn tarpc_socket_from_jsonrpc_relative_path() {
+    let jsonrpc = std::path::Path::new("biomeos/loamspine.sock");
+    let tarpc = tarpc_socket_from_jsonrpc(jsonrpc);
+    assert_eq!(tarpc.to_string_lossy(), "biomeos/loamspine.tarpc.sock");
+}
+
 // ── validate_security_config_from_env ────────────────────────────────
 
 #[test]

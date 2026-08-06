@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,752 tests, 53 JSON-RPC methods, 211 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
-date = 2026-08-05
+description = "Permanence ledger — 1,755 tests, 53 JSON-RPC methods, 37 tarpc methods, dual-socket C2 (UDS tarpc + JSON-RPC), 211 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
+date = 2026-08-06
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,7 +10,7 @@ springs = []
 
 ## Status
 
-- **1,752 tests** (all passing), 0 failures, 0 ignored
+- **1,755 tests** (all passing), 0 failures, 0 ignored
 - **53 JSON-RPC methods** across 19 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, capabilities, identity, tools, primal, permanence)
 - **211 source files**, ~65,000 lines of Rust
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`

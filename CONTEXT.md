@@ -24,9 +24,9 @@ when they need to commit, verify, or query permanent records.
 - **Language:** 100% Rust, zero C dependencies (pure-Rust ecoBin)
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
-- **Communication:** JSON-RPC 2.0 over platform-agnostic IPC (Unix sockets)
+- **Communication:** Dual-protocol — JSON-RPC 2.0 + tarpc binary framing. UDS dual-socket (C2 pattern): `.sock` (JSON-RPC) + `.tarpc.sock` (tarpc). TCP opt-in.
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,752 (all concurrent, ~3s, zero flaky)
+- **Tests:** 1,755 (all concurrent, ~3s, zero flaky)
 - **Coverage:** 92.26% line
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)

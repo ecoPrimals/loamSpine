@@ -145,6 +145,29 @@ pub fn resolve_socket_path() -> PathBuf {
     )
 }
 
+/// Derive the tarpc UDS socket path from the JSON-RPC socket path.
+///
+/// Follows the C2 dual-socket convention:
+/// - JSON-RPC: `loamspine.sock` or `loamspine-{family_id}.sock`
+/// - tarpc:    `loamspine.tarpc.sock` or `loamspine-{family_id}.tarpc.sock`
+#[must_use]
+pub fn tarpc_socket_from_jsonrpc(jsonrpc_path: &std::path::Path) -> PathBuf {
+    let stem = jsonrpc_path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("loamspine");
+    let parent = jsonrpc_path
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    parent.join(format!("{stem}.tarpc.sock"))
+}
+
+/// Resolve the tarpc UDS socket path for LoamSpine (reads env).
+#[must_use]
+pub fn resolve_tarpc_socket_path() -> PathBuf {
+    tarpc_socket_from_jsonrpc(&resolve_socket_path())
+}
+
 /// Validate security config from environment (reads env).
 ///
 /// # Errors

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 6, 2026 — Wave 156j: C2 Dual-Socket Pattern — tarpc UDS Server)
+
+- **C2 dual-socket pattern**: tarpc UDS server now binds alongside JSON-RPC UDS server. `loamspine.tarpc.sock` provides binary tarpc framing for sub-ms primal-to-primal composition. Socket path derived from JSON-RPC socket via `tarpc_socket_from_jsonrpc()`. Full lifecycle: cooperative shutdown, socket cleanup on drop.
+- **Protocol negotiation unblocked**: `negotiate_protocol_from()` (pre-wired since G3) now discovers `.tarpc.sock` and escalates. Primals connecting to loamSpine get tarpc binary framing automatically.
+- **3 new tests**: tarpc socket path derivation (basic, family-scoped, relative). **1,755 tests total.**
+- **Deep debt verified**: Zero TODOs/FIXMEs/HACKs, zero unsafe, zero production unwrap/expect. Largest file 677L (main.rs), 827L (test). All checks clean.
+
 ### Changed (August 5, 2026 — Wave 156h: G64 Cephalization — tarpc Convergence)
 
 - **tarpc trait expanded 24 → 37 methods**: Full domain-operation parity with JSON-RPC. Added: `list_spines`, `spine_status`, `append_entry_batch`, `list_entries`, `mint_certificate_batch`, `verify_certificate`, `certificate_lifecycle`, `certificate_history`, `publish_anchor_batch`, `trust_anchor`, `trust_query`, `trust_event_count`, `negotiate_btsp`. tarpc server delegates to the same service layer as JSON-RPC — identical behavior.

@@ -33,6 +33,8 @@ use std::io::{Write as _, stdout};
 use std::net::{IpAddr, SocketAddr};
 
 use clap::{Parser, Subcommand};
+#[cfg(unix)]
+use loam_spine_api::run_tarpc_uds_server;
 use loam_spine_api::{LoamSpineRpcService, run_jsonrpc_server, run_tarpc_server};
 use loam_spine_core::LoamSpineService;
 use loam_spine_core::config::LoamSpineConfig;
@@ -321,6 +323,13 @@ async fn run_server(
         );
     }
 
+    // C2 dual-socket: tarpc UDS alongside JSON-RPC UDS
+    #[cfg(unix)]
+    let tarpc_socket_path = loam_spine_core::neural_api::tarpc_socket_from_jsonrpc(&socket_path);
+
+    #[cfg(unix)]
+    let rpc_service_tarpc_uds = rpc_service.clone();
+
     // Start UDS JSON-RPC server (IPC_COMPLIANCE_MATRIX requirement)
     #[cfg(unix)]
     let uds_handle = {
@@ -333,6 +342,27 @@ async fn run_server(
                 error!(
                     "Failed to start UDS JSON-RPC server at {}: {e}",
                     socket_path.display()
+                );
+                None
+            }
+        }
+    };
+
+    // Start UDS tarpc server (C2 dual-socket pattern — binary framing for composition)
+    #[cfg(unix)]
+    let tarpc_uds_handle = {
+        match run_tarpc_uds_server(&tarpc_socket_path, rpc_service_tarpc_uds).await {
+            Ok(handle) => {
+                info!(
+                    "tarpc UDS server listening on {}",
+                    tarpc_socket_path.display()
+                );
+                Some(handle)
+            }
+            Err(e) => {
+                error!(
+                    "Failed to start tarpc UDS server at {}: {e}",
+                    tarpc_socket_path.display()
                 );
                 None
             }
@@ -451,10 +481,12 @@ async fn run_server(
 
     info!("LoamSpine service started successfully");
     if let Some((_, _, tp, jp)) = &tarpc_handle {
-        info!("  tarpc:    tarpc://{resolved_bind}:{tp}");
-        info!("  JSON-RPC: http://{resolved_bind}:{jp}");
+        info!("  tarpc TCP:  tarpc://{resolved_bind}:{tp}");
+        info!("  JSON-RPC:   http://{resolved_bind}:{jp}");
     }
-    info!("  socket:   {}", socket_path.display());
+    info!("  JSON-RPC UDS: {}", socket_path.display());
+    #[cfg(unix)]
+    info!("  tarpc UDS:    {}", tarpc_socket_path.display());
 
     let signal_handler = loam_spine_core::service::signals::SignalHandler::new();
 
@@ -494,6 +526,10 @@ async fn run_server(
     if let Some(ref handle) = uds_handle {
         handle.stop();
     }
+    #[cfg(unix)]
+    if let Some(ref handle) = tarpc_uds_handle {
+        handle.stop();
+    }
 
     lifecycle.stop().await?;
 
@@ -502,6 +538,7 @@ async fn run_server(
     #[cfg(unix)]
     {
         drop(uds_handle);
+        drop(tarpc_uds_handle);
         let cap = capability_symlink;
         let leg = legacy_symlink;
         let pid = pid_path;

@@ -433,6 +433,137 @@ pub async fn run_tarpc_server_with_config(
     Ok(())
 }
 
+/// Handle for a tarpc UDS server, managing socket lifecycle.
+#[cfg(unix)]
+pub struct TarpcUdsHandle {
+    shutdown: tokio::sync::watch::Sender<bool>,
+    path: std::path::PathBuf,
+}
+
+#[cfg(unix)]
+impl TarpcUdsHandle {
+    /// Signal the tarpc UDS server to stop.
+    pub fn stop(&self) {
+        let _ = self.shutdown.send(true);
+    }
+
+    /// Get the socket path.
+    #[must_use]
+    pub fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+}
+
+#[cfg(unix)]
+impl Drop for TarpcUdsHandle {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+/// Run a tarpc server on a Unix domain socket (C2 dual-socket pattern).
+///
+/// Binds at the given path alongside the JSON-RPC `.sock` listener,
+/// providing the high-performance binary framing channel for
+/// primal-to-primal composition.
+///
+/// # Errors
+///
+/// Returns error if the socket cannot be bound.
+#[cfg(unix)]
+pub async fn run_tarpc_uds_server(
+    path: impl Into<std::path::PathBuf>,
+    service: LoamSpineRpcService,
+) -> Result<TarpcUdsHandle, ServerError> {
+    run_tarpc_uds_server_with_config(path, service, TarpcServerConfig::default()).await
+}
+
+/// Run a tarpc UDS server with explicit configuration.
+///
+/// # Errors
+///
+/// Returns error if the socket cannot be bound.
+#[cfg(unix)]
+pub async fn run_tarpc_uds_server_with_config(
+    path: impl Into<std::path::PathBuf>,
+    service: LoamSpineRpcService,
+    config: TarpcServerConfig,
+) -> Result<TarpcUdsHandle, ServerError> {
+    let path = path.into();
+
+    if let Some(parent) = path.parent() {
+        let parent = parent.to_owned();
+        tokio::task::spawn_blocking(move || std::fs::create_dir_all(parent))
+            .await
+            .map_err(|e| ServerError::Bind {
+                context: format!("spawn_blocking join: {e}"),
+                source: std::io::Error::other(e.to_string()),
+            })?
+            .map_err(|e| ServerError::Bind {
+                context: format!("create dir for tarpc UDS at {}", path.display()),
+                source: e,
+            })?;
+    }
+
+    let path_rm = path.clone();
+    tokio::task::spawn_blocking(move || {
+        let _ = std::fs::remove_file(&path_rm);
+    })
+    .await
+    .map_err(|e| ServerError::Bind {
+        context: format!("cleanup stale tarpc socket: {e}"),
+        source: std::io::Error::other(e.to_string()),
+    })?;
+
+    let listener = tarpc::serde_transport::unix::listen(&path, Json::default)
+        .await
+        .map_err(|e| ServerError::Bind {
+            context: format!("tarpc UDS listen at {}", path.display()),
+            source: e,
+        })?;
+    let server = LoamSpineTarpcServer::new(service);
+
+    info!("tarpc UDS server listening on {}", path.display());
+
+    let (shutdown_tx, mut shutdown_rx) = tokio::sync::watch::channel(false);
+    let serve_path = path.clone();
+
+    tokio::spawn(async move {
+        let accept_loop = listener
+            .filter_map(|r| async {
+                match r {
+                    Ok(transport) => Some(transport),
+                    Err(e) => {
+                        warn!("tarpc UDS accept error: {e}");
+                        None
+                    }
+                }
+            })
+            .map(server::BaseChannel::with_defaults)
+            .map(|channel| {
+                let server = server.clone();
+                channel.execute(server.serve())
+            })
+            .flatten()
+            .buffer_unordered(config.max_concurrent_requests)
+            .for_each(|()| async {});
+
+        tokio::select! {
+            () = accept_loop => {
+                info!("tarpc UDS server on {} completed", serve_path.display());
+            }
+            _ = shutdown_rx.changed() => {
+                info!("tarpc UDS server on {} shutting down", serve_path.display());
+            }
+        }
+    });
+
+    Ok(TarpcUdsHandle {
+        shutdown: shutdown_tx,
+        path,
+    })
+}
+
 #[cfg(test)]
 #[path = "tarpc_server_tests.rs"]
 mod tests;

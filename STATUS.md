@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: August 5, 2026
+**Last Updated**: August 6, 2026
 
 ---
 
@@ -46,13 +46,13 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,752 (211 source files) |
+| Tests | — | 1,755 (211 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 800 lines | 670 max production (`uds.rs`); 753 max test file (`tests_validation.rs`) |
+| Max file size | < 800 lines | 677 max production (`main.rs`); 827 max test file (`service_tests.rs`) |
 | Source files | — | 210 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | Zero. All suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`. |
@@ -78,7 +78,7 @@ This document tracks implementation progress against the specification suite in 
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow`, `capability_list()`/`mcp_tools_list()` → `LazyLock<Value>`, `HealthStatus` version/caps cached via `LazyLock`, `Bytes` for payloads, `[u8; 24]` stack keys, `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| Socket Naming | PASS | `loamspine.sock` / `loamspine-{fid}.sock` per `{primal}-{FAMILY_ID}.sock` convention. `ledger.sock` capability symlink, `permanence.sock` legacy symlink. `BIOMEOS_INSECURE` guard. Cleanup on shutdown. |
+| Socket Naming | PASS | Dual-socket C2 pattern: `loamspine.sock` (JSON-RPC) + `loamspine.tarpc.sock` (tarpc). Family-scoped: `loamspine-{fid}.sock` / `loamspine-{fid}.tarpc.sock`. `ledger.sock` capability symlink, `permanence.sock` legacy symlink. `BIOMEOS_INSECURE` guard. All sockets cleaned on shutdown. |
 | BTSP Phase 1 | PASS | Family-scoped socket naming (`loamspine-{family_id}.sock`), `BIOMEOS_INSECURE` guard. |
 | BTSP Phase 2 | PASS | Handshake-as-a-service via BTSP provider JSON-RPC. UDS listener gates on BTSP when `FAMILY_ID` is set. 4-step handshake (ClientHello/ServerHello/ChallengeResponse/HandshakeComplete). |
 | BTSP Phase 3 | PASS | `btsp.negotiate` returns `cipher: "chacha20-poly1305"` (plus server nonce) when a Tower-provided handshake key is available; falls back to `cipher: "null"` for unauthenticated covalent bonds. **Transport verified**: after negotiate, UDS accept loop enters `handle_encrypted_stream` using `read_encrypted_frame`/`write_encrypted_frame` for all subsequent messages on that connection. |
@@ -146,6 +146,17 @@ When loamSpine is unavailable:
 ### ecoBin Grade: A+
 
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
+
+---
+
+### Wave 156j: C2 Dual-Socket Pattern — tarpc UDS Server (August 6, 2026)
+
+- **tarpc UDS server**: `loamspine.tarpc.sock` now binds alongside `loamspine.sock` — binary tarpc framing for sub-ms primal-to-primal composition over UDS. Follows the C2 dual-socket pattern shipped by songBird and petalTongue.
+- **Socket path derivation**: `tarpc_socket_from_jsonrpc()` derives `{stem}.tarpc.sock` from the JSON-RPC socket path. `resolve_tarpc_socket_path()` for env-based resolution.
+- **Full lifecycle**: tarpc UDS server starts alongside JSON-RPC UDS, has cooperative shutdown (`TarpcUdsHandle::stop()`), and cleans up `.tarpc.sock` on drop.
+- **Protocol negotiation ready**: `negotiate_protocol_from()` (pre-wired since G3) will now find the `.tarpc.sock` and escalate to tarpc automatically.
+- **3 new tests**: socket path derivation (basic, with family, relative path).
+- **Metrics**: 1,755 tests, 211 source files, 53 JSON-RPC + 37 tarpc methods (both UDS + TCP), all checks clean.
 
 ---
 
