@@ -179,6 +179,239 @@ async fn run_tarpc_server_processes_tcp_client_health_check() {
     server.abort();
 }
 
+// ── G64 tarpc method coverage (13 new methods) ──────────────────────
+
+#[tokio::test]
+async fn test_tarpc_list_spines() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let create = CreateSpineRequest {
+        owner: Did::new("did:key:z6MkListTest"),
+        name: "ListTestSpine".to_string(),
+        config: None,
+    };
+    LoamSpineRpc::create_spine(server.clone(), ctx, create)
+        .await
+        .expect("create spine");
+
+    let result = LoamSpineRpc::list_spines(server, ctx, ListSpinesRequest {}).await;
+    assert!(result.is_ok());
+    let resp = result.expect("ok");
+    assert!(!resp.spine_ids.is_empty());
+}
+
+#[tokio::test]
+async fn test_tarpc_spine_status() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let create = CreateSpineRequest {
+        owner: Did::new("did:key:z6MkStatusTest"),
+        name: "StatusTestSpine".to_string(),
+        config: None,
+    };
+    let resp = LoamSpineRpc::create_spine(server.clone(), ctx, create)
+        .await
+        .expect("create spine");
+
+    let result = LoamSpineRpc::spine_status(
+        server,
+        ctx,
+        SpineStatusRequest {
+            spine_id: resp.spine_id,
+        },
+    )
+    .await;
+    assert!(result.is_ok());
+    let status = result.expect("ok");
+    assert_eq!(status.name.as_deref(), Some("StatusTestSpine"));
+}
+
+#[tokio::test]
+async fn test_tarpc_list_entries() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let create = CreateSpineRequest {
+        owner: Did::new("did:key:z6MkListEntries"),
+        name: "ListEntriesSpine".to_string(),
+        config: None,
+    };
+    let resp = LoamSpineRpc::create_spine(server.clone(), ctx, create)
+        .await
+        .expect("create");
+
+    let result = LoamSpineRpc::list_entries(
+        server,
+        ctx,
+        ListEntriesRequest {
+            spine_id: resp.spine_id,
+            start: 0,
+            limit: 100,
+        },
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_tarpc_verify_certificate_not_found() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let result = LoamSpineRpc::verify_certificate(
+        server,
+        ctx,
+        VerifyCertificateRequest {
+            certificate_id: uuid::Uuid::now_v7(),
+        },
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_tarpc_certificate_lifecycle_not_found() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let result = LoamSpineRpc::certificate_lifecycle(
+        server,
+        ctx,
+        CertificateLifecycleRequest {
+            certificate_id: uuid::Uuid::now_v7(),
+        },
+    )
+    .await;
+    assert!(result.is_err(), "nonexistent cert lifecycle should error");
+}
+
+#[tokio::test]
+async fn test_tarpc_certificate_history_not_found() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let result = LoamSpineRpc::certificate_history(
+        server,
+        ctx,
+        CertificateHistoryRequest {
+            certificate_id: uuid::Uuid::now_v7(),
+        },
+    )
+    .await;
+    assert!(result.is_err(), "nonexistent cert history should error");
+}
+
+#[tokio::test]
+async fn test_tarpc_trust_event_count() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let result = LoamSpineRpc::trust_event_count(server, ctx, TrustEventCountRequest {}).await;
+    assert!(result.is_ok());
+    assert_eq!(result.expect("ok").count, 0);
+}
+
+#[tokio::test]
+async fn test_tarpc_trust_query_empty() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let result = LoamSpineRpc::trust_query(
+        server,
+        ctx,
+        TrustQueryRequest {
+            gate_did: Did::new("did:key:z6MkTestGate"),
+        },
+    )
+    .await;
+    assert!(result.is_ok());
+    assert!(result.expect("ok").events.is_empty());
+}
+
+#[tokio::test]
+async fn test_tarpc_negotiate_btsp() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let result = LoamSpineRpc::negotiate_btsp(
+        server,
+        ctx,
+        BtspNegotiateRequest {
+            session_id: "test-session".to_string(),
+            preferred_cipher: "chacha20-poly1305".to_string(),
+            ciphers: vec!["chacha20-poly1305".to_string()],
+            client_nonce: None,
+            bond_type: None,
+        },
+    )
+    .await;
+    assert!(result.is_ok());
+}
+
+// ── tarpc UDS server E2E ────────────────────────────────────────────
+
+#[cfg(unix)]
+#[tokio::test]
+async fn run_tarpc_uds_server_accepts_client() {
+    use std::time::Duration;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("test-loamspine.tarpc.sock");
+
+    let handle = run_tarpc_uds_server(&sock_path, LoamSpineRpcService::default_service())
+        .await
+        .expect("bind tarpc UDS");
+
+    assert!(sock_path.exists(), "socket file should exist after bind");
+
+    let mut transport = None;
+    for _ in 0..60 {
+        match tarpc::serde_transport::unix::connect(&sock_path, Json::default).await {
+            Ok(t) => {
+                transport = Some(t);
+                break;
+            }
+            Err(_) => tokio::time::sleep(Duration::from_millis(25)).await,
+        }
+    }
+    let transport = transport.expect("connect to tarpc UDS");
+    let client = LoamSpineRpcClient::new(client::Config::default(), transport).spawn();
+
+    let ctx = tarpc::context::current();
+    let response = client
+        .health_check(
+            ctx,
+            HealthCheckRequest {
+                include_details: false,
+            },
+        )
+        .await
+        .expect("tarpc transport")
+        .expect("health_check api");
+    assert!(response.status.is_healthy());
+
+    handle.stop();
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn tarpc_uds_handle_cleans_up_socket_on_drop() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("cleanup-test.tarpc.sock");
+
+    let handle = run_tarpc_uds_server(&sock_path, LoamSpineRpcService::default_service())
+        .await
+        .expect("bind");
+    assert!(sock_path.exists());
+
+    drop(handle);
+    assert!(!sock_path.exists(), "socket should be removed on drop");
+}
+
+// ── TCP server error path ───────────────────────────────────────────
+
 #[tokio::test]
 async fn run_tarpc_server_bind_fails_when_address_in_use() {
     use std::net::SocketAddr;

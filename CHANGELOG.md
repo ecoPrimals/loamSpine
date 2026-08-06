@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 6, 2026 — Wave 156n: tarpc Method Test Coverage + UDS E2E)
+
+- **15 new tarpc tests**: All 13 G64 tarpc methods now have dedicated tarpc-path tests (list_spines, spine_status, list_entries, verify_certificate, certificate_lifecycle, certificate_history, trust_event_count, trust_query, negotiate_btsp, append_entry_batch, mint_certificate_batch, publish_anchor_batch, trust_anchor). tarpc UDS E2E test verifies real client→server round-trip over unix domain socket. Socket cleanup-on-drop test. **1,770 tests total.**
+
 ### Changed (August 6, 2026 — Wave 156j: C2 Dual-Socket Pattern — tarpc UDS Server)
 
 - **C2 dual-socket pattern**: tarpc UDS server now binds alongside JSON-RPC UDS server. `loamspine.tarpc.sock` provides binary tarpc framing for sub-ms primal-to-primal composition. Socket path derived from JSON-RPC socket via `tarpc_socket_from_jsonrpc()`. Full lifecycle: cooperative shutdown, socket cleanup on drop.

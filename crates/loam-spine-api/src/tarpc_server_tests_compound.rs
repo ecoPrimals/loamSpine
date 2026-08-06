@@ -519,3 +519,152 @@ async fn test_tarpc_transfer_wrong_owner() {
     let result = LoamSpineRpc::transfer_certificate(server, ctx, transfer_request).await;
     assert!(result.is_err(), "transfer with wrong owner should fail");
 }
+
+// ── G64 batch + trust tarpc method coverage ─────────────────────────
+
+#[tokio::test]
+async fn test_tarpc_append_entry_batch() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+    let owner = Did::new("did:key:z6MkBatchAppend");
+
+    let create = CreateSpineRequest {
+        owner: owner.clone(),
+        name: "BatchAppendSpine".to_string(),
+        config: None,
+    };
+    let spine = LoamSpineRpc::create_spine(server.clone(), ctx, create)
+        .await
+        .expect("create");
+
+    let entries = vec![
+        EntryType::DataAnchor {
+            data_hash: [1u8; 32],
+            mime_type: Some("application/octet-stream".to_string()),
+            size: 1024,
+        },
+        EntryType::DataAnchor {
+            data_hash: [2u8; 32],
+            mime_type: Some("text/plain".to_string()),
+            size: 256,
+        },
+    ];
+    let result = LoamSpineRpc::append_entry_batch(
+        server,
+        ctx,
+        AppendEntryBatchRequest {
+            spine_id: spine.spine_id,
+            entries,
+        },
+    )
+    .await;
+    assert!(result.is_ok());
+    let resp = result.expect("ok");
+    assert_eq!(resp.count, 2);
+    assert_eq!(resp.results.len(), 2);
+}
+
+#[tokio::test]
+async fn test_tarpc_mint_certificate_batch() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+    let owner = Did::new("did:key:z6MkBatchMint");
+
+    let create = CreateSpineRequest {
+        owner: owner.clone(),
+        name: "BatchMintSpine".to_string(),
+        config: None,
+    };
+    let spine = LoamSpineRpc::create_spine(server.clone(), ctx, create)
+        .await
+        .expect("create");
+
+    let items = vec![
+        BatchMintItem {
+            cert_type: CertificateType::DataProvenance {
+                data_type: "test".to_string(),
+                source_id: "batch-a".to_string(),
+                collected_at: Timestamp::now(),
+            },
+            owner: owner.clone(),
+            metadata: None,
+        },
+        BatchMintItem {
+            cert_type: CertificateType::DataProvenance {
+                data_type: "test".to_string(),
+                source_id: "batch-b".to_string(),
+                collected_at: Timestamp::now(),
+            },
+            owner: owner.clone(),
+            metadata: None,
+        },
+    ];
+    let result = LoamSpineRpc::mint_certificate_batch(
+        server,
+        ctx,
+        MintCertificateBatchRequest {
+            spine_id: spine.spine_id,
+            items,
+        },
+    )
+    .await;
+    assert!(result.is_ok());
+    let resp = result.expect("ok");
+    assert_eq!(resp.count, 2);
+    assert_eq!(resp.results.len(), 2);
+}
+
+#[tokio::test]
+async fn test_tarpc_publish_anchor_batch() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+    let owner = Did::new("did:key:z6MkAnchorBatch");
+
+    let mut spine_ids = Vec::new();
+    for i in 0..2u8 {
+        let create = CreateSpineRequest {
+            owner: owner.clone(),
+            name: format!("AnchorBatchSpine{i}"),
+            config: None,
+        };
+        let resp = LoamSpineRpc::create_spine(server.clone(), ctx, create)
+            .await
+            .expect("create");
+        spine_ids.push(resp.spine_id);
+    }
+
+    let result = LoamSpineRpc::publish_anchor_batch(
+        server,
+        ctx,
+        AnchorPublishBatchRequest {
+            spine_ids,
+            anchor_target: AnchorTarget::Bitcoin,
+            tx_ref: "tx_test_batch".to_string(),
+            block_height: 800_000,
+            anchor_timestamp: Timestamp::now(),
+        },
+    )
+    .await;
+    assert!(result.is_ok());
+    let resp = result.expect("ok");
+    assert_eq!(resp.anchors.len(), 2);
+}
+
+#[tokio::test]
+async fn test_tarpc_trust_anchor() {
+    let server = LoamSpineTarpcServer::default_server();
+    let ctx = tarpc::context::current();
+
+    let entry = EntryType::KeyExchange {
+        local_gate: Did::new("did:key:z6MkLocal"),
+        remote_gate: Did::new("did:key:z6MkRemote"),
+        public_key_hash: [0xABu8; 32],
+        direction: "initiated".to_string(),
+        family_id: None,
+    };
+    let result =
+        LoamSpineRpc::trust_anchor(server, ctx, TrustAnchorRequest { entry_type: entry }).await;
+    assert!(result.is_ok());
+    let resp = result.expect("ok");
+    assert!(resp.index > 0);
+}

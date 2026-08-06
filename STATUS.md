@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,755 (211 source files) |
+| Tests | — | 1,770 (211 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -156,7 +156,7 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 - **Full lifecycle**: tarpc UDS server starts alongside JSON-RPC UDS, has cooperative shutdown (`TarpcUdsHandle::stop()`), and cleans up `.tarpc.sock` on drop.
 - **Protocol negotiation ready**: `negotiate_protocol_from()` (pre-wired since G3) will now find the `.tarpc.sock` and escalate to tarpc automatically.
 - **3 new tests**: socket path derivation (basic, with family, relative path).
-- **Metrics**: 1,755 tests, 211 source files, 53 JSON-RPC + 37 tarpc methods (both UDS + TCP), all checks clean.
+- **Metrics**: 1,770 tests, 211 source files, 53 JSON-RPC + 37 tarpc methods (both UDS + TCP), all checks clean.
 
 ---
 
