@@ -24,14 +24,14 @@ when they need to commit, verify, or query permanent records.
 - **Language:** 100% Rust, zero C dependencies (pure-Rust ecoBin)
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Deployment:** musl-static (x86_64 + aarch64), 4.3M stripped — plasmidBin / benchScale ready
-- **Communication:** Dual-protocol — JSON-RPC 2.0 + tarpc binary framing. UDS dual-socket (C2 pattern): `.sock` (JSON-RPC) + `.tarpc.sock` (tarpc). TCP opt-in.
+- **Communication:** Dual-protocol — JSON-RPC 2.0 + tarpc binary framing. G65 protocol negotiation (single-socket). C2 dual-socket retained for backward compat. TCP opt-in.
 - **License:** AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple)
-- **Tests:** 1,770 (all concurrent, ~3s, zero flaky)
+- **Tests:** 1,783 (all concurrent, ~3s, zero flaky)
 - **Coverage:** 92.26% line
 - **Unsafe:** 0 (`#![forbid(unsafe_code)]`)
 - **MSRV:** Rust 2024 edition (1.85+)
 - **Version:** 0.9.16
-- **Source files:** 211 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
+- **Source files:** 212 `.rs` files across 3 workspace crates (`loam-spine-core`, `loam-spine-api`, `loamspine-service`)
 - **Production crypto adapters:** `JsonRpcCryptoSigner` and `JsonRpcCryptoVerifier` implement the signing capability via JSON-RPC `crypto.sign_ed25519` / `crypto.verify_ed25519` per `CRYPTO_WIRE_CONTRACT.md` (see `crates/loam-spine-core/src/traits/crypto_provider.rs`). `CliSigner` remains the development fallback.
 
 ## Key Capabilities (JSON-RPC methods)

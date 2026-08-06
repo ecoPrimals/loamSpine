@@ -55,6 +55,7 @@
 pub mod error;
 pub mod health;
 pub mod jsonrpc;
+pub mod protocol_negotiation;
 pub mod rpc;
 pub mod service;
 pub mod tarpc_server;

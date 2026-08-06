@@ -9,6 +9,8 @@
 
 ## Recent Changes
 
+- **August 6, 2026** — **Wave 156p: G65 Protocol Negotiation**: Single-socket protocol selection replaces C2 dual-socket pattern. `protocol_negotiation.rs` module with `IpcProtocol` enum, `try_negotiate()`, `negotiate_client()`, wire format parsing, `NegotiationResult` dispatch. UDS handler restructured for G65-first detection. `serve_tarpc_connection()` for post-negotiation binary framing. 1,783 tests.
+
 - **August 6, 2026** — **Wave 156n: tarpc Method Test Coverage + UDS E2E**: All 13 G64 tarpc methods now have dedicated tarpc-path tests. tarpc UDS E2E test verifies real client→server round-trip. Socket cleanup-on-drop verified. 1,770 tests.
 
 - **August 6, 2026** — **Wave 156j: C2 Dual-Socket Pattern — tarpc UDS Server**: tarpc UDS server binds alongside JSON-RPC UDS (`loamspine.tarpc.sock`). C2 dual-socket pattern shipped (matching songBird + petalTongue). Socket path derivation, cooperative shutdown, protocol negotiation ready. 1,755 tests.

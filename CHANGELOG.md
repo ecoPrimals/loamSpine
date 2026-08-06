@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 6, 2026 — Wave 156p: G65 Protocol Negotiation)
+
+- **G65 protocol negotiation**: Single-socket protocol selection replaces C2 dual-socket pattern. Client sends `PROTOCOLS: tarpc,jsonrpc\n`, server selects best mutual match and responds `PROTOCOL: tarpc\n`. No negotiation = JSON-RPC (full backward compatibility). Implemented following rhizoCrypt reference (convergent evolution, no shared code).
+- **`protocol_negotiation.rs`**: New module with `IpcProtocol` enum, `try_negotiate()` server function, `negotiate_client()` client function, `select_protocol()` algorithm, wire format parsing/formatting, and `NegotiationResult` enum (Tarpc/JsonRpc/NotNegotiation with leftover byte chaining).
+- **`serve_tarpc_connection()`**: New function in `tarpc_server.rs` — serves tarpc via length-delimited + JSON serde framing on an already-negotiated `UnixStream`.
+- **UDS handler restructured**: `handle_uds_connection()` now consumes genetics prefix before stream splitting (tarpc needs unsplit stream). G65 check (`P` byte) dispatches to `dispatch_g65()` which negotiates and routes to tarpc binary or JSON-RPC. `consume_genetics_prefix()` replaces `peek_first_protocol_byte()` for cleaner prefix handling on raw streams.
+- **13 new tests**: 10 unit tests for protocol negotiation (wire roundtrip, selection, parsing, display, format, duplex negotiate tarpc, negotiate jsonrpc-only, not-negotiation passthrough, leftover bytes, oversized line). 3 updated UDS genetics-prefix tests adapted for new `consume_genetics_prefix()`. **1,783 tests total.**
+- **tokio-util** added as workspace dependency for codec framing.
+
 ### Changed (August 6, 2026 — Wave 156n: tarpc Method Test Coverage + UDS E2E)
 
 - **15 new tarpc tests**: All 13 G64 tarpc methods now have dedicated tarpc-path tests (list_spines, spine_status, list_entries, verify_certificate, certificate_lifecycle, certificate_history, trust_event_count, trust_query, negotiate_btsp, append_entry_batch, mint_certificate_batch, publish_anchor_batch, trust_anchor). tarpc UDS E2E test verifies real client→server round-trip over unix domain socket. Socket cleanup-on-drop test. **1,770 tests total.**

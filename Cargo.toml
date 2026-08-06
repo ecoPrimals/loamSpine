@@ -50,6 +50,9 @@ futures = "0.3"
 # CLI
 clap = { version = "4.6", features = ["derive"] }
 
+# Codec framing (G65 tarpc on negotiated streams)
+tokio-util = { version = "0.7", features = ["codec"] }
+
 # Zero-copy buffers
 bytes = "1.9"
 

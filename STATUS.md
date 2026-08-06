@@ -46,7 +46,7 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,770 (211 source files) |
+| Tests | — | 1,783 (212 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
@@ -78,7 +78,8 @@ This document tracks implementation progress against the specification suite in 
 | PUBLIC_SURFACE | PASS | `CONTEXT.md` created, "Part of ecoPrimals" footer in README.md |
 | Zero-copy | PASS | `Did` → `Arc<str>`, `DiscoveryClient.endpoint` → `Arc<str>`, `JsonRpcResponse.jsonrpc` → `Cow`, `capability_list()`/`mcp_tools_list()` → `LazyLock<Value>`, `HealthStatus` version/caps cached via `LazyLock`, `Bytes` for payloads, `[u8; 24]` stack keys, `tip_entry()` zero-copy persistence |
 | MockTransport | PASS | `cfg(test|testing)` gated — no mock code in production binary |
-| Socket Naming | PASS | Dual-socket C2 pattern: `loamspine.sock` (JSON-RPC) + `loamspine.tarpc.sock` (tarpc). Family-scoped: `loamspine-{fid}.sock` / `loamspine-{fid}.tarpc.sock`. `ledger.sock` capability symlink, `permanence.sock` legacy symlink. `BIOMEOS_INSECURE` guard. All sockets cleaned on shutdown. |
+| Socket Naming | PASS | G65 single-socket with protocol negotiation. C2 dual-socket retained for backward compat (`loamspine.sock` + `loamspine.tarpc.sock`). Family-scoped: `loamspine-{fid}.sock` / `loamspine-{fid}.tarpc.sock`. `ledger.sock` capability symlink, `permanence.sock` legacy symlink. `BIOMEOS_INSECURE` guard. All sockets cleaned on shutdown. |
+| G65 Negotiation | PASS | `PROTOCOLS: tarpc,jsonrpc\n` → `PROTOCOL: tarpc\n`. Client preference wins. No negotiation = JSON-RPC fallback. Genetics prefix stripping composes with G65. |
 | BTSP Phase 1 | PASS | Family-scoped socket naming (`loamspine-{family_id}.sock`), `BIOMEOS_INSECURE` guard. |
 | BTSP Phase 2 | PASS | Handshake-as-a-service via BTSP provider JSON-RPC. UDS listener gates on BTSP when `FAMILY_ID` is set. 4-step handshake (ClientHello/ServerHello/ChallengeResponse/HandshakeComplete). |
 | BTSP Phase 3 | PASS | `btsp.negotiate` returns `cipher: "chacha20-poly1305"` (plus server nonce) when a Tower-provided handshake key is available; falls back to `cipher: "null"` for unauthenticated covalent bonds. **Transport verified**: after negotiate, UDS accept loop enters `handle_encrypted_stream` using `read_encrypted_frame`/`write_encrypted_frame` for all subsequent messages on that connection. |
@@ -156,7 +157,7 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 - **Full lifecycle**: tarpc UDS server starts alongside JSON-RPC UDS, has cooperative shutdown (`TarpcUdsHandle::stop()`), and cleans up `.tarpc.sock` on drop.
 - **Protocol negotiation ready**: `negotiate_protocol_from()` (pre-wired since G3) will now find the `.tarpc.sock` and escalate to tarpc automatically.
 - **3 new tests**: socket path derivation (basic, with family, relative path).
-- **Metrics**: 1,770 tests, 211 source files, 53 JSON-RPC + 37 tarpc methods (both UDS + TCP), all checks clean.
+- **Metrics**: 1,783 tests, 212 source files, 53 JSON-RPC + 37 tarpc methods (both UDS + TCP), all checks clean.
 
 ---
 

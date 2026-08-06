@@ -433,6 +433,37 @@ pub async fn run_tarpc_server_with_config(
     Ok(())
 }
 
+/// Serve the tarpc protocol on an already-connected UDS stream (G65).
+///
+/// After G65 protocol negotiation selects tarpc, the stream is wrapped in
+/// length-delimited + JSON serde framing and served via `BaseChannel`.
+/// The caller has already consumed the `PROTOCOLS:` / `PROTOCOL:` lines.
+///
+/// Uses the same `Json` serde transport as the C2 `run_tarpc_uds_server`
+/// for wire compatibility — all tarpc consumers use identical framing.
+///
+/// # Errors
+///
+/// Returns `std::io::Error` on transport failures.
+#[cfg(unix)]
+pub async fn serve_tarpc_connection(
+    stream: tokio::net::UnixStream,
+    service: LoamSpineRpcService,
+) -> std::io::Result<()> {
+    let length_delimited = tokio_util::codec::length_delimited::Builder::new().new_framed(stream);
+    let transport = tarpc::serde_transport::new(length_delimited, Json::default());
+    let server = LoamSpineTarpcServer::new(service);
+    Box::pin(
+        server::BaseChannel::with_defaults(transport)
+            .execute(server.serve())
+            .for_each(|resp| async move {
+                resp.await;
+            }),
+    )
+    .await;
+    Ok(())
+}
+
 /// Handle for a tarpc UDS server, managing socket lifecycle.
 #[cfg(unix)]
 pub struct TarpcUdsHandle {
