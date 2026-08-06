@@ -25,6 +25,7 @@ springs = []
 - **Semantic mappings**: 53/53 (100% — every method routable by orchestrator)
 - **Cost estimates**: 53/53 (100% — every method has scheduling hints)
 - **MCP tools**: 37 tools exposed via `tools/list` (including batch + status operations)
+- **tarpc methods**: 37 typed domain methods (G64 cephalization — full parity on performance-critical ops)
 
 ## Key Capabilities
 

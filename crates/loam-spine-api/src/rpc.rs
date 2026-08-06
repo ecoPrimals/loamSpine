@@ -7,19 +7,26 @@
 
 use crate::error::ApiError;
 use crate::types::{
-    AnchorPublishRequest, AnchorPublishResponse, AnchorSliceRequest, AnchorSliceResponse,
-    AnchorVerifyRequest, AnchorVerifyResponse, AppendEntryRequest, AppendEntryResponse,
-    BondLedgerListRequest, BondLedgerListResponse, BondLedgerRetrieveRequest,
+    AnchorPublishBatchRequest, AnchorPublishBatchResponse, AnchorPublishRequest,
+    AnchorPublishResponse, AnchorSliceRequest, AnchorSliceResponse, AnchorVerifyRequest,
+    AnchorVerifyResponse, AppendEntryBatchRequest, AppendEntryBatchResponse, AppendEntryRequest,
+    AppendEntryResponse, BondLedgerListRequest, BondLedgerListResponse, BondLedgerRetrieveRequest,
     BondLedgerRetrieveResponse, BondLedgerStoreRequest, BondLedgerStoreResponse,
+    BtspNegotiateRequest, BtspNegotiateResponse, CertificateHistoryRequest,
+    CertificateHistoryResponse, CertificateLifecycleRequest, CertificateLifecycleResponse,
     CheckoutSliceRequest, CheckoutSliceResponse, CommitBraidRequest, CommitBraidResponse,
     CommitSessionRequest, CommitSessionResponse, CreateSpineRequest, CreateSpineResponse,
     DehydrateSessionRequest, DehydrateSessionResponse, GenerateInclusionProofRequest,
     GenerateInclusionProofResponse, GetCertificateRequest, GetCertificateResponse, GetEntryRequest,
     GetEntryResponse, GetSpineRequest, GetSpineResponse, GetTipRequest, GetTipResponse,
-    HealthCheckRequest, HealthCheckResponse, LoanCertificateRequest, LoanCertificateResponse,
-    MintCertificateRequest, MintCertificateResponse, ReturnCertificateRequest,
-    ReturnCertificateResponse, SealSpineRequest, SealSpineResponse, TransferCertificateRequest,
-    TransferCertificateResponse, VerifyInclusionProofRequest, VerifyInclusionProofResponse,
+    HealthCheckRequest, HealthCheckResponse, ListEntriesRequest, ListEntriesResponse,
+    ListSpinesRequest, ListSpinesResponse, LoanCertificateRequest, LoanCertificateResponse,
+    MintCertificateBatchRequest, MintCertificateBatchResponse, MintCertificateRequest,
+    MintCertificateResponse, ReturnCertificateRequest, ReturnCertificateResponse, SealSpineRequest,
+    SealSpineResponse, SpineStatusRequest, SpineStatusResponse, TransferCertificateRequest,
+    TransferCertificateResponse, TrustAnchorRequest, TrustAnchorResponse, TrustEventCountRequest,
+    TrustEventCountResponse, TrustQueryRequest, TrustQueryResponse, VerifyCertificateRequest,
+    VerifyCertificateResponse, VerifyInclusionProofRequest, VerifyInclusionProofResponse,
 };
 
 /// Pure Rust RPC service trait for `LoamSpine`.
@@ -58,6 +65,15 @@ pub trait LoamSpineRpc {
     /// Returns spine metadata including height, tip hash, and owner.
     async fn get_spine(request: GetSpineRequest) -> Result<GetSpineResponse, ApiError>;
 
+    /// List all spine IDs in the store.
+    async fn list_spines(request: ListSpinesRequest) -> Result<ListSpinesResponse, ApiError>;
+
+    /// Get comprehensive spine status for observability.
+    ///
+    /// Reports entry count, tip/genesis hashes, state, timestamps, and
+    /// all associated sessions with Merkle roots.
+    async fn spine_status(request: SpineStatusRequest) -> Result<SpineStatusResponse, ApiError>;
+
     /// Seal a spine (make immutable).
     ///
     /// Once sealed, no more entries can be appended.
@@ -72,6 +88,11 @@ pub trait LoamSpineRpc {
     /// Entries are cryptographically linked to form an immutable chain.
     async fn append_entry(request: AppendEntryRequest) -> Result<AppendEntryResponse, ApiError>;
 
+    /// Append multiple entries to a spine in a single batch (amortized I/O).
+    async fn append_entry_batch(
+        request: AppendEntryBatchRequest,
+    ) -> Result<AppendEntryBatchResponse, ApiError>;
+
     /// Get an entry by hash.
     ///
     /// Returns the full entry data if found.
@@ -81,6 +102,9 @@ pub trait LoamSpineRpc {
     ///
     /// Returns the most recent entry in the chain.
     async fn get_tip(request: GetTipRequest) -> Result<GetTipResponse, ApiError>;
+
+    /// List entries in a spine (paginated).
+    async fn list_entries(request: ListEntriesRequest) -> Result<ListEntriesResponse, ApiError>;
 
     // ========================================================================
     // Certificate Operations
@@ -114,12 +138,32 @@ pub trait LoamSpineRpc {
         request: ReturnCertificateRequest,
     ) -> Result<ReturnCertificateResponse, ApiError>;
 
+    /// Mint multiple certificates in a single batch (amortized I/O).
+    async fn mint_certificate_batch(
+        request: MintCertificateBatchRequest,
+    ) -> Result<MintCertificateBatchResponse, ApiError>;
+
     /// Get a certificate by ID.
     ///
     /// Returns certificate state and history.
     async fn get_certificate(
         request: GetCertificateRequest,
     ) -> Result<GetCertificateResponse, ApiError>;
+
+    /// Verify a certificate's integrity and provenance.
+    async fn verify_certificate(
+        request: VerifyCertificateRequest,
+    ) -> Result<VerifyCertificateResponse, ApiError>;
+
+    /// Get ordered lifecycle entries for a certificate.
+    async fn certificate_lifecycle(
+        request: CertificateLifecycleRequest,
+    ) -> Result<CertificateLifecycleResponse, ApiError>;
+
+    /// Get structured certificate history with ownership and loan records.
+    async fn certificate_history(
+        request: CertificateHistoryRequest,
+    ) -> Result<CertificateHistoryResponse, ApiError>;
 
     // ========================================================================
     // Slice/Waypoint Operations
@@ -167,6 +211,11 @@ pub trait LoamSpineRpc {
     async fn publish_anchor(
         request: AnchorPublishRequest,
     ) -> Result<AnchorPublishResponse, ApiError>;
+
+    /// Record an aggregate batch anchor across multiple spines.
+    async fn publish_anchor_batch(
+        request: AnchorPublishBatchRequest,
+    ) -> Result<AnchorPublishBatchResponse, ApiError>;
 
     /// Verify a spine's state against a recorded public chain anchor.
     ///
@@ -229,4 +278,28 @@ pub trait LoamSpineRpc {
     async fn bond_ledger_list(
         request: BondLedgerListRequest,
     ) -> Result<BondLedgerListResponse, ApiError>;
+
+    // ========================================================================
+    // Cross-Gate Trust Operations
+    // ========================================================================
+
+    /// Anchor a cross-gate trust event as a permanent ledger entry.
+    async fn trust_anchor(request: TrustAnchorRequest) -> Result<TrustAnchorResponse, ApiError>;
+
+    /// Query trust events involving a specific gate DID.
+    async fn trust_query(request: TrustQueryRequest) -> Result<TrustQueryResponse, ApiError>;
+
+    /// Return the number of trust events in the ledger.
+    async fn trust_event_count(
+        request: TrustEventCountRequest,
+    ) -> Result<TrustEventCountResponse, ApiError>;
+
+    // ========================================================================
+    // BTSP Phase 3 Negotiation
+    // ========================================================================
+
+    /// Negotiate BTSP Phase 3 cipher suite for encrypted post-handshake channel.
+    async fn negotiate_btsp(
+        request: BtspNegotiateRequest,
+    ) -> Result<BtspNegotiateResponse, ApiError>;
 }

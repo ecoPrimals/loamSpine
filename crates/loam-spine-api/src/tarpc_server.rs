@@ -91,6 +91,22 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
         self.service.get_spine(request).await
     }
 
+    async fn list_spines(
+        self,
+        _: tarpc::context::Context,
+        request: ListSpinesRequest,
+    ) -> Result<ListSpinesResponse, ApiError> {
+        self.service.list_spines(request).await
+    }
+
+    async fn spine_status(
+        self,
+        _: tarpc::context::Context,
+        request: SpineStatusRequest,
+    ) -> Result<SpineStatusResponse, ApiError> {
+        self.service.spine_status(request).await
+    }
+
     async fn seal_spine(
         self,
         _: tarpc::context::Context,
@@ -107,6 +123,14 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
         self.service.append_entry(request).await
     }
 
+    async fn append_entry_batch(
+        self,
+        _: tarpc::context::Context,
+        request: AppendEntryBatchRequest,
+    ) -> Result<AppendEntryBatchResponse, ApiError> {
+        self.service.append_entry_batch(request).await
+    }
+
     async fn get_entry(
         self,
         _: tarpc::context::Context,
@@ -121,6 +145,14 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
         request: GetTipRequest,
     ) -> Result<GetTipResponse, ApiError> {
         self.service.get_tip(request).await
+    }
+
+    async fn list_entries(
+        self,
+        _: tarpc::context::Context,
+        request: ListEntriesRequest,
+    ) -> Result<ListEntriesResponse, ApiError> {
+        self.service.list_entries(request).await
     }
 
     async fn mint_certificate(
@@ -155,6 +187,14 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
         self.service.return_certificate(request).await
     }
 
+    async fn mint_certificate_batch(
+        self,
+        _: tarpc::context::Context,
+        request: MintCertificateBatchRequest,
+    ) -> Result<MintCertificateBatchResponse, ApiError> {
+        self.service.mint_certificate_batch(request).await
+    }
+
     async fn get_certificate(
         self,
         _: tarpc::context::Context,
@@ -163,12 +203,44 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
         self.service.get_certificate(request).await
     }
 
+    async fn verify_certificate(
+        self,
+        _: tarpc::context::Context,
+        request: VerifyCertificateRequest,
+    ) -> Result<VerifyCertificateResponse, ApiError> {
+        self.service.verify_certificate(request).await
+    }
+
+    async fn certificate_lifecycle(
+        self,
+        _: tarpc::context::Context,
+        request: CertificateLifecycleRequest,
+    ) -> Result<CertificateLifecycleResponse, ApiError> {
+        self.service.certificate_lifecycle(request).await
+    }
+
+    async fn certificate_history(
+        self,
+        _: tarpc::context::Context,
+        request: CertificateHistoryRequest,
+    ) -> Result<CertificateHistoryResponse, ApiError> {
+        self.service.certificate_history(request).await
+    }
+
     async fn publish_anchor(
         self,
         _: tarpc::context::Context,
         request: AnchorPublishRequest,
     ) -> Result<AnchorPublishResponse, ApiError> {
         self.service.publish_anchor(request).await
+    }
+
+    async fn publish_anchor_batch(
+        self,
+        _: tarpc::context::Context,
+        request: AnchorPublishBatchRequest,
+    ) -> Result<AnchorPublishBatchResponse, ApiError> {
+        self.service.publish_anchor_batch(request).await
     }
 
     async fn verify_anchor(
@@ -265,6 +337,38 @@ impl LoamSpineRpc for LoamSpineTarpcServer {
         request: BondLedgerListRequest,
     ) -> Result<BondLedgerListResponse, ApiError> {
         self.service.bond_ledger_list(request).await
+    }
+
+    async fn trust_anchor(
+        self,
+        _: tarpc::context::Context,
+        request: TrustAnchorRequest,
+    ) -> Result<TrustAnchorResponse, ApiError> {
+        self.service.trust_anchor(request).await
+    }
+
+    async fn trust_query(
+        self,
+        _: tarpc::context::Context,
+        request: TrustQueryRequest,
+    ) -> Result<TrustQueryResponse, ApiError> {
+        self.service.trust_query(request).await
+    }
+
+    async fn trust_event_count(
+        self,
+        _: tarpc::context::Context,
+        request: TrustEventCountRequest,
+    ) -> Result<TrustEventCountResponse, ApiError> {
+        self.service.trust_event_count(request).await
+    }
+
+    async fn negotiate_btsp(
+        self,
+        _: tarpc::context::Context,
+        request: BtspNegotiateRequest,
+    ) -> Result<BtspNegotiateResponse, ApiError> {
+        self.service.negotiate_btsp(request).await
     }
 }
 

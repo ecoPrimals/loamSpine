@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 5, 2026 — Wave 156h: G64 Cephalization — tarpc Convergence)
+
+- **tarpc trait expanded 24 → 37 methods**: Full domain-operation parity with JSON-RPC. Added: `list_spines`, `spine_status`, `append_entry_batch`, `list_entries`, `mint_certificate_batch`, `verify_certificate`, `certificate_lifecycle`, `certificate_history`, `publish_anchor_batch`, `trust_anchor`, `trust_query`, `trust_event_count`, `negotiate_btsp`. tarpc server delegates to the same service layer as JSON-RPC — identical behavior.
+- **Remaining JSON-RPC-only**: 16 meta/diagnostic methods (auth.*, tools.*, identity.*, permanence.*, primal.announce, health.liveness/readiness, lifecycle.status, capabilities.list, btsp.capabilities) — these are diagnostic/conjugation-layer methods that don't benefit from binary framing.
+- **G64 posture**: tarpc carries all performance-critical domain ops (spine, entry, certificate, proof, anchor, session, braid, bond, trust, BTSP). JSON-RPC remains for discovery bootstrap, external clients, and diagnostic surface.
+
 ### Changed (August 5, 2026 — Wave 156e: spine.status Observability + Doc Debt)
 
 - **`spine.status` JSON-RPC method**: New observability endpoint — reports entry count, tip/genesis hashes, spine state, timestamps, and all associated sessions (session ID, Merkle root, vertex count, committer, entry index). Sessions returned most-recent-first. Full-stack: API types, RPC handler, dispatch, niche (53 methods), MCP tool, capability registry.

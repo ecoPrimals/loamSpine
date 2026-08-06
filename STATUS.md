@@ -149,6 +149,14 @@ Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). 
 
 ---
 
+### Wave 156h: G64 Cephalization — tarpc Convergence (August 5, 2026)
+
+- **tarpc trait expanded**: 24 → 37 domain methods — full parity on all performance-critical operations. Added 13 methods: `list_spines`, `spine_status`, `append_entry_batch`, `list_entries`, `mint_certificate_batch`, `verify_certificate`, `certificate_lifecycle`, `certificate_history`, `publish_anchor_batch`, `trust_anchor`, `trust_query`, `trust_event_count`, `negotiate_btsp`.
+- **Design**: 37 tarpc domain methods + 16 JSON-RPC-only diagnostic/meta methods = 53 total. tarpc carries performance; JSON-RPC carries discovery/diagnostics.
+- **Metrics**: 1,752 tests, 211 source files, 53 JSON-RPC + 37 tarpc methods, all checks clean.
+
+---
+
 ### Wave 156e: spine.status Observability + Doc Debt (August 5, 2026)
 
 - **`spine.status` JSON-RPC method**: New observability endpoint — reports entry count, tip hash, genesis hash, state (Active/Sealed/etc.), creation/update timestamps, and all `SessionCommit` entries with session IDs, Merkle roots, vertex counts, and committers. Sessions returned most-recent-first.
