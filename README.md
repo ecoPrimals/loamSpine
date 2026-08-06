@@ -60,7 +60,7 @@ cargo deny check licenses bans sources
 # Full verification
 ./verify.sh
 
-# benchScale roundtrip validation (47 methods over live TCP)
+# benchScale roundtrip validation (44 methods over live TCP)
 SKIP_BUILD=1 ./infra/benchScale/validate_roundtrip.sh
 ```
 
@@ -124,9 +124,11 @@ loamSpine/
 └── fuzz/                      # Fuzz testing targets
 ```
 
-**Dual Protocol:**
-- **tarpc** -- High-performance structured RPC (JSON-over-TCP) for primal-to-primal
-- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI (batch support, HTTP/1.1 keep-alive)
+**Dual Protocol (C2 Dual-Socket):**
+- **tarpc** -- High-performance binary framing for primal-to-primal composition. UDS (`loamspine.tarpc.sock`) + TCP opt-in. 37 typed domain methods.
+- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI. UDS (`loamspine.sock`) + TCP opt-in. 53 methods (batch support, HTTP/1.1 keep-alive).
+
+Protocol negotiation discovers `.tarpc.sock` and escalates automatically.
 
 ---
 
@@ -137,16 +139,22 @@ loamSpine/
 | **Spine** | `spine.create` | Create sovereign ledger |
 | **Spine** | `spine.get` | Get spine metadata |
 | **Spine** | `spine.list` | List all spine IDs |
+| **Spine** | `spine.status` | Observability — entries, sessions, state |
 | **Spine** | `spine.seal` | Make immutable |
 | **Entry** | `entry.append` | Add entry to chain |
+| **Entry** | `entry.append_batch` | Batch append (amortized I/O) |
 | **Entry** | `entry.get` | Query by hash |
 | **Entry** | `entry.get_tip` | Get latest entry |
 | **Entry** | `entry.list` | List entries (paginated) |
 | **Certificate** | `certificate.mint` | Create ownership cert |
+| **Certificate** | `certificate.mint_batch` | Batch mint (amortized I/O) |
 | **Certificate** | `certificate.transfer` | Transfer ownership |
 | **Certificate** | `certificate.loan` | Temporary access |
 | **Certificate** | `certificate.return` | End loan |
 | **Certificate** | `certificate.get` | Query certificate |
+| **Certificate** | `certificate.verify` | Semantic verification |
+| **Certificate** | `certificate.lifecycle` | Full lifecycle trace |
+| **Certificate** | `certificate.history` | Certificate + entries history |
 | **Waypoint** | `slice.anchor` | Anchor borrowed state |
 | **Waypoint** | `slice.checkout` | Checkout a waypoint slice |
 | **Proof** | `proof.generate_inclusion` | Create Merkle inclusion proof |
@@ -189,14 +197,14 @@ LoamSpine discovers services at runtime via **infant discovery** (zero knowledge
 5. **mDNS-SD** -- RFC 6762/6763 via `mdns-sd` (experimental, feature-gated)
 6. **Development Fallback** (`localhost`, debug builds only)
 
-### Socket Naming (PRIMAL_SELF_KNOWLEDGE_STANDARD §3)
+### Socket Naming (PRIMAL_SELF_KNOWLEDGE_STANDARD §3 + C2 Dual-Socket)
 
-| Mode | Socket Path |
-|------|------------|
-| **Development** (`BIOMEOS_INSECURE=1`) | `$XDG_RUNTIME_DIR/biomeos/loamspine.sock` |
-| **Production** (`BIOMEOS_FAMILY_ID=<fid>`) | `$XDG_RUNTIME_DIR/biomeos/loamspine-<fid>.sock` |
-| **Capability symlink** | `ledger.sock → loamspine.sock` |
-| **Legacy symlink** | `permanence.sock → loamspine.sock` |
+| Mode | JSON-RPC Socket | tarpc Socket |
+|------|----------------|-------------|
+| **Development** (`BIOMEOS_INSECURE=1`) | `$XDG_RUNTIME_DIR/biomeos/loamspine.sock` | `loamspine.tarpc.sock` |
+| **Production** (`BIOMEOS_FAMILY_ID=<fid>`) | `loamspine-<fid>.sock` | `loamspine-<fid>.tarpc.sock` |
+| **Capability symlink** | `ledger.sock → loamspine.sock` | — |
+| **Legacy symlink** | `permanence.sock → loamspine.sock` | — |
 
 Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to start.
 
@@ -208,13 +216,15 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,736 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,755 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 92.26% line / 89.50% branch / 92.56% region (llvm-cov) |
+| **JSON-RPC** | 53 methods (semantic naming, 19 domains) |
+| **tarpc** | 37 typed domain methods (G64 cephalization — full parity) |
 | **Clippy** | 0 warnings (pedantic + nursery + `missing_const_for_fn`, `-D warnings`) |
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 2 `#![allow(clippy::wildcard_imports)]` (tarpc macro requirement, unfulfillable with `expect`); all other suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated; 3 `#[expect(dead_code)]` for pre-wired BTSP wire fields |
-| **Max File Size** | 670 max production (`uds.rs`); 753 max test file (`tests_validation.rs`) |
-| **Source Files** | 210 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Max File Size** | 677 max production (`main.rs`); 827 max test file (`service_tests.rs`) |
+| **Source Files** | 211 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
