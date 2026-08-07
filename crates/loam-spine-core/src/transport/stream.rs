@@ -92,6 +92,106 @@ impl AsyncWrite for TransportStream {
     }
 }
 
+/// Platform-abstracted listener for IPC and network transport.
+///
+/// Accepts incoming connections and wraps them as [`TransportStream`].
+/// The `#[cfg(unix)]` boundary lives here — callers see only
+/// `TransportListener` and `TransportStream`.
+#[derive(Debug)]
+pub enum TransportListener {
+    /// Unix Domain Socket listener (Unix platforms only).
+    #[cfg(unix)]
+    Uds(tokio::net::UnixListener),
+
+    /// TCP listener (all platforms).
+    Tcp(tokio::net::TcpListener),
+}
+
+impl TransportListener {
+    /// Accept the next incoming connection.
+    ///
+    /// # Errors
+    ///
+    /// Returns `std::io::Error` on accept failure.
+    pub async fn accept(&self) -> io::Result<TransportStream> {
+        match self {
+            #[cfg(unix)]
+            Self::Uds(l) => {
+                let (stream, _) = l.accept().await?;
+                Ok(TransportStream::Uds(stream))
+            }
+            Self::Tcp(l) => {
+                let (stream, _) = l.accept().await?;
+                if let Err(e) = stream.set_nodelay(true) {
+                    tracing::trace!("TCP set_nodelay on accepted stream (non-fatal): {e}");
+                }
+                Ok(TransportStream::Tcp(stream))
+            }
+        }
+    }
+
+    /// Bind a listener on the given transport endpoint.
+    ///
+    /// # Errors
+    ///
+    /// Returns `LoamSpineError::Ipc` on bind failure or platform unavailability.
+    pub async fn bind(endpoint: &TransportEndpoint) -> Result<Self, LoamSpineError> {
+        match endpoint {
+            TransportEndpoint::Uds { path } => bind_local(std::path::Path::new(path)).await,
+            TransportEndpoint::Tcp { host, port } => {
+                let addr = format!("{host}:{port}");
+                let listener = tokio::net::TcpListener::bind(&addr).await.map_err(|e| {
+                    LoamSpineError::ipc(
+                        IpcErrorPhase::Connect,
+                        format!("TCP bind at {addr} failed: {e}"),
+                    )
+                })?;
+                Ok(Self::Tcp(listener))
+            }
+            TransportEndpoint::MeshRelay { .. } => Err(LoamSpineError::ipc(
+                IpcErrorPhase::Connect,
+                "cannot bind a listener on mesh relay transport".to_string(),
+            )),
+        }
+    }
+}
+
+/// Bind a local listener — UDS on Unix, error on non-Unix.
+#[cfg(unix)]
+#[expect(clippy::unused_async, reason = "async signature matches non-unix stub")]
+async fn bind_local(path: &std::path::Path) -> Result<TransportListener, LoamSpineError> {
+    if path.exists() {
+        let _ = std::fs::remove_file(path);
+    }
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            LoamSpineError::ipc(
+                IpcErrorPhase::Connect,
+                format!("cannot create socket directory {}: {e}", parent.display()),
+            )
+        })?;
+    }
+    let listener = tokio::net::UnixListener::bind(path).map_err(|e| {
+        LoamSpineError::ipc(
+            IpcErrorPhase::Connect,
+            format!("UDS bind at {} failed: {e}", path.display()),
+        )
+    })?;
+    Ok(TransportListener::Uds(listener))
+}
+
+#[cfg(not(unix))]
+async fn bind_local(path: &std::path::Path) -> Result<TransportListener, LoamSpineError> {
+    Err(LoamSpineError::ipc(
+        IpcErrorPhase::Connect,
+        format!(
+            "UDS listener unavailable on this platform; \
+             socket: {}. Use TCP endpoint.",
+            path.display()
+        ),
+    ))
+}
+
 /// Connect to a primal or provider at the given transport endpoint.
 ///
 /// Dispatches to platform-appropriate backend:
@@ -192,6 +292,10 @@ pub fn endpoint_from_addr(addr: &str) -> Result<TransportEndpoint, LoamSpineErro
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+#[expect(
+    clippy::panic,
+    reason = "test assertions use panic for failure clarity"
+)]
 mod tests {
     use super::*;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -299,6 +403,66 @@ mod tests {
         assert_eq!(&buf, b"pong");
 
         server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn transport_listener_tcp_accept() {
+        let ep = TransportEndpoint::tcp("127.0.0.1", 0);
+        let listener = TransportListener::bind(&ep).await.unwrap();
+        let addr = match &listener {
+            TransportListener::Tcp(l) => l.local_addr().unwrap(),
+            #[cfg(unix)]
+            _ => panic!("expected TCP listener"),
+        };
+
+        let connect_ep = TransportEndpoint::tcp("127.0.0.1", addr.port());
+        let server = tokio::spawn(async move {
+            let mut stream = listener.accept().await.unwrap();
+            let mut buf = [0u8; 4];
+            tokio::io::AsyncReadExt::read_exact(&mut stream, &mut buf)
+                .await
+                .unwrap();
+            assert_eq!(&buf, b"g66!");
+        });
+
+        let mut client = connect_transport(&connect_ep).await.unwrap();
+        tokio::io::AsyncWriteExt::write_all(&mut client, b"g66!")
+            .await
+            .unwrap();
+        tokio::io::AsyncWriteExt::flush(&mut client).await.unwrap();
+        server.await.unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn transport_listener_uds_accept() {
+        let tmp = tempfile::tempdir().unwrap();
+        let sock = tmp.path().join("listen.sock");
+        let ep = TransportEndpoint::uds(sock.to_string_lossy());
+        let listener = TransportListener::bind(&ep).await.unwrap();
+
+        let server = tokio::spawn(async move {
+            let mut stream = listener.accept().await.unwrap();
+            let mut buf = [0u8; 4];
+            tokio::io::AsyncReadExt::read_exact(&mut stream, &mut buf)
+                .await
+                .unwrap();
+            assert_eq!(&buf, b"g66!");
+        });
+
+        let mut client = connect_transport(&ep).await.unwrap();
+        tokio::io::AsyncWriteExt::write_all(&mut client, b"g66!")
+            .await
+            .unwrap();
+        tokio::io::AsyncWriteExt::flush(&mut client).await.unwrap();
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn transport_listener_mesh_relay_fails() {
+        let ep = TransportEndpoint::mesh_relay("peer", "cap");
+        let result = TransportListener::bind(&ep).await;
+        assert!(result.is_err());
     }
 
     #[test]

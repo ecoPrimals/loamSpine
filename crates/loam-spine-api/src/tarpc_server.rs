@@ -433,23 +433,26 @@ pub async fn run_tarpc_server_with_config(
     Ok(())
 }
 
-/// Serve the tarpc protocol on an already-connected UDS stream (G65).
+/// Serve the tarpc protocol on an already-connected stream (G65 + G66).
 ///
 /// After G65 protocol negotiation selects tarpc, the stream is wrapped in
 /// length-delimited + JSON serde framing and served via `BaseChannel`.
 /// The caller has already consumed the `PROTOCOLS:` / `PROTOCOL:` lines.
 ///
-/// Uses the same `Json` serde transport as the C2 `run_tarpc_uds_server`
-/// for wire compatibility — all tarpc consumers use identical framing.
+/// Transport-agnostic: accepts any `AsyncRead + AsyncWrite + Unpin` type
+/// (`TransportStream`, `UnixStream`, `TcpStream`). Uses the same `Json`
+/// serde transport as the C2 `run_tarpc_uds_server` for wire compatibility.
 ///
 /// # Errors
 ///
 /// Returns `std::io::Error` on transport failures.
-#[cfg(unix)]
-pub async fn serve_tarpc_connection(
-    stream: tokio::net::UnixStream,
+pub async fn serve_tarpc_connection<S>(
+    stream: S,
     service: LoamSpineRpcService,
-) -> std::io::Result<()> {
+) -> std::io::Result<()>
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
     let length_delimited = tokio_util::codec::length_delimited::Builder::new().new_framed(stream);
     let transport = tarpc::serde_transport::new(length_delimited, Json::default());
     let server = LoamSpineTarpcServer::new(service);

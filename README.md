@@ -216,7 +216,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,783 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,787 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 92.26% line / 89.50% branch / 92.56% region (llvm-cov) |
 | **JSON-RPC** | 53 methods (semantic naming, 19 domains) |
 | **tarpc** | 37 typed domain methods (G64 cephalization — full parity) |

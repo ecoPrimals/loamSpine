@@ -95,20 +95,26 @@ pub enum NegotiationResult {
     NotNegotiation(Vec<u8>),
 }
 
-/// Attempt G65 protocol negotiation on a UDS connection.
+/// Attempt G65 protocol negotiation on any transport stream.
 ///
 /// Reads the first line from the stream (combining any `leftover` bytes from
 /// prior genetics-signal detection). If the line starts with `PROTOCOLS:`,
 /// negotiates and responds. Otherwise returns `NotNegotiation` with all
 /// consumed bytes so the caller can chain them back.
 ///
+/// Transport-agnostic: works on `UnixStream`, `TcpStream`, `TransportStream`,
+/// or any `AsyncRead + AsyncWrite + Unpin` type.
+///
 /// # Errors
 ///
 /// Returns `std::io::Error` on read/write failures.
-pub async fn try_negotiate(
-    stream: &mut tokio::net::UnixStream,
+pub async fn try_negotiate<S>(
+    stream: &mut S,
     leftover: Vec<u8>,
-) -> std::io::Result<NegotiationResult> {
+) -> std::io::Result<NegotiationResult>
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
+{
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     let mut line_buf = leftover;
@@ -157,15 +163,20 @@ pub async fn try_negotiate(
 
 /// Client-side protocol negotiation: send PROTOCOLS line, read response.
 ///
+/// Transport-agnostic: works on any `AsyncRead + AsyncWrite + Unpin`.
+///
 /// Returns the server-selected protocol.
 ///
 /// # Errors
 ///
 /// Returns `std::io::Error` on I/O or protocol errors.
-pub async fn negotiate_client(
-    stream: &mut tokio::net::UnixStream,
+pub async fn negotiate_client<S>(
+    stream: &mut S,
     preferred: &[IpcProtocol],
-) -> std::io::Result<IpcProtocol> {
+) -> std::io::Result<IpcProtocol>
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
+{
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let protocols_str: Vec<&str> = preferred.iter().map(|p| p.wire_name()).collect();
@@ -268,9 +279,18 @@ mod tests {
         );
     }
 
+    /// Helper: create a TCP duplex pair for transport-agnostic tests.
+    async fn tcp_pair() -> (tokio::net::TcpStream, tokio::net::TcpStream) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let client = tokio::net::TcpStream::connect(addr).await.unwrap();
+        let (server, _) = listener.accept().await.unwrap();
+        (client, server)
+    }
+
     #[tokio::test]
-    async fn negotiate_roundtrip_tarpc() {
-        let (mut client, mut server) = tokio::net::UnixStream::pair().unwrap();
+    async fn negotiate_roundtrip_tarpc_tcp() {
+        let (mut client, mut server) = tcp_pair().await;
 
         let server_handle =
             tokio::spawn(async move { try_negotiate(&mut server, Vec::new()).await.unwrap() });
@@ -285,8 +305,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn negotiate_roundtrip_jsonrpc_only() {
-        let (mut client, mut server) = tokio::net::UnixStream::pair().unwrap();
+    async fn negotiate_roundtrip_jsonrpc_only_tcp() {
+        let (mut client, mut server) = tcp_pair().await;
 
         let server_handle =
             tokio::spawn(async move { try_negotiate(&mut server, Vec::new()).await.unwrap() });
@@ -301,8 +321,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn not_negotiation_jsonrpc_passthrough() {
-        let (mut client, mut server) = tokio::net::UnixStream::pair().unwrap();
+    async fn not_negotiation_jsonrpc_passthrough_tcp() {
+        let (mut client, mut server) = tcp_pair().await;
 
         let msg = b"{\"jsonrpc\":\"2.0\",\"method\":\"health.check\"}\n";
         client.write_all(msg).await.unwrap();
@@ -319,8 +339,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn negotiate_with_leftover_bytes() {
-        let (mut client, mut server) = tokio::net::UnixStream::pair().unwrap();
+    async fn negotiate_with_leftover_bytes_tcp() {
+        let (mut client, mut server) = tcp_pair().await;
 
         let rest = b"OTOCOLS: tarpc,jsonrpc\n";
         client.write_all(rest).await.unwrap();
@@ -339,8 +359,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn oversized_line_returns_not_negotiation() {
-        let (mut client, mut server) = tokio::net::UnixStream::pair().unwrap();
+    async fn oversized_line_returns_not_negotiation_tcp() {
+        let (mut client, mut server) = tcp_pair().await;
 
         let long_line = "X".repeat(300);
         client.write_all(long_line.as_bytes()).await.unwrap();
@@ -348,5 +368,22 @@ mod tests {
 
         let result = try_negotiate(&mut server, Vec::new()).await.unwrap();
         assert!(matches!(result, NegotiationResult::NotNegotiation(_)));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn negotiate_roundtrip_uds() {
+        let (mut client, mut server) = tokio::net::UnixStream::pair().unwrap();
+
+        let server_handle =
+            tokio::spawn(async move { try_negotiate(&mut server, Vec::new()).await.unwrap() });
+
+        let selected = negotiate_client(&mut client, &[IpcProtocol::Tarpc, IpcProtocol::JsonRpc])
+            .await
+            .unwrap();
+        assert_eq!(selected, IpcProtocol::Tarpc);
+
+        let result = server_handle.await.unwrap();
+        assert!(matches!(result, NegotiationResult::Tarpc));
     }
 }

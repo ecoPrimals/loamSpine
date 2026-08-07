@@ -72,6 +72,7 @@ pub use rpc::LoamSpineRpc;
 pub use service::LoamSpineRpcService;
 pub use tarpc_server::{
     LoamSpineTarpcServer, TarpcServerConfig, run_tarpc_server, run_tarpc_server_with_config,
+    serve_tarpc_connection,
 };
 #[cfg(unix)]
 pub use tarpc_server::{TarpcUdsHandle, run_tarpc_uds_server};

@@ -9,6 +9,8 @@
 
 ## Recent Changes
 
+- **August 6, 2026** — **Wave 156s: G66 Transport Abstraction**: Silicon deism eliminated. Protocol negotiation and tarpc serving now generic over `AsyncRead + AsyncWrite + Unpin`. `TransportListener` added (server-side bind/accept on UDS or TCP). G65 tests evolved to TCP-based. 1,787 tests.
+
 - **August 6, 2026** — **Wave 156p: G65 Protocol Negotiation**: Single-socket protocol selection replaces C2 dual-socket pattern. `protocol_negotiation.rs` module with `IpcProtocol` enum, `try_negotiate()`, `negotiate_client()`, wire format parsing, `NegotiationResult` dispatch. UDS handler restructured for G65-first detection. `serve_tarpc_connection()` for post-negotiation binary framing. 1,783 tests.
 
 - **August 6, 2026** — **Wave 156n: tarpc Method Test Coverage + UDS E2E**: All 13 G64 tarpc methods now have dedicated tarpc-path tests. tarpc UDS E2E test verifies real client→server round-trip. Socket cleanup-on-drop verified. 1,770 tests.

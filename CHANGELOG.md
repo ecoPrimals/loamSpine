@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 6, 2026 — Wave 156s: G66 Transport Abstraction)
+
+- **G66 transport abstraction**: Eliminates silicon deism. Protocol negotiation (`try_negotiate`, `negotiate_client`) now generic over `AsyncRead + AsyncWrite + Unpin` — works on `UnixStream`, `TcpStream`, `TransportStream`, or any async byte pipe. `serve_tarpc_connection` also generic (removed `#[cfg(unix)]`).
+- **`TransportListener`**: Server-side listener abstraction in `loam-spine-core`. `TransportListener::bind(&endpoint)` dispatches to UDS or TCP. `accept()` returns `TransportStream`. Symmetric to `connect_transport()`.
+- **G65 tests evolved to TCP**: 5 protocol negotiation tests replaced with TCP-based equivalents (work on all platforms). 1 UDS roundtrip retained as `#[cfg(unix)]` regression guard. 3 new `TransportListener` tests (TCP accept, UDS accept, mesh relay error). **1,787 tests total.**
+- **Zero unconditional `UnixStream` in production**: The last silicon deism hotspot (`protocol_negotiation.rs`) is now transport-agnostic. All `#[cfg(unix)]` lives in the transport layer.
+
 ### Changed (August 6, 2026 — Wave 156p: G65 Protocol Negotiation)
 
 - **G65 protocol negotiation**: Single-socket protocol selection replaces C2 dual-socket pattern. Client sends `PROTOCOLS: tarpc,jsonrpc\n`, server selects best mutual match and responds `PROTOCOL: tarpc\n`. No negotiation = JSON-RPC (full backward compatibility). Implemented following rhizoCrypt reference (convergent evolution, no shared code).
