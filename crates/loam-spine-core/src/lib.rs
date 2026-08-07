@@ -90,6 +90,9 @@ pub mod trio_types;
 pub mod types;
 pub mod waypoint;
 
+// Platform substrate abstraction (G68)
+pub mod platform;
+
 // Self-knowledge and naming
 pub mod niche;
 pub mod primal_names;

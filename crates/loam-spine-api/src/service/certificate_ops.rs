@@ -150,7 +150,7 @@ impl LoamSpineRpcService {
     ) -> ApiResult<GetCertificateResponse> {
         let result = {
             let core = self.core().await;
-            core.get_certificate(request.certificate_id).await
+            core.get_certificate(request.certificate_id).await?
         };
         Ok(match result {
             Some(cert) => GetCertificateResponse {

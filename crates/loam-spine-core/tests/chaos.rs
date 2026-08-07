@@ -6,6 +6,7 @@
 //! edge cases, error handling, and fault injection.
 //! See `chaos_stress.rs` for concurrent stress and endurance tests.
 
+#![expect(clippy::unwrap_used, reason = "chaos tests use unwrap for conciseness")]
 #![expect(
     clippy::expect_used,
     clippy::panic,
@@ -119,7 +120,7 @@ async fn nonexistent_certificate() {
     let service = LoamSpineService::new();
 
     let fake_cert_id = uuid::Uuid::nil();
-    let result = service.get_certificate(fake_cert_id).await;
+    let result = service.get_certificate(fake_cert_id).await.unwrap();
 
     assert!(result.is_none());
 }
@@ -419,6 +420,7 @@ async fn certificate_loan_expiration() {
     let cert = service
         .get_certificate(cert_id)
         .await
+        .unwrap()
         .expect("Certificate should exist");
     assert!(cert.is_loaned());
 

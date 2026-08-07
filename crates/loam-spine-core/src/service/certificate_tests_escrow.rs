@@ -42,7 +42,7 @@ async fn test_hold_and_release_certificate() {
         .await
         .unwrap_or_else(|_| unreachable!());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert!(matches!(
         cert.as_ref().map(|c| &c.state),
@@ -56,7 +56,7 @@ async fn test_hold_and_release_certificate() {
 
     assert_eq!(released_id, cert_id);
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert_eq!(cert.as_ref().map(|c| &c.owner), Some(&buyer));
     assert!(cert.as_ref().is_some_and(Certificate::is_active));
@@ -96,7 +96,7 @@ async fn test_hold_and_cancel_escrow() {
     let result = service.cancel_escrow(escrow_id).await;
     assert!(result.is_ok());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert_eq!(cert.as_ref().map(|c| &c.owner), Some(&owner));
     assert!(cert.as_ref().is_some_and(Certificate::is_active));
@@ -233,7 +233,7 @@ async fn test_loan_expires_at_set() {
         .await
         .unwrap_or_else(|_| unreachable!());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert!(
         cert.as_ref()
@@ -462,6 +462,7 @@ async fn test_return_certificate_expired_success() {
     let cert = service
         .get_certificate(cert_id)
         .await
+        .unwrap()
         .unwrap_or_else(|| unreachable!("cert should exist"));
     assert!(
         !cert.is_loaned(),
@@ -519,6 +520,7 @@ async fn test_return_certificate_expired_with_sublending_chain() {
     let cert = service
         .get_certificate(cert_id)
         .await
+        .unwrap()
         .unwrap_or_else(|| unreachable!("cert should exist"));
     assert!(
         !cert.is_loaned(),

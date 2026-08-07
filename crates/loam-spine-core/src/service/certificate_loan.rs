@@ -350,10 +350,10 @@ impl LoamSpineService {
 
         while self
             .get_certificate(cert_id)
-            .await
+            .await?
             .is_some_and(|c| c.is_loaned())
         {
-            let Some(cert) = self.get_certificate(cert_id).await else {
+            let Some(cert) = self.get_certificate(cert_id).await? else {
                 break;
             };
             let Some(holder) = cert.holder else {

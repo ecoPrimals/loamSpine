@@ -232,13 +232,19 @@ impl LoamSpineService {
     }
 
     /// Get a certificate by ID.
-    pub async fn get_certificate(&self, cert_id: CertificateId) -> Option<Certificate> {
-        self.certificate_storage
+    ///
+    /// # Errors
+    ///
+    /// Returns storage errors instead of silently swallowing them.
+    pub async fn get_certificate(
+        &self,
+        cert_id: CertificateId,
+    ) -> LoamSpineResult<Option<Certificate>> {
+        Ok(self
+            .certificate_storage
             .get_certificate(cert_id)
-            .await
-            .ok()
-            .flatten()
-            .map(|(cert, _)| cert)
+            .await?
+            .map(|(cert, _)| cert))
     }
 
     /// Transfer a certificate to a new owner.
@@ -526,9 +532,11 @@ impl LoamSpineService {
 }
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 #[path = "certificate_tests.rs"]
 mod tests;
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 #[path = "certificate_tests_escrow.rs"]
 mod tests_escrow;

@@ -25,7 +25,7 @@ use loam_spine_core::{
 
 /// Print certificate state from service.
 async fn print_certificate_state(service: &LoamSpineService, cert_id: CertificateId) {
-    if let Some(cert) = service.get_certificate(cert_id).await {
+    if let Ok(Some(cert)) = service.get_certificate(cert_id).await {
         println!("  Owner: {}", cert.owner);
         println!("  State: {:?}", cert.state);
         if cert.holder.is_some() {
@@ -135,7 +135,7 @@ async fn return_certificate(
 async fn print_summary(service: &LoamSpineService, cert_id: CertificateId) {
     println!("6. CERTIFICATE HISTORY");
     println!("----------------------");
-    if let Some(cert) = service.get_certificate(cert_id).await {
+    if let Ok(Some(cert)) = service.get_certificate(cert_id).await {
         println!("Final certificate state:");
         println!("  ID: {}", cert.id);
         println!("  Owner: {}", cert.owner);

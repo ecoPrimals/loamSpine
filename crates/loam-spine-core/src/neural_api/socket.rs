@@ -155,7 +155,7 @@ pub fn tarpc_socket_from_jsonrpc(jsonrpc_path: &std::path::Path) -> PathBuf {
     let stem = jsonrpc_path
         .file_stem()
         .and_then(|s| s.to_str())
-        .unwrap_or("loamspine");
+        .unwrap_or(crate::primal_names::SELF_ID);
     let parent = jsonrpc_path
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."));

@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,787 tests, 53 JSON-RPC methods, 37 tarpc methods, G65 protocol negotiation (single-socket), 212 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
-date = 2026-08-06
+description = "Permanence ledger — 1,791 tests, 53 JSON-RPC methods, 37 tarpc methods, G65 protocol negotiation (single-socket), G66 transport abstraction, G68 platform substrate, 214 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
+date = 2026-08-07
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,11 +10,12 @@ springs = []
 
 ## Status
 
-- **1,787 tests** (all passing), 0 failures, 0 ignored
+- **1,791 tests** (all passing), 0 failures, 0 ignored
 - **53 JSON-RPC methods** across 19 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, capabilities, identity, tools, primal, permanence)
-- **212 source files**, ~65,500 lines of Rust
+- **214 source files**, ~66,000 lines of Rust
 - **G65 protocol negotiation** — single-socket, auto-negotiated (tarpc/JSON-RPC). Replaces C2 dual-socket.
 - **G66 transport abstraction** — `TransportListener` + generic negotiate/serve. Zero silicon deism.
+- **G68 platform substrate** — `platform` module (`create_link`/`remove_link`). No raw `std::os::unix` in binary code.
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
 - **JH-0 ADOPTED** — method gate classifies all 53 methods as Public or Protected
 - **BTSP Phase 2+3** — ClientHello handshake (client + server), ChaCha20-Poly1305 AEAD, capability-discovered handshake key

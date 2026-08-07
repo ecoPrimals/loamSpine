@@ -27,7 +27,7 @@ async fn test_mint_certificate() {
 
     let (cert_id, _hash) = result.unwrap_or_else(|_| unreachable!());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
 
     let certs = service
@@ -66,7 +66,7 @@ async fn test_certificate_transfer() {
         .await;
     assert!(result.is_ok());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert_eq!(cert.unwrap_or_else(|| unreachable!()).owner, buyer);
 }
@@ -101,14 +101,14 @@ async fn test_certificate_loan_and_return() {
         .await;
     assert!(result.is_ok());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert!(cert.unwrap_or_else(|| unreachable!()).is_loaned());
 
     let result = service.return_certificate(cert_id, borrower.clone()).await;
     assert!(result.is_ok());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert!(!cert.unwrap_or_else(|| unreachable!()).is_loaned());
 }
@@ -273,7 +273,7 @@ async fn test_sublend_certificate() {
         .await;
     assert!(result.is_ok());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert_eq!(
         cert.as_ref().map(|c| c.holder.as_ref()),
@@ -364,7 +364,7 @@ async fn test_return_certificate_at_unwind() {
     let result = service.return_certificate_at(cert_id, borrower_b).await;
     assert!(result.is_ok());
 
-    let cert = service.get_certificate(cert_id).await;
+    let cert = service.get_certificate(cert_id).await.unwrap();
     assert!(cert.is_some());
     assert_eq!(
         cert.as_ref().map(|c| c.holder.as_ref()),
@@ -783,7 +783,7 @@ async fn mint_certificate_batch_creates_all() {
     assert_eq!(cert_ids.len(), 10, "all certificate IDs should be unique");
 
     for (cert_id, _) in &results {
-        let cert = service.get_certificate(*cert_id).await;
+        let cert = service.get_certificate(*cert_id).await.unwrap();
         assert!(cert.is_some(), "certificate {cert_id} should exist");
     }
 }

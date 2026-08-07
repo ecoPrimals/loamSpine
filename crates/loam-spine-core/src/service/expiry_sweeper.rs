@@ -181,7 +181,11 @@ mod tests {
         loop {
             let mut all_expired = true;
             for &id in cert_ids {
-                let cert = service.get_certificate(id).await.expect("certificate");
+                let cert = service
+                    .get_certificate(id)
+                    .await
+                    .unwrap()
+                    .expect("certificate");
                 let loan = cert.active_loan.as_ref().unwrap();
                 let Some(expires_at) = loan.expires_at else {
                     all_expired = false;
@@ -239,6 +243,7 @@ mod tests {
         let expires_at = service
             .get_certificate(cert_id)
             .await
+            .unwrap()
             .expect("certificate")
             .active_loan
             .as_ref()
@@ -250,7 +255,7 @@ mod tests {
         let count = sweeper.sweep_once().await.unwrap();
         assert_eq!(count, 1);
 
-        let cert = service.get_certificate(cert_id).await;
+        let cert = service.get_certificate(cert_id).await.unwrap();
         assert!(cert.is_some());
         assert!(!cert.unwrap().is_loaned());
     }
@@ -386,9 +391,30 @@ mod tests {
         let count = sweeper.sweep_once().await.unwrap();
         assert_eq!(count, 3);
 
-        assert!(!service.get_certificate(cert1).await.unwrap().is_loaned());
-        assert!(!service.get_certificate(cert2).await.unwrap().is_loaned());
-        assert!(!service.get_certificate(cert3).await.unwrap().is_loaned());
+        assert!(
+            !service
+                .get_certificate(cert1)
+                .await
+                .unwrap()
+                .unwrap()
+                .is_loaned()
+        );
+        assert!(
+            !service
+                .get_certificate(cert2)
+                .await
+                .unwrap()
+                .unwrap()
+                .is_loaned()
+        );
+        assert!(
+            !service
+                .get_certificate(cert3)
+                .await
+                .unwrap()
+                .unwrap()
+                .is_loaned()
+        );
     }
 
     #[tokio::test(start_paused = true)]

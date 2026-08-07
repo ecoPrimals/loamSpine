@@ -5,6 +5,7 @@
 //! These tests exercise the full flow from spine creation through
 //! certificate lifecycle, slice operations, and braid commits.
 
+#![expect(clippy::unwrap_used, reason = "e2e tests use unwrap for conciseness")]
 #![expect(
     clippy::expect_used,
     reason = "e2e tests use expect for assertion clarity"
@@ -110,6 +111,7 @@ async fn full_certificate_lifecycle() {
     let cert = service
         .get_certificate(cert_id)
         .await
+        .unwrap()
         .expect("Certificate should exist");
     assert_eq!(cert.owner, owner);
 
@@ -124,6 +126,7 @@ async fn full_certificate_lifecycle() {
     let cert = service
         .get_certificate(cert_id)
         .await
+        .unwrap()
         .expect("Certificate should exist");
     assert!(cert.is_loaned());
     assert_eq!(cert.holder, Some(borrower.clone()));
@@ -138,6 +141,7 @@ async fn full_certificate_lifecycle() {
     let cert = service
         .get_certificate(cert_id)
         .await
+        .unwrap()
         .expect("Certificate should exist");
     assert!(!cert.is_loaned());
 
@@ -151,6 +155,7 @@ async fn full_certificate_lifecycle() {
     let cert = service
         .get_certificate(cert_id)
         .await
+        .unwrap()
         .expect("Certificate should exist");
     assert_eq!(cert.owner, recipient);
     assert_eq!(cert.transfer_count, 1);
@@ -197,6 +202,7 @@ async fn full_certificate_lifecycle_with_seal() {
     let cert = service
         .get_certificate(cert_id)
         .await
+        .unwrap()
         .expect("get cert after transfer");
     assert_eq!(cert.owner, recipient);
     assert_eq!(cert.transfer_count, 1);

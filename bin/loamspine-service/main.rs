@@ -407,8 +407,8 @@ async fn run_server(
             let target = socket_path.clone();
             let link = link_path.clone();
             match tokio::task::spawn_blocking(move || {
-                let _ = std::fs::remove_file(&link);
-                std::os::unix::fs::symlink(&target, &link)
+                let _ = loam_spine_core::platform::remove_link(&link);
+                loam_spine_core::platform::create_link(&target, &link)
             })
             .await
             {
@@ -449,8 +449,8 @@ async fn run_server(
             let target = socket_path.clone();
             let link = link_path.clone();
             match tokio::task::spawn_blocking(move || {
-                let _ = std::fs::remove_file(&link);
-                std::os::unix::fs::symlink(&target, &link)
+                let _ = loam_spine_core::platform::remove_link(&link);
+                loam_spine_core::platform::create_link(&target, &link)
             })
             .await
             {
