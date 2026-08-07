@@ -11,9 +11,12 @@
 //! | Layer | Module | What |
 //! |-------|--------|------|
 //! | **L1** | [`fs`] | Filesystem links (symlink / junction) |
+//! | **L2** | [`access`] | File permissions / access control |
 //!
 //! Transport (G66) lives in [`crate::transport::stream`].
 
+pub mod access;
 pub mod fs;
 
+pub use access::{PlatformAccess, is_executable, set_executable};
 pub use fs::{create_link, remove_link};

@@ -145,14 +145,10 @@ esac
         eprintln!("⚠️  Skipping: could not write temp script");
         return;
     }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        if std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700)).is_err() {
-            let _ = std::fs::remove_file(&script);
-            eprintln!("⚠️  Skipping: could not chmod script");
-            return;
-        }
+    if crate::platform::set_executable(&script).is_err() {
+        let _ = std::fs::remove_file(&script);
+        eprintln!("⚠️  Skipping: could not set executable permission");
+        return;
     }
     #[cfg(not(unix))]
     {
@@ -469,11 +465,7 @@ fn discover_binary_finds_signer_in_bins_dir() {
     let tmp = tempfile::tempdir().unwrap();
     let signer_path = tmp.path().join("signer");
     std::fs::write(&signer_path, "#!/bin/sh\nexit 0").unwrap();
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&signer_path, std::fs::Permissions::from_mode(0o755)).unwrap();
-    }
+    crate::platform::set_executable(&signer_path).unwrap();
 
     let result = CliSigner::discover_binary_from(None, Some(tmp.path().to_str().unwrap()));
     assert!(result.is_some(), "should find signer in bins dir");
@@ -485,11 +477,7 @@ fn discover_binary_finds_signing_service_in_bins_dir() {
     let tmp = tempfile::tempdir().unwrap();
     let svc_path = tmp.path().join("signing-service");
     std::fs::write(&svc_path, "#!/bin/sh\nexit 0").unwrap();
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&svc_path, std::fs::Permissions::from_mode(0o755)).unwrap();
-    }
+    crate::platform::set_executable(&svc_path).unwrap();
 
     let result = CliSigner::discover_binary_from(None, Some(tmp.path().to_str().unwrap()));
     assert!(result.is_some(), "should find signing-service in bins dir");
@@ -524,14 +512,8 @@ fn discover_binary_prefers_signer_over_signing_service_in_bins_dir() {
     let svc_path = tmp.path().join("signing-service");
     std::fs::write(&signer_path, "#!/bin/sh\nexit 0").expect("write signer");
     std::fs::write(&svc_path, "#!/bin/sh\nexit 0").expect("write signing-service");
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&signer_path, std::fs::Permissions::from_mode(0o755))
-            .expect("chmod signer");
-        std::fs::set_permissions(&svc_path, std::fs::Permissions::from_mode(0o755))
-            .expect("chmod signing-service");
-    }
+    crate::platform::set_executable(&signer_path).expect("chmod signer");
+    crate::platform::set_executable(&svc_path).expect("chmod signing-service");
 
     let result = CliSigner::discover_binary_from(None, Some(tmp.path().to_str().expect("utf8")));
     assert_eq!(result.as_ref().expect("discovered").as_path(), signer_path);

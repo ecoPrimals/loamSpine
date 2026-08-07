@@ -37,18 +37,9 @@ async fn test_cli_signer_binary_detection() {
     );
 
     // Check it's executable
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let Ok(metadata) = std::fs::metadata(BEARDOG_BIN) else {
-            eprintln!("⚠️  Could not read metadata");
-            return;
-        };
-        let permissions = metadata.permissions();
-        assert!(
-            permissions.mode() & 0o111 != 0,
-            "BearDog binary should be executable"
-        );
+    match loam_spine_core::platform::is_executable(std::path::Path::new(BEARDOG_BIN)) {
+        Ok(exec) => assert!(exec, "BearDog binary should be executable"),
+        Err(_) => eprintln!("⚠️  Could not read metadata"),
     }
 }
 

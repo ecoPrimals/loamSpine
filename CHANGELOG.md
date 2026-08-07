@@ -12,10 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed (August 7, 2026 — Wave 157a: G68 Platform Substrate + Deep Debt)
 
 - **G68 L1 platform abstraction**: New `platform` module in `loam-spine-core` with `create_link()` / `remove_link()`. Unix uses `std::os::unix::fs::symlink`, Windows uses `std::os::windows::fs::symlink_file`, other platforms return `Unsupported`. `main.rs` migrated from raw `std::os::unix::fs::symlink` to `platform::create_link` — no primal binary imports raw OS modules.
+- **G68 L2 platform access**: `PlatformAccess` enum (`Executable`, `ReadOnly`, `ReadWrite`) + `set_executable()` / `is_executable()`. Unix uses mode bits, Windows uses readonly flag. All `PermissionsExt` usage in test files (`cli_signer_integration.rs`, `cli_signer_tests_integration.rs`) replaced with `platform::set_executable()` / `platform::is_executable()`. Zero raw `std::os::unix::fs::PermissionsExt` outside the platform layer.
 - **Error hygiene**: `LoamSpineService::get_certificate()` return type evolved from `Option<Certificate>` to `LoamSpineResult<Option<Certificate>>`. Storage errors now propagate instead of being silently swallowed via `.ok().flatten()`. All callers updated (2 production, ~25 test sites).
 - **Constant drift fix**: Hardcoded `"loamspine"` in `socket.rs:158` replaced with `primal_names::SELF_ID`.
-- **G68 audit verified**: L2 (permissions) — clean in production (test-only `PermissionsExt`). L3 (device backends) — no `rustix`/`libc` usage; UDS module already `#[cfg(unix)]`-gated at module level. Signal handling already abstracted (Unix vs Windows). Transport layer (G66) already the gold standard for platform abstraction.
-- **4 new tests**: `platform::fs` — create/remove link, dangling link, nonexistent removal, overwrite-after-remove. **1,791 tests total.**
+- **G68 audit verified**: L3 (device backends) — no `rustix`/`libc` usage; UDS module already `#[cfg(unix)]`-gated at module level. Signal handling already abstracted (Unix vs Windows). Transport layer (G66) already the gold standard for platform abstraction.
+- **9 new tests**: `platform::fs` (4) — create/remove link, dangling link, nonexistent removal, overwrite-after-remove. `platform::access` (5) — set/check executable, readonly cycle, nonexistent error, variant equality, apply executable. **1,796 tests total.**
 - **Deep debt verified**: Zero TODOs/FIXMEs/HACKs, zero unsafe, zero production unwrap/expect. G3 dead_code annotations all documented with reasons. All 16 files >500L under 800L target.
 
 ### Changed (August 6, 2026 — Wave 156s: G66 Transport Abstraction)

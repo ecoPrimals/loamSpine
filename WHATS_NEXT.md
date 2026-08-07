@@ -9,7 +9,7 @@
 
 ## Recent Changes
 
-- **August 7, 2026** — **Wave 157a: G68 Platform Substrate + Deep Debt**: `platform` module (G68 L1) — `create_link()`/`remove_link()` abstracts symlinks across Unix/Windows. `get_certificate()` error hygiene (`.ok().flatten()` → proper `Result` propagation). Hardcoded `"loamspine"` → `SELF_ID`. G68 audit: L2/L3 clean. 1,791 tests.
+- **August 7, 2026** — **Wave 157a: G68 Platform Substrate + Deep Debt**: `platform` module — L1 (`create_link`/`remove_link`) abstracts symlinks; L2 (`PlatformAccess`/`set_executable`/`is_executable`) abstracts permissions. Zero `PermissionsExt` or `std::os::unix::fs::symlink` outside platform layer. `get_certificate()` error hygiene. 1,796 tests.
 
 - **August 6, 2026** — **Wave 156s: G66 Transport Abstraction**: Silicon deism eliminated. Protocol negotiation and tarpc serving now generic over `AsyncRead + AsyncWrite + Unpin`. `TransportListener` added (server-side bind/accept on UDS or TCP). G65 tests evolved to TCP-based. 1,787 tests.
 

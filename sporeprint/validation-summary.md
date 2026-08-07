@@ -1,6 +1,6 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,791 tests, 53 JSON-RPC methods, 37 tarpc methods, G65 protocol negotiation (single-socket), G66 transport abstraction, G68 platform substrate, 214 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
+description = "Permanence ledger — 1,796 tests, 53 JSON-RPC methods, 37 tarpc methods, G65 protocol negotiation (single-socket), G66 transport abstraction, G68 platform substrate (L1 links + L2 permissions), 215 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
 date = 2026-08-07
 
 [taxonomies]
@@ -10,7 +10,7 @@ springs = []
 
 ## Status
 
-- **1,791 tests** (all passing), 0 failures, 0 ignored
+- **1,796 tests** (all passing), 0 failures, 0 ignored
 - **53 JSON-RPC methods** across 19 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, capabilities, identity, tools, primal, permanence)
 - **214 source files**, ~66,000 lines of Rust
 - **G65 protocol negotiation** — single-socket, auto-negotiated (tarpc/JSON-RPC). Replaces C2 dual-socket.
