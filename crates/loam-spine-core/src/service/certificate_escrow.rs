@@ -11,7 +11,7 @@ use crate::certificate::{
 };
 use crate::entry::EntryType;
 use crate::error::{LoamSpineError, LoamSpineResult};
-use crate::storage::{CertificateStorage, EntryStorage, SpineStorage};
+use crate::storage::{CertificateStorage, SpineStorage};
 use crate::types::{CertificateId, Did, Timestamp};
 
 use super::LoamSpineService;
@@ -59,9 +59,6 @@ impl LoamSpineService {
         });
 
         let entry_hash = spine.append(entry)?;
-        let appended = spine
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         let escrow_id = uuid::Uuid::now_v7();
         let now = Timestamp::now();
@@ -87,8 +84,7 @@ impl LoamSpineService {
             created_at: now,
         };
 
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
             .await?;

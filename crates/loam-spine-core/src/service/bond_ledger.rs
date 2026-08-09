@@ -81,10 +81,7 @@ impl LoamSpineService {
         let entry = spine.create_entry(entry_type);
         spine.append(entry)?;
 
-        if let Some(tip) = spine.tip_entry() {
-            self.entry_storage.save_entry(tip).await?;
-        }
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
 
         self.bond_ledger.write().await.insert(bond_id, data);
 

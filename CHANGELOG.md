@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 9, 2026 — Wave 157a: Vertebrate Evolution Self-Audit)
+
+- **RPC self-audit**: 54/54 JSON-RPC methods verified against `capability_registry.toml`. Zero phantom APIs, zero missing implementations. Fixed `domains.waypoint` → `domains.slice` naming inconsistency.
+- **Vertebrate abstraction — `persist_tip`**: New `LoamSpineService::persist_tip()` helper extracts the canonical post-append sequence (tip entry → save entry → save spine) used in 18 call sites across 8 service modules (`mod.rs`, `integration.rs`, `waypoint.rs`, `anchor.rs`, `trust_ledger.rs`, `bond_ledger.rs`, `certificate.rs`, `certificate_loan.rs`, `certificate_escrow.rs`).
+- **Vertebrate abstraction — attestation IPC**: `DiscoveredAttestationProvider::jsonrpc_call` consolidated from 40 lines of hand-rolled NDJSON framing to shared `ndjson_rpc_call` helper.
+- **Signing path verified**: `JsonRpcCryptoSigner` → `crypto.sign_ed25519` via capability-discovered UDS. Ready for bearDog P0-A rebuild.
+- **Cross-focus audit**: No misplaced service logic. All trust, signing, braid operations are client/consumer patterns. BTSP client HMAC is documented bootstrap workaround. Zero production mocks.
+
 ### Changed (August 7, 2026 — Wave 157a: G68 Platform Substrate + Deep Debt)
 
 - **G68 L1 platform abstraction**: New `platform` module in `loam-spine-core` with `create_link()` / `remove_link()`. Unix uses `std::os::unix::fs::symlink`, Windows uses `std::os::windows::fs::symlink_file`, other platforms return `Unsupported`. `main.rs` migrated from raw `std::os::unix::fs::symlink` to `platform::create_link` — no primal binary imports raw OS modules.

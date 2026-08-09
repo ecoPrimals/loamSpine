@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: August 7, 2026
+**Last Updated**: August 9, 2026
 
 ---
 
 ## Recent Changes
+
+- **August 9, 2026** — **Wave 157a: Vertebrate Evolution Self-Audit**: RPC surface verified (54/54 match registry). `persist_tip` helper abstracts 18-site pattern. Attestation IPC consolidated to `ndjson_rpc_call`. `waypoint`→`slice` domain name fix. Cross-focus audit clean. Signing path verified for bearDog P0-A.
 
 - **August 7, 2026** — **Wave 157a: G68 Platform Substrate + Deep Debt**: `platform` module — L1 (`create_link`/`remove_link`) abstracts symlinks; L2 (`PlatformAccess`/`set_executable`/`is_executable`) abstracts permissions. Zero `PermissionsExt` or `std::os::unix::fs::symlink` outside platform layer. `get_certificate()` error hygiene. 1,796 tests.
 

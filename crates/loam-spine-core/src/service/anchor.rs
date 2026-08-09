@@ -106,11 +106,7 @@ impl LoamSpineService {
         });
 
         let entry_hash = spine.append(entry)?;
-        let appended = spine
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
 
         Ok(AnchorReceipt {
             entry_hash,
@@ -271,11 +267,7 @@ impl LoamSpineService {
             });
 
             let entry_hash = spine.append(entry)?;
-            let appended = spine
-                .tip_entry()
-                .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
-            self.entry_storage.save_entry(appended).await?;
-            self.spine_storage.save_spine(&spine).await?;
+            self.persist_tip(&spine).await?;
 
             entries.push(AnchorBatchEntry {
                 spine_id: sid,

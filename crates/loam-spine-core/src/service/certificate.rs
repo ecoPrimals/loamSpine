@@ -113,9 +113,6 @@ impl LoamSpineService {
         });
 
         let entry_hash = spine.append(entry)?;
-        let appended = spine
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         let mint_info = MintInfo {
             minter: owner.clone(),
@@ -136,8 +133,7 @@ impl LoamSpineService {
             cert.metadata = meta;
         }
 
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
             .await?;
@@ -288,9 +284,6 @@ impl LoamSpineService {
         });
 
         let entry_hash = spine.append(entry)?;
-        let appended = spine
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         cert.owner = to;
         cert.transfer_count += 1;
@@ -301,8 +294,7 @@ impl LoamSpineService {
         };
         cert.updated_at = Timestamp::now();
 
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
             .await?;

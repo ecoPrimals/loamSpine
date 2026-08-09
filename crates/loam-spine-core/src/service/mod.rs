@@ -42,7 +42,7 @@ use tokio::sync::RwLock;
 
 use crate::certificate::TransferConditions;
 use crate::discovery::CapabilityRegistry;
-use crate::entry::{EntryType, SpineConfig, SpineType};
+use crate::entry::{Entry, EntryType, SpineConfig, SpineType};
 use crate::error::{LoamSpineError, LoamSpineResult};
 use crate::spine::Spine;
 use crate::storage::{
@@ -273,6 +273,25 @@ impl LoamSpineService {
         Ok(seal_hash)
     }
 
+    /// Persist a spine's tip entry and updated spine state after an append.
+    ///
+    /// Canonical post-append sequence: extract the tip entry, save it to
+    /// entry storage, then save the updated spine to spine storage.
+    /// Returns a reference to the persisted tip entry.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the spine has no tip entry (should never happen
+    /// after a successful append) or if storage writes fail.
+    pub(crate) async fn persist_tip<'s>(&self, spine: &'s Spine) -> LoamSpineResult<&'s Entry> {
+        let tip = spine
+            .tip_entry()
+            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
+        self.entry_storage.save_entry(tip).await?;
+        self.spine_storage.save_spine(spine).await?;
+        Ok(tip)
+    }
+
     /// Append a generic entry to a spine.
     ///
     /// # Errors
@@ -332,11 +351,7 @@ impl LoamSpineService {
             .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
 
         let entry_hash = spine.append(entry)?;
-        let appended = spine
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
 
         Ok(entry_hash)
     }

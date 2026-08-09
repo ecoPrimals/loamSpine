@@ -75,10 +75,7 @@ impl LoamSpineService {
         let hash = spine.append(entry)?;
         let index = spine.height - 1;
 
-        if let Some(tip) = spine.tip_entry() {
-            self.entry_storage.save_entry(tip).await?;
-        }
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
 
         Ok((hash, index))
     }

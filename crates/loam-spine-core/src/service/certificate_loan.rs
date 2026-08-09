@@ -8,7 +8,7 @@
 use crate::certificate::{CertificateLocation, CertificateState, LoanInfo, LoanTerms};
 use crate::entry::EntryType;
 use crate::error::{LoamSpineError, LoamSpineResult};
-use crate::storage::{CertificateStorage, EntryStorage, SpineStorage};
+use crate::storage::{CertificateStorage, SpineStorage};
 use crate::types::{CertificateId, Did, EntryHash, Timestamp};
 use crate::waypoint::RelendingChain;
 
@@ -59,9 +59,6 @@ impl LoamSpineService {
         });
 
         let entry_hash = spine.append(entry)?;
-        let appended = spine
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         let now = Timestamp::now();
         let expires_at = terms
@@ -89,8 +86,7 @@ impl LoamSpineService {
         };
         cert.updated_at = now;
 
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
             .await?;
@@ -181,9 +177,6 @@ impl LoamSpineService {
         });
 
         let entry_hash = spine.append(entry)?;
-        let appended = spine
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         if let Some(holder) = new_holder {
             cert.active_loan = Some(LoanInfo {
@@ -209,8 +202,7 @@ impl LoamSpineService {
         };
         cert.updated_at = Timestamp::now();
 
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
             .await?;
@@ -271,9 +263,6 @@ impl LoamSpineService {
         });
 
         let entry_hash = spine.append(entry)?;
-        let appended = spine
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
 
         chain.links.push(crate::waypoint::RelendingLink {
             borrower: new_borrower.clone(),
@@ -293,8 +282,7 @@ impl LoamSpineService {
         };
         cert.updated_at = Timestamp::now();
 
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&spine).await?;
+        self.persist_tip(&spine).await?;
         self.certificate_storage
             .save_certificate(&cert, spine_id)
             .await?;

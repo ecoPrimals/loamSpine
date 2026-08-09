@@ -103,11 +103,7 @@ impl LoamSpineService {
         });
 
         let anchor_hash = waypoint.append(entry)?;
-        let appended = waypoint
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&waypoint).await?;
+        self.persist_tip(&waypoint).await?;
 
         Ok(anchor_hash)
     }
@@ -147,11 +143,7 @@ impl LoamSpineService {
         }
 
         let op_hash = waypoint.append(entry)?;
-        let appended = waypoint
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&waypoint).await?;
+        self.persist_tip(&waypoint).await?;
 
         Ok(op_hash)
     }
@@ -184,11 +176,7 @@ impl LoamSpineService {
         });
 
         let departure_hash = waypoint.append(entry)?;
-        let appended = waypoint
-            .tip_entry()
-            .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
-        self.entry_storage.save_entry(appended).await?;
-        self.spine_storage.save_spine(&waypoint).await?;
+        self.persist_tip(&waypoint).await?;
 
         Ok(departure_hash)
     }

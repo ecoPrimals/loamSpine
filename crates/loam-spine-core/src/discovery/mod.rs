@@ -414,30 +414,19 @@ struct DiscoveredAttestationProvider {
 
 impl DiscoveredAttestationProvider {
     /// Send a JSON-RPC request to the attestation endpoint.
+    ///
+    /// Delegates to the shared `ndjson_rpc_call` helper, which handles
+    /// NDJSON framing, error extraction, and deserialization. Connect
+    /// is wrapped in a timeout for network resilience.
     async fn jsonrpc_call(
         endpoint: &str,
         method: &str,
         params: serde_json::Value,
     ) -> LoamSpineResult<serde_json::Value> {
         use crate::error::IpcErrorPhase;
-        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-
-        let request = serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": params,
-            "id": 1u64,
-        });
-
-        let payload = serde_json::to_string(&request).map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Serialization,
-                format!("attestation request serialization: {e}"),
-            )
-        })?;
 
         let transport_ep = crate::transport::endpoint_from_addr(endpoint)?;
-        let mut stream = match tokio::time::timeout(
+        let stream = match tokio::time::timeout(
             crate::transport::DEFAULT_IPC_TIMEOUT,
             crate::transport::connect_transport(&transport_ep),
         )
@@ -458,44 +447,15 @@ impl DiscoveredAttestationProvider {
             }
         };
 
-        stream.write_all(payload.as_bytes()).await.map_err(|e| {
-            LoamSpineError::ipc(IpcErrorPhase::Write, format!("attestation write: {e}"))
-        })?;
-        stream.write_all(b"\n").await.map_err(|e| {
-            LoamSpineError::ipc(IpcErrorPhase::Write, format!("attestation write: {e}"))
-        })?;
-        stream.flush().await.map_err(|e| {
-            LoamSpineError::ipc(IpcErrorPhase::Write, format!("attestation flush: {e}"))
-        })?;
-
-        let mut line = String::new();
-        BufReader::new(stream)
-            .read_line(&mut line)
-            .await
-            .map_err(|e| {
-                LoamSpineError::ipc(IpcErrorPhase::Read, format!("attestation read: {e}"))
-            })?;
-
-        let response: serde_json::Value = serde_json::from_str(line.trim()).map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::InvalidJson,
-                format!("attestation response parse: {e}"),
-            )
-        })?;
-
-        if let Some((code, message)) = crate::error::extract_rpc_error(&response) {
-            return Err(LoamSpineError::ipc(
-                IpcErrorPhase::JsonRpcError(code),
-                format!("attestation provider error: {message}"),
-            ));
-        }
-
-        response.get("result").cloned().ok_or_else(|| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::NoResult,
-                "attestation response missing result",
-            )
-        })
+        crate::transport::ndjson_rpc_call(
+            stream,
+            method,
+            params,
+            1,
+            crate::transport::DEFAULT_IPC_TIMEOUT,
+            "attestation provider",
+        )
+        .await
     }
 }
 

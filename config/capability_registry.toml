@@ -31,7 +31,7 @@ methods = ["mint", "mint_batch", "transfer", "loan", "return", "get", "verify", 
 description = "Merkle inclusion proofs"
 methods = ["generate_inclusion", "verify_inclusion"]
 
-[domains.waypoint]
+[domains.slice]
 description = "Slice anchoring and checkout"
 methods = ["anchor", "checkout"]
 
