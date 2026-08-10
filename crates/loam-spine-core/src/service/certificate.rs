@@ -530,5 +530,10 @@ mod tests;
 
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+#[path = "certificate_tests_provenance.rs"]
+mod tests_provenance;
+
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 #[path = "certificate_tests_escrow.rs"]
 mod tests_escrow;

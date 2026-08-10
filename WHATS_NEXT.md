@@ -9,6 +9,8 @@
 
 ## Recent Changes
 
+- **August 10, 2026** — **Wave 157g: Deep Debt — Test File Refactoring**: `certificate_tests.rs` (807L) split into 409L + `certificate_tests_provenance.rs` (398L). `service_tests.rs` (827L) split into 654L + `service_tests_spine_status.rs` (172L). All files under 800L. Full deep debt audit: zero TODOs, zero unsafe, zero production mocks, all `let _ =` justified. 1,820 tests.
+
 - **August 10, 2026** — **Wave 157g: G72 Dependency Pandemic**: `url` crate excised (replaced with manual port parsing). `chacha20poly1305` 0.10→0.11 (consolidates `cpufeatures` + `crypto-common` duplicates). RustCrypto stack unified. tokio features audited (already lean). Zero dead deps. 1,820 tests.
 
 - **August 10, 2026** — **Wave 157e: Gossip Injection + Deep Debt**: New `gossip` module — `GossipEvent` enum (4 data-domain events), `GossipEmitter` (swarmVine `gossip.inject` over UDS, fire-and-forget). Hooks at `persist_tip` (CasHave), `seal_spine` (SpineSealed), `anchor_to_public_chain` (AnchorPublished), `commit_braid` (BraidHead). `AnchorTarget::chain_name()` added. SyncEngine IPC consolidated (62 LOC saved). `capability_registry.toml` updated with gossip injection points + `consumed.gossip`. 1,820 tests.

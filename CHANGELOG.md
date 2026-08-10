@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 10, 2026 — Wave 157g: Deep Debt — Test File Refactoring)
+
+- **Test file splits (>800L → <800L)**: `certificate_tests.rs` (807L) split into core lifecycle tests (409L) + `certificate_tests_provenance.rs` (398L: provenance proofs, semantic verification, history, batch). `service_tests.rs` (827L) split into core operations (654L) + `service_tests_spine_status.rs` (172L: spine status RPC tests). All source files now under 800L soft limit. **1,820 tests (unchanged).**
+- **Deep debt audit**: Zero remaining TODOs/FIXMEs/HACKs. Zero unsafe code (`#![forbid(unsafe_code)]`). Zero mocks in production (all `#[cfg(test)]` or `#[cfg(feature = "testing")]` gated). All `let _ =` patterns in production code are justified (shutdown channels, temp file cleanup, side-effect-only calls). All `#[expect(dead_code)]` annotations justified (3 BTSP wire protocol fields). `Vec<u8>` usage correct (serde visitor signatures, protocol buffers, conversion to `ByteBuffer`). `Did`/`Arc` clones are cheap. Largest source file: 753L (test file).
+
 ### Changed (August 10, 2026 — Wave 157g: G72 Dependency Pandemic)
 
 - **G72 Tier 1 — `url` crate excised**: Single `url::Url::parse().port()` usage replaced with manual parsing. Removes `url` + entire ICU transitive chain (icu_collections, icu_normalizer, icu_properties, idna, idna_adapter) from default `loam-spine-core` build. Still available transitively when `discovery-http` feature enables `ureq`.

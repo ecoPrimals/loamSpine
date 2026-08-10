@@ -260,6 +260,14 @@ mod tests;
     clippy::expect_used,
     reason = "tests use expect for concise error paths"
 )]
+#[path = "service_tests_spine_status.rs"]
+mod tests_spine_status;
+
+#[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "tests use expect for concise error paths"
+)]
 #[path = "service_tests_integration.rs"]
 mod tests_integration;
 

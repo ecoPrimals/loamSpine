@@ -224,7 +224,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 2 `#![allow(clippy::wildcard_imports)]` (tarpc macro requirement, unfulfillable with `expect`); all other suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated; 3 `#[expect(dead_code)]` for pre-wired BTSP wire fields |
 | **Max File Size** | 677 max production (`main.rs`); 827 max test file (`service_tests.rs`) |
-| **Source Files** | 216 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Source Files** | 218 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |
