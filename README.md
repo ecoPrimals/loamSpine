@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C796%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C820%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92.3%25%20line-brightgreen)]()
 [![Methods](https://img.shields.io/badge/JSON--RPC-53%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()
@@ -216,7 +216,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 |--------|-------|
 | **Version** | 0.9.16 |
 | **Edition** | 2024 |
-| **Tests** | 1,787 passing (all concurrent, ~3s, zero flaky) |
+| **Tests** | 1,820 passing (all concurrent, ~3s, zero flaky) |
 | **Coverage** | 92.26% line / 89.50% branch / 92.56% region (llvm-cov) |
 | **JSON-RPC** | 53 methods (semantic naming, 19 domains) |
 | **tarpc** | 37 typed domain methods (G64 cephalization — full parity) |
@@ -224,7 +224,7 @@ Security invariant: `BIOMEOS_INSECURE=1` + non-default `FAMILY_ID` → refuse to
 | **Unsafe Code** | 0 (`#![forbid(unsafe_code)]`) |
 | **Lint Exceptions** | 2 `#![allow(clippy::wildcard_imports)]` (tarpc macro requirement, unfulfillable with `expect`); all other suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated; 3 `#[expect(dead_code)]` for pre-wired BTSP wire fields |
 | **Max File Size** | 677 max production (`main.rs`); 827 max test file (`service_tests.rs`) |
-| **Source Files** | 211 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
+| **Source Files** | 216 `.rs` files across 3 workspace crates (+ 3 fuzz targets) |
 | **License** | AGPL-3.0-or-later + ORC + CC-BY-SA-4.0 (scyBorg triple) |
 | **SPDX Headers** | All source files |
 | **ecoBin** | Zero C dependencies (pure Rust) |

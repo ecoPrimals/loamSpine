@@ -27,12 +27,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::RwLock;
 use tracing::{debug, warn};
 
 use crate::entry::Entry;
-use crate::error::{IpcErrorPhase, LoamSpineError, LoamSpineResult, extract_rpc_result};
+use crate::error::{IpcErrorPhase, LoamSpineError, LoamSpineResult};
 use crate::traits::{SyncProtocol, SyncResult, SyncStatus};
 use crate::types::{PeerId, SpineId};
 
@@ -120,28 +119,14 @@ impl SyncEngine {
 
     /// Send a JSON-RPC request to a peer and read the response.
     ///
-    /// Uses structured [`IpcErrorPhase`] errors for each failure point,
-    /// enabling phase-aware retry and observability across federation.
+    /// Uses the shared `length_prefixed_rpc_call` helper with a connect
+    /// timeout. Structured [`IpcErrorPhase`] errors at each failure point.
     pub(super) async fn rpc_call(
         &self,
         endpoint: &str,
         method: &str,
         params: serde_json::Value,
     ) -> LoamSpineResult<serde_json::Value> {
-        let request = serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": params,
-            "id": 1u64,
-        });
-
-        let request_bytes = serde_json::to_vec(&request).map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Serialization,
-                format!("sync request to {endpoint}: {e}"),
-            )
-        })?;
-
         let transport_ep = crate::transport::endpoint_from_addr(endpoint)?;
         let mut stream = match tokio::time::timeout(
             self.connect_timeout,
@@ -164,54 +149,8 @@ impl SyncEngine {
             }
         };
 
-        let len = u32::try_from(request_bytes.len()).map_err(|_| {
-            LoamSpineError::ipc(IpcErrorPhase::Write, "sync request payload too large")
-        })?;
-        stream.write_all(&len.to_be_bytes()).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Write,
-                format!("sync write to {endpoint}: {e}"),
-            )
-        })?;
-        stream.write_all(&request_bytes).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Write,
-                format!("sync write to {endpoint}: {e}"),
-            )
-        })?;
-        stream.flush().await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Write,
-                format!("sync flush to {endpoint}: {e}"),
-            )
-        })?;
-
-        let mut len_buf = [0u8; 4];
-        stream.read_exact(&mut len_buf).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Read,
-                format!("sync read from {endpoint}: {e}"),
-            )
-        })?;
-        let resp_len = usize::try_from(u32::from_be_bytes(len_buf)).map_err(|_| {
-            LoamSpineError::ipc(IpcErrorPhase::Read, "sync response length overflow")
-        })?;
-        let mut resp_buf = vec![0u8; resp_len];
-        stream.read_exact(&mut resp_buf).await.map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::Read,
-                format!("sync read from {endpoint}: {e}"),
-            )
-        })?;
-
-        let response: serde_json::Value = serde_json::from_slice(&resp_buf).map_err(|e| {
-            LoamSpineError::ipc(
-                IpcErrorPhase::InvalidJson,
-                format!("sync response from {endpoint}: {e}"),
-            )
-        })?;
-
-        extract_rpc_result(&response).cloned()
+        let context = format!("sync peer {endpoint}");
+        crate::transport::length_prefixed_rpc_call(&mut stream, method, params, 1, &context).await
     }
 
     /// Push entries to a specific peer via JSON-RPC `sync.push`.

@@ -50,6 +50,21 @@ pub enum AnchorTarget {
     },
 }
 
+impl AnchorTarget {
+    /// Human-readable chain/system name for gossip and logging.
+    #[must_use]
+    pub fn chain_name(&self) -> String {
+        match self {
+            Self::Bitcoin => "bitcoin".to_owned(),
+            Self::Ethereum => "ethereum".to_owned(),
+            Self::Rfc3161Tsa { .. } => "rfc3161".to_owned(),
+            Self::FederatedSpine { peer_id } => format!("federated:{peer_id}"),
+            Self::DataCommons { commons_id } => format!("commons:{commons_id}"),
+            Self::Other { name } => name.clone(),
+        }
+    }
+}
+
 /// Types of entries that can be committed to LoamSpine.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[non_exhaustive]

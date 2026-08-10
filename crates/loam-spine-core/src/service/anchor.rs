@@ -95,6 +95,7 @@ impl LoamSpineService {
             .ok_or_else(|| LoamSpineError::Internal("spine has no tip entry".into()))?
             .compute_hash()?;
 
+        let chain_name = anchor_target.chain_name();
         let entry = spine.create_entry(EntryType::PublicChainAnchor {
             anchor_target,
             state_hash,
@@ -107,6 +108,14 @@ impl LoamSpineService {
 
         let entry_hash = spine.append(entry)?;
         self.persist_tip(&spine).await?;
+
+        if let Some(emitter) = &self.gossip {
+            emitter.emit(&crate::gossip::GossipEvent::AnchorPublished {
+                spine_id,
+                entry_hash,
+                chain: Some(chain_name),
+            });
+        }
 
         Ok(AnchorReceipt {
             entry_hash,

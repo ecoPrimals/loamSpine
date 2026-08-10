@@ -110,6 +110,8 @@ pub struct LoamSpineService {
     pub(crate) bond_ledger_spine: Arc<RwLock<Option<SpineId>>>,
     /// Spine ID dedicated to the trust event ledger (lazily created on first anchor).
     pub(crate) trust_ledger_spine: Arc<RwLock<Option<SpineId>>>,
+    /// Gossip emitter for swarmVine mesh injection (None if swarmVine unavailable).
+    pub(crate) gossip: crate::gossip::GossipHandle,
 }
 
 impl Default for LoamSpineService {
@@ -133,6 +135,7 @@ impl LoamSpineService {
             bond_ledger: Arc::new(RwLock::new(HashMap::new())),
             bond_ledger_spine: Arc::new(RwLock::new(None)),
             trust_ledger_spine: Arc::new(RwLock::new(None)),
+            gossip: None,
         }
     }
 
@@ -152,7 +155,17 @@ impl LoamSpineService {
             bond_ledger: Arc::new(RwLock::new(HashMap::new())),
             bond_ledger_spine: Arc::new(RwLock::new(None)),
             trust_ledger_spine: Arc::new(RwLock::new(None)),
+            gossip: None,
         }
+    }
+
+    /// Set the gossip emitter for swarmVine mesh integration.
+    ///
+    /// When set, key operations (append, seal, anchor, braid commit)
+    /// emit events to the gossip mesh. When `None`, gossip is silently
+    /// disabled (standalone / test mode).
+    pub fn set_gossip(&mut self, handle: crate::gossip::GossipHandle) {
+        self.gossip = handle;
     }
 
     /// Get the capability registry.
@@ -270,6 +283,13 @@ impl LoamSpineService {
             self.entry_storage.save_entry(entry).await?;
         }
 
+        if let Some(emitter) = &self.gossip {
+            emitter.emit(&crate::gossip::GossipEvent::SpineSealed {
+                spine_id,
+                height: spine.height,
+            });
+        }
+
         Ok(seal_hash)
     }
 
@@ -289,6 +309,17 @@ impl LoamSpineService {
             .ok_or_else(|| LoamSpineError::Internal("tip empty after append".into()))?;
         self.entry_storage.save_entry(tip).await?;
         self.spine_storage.save_spine(spine).await?;
+
+        if let Some(emitter) = &self.gossip
+            && let Ok(entry_hash) = tip.compute_hash()
+        {
+            emitter.emit(&crate::gossip::GossipEvent::CasHave {
+                spine_id: spine.id,
+                entry_hash,
+                height: tip.index,
+            });
+        }
+
         Ok(tip)
     }
 

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 10, 2026 — Wave 157e: Gossip Injection + Deep Debt)
+
+- **Gossip injection for swarmVine**: New `gossip` module (`gossip.rs`, 305 LOC) defines loamSpine's event vocabulary for the ecosystem gossip mesh. `GossipEvent` enum with 4 data-domain events: `CasHave` (entry appended), `BraidHead` (braid committed), `SpineSealed` (finality), `AnchorPublished` (chain proof). `GossipEmitter` connects to swarmVine via `gossip.inject` JSON-RPC over UDS. Fire-and-forget — gossip failures never block spine operations.
+- **Gossip hooks wired**: `persist_tip` emits `CasHave` on every entry append (all 18 call sites covered). `seal_spine` emits `SpineSealed`. `anchor_to_public_chain` emits `AnchorPublished`. `commit_braid` emits `BraidHead`. `GossipHandle` (`Option<Arc<GossipEmitter>>`) added to `LoamSpineService`, `None` in standalone/test mode.
+- **Capability registry updated**: 4 gossip injection points documented in `capability_registry.toml` with topic, key format, and trigger. `consumed.gossip` added for swarmVine dependency.
+- **`AnchorTarget::chain_name()`**: New method on `AnchorTarget` enum for human-readable chain/system names in gossip and logging.
+- **Deep debt — SyncEngine IPC consolidation**: `SyncEngine::rpc_call` (95 LOC of hand-rolled length-prefixed JSON-RPC) replaced with 20-line wrapper around shared `length_prefixed_rpc_call` helper. 62 net lines eliminated.
+- **10 new tests**: gossip event topic, key format (4 event types), JSON serialization, serde skip_serializing_if, emitter request ID, chain name roundtrip. **1,820 tests total.**
+
 ### Changed (August 9, 2026 — Wave 157a: Vertebrate Evolution Self-Audit)
 
 - **RPC self-audit**: 54/54 JSON-RPC methods verified against `capability_registry.toml`. Zero phantom APIs, zero missing implementations. Fixed `domains.waypoint` → `domains.slice` naming inconsistency.

@@ -97,6 +97,9 @@ pub mod platform;
 pub mod niche;
 pub mod primal_names;
 
+// Gossip injection for swarmVine mesh
+pub mod gossip;
+
 // New architecture modules
 pub mod discovery;
 pub mod neural_api;
@@ -224,6 +227,9 @@ pub use resilience::{
 
 /// Sync federation with circuit-breaker protection.
 pub use sync::ResilientSyncEngine;
+
+/// Gossip injection for swarmVine mesh.
+pub use gossip::{GossipEmitter, GossipEvent, GossipHandle};
 
 /// Test utilities (only available with `testing` feature or in tests).
 #[cfg(any(test, feature = "testing"))]

@@ -365,6 +365,34 @@ depends_on = []
 cost = "low"
 stability = "compat"
 
+# ─── Gossip Injection Points ───────────────────────────────────────────
+# Events loamSpine emits to swarmVine via gossip.inject.
+# Topic: "data" — loamSpine is a data-domain primal.
+
+[gossip.cas_have]
+topic = "data"
+key_format = "cas.have:<gate>:<spine_id>"
+trigger = "Entry appended to any spine (via persist_tip)"
+description = "CAS availability signal — announces that this gate has a new entry"
+
+[gossip.braid_head]
+topic = "data"
+key_format = "braid.head:<gate>:<spine_id>"
+trigger = "Braid committed on a spine (braid.commit)"
+description = "Provenance chain head update — new attribution braid recorded"
+
+[gossip.spine_sealed]
+topic = "data"
+key_format = "spine.sealed:<gate>:<spine_id>"
+trigger = "Spine sealed (spine.seal)"
+description = "Finality signal — spine is immutable, no further appends"
+
+[gossip.anchor_published]
+topic = "data"
+key_format = "anchor.published:<gate>:<spine_id>"
+trigger = "Public chain anchor recorded (anchor.publish)"
+description = "Public chain proof available — Bitcoin, Ethereum, RFC 3161, or federation"
+
 # ─── Consumed Capabilities ─────────────────────────────────────────────
 # What loamSpine calls on other primals (discovered at runtime).
 
@@ -391,3 +419,7 @@ description = "Operation attestation for waypoint semantics"
 [consumed.chain_anchor]
 required = false
 description = "External chain anchor submission (loamSpine only records receipts)"
+
+[consumed.gossip]
+required = false
+description = "swarmVine gossip.inject for mesh event propagation (fire-and-forget)"

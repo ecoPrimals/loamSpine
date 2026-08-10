@@ -358,14 +358,23 @@ impl BraidAcceptor for LoamSpineService {
             .await?
             .ok_or(LoamSpineError::SpineNotFound(spine_id))?;
 
+        let subject = braid.subject_hash;
         let entry = spine.create_entry(EntryType::BraidCommit {
             braid_id: braid.braid_id,
             braid_hash: braid.braid_hash,
-            subject_hash: braid.subject_hash,
+            subject_hash: subject,
         });
 
         let entry_hash = spine.append(entry)?;
         self.persist_tip(&spine).await?;
+
+        if let Some(emitter) = &self.gossip {
+            emitter.emit(&crate::gossip::GossipEvent::BraidHead {
+                spine_id,
+                entry_hash,
+                subject_hash: Some(subject),
+            });
+        }
 
         Ok(entry_hash)
     }
