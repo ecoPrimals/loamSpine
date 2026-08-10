@@ -9,6 +9,8 @@
 
 ## Recent Changes
 
+- **August 10, 2026** — **Wave 157g: G72 Dependency Pandemic**: `url` crate excised (replaced with manual port parsing). `chacha20poly1305` 0.10→0.11 (consolidates `cpufeatures` + `crypto-common` duplicates). RustCrypto stack unified. tokio features audited (already lean). Zero dead deps. 1,820 tests.
+
 - **August 10, 2026** — **Wave 157e: Gossip Injection + Deep Debt**: New `gossip` module — `GossipEvent` enum (4 data-domain events), `GossipEmitter` (swarmVine `gossip.inject` over UDS, fire-and-forget). Hooks at `persist_tip` (CasHave), `seal_spine` (SpineSealed), `anchor_to_public_chain` (AnchorPublished), `commit_braid` (BraidHead). `AnchorTarget::chain_name()` added. SyncEngine IPC consolidated (62 LOC saved). `capability_registry.toml` updated with gossip injection points + `consumed.gossip`. 1,820 tests.
 
 - **August 9, 2026** — **Wave 157a: Vertebrate Evolution Self-Audit**: RPC surface verified (54/54 match registry). `persist_tip` helper abstracts 18-site pattern. Attestation IPC consolidated to `ndjson_rpc_call`. `waypoint`→`slice` domain name fix. Cross-focus audit clean. Signing path verified for bearDog P0-A.

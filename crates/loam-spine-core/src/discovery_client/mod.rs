@@ -590,9 +590,15 @@ impl ResilientDiscoveryClient {
     }
 }
 
-/// Extract the port from a URL string using the `url` crate (pure Rust).
+/// Extract the port from a URL string.
+///
+/// Parses `scheme://host:port/...` without pulling in the `url` crate
+/// and its ICU transitive chain.
 fn extract_port(url_str: &str) -> Option<u16> {
-    url::Url::parse(url_str).ok().and_then(|u| u.port())
+    let after_scheme = url_str.split("://").nth(1).unwrap_or(url_str);
+    let host_port = after_scheme.split('/').next()?;
+    let port_str = host_port.rsplit(':').next()?;
+    port_str.parse().ok()
 }
 
 #[cfg(test)]

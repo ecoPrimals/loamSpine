@@ -130,9 +130,9 @@ impl SessionKeys {
                 format!("BTSP Phase 3 nonce generation: {e}"),
             )
         })?;
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             LoamSpineError::ipc(IpcErrorPhase::Write, format!("BTSP Phase 3 encrypt: {e}"))
         })?;
 
@@ -164,9 +164,11 @@ impl SessionKeys {
 
         let (nonce_bytes, ciphertext) = frame.split_at(12);
         let cipher = ChaCha20Poly1305::new((&self.decrypt_key).into());
-        let nonce = Nonce::from_slice(nonce_bytes);
+        let nonce = Nonce::try_from(nonce_bytes).map_err(|_| {
+            LoamSpineError::ipc(IpcErrorPhase::Read, "BTSP Phase 3 nonce length mismatch")
+        })?;
 
-        cipher.decrypt(nonce, ciphertext).map_err(|e| {
+        cipher.decrypt(&nonce, ciphertext).map_err(|e| {
             LoamSpineError::ipc(IpcErrorPhase::Read, format!("BTSP Phase 3 decrypt: {e}"))
         })
     }

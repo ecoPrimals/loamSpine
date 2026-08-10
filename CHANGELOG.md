@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 10, 2026 — Wave 157g: G72 Dependency Pandemic)
+
+- **G72 Tier 1 — `url` crate excised**: Single `url::Url::parse().port()` usage replaced with manual parsing. Removes `url` + entire ICU transitive chain (icu_collections, icu_normalizer, icu_properties, idna, idna_adapter) from default `loam-spine-core` build. Still available transitively when `discovery-http` feature enables `ureq`.
+- **G72 Tier 1 — `chacha20poly1305` 0.10 → 0.11**: Eliminates duplicate `cpufeatures` (v0.2 + v0.3 → v0.3 only) and duplicate `crypto-common` (v0.1 + v0.2 → v0.2 only). Entire RustCrypto stack now unified on `crypto-common v0.2`, `rand_core v0.10`. `Nonce::from_slice` deprecation fixed (→ `Nonce::from` / `TryFrom`).
+- **G72 audit**: tokio already lean (8 features, NOT `["full"]`). `tokio::sync::RwLock` usages all legitimate (held across `.await`). Zero dead workspace deps. Remaining duplicate versions are transitive (rand v0.8/v0.9 from tarpc/proptest, syn v2/v3 from clap/serde — unfixable without upstream).
+
 ### Changed (August 10, 2026 — Wave 157e: Gossip Injection + Deep Debt)
 
 - **Gossip injection for swarmVine**: New `gossip` module (`gossip.rs`, 305 LOC) defines loamSpine's event vocabulary for the ecosystem gossip mesh. `GossipEvent` enum with 4 data-domain events: `CasHave` (entry appended), `BraidHead` (braid committed), `SpineSealed` (finality), `AnchorPublished` (chain proof). `GossipEmitter` connects to swarmVine via `gossip.inject` JSON-RPC over UDS. Fire-and-forget — gossip failures never block spine operations.
