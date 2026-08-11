@@ -52,7 +52,7 @@ This document tracks implementation progress against the specification suite in 
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
-| Max file size | < 800 lines | 677 max production (`main.rs`); 827 max test file (`service_tests.rs`) |
+| Max file size | < 800 lines | 677 max production (`main.rs`); 753 max test file (`tests_validation.rs`) |
 | Source files | — | 218 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | Zero. All suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`. |
@@ -71,7 +71,7 @@ This document tracks implementation progress against the specification suite in 
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
 | `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 54 operations, 6 consumed capabilities |
-| AGPL-3.0-or-later | PASS | SPDX headers on all 214 source files (+ 3 fuzz targets) |
+| AGPL-3.0-or-later | PASS | SPDX headers on all 218 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
 | `health.liveness` | PASS | Returns `{"status": "alive"}` per Semantic Method Naming Standard v2.1 |
@@ -81,10 +81,13 @@ This document tracks implementation progress against the specification suite in 
 | Socket Naming | PASS | G65 single-socket with protocol negotiation. C2 dual-socket retained for backward compat (`loamspine.sock` + `loamspine.tarpc.sock`). Family-scoped: `loamspine-{fid}.sock` / `loamspine-{fid}.tarpc.sock`. `ledger.sock` capability symlink, `permanence.sock` legacy symlink. `BIOMEOS_INSECURE` guard. All sockets cleaned on shutdown. |
 | G65 Negotiation | PASS | `PROTOCOLS: tarpc,jsonrpc\n` → `PROTOCOL: tarpc\n`. Client preference wins. No negotiation = JSON-RPC fallback. Genetics prefix stripping composes with G65. |
 | G66 Transport | PASS | `TransportListener` + generic protocol negotiation. Zero unconditional `UnixStream` in production. `#[cfg(unix)]` confined to transport layer. |
+| G68 Platform Substrate | PASS | L1: `platform::fs` (`create_link`/`remove_link`). L2: `platform::access` (`PlatformAccess`/`set_executable`/`is_executable`). Zero `PermissionsExt` or `std::os::unix::fs::symlink` outside platform layer. |
+| G72 Dep Pandemic | PASS | `url` excised, `chacha20poly1305` 0.10→0.11, RustCrypto unified, tokio already lean. |
+| Gossip Injection | PASS | `GossipEvent` enum (4 events), `GossipEmitter` (swarmVine mesh, fire-and-forget). Hooks at `persist_tip`, `seal_spine`, `anchor_to_public_chain`, `commit_braid`. |
 | BTSP Phase 1 | PASS | Family-scoped socket naming (`loamspine-{family_id}.sock`), `BIOMEOS_INSECURE` guard. |
 | BTSP Phase 2 | PASS | Handshake-as-a-service via BTSP provider JSON-RPC. UDS listener gates on BTSP when `FAMILY_ID` is set. 4-step handshake (ClientHello/ServerHello/ChallengeResponse/HandshakeComplete). |
 | BTSP Phase 3 | PASS | `btsp.negotiate` returns `cipher: "chacha20-poly1305"` (plus server nonce) when a Tower-provided handshake key is available; falls back to `cipher: "null"` for unauthenticated covalent bonds. **Transport verified**: after negotiate, UDS accept loop enters `handle_encrypted_stream` using `read_encrypted_frame`/`write_encrypted_frame` for all subsequent messages on that connection. |
-| File size limit | PASS | All source files under 1000 lines. |
+| File size limit | PASS | All 218 source files under 800 lines. Largest production: 677L (`main.rs`). Largest test: 753L (`tests_validation.rs`). |
 | Stadial parity gate | PASS | April 16, 2026 — storage backends reduced to redb (default) + memory; sled and SQLite removed; `hickory-resolver` 0.24→0.26; lockfile cleared of sled/libsqlite3-sys/rusqlite/instant/fxhash; `cargo deny` bans + advisories clean; dyn audit non-blocking (72 total usages). |
 
 ---
