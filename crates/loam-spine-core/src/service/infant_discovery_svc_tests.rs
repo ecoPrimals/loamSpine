@@ -77,7 +77,7 @@ async fn development_fallback_in_debug() {
     let expected_endpoint = format!(
         "http://{}:{}",
         crate::constants::LOCALHOST,
-        crate::constants::DEFAULT_DISCOVERY_PORT
+        crate::constants::network::discovery_port()
     );
     assert_eq!(result, Some(expected_endpoint));
 }
@@ -125,11 +125,11 @@ async fn development_fallback_returns_endpoint_in_test_mode() {
     let infant = InfantDiscovery::new(vec!["test".to_string()]);
     let result = infant.try_development_fallback();
 
-    // In test mode, development fallback is enabled and returns localhost:8082
+    // In test mode, development fallback is enabled and returns localhost + discovery port
     let expected = format!(
         "http://{}:{}",
         crate::constants::LOCALHOST,
-        crate::constants::DEFAULT_DISCOVERY_PORT
+        crate::constants::network::discovery_port()
     );
     assert_eq!(result, Some(expected));
 }

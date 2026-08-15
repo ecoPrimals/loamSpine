@@ -16,6 +16,7 @@
 //! | `braid.head` | Braid committed | Provenance chain head for verification |
 //! | `spine.sealed` | Spine sealed | Finality signal for federation |
 //! | `anchor.published` | Chain anchor recorded | Public chain proof available |
+//! | `rootpulse.commit` | rootPulse ledger commit | Provenance trio pipeline activity |
 //!
 //! ## Wire Contract
 //!
@@ -83,6 +84,15 @@ pub enum GossipEvent {
         #[serde(skip_serializing_if = "Option::is_none")]
         chain: Option<String>,
     },
+    /// A rootPulse provenance commit was recorded.
+    RootpulseCommit {
+        /// Spine where the commit was recorded.
+        spine_id: SpineId,
+        /// Hash of the commit entry.
+        entry_hash: EntryHash,
+        /// Composite ledger reference (`spine_id:hash:index`).
+        ledger_ref: String,
+    },
 }
 
 impl GossipEvent {
@@ -103,6 +113,9 @@ impl GossipEvent {
             }
             Self::AnchorPublished { spine_id, .. } => {
                 format!("anchor.published:{gate_id}:{spine_id}")
+            }
+            Self::RootpulseCommit { spine_id, .. } => {
+                format!("rootpulse.commit:{gate_id}:{spine_id}")
             }
         }
     }
@@ -301,5 +314,28 @@ mod tests {
         };
         let json = serde_json::to_value(&event).unwrap();
         assert_eq!(json["chain"], "bitcoin");
+    }
+
+    #[test]
+    fn rootpulse_commit_key_format() {
+        let event = GossipEvent::RootpulseCommit {
+            spine_id: test_spine_id(),
+            entry_hash: [2u8; 32],
+            ledger_ref: "00000000-0000-0000-0000-000000000000:abc:0".into(),
+        };
+        let key = event.key("westGate");
+        assert!(key.starts_with("rootpulse.commit:westGate:"));
+    }
+
+    #[test]
+    fn rootpulse_commit_serializes() {
+        let event = GossipEvent::RootpulseCommit {
+            spine_id: test_spine_id(),
+            entry_hash: [3u8; 32],
+            ledger_ref: "spine:hash:0".into(),
+        };
+        let json = serde_json::to_value(&event).unwrap();
+        assert_eq!(json["event"], "rootpulse_commit");
+        assert_eq!(json["ledger_ref"], "spine:hash:0");
     }
 }

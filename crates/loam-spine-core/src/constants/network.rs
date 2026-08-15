@@ -10,7 +10,9 @@
 use std::borrow::Cow;
 use tracing::{debug, warn};
 
-use crate::constants::{DEFAULT_JSONRPC_PORT, DEFAULT_TARPC_PORT, OS_ASSIGNED_PORT};
+use crate::constants::{
+    DEFAULT_DISCOVERY_PORT, DEFAULT_JSONRPC_PORT, DEFAULT_TARPC_PORT, OS_ASSIGNED_PORT,
+};
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Inner pure functions (no env reads)
@@ -38,6 +40,30 @@ pub fn resolve_jsonrpc_port(loamspine_port: Option<&str>, generic_port: Option<&
     }
     debug!("Using default JSON-RPC port: {DEFAULT_JSONRPC_PORT}");
     DEFAULT_JSONRPC_PORT
+}
+
+/// Resolve discovery service port from optional environment values.
+///
+/// Priority: `loamspine_port` > `generic_port` > [`DEFAULT_DISCOVERY_PORT`].
+/// Invalid values fall through to the next tier.
+#[must_use]
+pub fn resolve_discovery_port(loamspine_port: Option<&str>, generic_port: Option<&str>) -> u16 {
+    if let Some(port_str) = loamspine_port {
+        if let Ok(port) = port_str.parse::<u16>() {
+            debug!("Using discovery port from LOAMSPINE_DISCOVERY_PORT: {port}");
+            return port;
+        }
+        warn!("Invalid LOAMSPINE_DISCOVERY_PORT value: {port_str}, using default");
+    }
+    if let Some(port_str) = generic_port {
+        if let Ok(port) = port_str.parse::<u16>() {
+            debug!("Using discovery port from DISCOVERY_PORT: {port}");
+            return port;
+        }
+        warn!("Invalid DISCOVERY_PORT value: {port_str}, using default");
+    }
+    debug!("Using default discovery port: {DEFAULT_DISCOVERY_PORT}");
+    DEFAULT_DISCOVERY_PORT
 }
 
 /// Resolve tarpc port from optional environment values.
@@ -139,8 +165,8 @@ pub fn resolve_socket_base_dir_with(runtime_dir: Option<&str>) -> std::path::Pat
 }
 
 pub use super::env_resolution::{
-    actual_jsonrpc_port, actual_tarpc_port, bind_address, has_explicit_tcp_config, jsonrpc_port,
-    tarpc_port, use_os_assigned_ports,
+    actual_jsonrpc_port, actual_tarpc_port, bind_address, discovery_port, has_explicit_tcp_config,
+    jsonrpc_port, tarpc_port, use_os_assigned_ports,
 };
 
 /// Build a complete endpoint URL from parts.

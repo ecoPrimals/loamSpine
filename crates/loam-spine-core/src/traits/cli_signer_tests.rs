@@ -8,6 +8,11 @@
     clippy::uninlined_format_args,
     reason = "test helper formatting uses explicit format args for clarity"
 )]
+#[expect(clippy::panic, reason = "test helpers panic on setup failures")]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "enum arguments passed by value for ergonomics"
+)]
 mod tests {
     use super::super::*;
     use std::path::PathBuf;
@@ -311,5 +316,263 @@ mod tests {
         for handle in handles {
             handle.join().unwrap();
         }
+    }
+
+    #[cfg(unix)]
+    static MOCK_BINARY_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[cfg(unix)]
+    enum MockScript {
+        Success,
+        KeyInfoFail,
+        EncryptFail,
+        DecryptFail,
+    }
+
+    #[cfg(unix)]
+    fn mock_binary_guard() -> std::sync::MutexGuard<'static, ()> {
+        MOCK_BINARY_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    #[cfg(unix)]
+    fn is_text_file_busy(err: &LoamSpineError) -> bool {
+        err.to_string().contains("Text file busy")
+    }
+
+    #[cfg(unix)]
+    fn mock_signer_new_result(path: &std::path::Path, key_id: &str) -> LoamSpineResult<CliSigner> {
+        let mut last = CliSigner::new(path, key_id);
+        for _ in 0..4 {
+            if !matches!(&last, Err(e) if is_text_file_busy(e)) {
+                return last;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+            last = CliSigner::new(path, key_id);
+        }
+        last
+    }
+
+    #[cfg(unix)]
+    fn new_mock_signer(path: &std::path::Path, key_id: &str) -> CliSigner {
+        mock_signer_new_result(path, key_id)
+            .unwrap_or_else(|err| panic!("CliSigner::new failed: {err}"))
+    }
+
+    #[cfg(unix)]
+    fn new_mock_verifier(path: &std::path::Path) -> CliVerifier {
+        for attempt in 0..5 {
+            match CliVerifier::new(path) {
+                Ok(verifier) => return verifier,
+                Err(err) if attempt < 4 && is_text_file_busy(&err) => {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                Err(err) => panic!("CliVerifier::new failed: {err}"),
+            }
+        }
+        unreachable!("retry loop returns or panics")
+    }
+
+    #[cfg(unix)]
+    macro_rules! retry_async {
+        ($op:expr) => {{
+            let mut result = $op.await;
+            for _ in 0..4 {
+                if let Err(ref err) = result {
+                    if is_text_file_busy(err) {
+                        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                        result = $op.await;
+                        continue;
+                    }
+                }
+                break;
+            }
+            result
+        }};
+    }
+
+    #[cfg(unix)]
+    fn install_mock_script(name: &str, content: &str) -> PathBuf {
+        let dir = std::env::var_os("CARGO_TARGET_DIR")
+            .map_or_else(|| PathBuf::from("target"), PathBuf::from)
+            .join("loamspine-mock-signers");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(name);
+        write_named_executable_script_at(&path, content);
+        path
+    }
+
+    #[cfg(unix)]
+    fn mock_script_path(script: MockScript) -> &'static std::path::Path {
+        static SUCCESS: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+        static KEY_FAIL: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+        static ENCRYPT_FAIL: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+        static DECRYPT_FAIL: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+        match script {
+            MockScript::Success => {
+                SUCCESS.get_or_init(|| install_mock_script("success.sh", MOCK_SUCCESS_SCRIPT))
+            }
+            MockScript::KeyInfoFail => KEY_FAIL
+                .get_or_init(|| install_mock_script("key-info-fail.sh", MOCK_KEY_INFO_FAIL_SCRIPT)),
+            MockScript::EncryptFail => ENCRYPT_FAIL
+                .get_or_init(|| install_mock_script("encrypt-fail.sh", MOCK_ENCRYPT_FAIL_SCRIPT)),
+            MockScript::DecryptFail => DECRYPT_FAIL
+                .get_or_init(|| install_mock_script("decrypt-fail.sh", MOCK_DECRYPT_FAIL_SCRIPT)),
+        }
+    }
+
+    #[cfg(unix)]
+    fn write_named_executable_script_at(path: &std::path::Path, content: &str) {
+        use std::os::unix::fs::PermissionsExt;
+
+        std::fs::write(path, content).unwrap();
+        let mut perms = std::fs::metadata(path).unwrap().permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(path, perms).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn write_named_executable_script(dir: &std::path::Path, name: &str, content: &str) -> PathBuf {
+        let path = dir.join(name);
+        write_named_executable_script_at(&path, content);
+        path
+    }
+
+    #[cfg(unix)]
+    const MOCK_SUCCESS_SCRIPT: &str = "#!/bin/sh\n[ \"$1\" = key ] && [ \"$2\" = info ] && exit 0\n[ \"$1\" = encrypt ] && { printf mock-signature-bytes > \"$7\"; exit 0; }\n[ \"$1\" = decrypt ] && exit 0\nexit 1\n";
+    #[cfg(unix)]
+    const MOCK_KEY_INFO_FAIL_SCRIPT: &str =
+        "#!/bin/sh\n[ \"$1\" = key ] && { echo key not found >&2; exit 1; }\nexit 1\n";
+    #[cfg(unix)]
+    const MOCK_ENCRYPT_FAIL_SCRIPT: &str = "#!/bin/sh\n[ \"$1\" = key ] && [ \"$2\" = info ] && exit 0\n[ \"$1\" = encrypt ] && { echo Signing failed: mock >&2; exit 1; }\nexit 1\n";
+    #[cfg(unix)]
+    const MOCK_DECRYPT_FAIL_SCRIPT: &str = "#!/bin/sh\n[ \"$1\" = key ] && [ \"$2\" = info ] && exit 0\n[ \"$1\" = decrypt ] && { echo Verification failed: mock >&2; exit 1; }\nexit 1\n";
+
+    #[cfg(unix)]
+    #[test]
+    fn mock_cli_components_succeed_with_fake_binary() {
+        let _guard = mock_binary_guard();
+        let path = mock_script_path(MockScript::Success);
+        let key_id = "test-key-42";
+        let signer = new_mock_signer(path, key_id);
+        assert_eq!(signer.key_id(), key_id);
+        assert_eq!(signer.binary_path(), path);
+        assert_eq!(Signer::did(&signer).as_str(), "did:key:test-key-42");
+        let verifier = new_mock_verifier(path);
+        assert_eq!(verifier.binary_path(), path);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test(flavor = "current_thread")]
+    async fn mock_signer_sign_succeeds_with_fake_binary() {
+        let signer = {
+            let _guard = mock_binary_guard();
+            new_mock_signer(mock_script_path(MockScript::Success), "sign-key")
+        };
+        let signature = retry_async!(signer.sign(b"payload to sign")).unwrap();
+        assert_eq!(signature.as_bytes(), b"mock-signature-bytes");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test(flavor = "current_thread")]
+    async fn mock_verifier_verify_returns_valid_with_fake_binary() {
+        let verifier = {
+            let _guard = mock_binary_guard();
+            new_mock_verifier(mock_script_path(MockScript::Success))
+        };
+        let sig = Signature::from_vec(b"mock-signature-bytes".to_vec());
+        let did = Did::new("did:key:sign-key");
+        let result = retry_async!(verifier.verify(b"signed payload", &sig, &did)).unwrap();
+        assert!(result.valid);
+        assert!(result.error.is_none());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test(flavor = "current_thread")]
+    async fn mock_verifier_verify_entry_succeeds_with_fake_binary() {
+        use crate::entry::{Entry, EntryType};
+
+        let verifier = {
+            let _guard = mock_binary_guard();
+            new_mock_verifier(mock_script_path(MockScript::Success))
+        };
+        let entry = Entry::new(
+            0,
+            None,
+            Did::new("did:key:sign-key"),
+            EntryType::SpineSealed { reason: None },
+        );
+        let result = retry_async!(verifier.verify_entry(&entry)).unwrap();
+        assert!(result.valid);
+        assert!(result.error.is_none());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn mock_signer_new_fails_when_key_info_exits_nonzero() {
+        let _guard = mock_binary_guard();
+        let result =
+            mock_signer_new_result(mock_script_path(MockScript::KeyInfoFail), "missing-key");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, LoamSpineError::Config(_)));
+        assert!(err.to_string().contains("missing-key"));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test(flavor = "current_thread")]
+    async fn mock_signer_sign_fails_when_encrypt_exits_nonzero() {
+        let signer = {
+            let _guard = mock_binary_guard();
+            new_mock_signer(mock_script_path(MockScript::EncryptFail), "any-key")
+        };
+        let err = retry_async!(signer.sign(b"test data")).unwrap_err();
+        assert!(
+            err.to_string().contains("Signing failed"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test(flavor = "current_thread")]
+    async fn mock_verifier_verify_returns_invalid_when_decrypt_exits_nonzero() {
+        let verifier = {
+            let _guard = mock_binary_guard();
+            new_mock_verifier(mock_script_path(MockScript::DecryptFail))
+        };
+        let sig = Signature::from_vec(vec![1, 2, 3]);
+        let did = Did::new("did:key:test");
+        let result = retry_async!(verifier.verify(b"test data", &sig, &did)).unwrap();
+        assert!(!result.valid);
+        assert!(
+            result
+                .error
+                .as_ref()
+                .is_some_and(|msg| msg.contains("Verification failed"))
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn discover_binary_from_finds_bins_dir_candidates() {
+        let tmp = tempfile::tempdir().unwrap();
+        let signer_path =
+            write_named_executable_script(tmp.path(), "signer", "#!/bin/sh\nexit 0\n");
+        assert_eq!(
+            CliSigner::discover_binary_from(None, Some(tmp.path().to_str().unwrap()))
+                .unwrap()
+                .as_path(),
+            signer_path.as_path()
+        );
+        let tmp = tempfile::tempdir().unwrap();
+        let svc_path =
+            write_named_executable_script(tmp.path(), "signing-service", "#!/bin/sh\nexit 0\n");
+        assert_eq!(
+            CliSigner::discover_binary_from(None, Some(tmp.path().to_str().unwrap()))
+                .unwrap()
+                .as_path(),
+            svc_path.as_path()
+        );
     }
 }

@@ -575,6 +575,106 @@ pub struct CommitBraidResponse {
 }
 
 // ============================================================================
+// rootPulse Graph Step (Provenance Trio Pipeline)
+// ============================================================================
+
+/// rootPulse `ledger_commit` step request — graph-step-compatible input
+/// from the `rootpulse_commit` graph's `ledger_commit` step.
+///
+/// biomeOS calls this via `ledger.append` (wire alias) after bearDog signs
+/// and nestGate stores the provenance blob. loamSpine records the commit
+/// in an append-only spine, producing the `ledger_ref` that sweetGrass
+/// weaves into an attribution braid.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RootpulseLedgerCommitRequest {
+    /// CAS reference (hex hash) from the nestGate `cas.put` step.
+    pub cas_ref: String,
+    /// Signed provenance blob from the bearDog `auth.sign` step.
+    pub signed_provenance: serde_json::Value,
+    /// Blake3 content hash from the rhizoCrypt dehydrate step (hex).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_hash: Option<String>,
+    /// Graph-provided session ID (UUID string). Generated if absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    /// Target spine ID. Auto-selects the provenance spine if absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spine_id: Option<String>,
+    /// Committer DID. Defaults to gate identity if absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub committer: Option<String>,
+}
+
+/// rootPulse `ledger_commit` step response — graph-step-compatible output.
+///
+/// The `ledger_ref` field is the canonical output consumed by the
+/// sweetGrass `braid.attribute` step downstream.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RootpulseLedgerCommitResponse {
+    /// Composite ledger reference: `"{spine_id}:{entry_hash_hex}:{index}"`.
+    pub ledger_ref: String,
+    /// Spine where the commit was recorded.
+    pub spine_id: SpineId,
+    /// Entry hash of the commit.
+    #[serde(deserialize_with = "loam_spine_core::types::serde_content_hash::deserialize")]
+    pub entry_hash: EntryHash,
+    /// Entry index in the spine.
+    pub index: u64,
+    /// Timestamp of the commit.
+    pub committed_at: Timestamp,
+}
+
+/// rootPulse `query_commit` request — query recent provenance commits.
+///
+/// Used by drift detection and sovereignty verification to inspect the
+/// rootPulse ledger without a full spine traversal.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RootpulseQueryCommitRequest {
+    /// Filter by wave ID (partial match on metadata).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wave_id: Option<String>,
+    /// Filter by build target triple.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_triple: Option<String>,
+    /// Filter by primal name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primal_name: Option<String>,
+    /// Maximum results to return (default: 20).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u64>,
+}
+
+/// A single rootPulse commit entry in query results.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RootpulseCommitEntry {
+    /// Composite ledger reference.
+    pub ledger_ref: String,
+    /// Entry hash.
+    pub entry_hash: String,
+    /// Spine ID.
+    pub spine_id: SpineId,
+    /// Entry index.
+    pub index: u64,
+    /// Timestamp.
+    pub committed_at: Timestamp,
+    /// Session ID (if recorded in metadata).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    /// Committer DID.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub committer: Option<String>,
+}
+
+/// rootPulse `query_commit` response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RootpulseQueryCommitResponse {
+    /// Matching commit entries (most recent first).
+    pub commits: Vec<RootpulseCommitEntry>,
+    /// Total matching count (may exceed `limit`).
+    pub total: u64,
+}
+
+// ============================================================================
 // BTSP Phase 3 Negotiation
 // ============================================================================
 

@@ -6,9 +6,9 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)]()
 [![Version](https://img.shields.io/badge/version-0.9.16-blue)]()
-[![Tests](https://img.shields.io/badge/tests-1%2C820%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-1%2C865%20passing-brightgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-92.3%25%20line-brightgreen)]()
-[![Methods](https://img.shields.io/badge/JSON--RPC-53%20methods-blue)]()
+[![Methods](https://img.shields.io/badge/JSON--RPC-55%20methods-blue)]()
 [![JH-0](https://img.shields.io/badge/JH--0-method%20gate-green)]()
 [![Stadial](https://img.shields.io/badge/stadial-ready-brightgreen)]()
 [![Zero Copy](https://img.shields.io/badge/zero--copy-Arc%3Cstr%3E%20%7C%20Cow%20%7C%20LazyLock-green)]()
@@ -126,7 +126,7 @@ loamSpine/
 
 **Dual Protocol (C2 Dual-Socket):**
 - **tarpc** -- High-performance binary framing for primal-to-primal composition. UDS (`loamspine.tarpc.sock`) + TCP opt-in. 37 typed domain methods.
-- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI. UDS (`loamspine.sock`) + TCP opt-in. 53 methods (batch support, HTTP/1.1 keep-alive).
+- **JSON-RPC 2.0** -- Universal, language-agnostic for external clients and NeuralAPI. UDS (`loamspine.sock`) + TCP opt-in. 55 methods (batch support, HTTP/1.1 keep-alive).
 
 Protocol negotiation discovers `.tarpc.sock` and escalates automatically.
 
@@ -180,6 +180,8 @@ Protocol negotiation discovers `.tarpc.sock` and escalates automatically.
 | **Health** | `health.readiness` | Readiness probe |
 | **Meta** | `capabilities.list` | List primal capabilities (Wire Standard L3) |
 | **Meta** | `identity.get` | Primal identity |
+| **rootPulse** | `rootpulse.ledger_commit` | Provenance trio graph step — permanent ledger commit |
+| **rootPulse** | `rootpulse.query_commit` | Query rootPulse provenance commits |
 | **MCP** | `tools.list` | MCP tool discovery |
 | **MCP** | `tools.call` | MCP tool invocation |
 | **Compat** | `permanence.*` (4) | Legacy naming compat |

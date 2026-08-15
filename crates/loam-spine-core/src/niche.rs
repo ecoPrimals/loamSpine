@@ -37,6 +37,7 @@ pub const DOMAINS: &[&str] = &[
     "anchor",
     "bonding",
     "trust",
+    "rootpulse",
     "health",
     "meta",
     "integration",
@@ -107,6 +108,9 @@ pub const METHODS: &[&str] = &[
     "auth.check",
     "auth.mode",
     "auth.peer_info",
+    // rootPulse graph step handlers
+    "rootpulse.ledger_commit",
+    "rootpulse.query_commit",
     // Permanence compat layer
     "permanence.commit_session",
     "permanence.verify_commit",
@@ -152,6 +156,10 @@ pub const SEMANTIC_MAPPINGS: &[(&str, &str)] = &[
     ("dehydrate_session", "session.dehydrate"),
     ("commit_session", "session.commit"),
     ("commit_braid", "braid.commit"),
+    // rootPulse graph steps
+    ("ledger_commit", "rootpulse.ledger_commit"),
+    ("query_commit", "rootpulse.query_commit"),
+    ("ledger_append", "rootpulse.ledger_commit"),
     // Public chain anchoring
     ("publish_anchor", "anchor.publish"),
     ("publish_anchor_batch", "anchor.publish_batch"),
@@ -276,6 +284,9 @@ pub const COST_ESTIMATES: &[(&str, u32, bool)] = &[
     ("session.dehydrate", 3, false),
     ("session.commit", 5, false),
     ("braid.commit", 5, false),
+    // rootPulse graph steps
+    ("rootpulse.ledger_commit", 5, false),
+    ("rootpulse.query_commit", 3, false),
     // Public chain anchoring
     ("anchor.publish", 2, false),
     ("anchor.publish_batch", 10, false),

@@ -54,6 +54,7 @@ pub fn normalize_method(method: &str) -> &str {
         "permanent-storage.verifyCommit" => "permanence.verify_commit",
         "permanent-storage.getCommit" => "permanence.get_commit",
         "permanent-storage.healthCheck" => "permanence.health_check",
+        "ledger.append" => "rootpulse.ledger_commit",
         "capability.list" | "primal.capabilities" => "capabilities.list",
         other => other,
     }
@@ -323,6 +324,9 @@ impl LoamSpineJsonRpc {
             "permanence.get_commit" => rpc!(params, permanent_storage_get_commit),
             "permanence.health_check" => ser(self.service.permanence_healthy().await),
 
+            "rootpulse.ledger_commit" => rpc!(params, rootpulse_ledger_commit),
+            "rootpulse.query_commit" => rpc!(params, rootpulse_query_commit),
+
             // Static discovery responses: LazyLock-cached values require .clone()
             // to produce the owned Value that JsonRpcResponse needs. These are
             // cold-path methods (called once per client for capability discovery),
@@ -467,6 +471,9 @@ mod tests_protocol_trio;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_protocol_wire;
+#[cfg(test)]
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod tests_rootpulse;
 #[cfg(test)]
 #[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
 mod tests_session;

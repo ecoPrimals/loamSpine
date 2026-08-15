@@ -380,3 +380,198 @@ mod proptest_roundtrips {
         }
     }
 }
+
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod hex_error_display_tests {
+    use super::serde_content_hash::{HexError, parse_hex};
+
+    #[test]
+    fn bad_length_display() {
+        assert_eq!(
+            HexError::BadLength(4).to_string(),
+            "expected 64 hex chars, got 4"
+        );
+    }
+
+    #[test]
+    fn invalid_byte_display() {
+        let source = u8::from_str_radix("zz", 16).unwrap_err();
+        let expected = format!("invalid hex at byte 3: {source}");
+        let msg = HexError::InvalidByte { index: 3, source }.to_string();
+        assert_eq!(msg, expected);
+    }
+
+    #[test]
+    fn parse_hex_bad_length_message() {
+        let err = parse_hex("abcd").unwrap_err();
+        assert_eq!(err.to_string(), "expected 64 hex chars, got 4");
+    }
+
+    #[test]
+    fn parse_hex_invalid_chars_message() {
+        let err = parse_hex(&"zz".repeat(32)).unwrap_err();
+        assert!(err.to_string().starts_with("invalid hex at byte 0:"));
+    }
+
+    #[test]
+    fn parse_hex_rejects_0x_prefix_wrong_length() {
+        let err = parse_hex("0xabcd").unwrap_err();
+        assert_eq!(err.to_string(), "expected 64 hex chars, got 4");
+    }
+}
+
+#[expect(clippy::unwrap_used, reason = "tests use unwrap for conciseness")]
+mod binary_serde_tests {
+    use super::*;
+    use serde::Deserialize;
+
+    #[test]
+    fn signature_msgpack_roundtrip() {
+        let sig = Signature::from_vec(vec![0xDE, 0xAD, 0xBE, 0xEF]);
+        let packed = rmp_serde::to_vec(&sig).unwrap();
+        let back: Signature = rmp_serde::from_slice(&packed).unwrap();
+        assert_eq!(sig.as_bytes(), back.as_bytes());
+    }
+
+    #[test]
+    fn signature_deserialize_from_bytes_visitor() {
+        let bytes = [0xDEu8, 0xAD, 0xBE, 0xEF];
+        let de = serde::de::value::BytesDeserializer::<serde::de::value::Error>::new(&bytes);
+        let sig = Signature::deserialize(de).unwrap();
+        assert_eq!(sig.as_bytes(), &bytes);
+    }
+
+    #[test]
+    fn content_hash_deserialize_from_bytes() {
+        let bytes = [0xABu8; 32];
+        let parsed: ContentHash =
+            serde_content_hash::deserialize(serde::de::value::BytesDeserializer::<
+                serde::de::value::Error,
+            >::new(&bytes))
+            .unwrap();
+        assert_eq!(parsed, bytes);
+    }
+
+    #[test]
+    fn content_hash_rejects_wrong_length_bytes() {
+        let bytes = [0x01u8; 16];
+        let result: Result<ContentHash, _> =
+            serde_content_hash::deserialize(serde::de::value::BytesDeserializer::<
+                serde::de::value::Error,
+            >::new(&bytes));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn opt_content_hash_from_unit() {
+        let parsed: Option<ContentHash> =
+            serde_opt_content_hash::deserialize(serde::de::value::UnitDeserializer::<
+                serde::de::value::Error,
+            >::new())
+            .unwrap();
+        assert!(parsed.is_none());
+    }
+
+    #[test]
+    fn opt_content_hash_from_str_direct() {
+        let hex = "ab".repeat(32);
+        let parsed: Option<ContentHash> =
+            serde_opt_content_hash::deserialize(serde::de::value::StrDeserializer::<
+                serde::de::value::Error,
+            >::new(&hex))
+            .unwrap();
+        assert_eq!(parsed, Some([0xAB; 32]));
+    }
+
+    #[test]
+    fn opt_content_hash_from_seq_direct() {
+        let arr = [0x42u8; 32];
+        let parsed: Option<ContentHash> =
+            serde_opt_content_hash::deserialize(serde::de::value::SeqDeserializer::<
+                _,
+                serde::de::value::Error,
+            >::new(arr.into_iter()))
+            .unwrap();
+        assert_eq!(parsed, Some(arr));
+    }
+
+    #[test]
+    fn payload_ref_json_roundtrip() {
+        let pr = PayloadRef::new(hash_bytes(b"x"), 1024).with_mime_type("text/plain");
+        let json = serde_json::to_string(&pr).unwrap();
+        let back: PayloadRef = serde_json::from_str(&json).unwrap();
+        assert_eq!(pr, back);
+    }
+
+    #[test]
+    fn did_json_roundtrip_direct() {
+        let did = Did::new("did:key:z6MkSerde");
+        let json = serde_json::to_string(&did).unwrap();
+        let back: Did = serde_json::from_str(&json).unwrap();
+        assert_eq!(did, back);
+    }
+
+    #[test]
+    fn opt_content_hash_msgpack_none() {
+        #[derive(Serialize, Deserialize)]
+        struct Holder {
+            #[serde(default, deserialize_with = "serde_opt_content_hash::deserialize")]
+            hash: Option<ContentHash>,
+        }
+        let packed = rmp_serde::to_vec(&Holder { hash: None }).unwrap();
+        let back: Holder = rmp_serde::from_slice(&packed).unwrap();
+        assert!(back.hash.is_none());
+    }
+
+    #[test]
+    fn opt_content_hash_msgpack_nil_direct() {
+        let nil = [0xc0];
+        let parsed: Option<ContentHash> =
+            serde_opt_content_hash::deserialize(&mut rmp_serde::Deserializer::new(&nil[..]))
+                .unwrap();
+        assert!(parsed.is_none());
+    }
+
+    #[test]
+    fn content_hash_rejects_short_byte_array() {
+        let result: Result<ContentHash, _> =
+            serde_content_hash::deserialize(&mut serde_json::Deserializer::from_str("[1, 2, 3]"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn opt_content_hash_rejects_short_seq() {
+        let result: Result<Option<ContentHash>, _> =
+            serde_opt_content_hash::deserialize(serde::de::value::SeqDeserializer::<
+                _,
+                serde::de::value::Error,
+            >::new([1u8, 2, 3].into_iter()));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn signature_rejects_invalid_json_type() {
+        let result: Result<Signature, _> = serde_json::from_str("not-bytes");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn signature_empty_json_array() {
+        let sig: Signature = serde_json::from_str("[]").unwrap();
+        assert!(sig.is_empty());
+    }
+}
+
+#[test]
+fn peer_id_debug_contains_id() {
+    let peer = PeerId::new("test-peer");
+    let debug = format!("{peer:?}");
+    assert!(debug.contains("test-peer"));
+}
+
+#[test]
+fn timestamp_copy_semantics() {
+    let t1 = Timestamp::from_nanos(999);
+    let t2 = t1;
+    assert_eq!(t1, t2);
+}

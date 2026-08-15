@@ -19,7 +19,7 @@
 //! 1. **Environment variables** - `DISCOVERY_ENDPOINT` (highest priority)
 //! 2. **DNS SRV records** - `_discovery._tcp.local` (production)
 //! 3. **mDNS** - Multicast DNS on local network (local development)
-//! 4. **Development fallback** - `localhost:8082` (logged as warning)
+//! 4. **Development fallback** - `localhost` + discovery port (debug/test only; see [`discovery_port`](crate::constants::network::discovery_port))
 //!
 //! ## Example
 //!
@@ -110,7 +110,7 @@ impl InfantDiscovery {
     /// 1. Environment variable (`DISCOVERY_ENDPOINT`)
     /// 2. DNS SRV records (`_discovery._tcp.local`)
     /// 3. mDNS (multicast DNS on local network)
-    /// 4. Development fallback (`localhost:8082`, logged as warning)
+    /// 4. Development fallback (`localhost` + [`discovery_port`](crate::constants::network::discovery_port), debug/test only)
     ///
     /// # Errors
     ///
@@ -360,20 +360,17 @@ impl InfantDiscovery {
         reason = "consistent discovery chain API; Option for cfg-conditional return"
     )]
     fn try_development_fallback(&self) -> Option<String> {
+        let port = crate::constants::network::discovery_port();
         tracing::debug!(
             "🔍 Attempting development fallback ({}:{})...",
             crate::constants::LOCALHOST,
-            crate::constants::DEFAULT_DISCOVERY_PORT
+            port
         );
 
         // Only in development/test mode
         #[cfg(any(debug_assertions, test))]
         {
-            let endpoint = format!(
-                "http://{}:{}",
-                crate::constants::LOCALHOST,
-                crate::constants::DEFAULT_DISCOVERY_PORT
-            );
+            let endpoint = format!("http://{}:{}", crate::constants::LOCALHOST, port);
             tracing::debug!("🔍 Development fallback available: {}", endpoint);
             Some(endpoint)
         }

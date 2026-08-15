@@ -60,6 +60,34 @@ fn tarpc_port_invalid_both_falls_back_to_default() {
     );
 }
 
+#[test]
+fn discovery_port_from_loamspine_env() {
+    assert_eq!(resolve_discovery_port(Some("9090"), None), 9090);
+}
+
+#[test]
+fn discovery_port_default_when_unset() {
+    assert_eq!(resolve_discovery_port(None, None), DEFAULT_DISCOVERY_PORT);
+}
+
+#[test]
+fn discovery_port_invalid_loamspine_falls_back_to_generic() {
+    assert_eq!(resolve_discovery_port(Some("invalid"), Some("9091")), 9091);
+}
+
+#[test]
+fn discovery_port_generic_env_var() {
+    assert_eq!(resolve_discovery_port(None, Some("9092")), 9092);
+}
+
+#[test]
+fn discovery_port_invalid_both_falls_back_to_default() {
+    assert_eq!(
+        resolve_discovery_port(Some("not-a-number"), Some("also-invalid")),
+        DEFAULT_DISCOVERY_PORT,
+    );
+}
+
 // ── OS-assigned ports ────────────────────────────────────────────────
 
 #[test]

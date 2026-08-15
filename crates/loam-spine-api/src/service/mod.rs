@@ -21,6 +21,7 @@ mod certificate_ops;
 mod entry_ops;
 mod integration_ops;
 mod proof_ops;
+mod rootpulse_ops;
 mod spine_ops;
 mod trust_ops;
 

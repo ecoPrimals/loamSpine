@@ -330,6 +330,28 @@ fn mcp_tools_list_inner() -> serde_json::Value {
                 "properties": {},
                 "required": []
             })),
+            mcp_tool("rootpulse_ledger_commit", "Record a rootPulse provenance commit in the permanence ledger (graph step: ledger.append)", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "cas_ref": { "type": "string", "description": "CAS reference (64 hex chars) from nestGate cas.put step" },
+                    "signed_provenance": { "description": "Signed provenance blob from bearDog auth.sign step" },
+                    "content_hash": { "type": "string", "description": "Blake3 content hash from dehydrate step (optional)" },
+                    "session_id": { "type": "string", "description": "UUID session identifier (auto-generated if absent)" },
+                    "spine_id": { "type": "string", "description": "Target spine UUID (auto-selects provenance spine if absent)" },
+                    "committer": { "type": "string", "description": "Committer DID (defaults to rootPulse identity)" }
+                },
+                "required": ["cas_ref", "signed_provenance"]
+            })),
+            mcp_tool("rootpulse_query_commit", "Query recent rootPulse provenance commits from the permanence ledger", &serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "wave_id": { "type": "string", "description": "Filter by wave ID (partial match)" },
+                    "target_triple": { "type": "string", "description": "Filter by build target triple" },
+                    "primal_name": { "type": "string", "description": "Filter by primal name" },
+                    "limit": { "type": "integer", "description": "Max results (default 20)" }
+                },
+                "required": []
+            })),
             mcp_tool("health_check", "Check LoamSpine health status", &serde_json::json!({
                 "type": "object",
                 "properties": {},
@@ -402,6 +424,8 @@ pub fn mcp_tool_to_rpc(
         "trust_anchor" => "trust.anchor",
         "trust_query" => "trust.query",
         "trust_event_count" => "trust.event_count",
+        "rootpulse_ledger_commit" => "rootpulse.ledger_commit",
+        "rootpulse_query_commit" => "rootpulse.query_commit",
         "health_check" => "health.check",
         "capability_list" => "capabilities.list",
         "identity_get" => "identity.get",

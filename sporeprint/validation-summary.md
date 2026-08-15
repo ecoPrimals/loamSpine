@@ -1,7 +1,7 @@
 +++
 title = "loamSpine Validation Summary"
-description = "Permanence ledger — 1,820 tests, 53 JSON-RPC methods, 37 tarpc methods, G65 protocol negotiation (single-socket), G66 transport abstraction, G68 platform substrate (L1 links + L2 permissions), gossip injection (swarmVine mesh), 218 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
-date = 2026-08-10
+description = "Permanence ledger — 1,865 tests, 55 JSON-RPC methods, 37 tarpc methods, rootPulse step handlers (provenance trio graph), G65 protocol negotiation (single-socket), G66 transport abstraction, G68 platform substrate (L1 links + L2 permissions), gossip injection (swarmVine mesh, 5 events), 223 source files, append-only Spines, Loam Certificates (Novel Ferment Transcripts), inclusion proofs, public chain anchoring, aggregate batch anchoring, batch entry append, batch certificate mint, spine.status observability, cross-gate trust ledger IPC, TransportEndpoint compliance, BTSP ClientHello handshake, capability_registry.toml, cross-architecture #[cfg(unix)] parity, MCP batch tool exposure"
+date = 2026-08-15
 
 [taxonomies]
 primals = ["loamspine"]
@@ -10,25 +10,25 @@ springs = []
 
 ## Status
 
-- **1,820 tests** (all passing), 0 failures, 0 ignored
-- **53 JSON-RPC methods** across 19 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, auth, lifecycle, health, capabilities, identity, tools, primal, permanence)
-- **218 source files**, ~68,000 lines of Rust
-- **4 gossip injection points** — `cas.have`, `braid.head`, `spine.sealed`, `anchor.published` (swarmVine mesh integration)
+- **1,865 tests** (all passing), 0 failures, 0 ignored
+- **55 JSON-RPC methods** across 20 domains (spine, entry, certificate, proof, anchor, session, braid, bonding, trust, rootpulse, btsp, auth, lifecycle, health, capabilities, identity, tools, primal, permanence, slice)
+- **223 source files**, ~70,000 lines of Rust
+- **5 gossip injection points** — `cas.have`, `braid.head`, `spine.sealed`, `anchor.published`, `rootpulse.commit` (swarmVine mesh integration)
 - **G65 protocol negotiation** — single-socket, auto-negotiated (tarpc/JSON-RPC). Replaces C2 dual-socket.
 - **G66 transport abstraction** — `TransportListener` + generic negotiate/serve. Zero silicon deism.
 - **G68 platform substrate** — `platform` module (`create_link`/`remove_link`). No raw `std::os::unix` in binary code.
 - **3 workspace members**: `loam-spine-core`, `loam-spine-api`, `loamspine-service`
-- **JH-0 ADOPTED** — method gate classifies all 53 methods as Public or Protected
+- **JH-0 ADOPTED** — method gate classifies all 55 methods as Public or Protected
 - **BTSP Phase 2+3** — ClientHello handshake (client + server), ChaCha20-Poly1305 AEAD, capability-discovered handshake key
 - **ecoBin grade: A+** — zero C/C++ deps, `forbid(unsafe_code)`, edition 2024
 - **Zero DEBT markers** — zero TODO/FIXME/HACK in production code
 - **Zero `#[allow]`** — all suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated
 - **Zero unsafe** — `#![forbid(unsafe_code)]` on all crates + fuzz targets
 - **Storage**: redb (default), in-memory (testing); sled/SQLite removed (stadial)
-- **Stability tiers**: 47 stable, 2 evolving (slice), 4 compat (permanence legacy naming)
-- **Semantic mappings**: 53/53 (100% — every method routable by orchestrator)
-- **Cost estimates**: 53/53 (100% — every method has scheduling hints)
-- **MCP tools**: 37 tools exposed via `tools/list` (including batch + status operations)
+- **Stability tiers**: 47 stable, 2 beta (rootpulse), 2 evolving (slice), 4 compat (permanence legacy naming)
+- **Semantic mappings**: 55/55 (100% — every method routable by orchestrator)
+- **Cost estimates**: 55/55 (100% — every method has scheduling hints)
+- **MCP tools**: 39 tools exposed via `tools/list` (including batch + status + rootPulse operations)
 - **tarpc methods**: 37 typed domain methods (G64 cephalization — full parity on performance-critical ops)
 
 ## Key Capabilities
@@ -51,6 +51,7 @@ springs = []
 | Capabilities | `list` | Capability discovery (Wire Standard L3) |
 | Identity | `get` | Primal identity |
 | Tools | `list`, `call` | MCP tool discovery and invocation |
+| rootPulse | `ledger_commit`, `query_commit` | Provenance trio graph step handlers (permanence step) |
 | Compat | `permanence.*` (4) | Legacy naming compatibility |
 
 ## Provenance Trio Role
@@ -78,6 +79,10 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 
 | Wave | What landed |
 |------|-------------|
+| Wave 157k (Aug 15) | rootPulse step handlers (`ledger_commit`, `query_commit`), 5th gossip event, MCP tools, 1,865 tests |
+| Wave 157g (Aug 10) | Deep debt audit, test file splits, G72 dep pandemic, gossip injection |
+| Wave 157a (Aug 7-9) | G68 platform substrate, vertebrate self-audit, persist_tip abstraction |
+| Wave 156j-s (Aug 6) | C2 dual-socket, G64 cephalization (37 tarpc methods), G65/G66 transport |
 | Wave 155u (Aug 4) | Semantic mappings 33→52, cost estimates 32→52, MCP batch tools, doc alignment |
 | Wave 155n (Aug 3) | G31 batch provenance: `entry.append_batch`, `certificate.mint_batch`, CLI `--bind` |
 | Wave 155f (Jul 28) | Entry extraction, `certificate.history`, BTSP handshake dedup |
@@ -95,6 +100,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Capability | Provider | Role |
 |------------|----------|------|
 | `signing` | Tower signer (capability-discovered) | Ed25519 entry signing |
+| `gossip` | swarmVine (UDS `gossip.inject`) | Data-domain event propagation |
 | `discovery` | (capability-discovered) | mDNS / DNS-SRV primal discovery |
 | `chain-anchor` | (not yet built) | External chain submission for anchor.publish |
 
@@ -103,7 +109,7 @@ rhizoCrypt (working DAG) → loamSpine (permanent ledger) → sweetGrass (attrib
 | Spec | Status |
 |------|--------|
 | [LOAMSPINE_SPECIFICATION.md](../specs/LOAMSPINE_SPECIFICATION.md) | Complete |
-| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (52 methods) |
+| [API_SPECIFICATION.md](../specs/API_SPECIFICATION.md) | Complete (55 methods) |
 | [DATA_MODEL.md](../specs/DATA_MODEL.md) | Complete |
 | [CERTIFICATE_LAYER.md](../specs/CERTIFICATE_LAYER.md) | Complete |
 | [ANCHORING_ARCHITECTURE.md](../specs/ANCHORING_ARCHITECTURE.md) | Complete |

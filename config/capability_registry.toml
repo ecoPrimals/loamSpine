@@ -47,6 +47,10 @@ methods = ["dehydrate", "commit"]
 description = "Attribution braid integration (sweetGrass)"
 methods = ["commit"]
 
+[domains.rootpulse]
+description = "rootPulse graph step handlers (provenance trio pipeline)"
+methods = ["ledger_commit", "query_commit"]
+
 [domains.bonding]
 description = "Ionic bond ledger persistence"
 methods = ["ledger.store", "ledger.retrieve", "ledger.list"]
@@ -225,6 +229,16 @@ depends_on = ["spine.create"]
 cost = "medium"
 stability = "stable"
 
+[operations."rootpulse.ledger_commit"]
+depends_on = ["spine.create", "session.commit"]
+cost = "medium"
+stability = "beta"
+
+[operations."rootpulse.query_commit"]
+depends_on = []
+cost = "low"
+stability = "beta"
+
 [operations."anchor.publish"]
 depends_on = ["spine.create"]
 cost = "low"
@@ -368,6 +382,12 @@ stability = "compat"
 # ─── Gossip Injection Points ───────────────────────────────────────────
 # Events loamSpine emits to swarmVine via gossip.inject.
 # Topic: "data" — loamSpine is a data-domain primal.
+
+[gossip.rootpulse_commit]
+topic = "data"
+key_format = "rootpulse.commit:<gate>:<spine_id>"
+trigger = "rootPulse ledger commit recorded (rootpulse.ledger_commit)"
+description = "Provenance trio commit signal — rootPulse graph step completed on this gate"
 
 [gossip.cas_have]
 topic = "data"

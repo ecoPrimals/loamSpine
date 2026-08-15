@@ -1,4 +1,5 @@
 /target/
+**/target/
 .cargo-build/
 *.swp
 *.swo

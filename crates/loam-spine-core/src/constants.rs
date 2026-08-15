@@ -79,16 +79,17 @@ pub const DEFAULT_JSONRPC_PORT: u16 = 8080;
 /// This constant only exists for local development convenience. Using it in
 /// production will generate warning logs.
 ///
+/// At runtime, prefer [`network::discovery_port`]
+/// which honors `LOAMSPINE_DISCOVERY_PORT` and `DISCOVERY_PORT` overrides.
+///
+/// [`network::discovery_port`]: crate::constants::network::discovery_port
+///
 /// # Example
 ///
 /// ```rust
-/// use loam_spine_core::constants::DEFAULT_DISCOVERY_PORT;
+/// use loam_spine_core::constants::network::discovery_port;
 ///
-/// // This logs a warning if used!
-/// tracing::warn!(
-///     "Using development fallback port: {}. Configure DISCOVERY_ENDPOINT in production!",
-///     DEFAULT_DISCOVERY_PORT
-/// );
+/// let port = discovery_port();
 /// ```
 pub const DEFAULT_DISCOVERY_PORT: u16 = 8082;
 

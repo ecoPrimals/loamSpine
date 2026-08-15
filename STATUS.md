@@ -3,7 +3,7 @@
 # Implementation Status
 
 **Current Version**: 0.9.16  
-**Last Updated**: August 10, 2026
+**Last Updated**: August 15, 2026
 
 ---
 
@@ -23,7 +23,7 @@ This document tracks implementation progress against the specification suite in 
 | [PURE_RUST_RPC.md](specs/PURE_RUST_RPC.md) | COMPLETE | tarpc + pure JSON-RPC (hand-rolled), no gRPC/protobuf/jsonrpsee. Semantic naming. Protocol escalation (`IpcProtocol` negotiation). |
 | [WAYPOINT_SEMANTICS.md](specs/WAYPOINT_SEMANTICS.md) | COMPLETE | `anchor_slice`, `checkout_slice`, `depart_slice`, `record_operation` implemented. `WaypointConfig` with `AttestationRequirement` (None/BoundaryOnly/AllOperations/Selective). `AttestationResult` for capability-discovered attestation providers. `PropagationPolicy`, `SliceTerms`, `SliceOperationType`, `WaypointSummary` types defined. `RelendingChain` with multi-hop sublend/return. `ExpirySweeper` for auto-return. |
 | [CERTIFICATE_LAYER.md](specs/CERTIFICATE_LAYER.md) | COMPLETE | Core CRUD + loan/return + sublend + `verify_certificate` + `generate_provenance_proof` + escrow + `UsageSummary` integrated into `CertificateReturn` and `LoanRecord`. `WaypointSummary` re-used from waypoint module. Scyborg license schema. Certificate module: types, lifecycle, metadata, provenance, escrow, usage, tests. |
-| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 53 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
+| [API_SPECIFICATION.md](specs/API_SPECIFICATION.md) | COMPLETE | 55 JSON-RPC methods (semantic naming), tarpc server. Spec updated to match implementation. |
 | [INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md) | COMPLETE | Provenance trio, session/braid commit. `SyncProtocol` evolved to JSON-RPC/TCP sync engine with `push_to_peer`/`pull_from_peer` and graceful fallback. `ResilientDiscoveryClient` with circuit-breaker (Closed/Open/HalfOpen, lock-free atomics) and retry policy (exponential backoff with jitter). |
 | [STORAGE_BACKENDS.md](specs/STORAGE_BACKENDS.md) | PARTIAL | Memory and redb (default); sled and SQLite removed (stadial compliance). PostgreSQL, RocksDB not yet implemented. |
 | [SERVICE_LIFECYCLE.md](specs/SERVICE_LIFECYCLE.md) | COMPLETE | `ServiceState` enum, startup/shutdown, NeuralAPI registration, signal handling, observable state via `watch` channel. |
@@ -46,14 +46,14 @@ This document tracks implementation progress against the specification suite in 
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Tests | — | 1,820 (218 source files) |
+| Tests | — | 1,865 (223 source files) |
 | Concurrent testing | — | All tests concurrent (zero `#[serial]`), zero flaky storage tests |
 | Coverage (llvm-cov) | 90%+ | 92.26% line / 89.50% branch / 92.56% region |
 | `unsafe` in production | 0 | 0 (`#![forbid(unsafe_code)]`) |
 | Clippy pedantic+nursery | 0 | 0 (including `missing_const_for_fn` at warn level) |
 | Doc warnings | 0 | 0 |
 | Max file size | < 800 lines | 677 max production (`main.rs`); 753 max test file (`tests_validation.rs`) |
-| Source files | — | 218 `.rs` files (+ 3 fuzz targets) |
+| Source files | — | 223 `.rs` files (+ 3 fuzz targets) |
 | Edition | 2024 | 2024 |
 | `#[allow]` in production | 0 | Zero. All suppressions use `#[expect(reason)]` or `#[cfg_attr]`-gated `#[expect]`. |
 | `#[allow]` in tests | 0 | 0 (all migrated to `#[expect(reason)]` or removed as unfulfilled) |
@@ -70,7 +70,7 @@ This document tracks implementation progress against the specification suite in 
 |----------|--------|-------|
 | UniBin | PASS | `loamspine server`, `capabilities`, `socket` subcommands |
 | ecoBin | PASS | Zero C deps; blake3 `pure`; musl-static local + CI; `cargo build-x64` / `build-arm64` |
-| `capability_registry.toml` | PASS | `config/capability_registry.toml` — 19 domains, 54 operations, 6 consumed capabilities |
+| `capability_registry.toml` | PASS | `config/capability_registry.toml` — 20 domains, 56 operations, 6 consumed capabilities |
 | AGPL-3.0-or-later | PASS | SPDX headers on all 218 source files (+ 3 fuzz targets) |
 | Scyborg triple license | PASS | `LICENSE` (AGPL-3.0), `LICENSE-ORC`, `LICENSE-CC-BY-SA` present. `CertificateType::scyborg_license()`, metadata builders, schema constants |
 | Semantic naming | PASS | `capabilities.list` canonical + `primal.capabilities` alias per v2.1 standard |
@@ -83,7 +83,7 @@ This document tracks implementation progress against the specification suite in 
 | G66 Transport | PASS | `TransportListener` + generic protocol negotiation. Zero unconditional `UnixStream` in production. `#[cfg(unix)]` confined to transport layer. |
 | G68 Platform Substrate | PASS | L1: `platform::fs` (`create_link`/`remove_link`). L2: `platform::access` (`PlatformAccess`/`set_executable`/`is_executable`). Zero `PermissionsExt` or `std::os::unix::fs::symlink` outside platform layer. |
 | G72 Dep Pandemic | PASS | `url` excised, `chacha20poly1305` 0.10→0.11, RustCrypto unified, tokio already lean. |
-| Gossip Injection | PASS | `GossipEvent` enum (4 events), `GossipEmitter` (swarmVine mesh, fire-and-forget). Hooks at `persist_tip`, `seal_spine`, `anchor_to_public_chain`, `commit_braid`. |
+| Gossip Injection | PASS | `GossipEvent` enum (5 events), `GossipEmitter` (swarmVine mesh, fire-and-forget). Hooks at `persist_tip`, `seal_spine`, `anchor_to_public_chain`, `commit_braid`. `RootpulseCommit` for provenance trio. |
 | BTSP Phase 1 | PASS | Family-scoped socket naming (`loamspine-{family_id}.sock`), `BIOMEOS_INSECURE` guard. |
 | BTSP Phase 2 | PASS | Handshake-as-a-service via BTSP provider JSON-RPC. UDS listener gates on BTSP when `FAMILY_ID` is set. 4-step handshake (ClientHello/ServerHello/ChallengeResponse/HandshakeComplete). |
 | BTSP Phase 3 | PASS | `btsp.negotiate` returns `cipher: "chacha20-poly1305"` (plus server nonce) when a Tower-provided handshake key is available; falls back to `cipher: "null"` for unauthenticated covalent bonds. **Transport verified**: after negotiate, UDS accept loop enters `handle_encrypted_stream` using `read_encrypted_frame`/`write_encrypted_frame` for all subsequent messages on that connection. |
@@ -123,8 +123,9 @@ This document tracks implementation progress against the specification suite in 
 
 ### Stability Tiers
 
-All 53 methods have stability annotations in `capabilities.list` response:
+All 55 methods have stability annotations in `capabilities.list` response:
 - **stable**: spine, entry, certificate, proof, anchor, session, braid, bonding, trust, btsp, lifecycle, health, auth, primal, capabilities, identity, tools (47 methods)
+- **beta**: rootpulse (2 methods — graph step handlers)
 - **evolving**: slice (2 methods)
 - **compat**: permanence (4 methods — legacy naming)
 
@@ -151,6 +152,17 @@ When loamSpine is unavailable:
 ### ecoBin Grade: A+
 
 Gap to A++: `seed_fingerprint` (build-time BLAKE3 hash of the released binary). All other criteria met: zero C deps, `#![forbid(unsafe_code)]`, blake3 pure, deny.toml bans, musl-static, edition 2024.
+
+---
+
+### Wave 157k: rootPulse Step Handler Activation (August 15, 2026)
+
+- **rootPulse graph step handlers**: `rootpulse.ledger_commit` and `rootpulse.query_commit` — loamSpine's permanence step in the `rootpulse_commit` graph. biomeOS calls `ledger.append` (wire alias) after rhizoCrypt dehydrates, bearDog signs, and nestGate stores. loamSpine records in an append-only provenance spine, returning the canonical `ledger_ref` for sweetGrass attribution braids.
+- **Graph-step-compatible contract**: Accepts `{cas_ref, signed_provenance}` inputs from upstream graph steps. Auto-creates provenance spine. Returns composite `ledger_ref` (`spine_id:hash:index`).
+- **Deep debt (continued)**: Coverage push for `cli_signer.rs` (mock binary infrastructure), `types.rs` (serde visitor paths), `transport/framing.rs` (error conditions). Discovery port evolution (`LOAMSPINE_DISCOVERY_PORT` env resolution).
+- **New domain**: `rootpulse` (2 methods) in capability registry. MCP tools registered. 5th gossip event (`RootpulseCommit`). Semantic mappings + operation costs updated.
+- **rootPulse item #10**: loamSpine activation **DONE** (3/5 primals, alongside rhizoCrypt + sweetGrass). Remaining: bearDog + nestGate (translation-only, no new code needed).
+- **Metrics**: 1,865 tests, 223 source files, 55 JSON-RPC methods, 20 domains, all checks clean (fmt + clippy + doc + test).
 
 ---
 

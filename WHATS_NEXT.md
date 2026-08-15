@@ -3,11 +3,13 @@
 # Development Roadmap
 
 **Current Version**: 0.9.16  
-**Last Updated**: August 10, 2026
+**Last Updated**: August 15, 2026
 
 ---
 
 ## Recent Changes
+
+- **August 15, 2026** — **Wave 157k: rootPulse Step Handler Activation**: `rootpulse.ledger_commit` + `rootpulse.query_commit` — loamSpine's permanence step in the `rootpulse_commit` provenance trio graph. Graph-step-compatible inputs (`cas_ref`, `signed_provenance`), auto-creates provenance spine, returns `ledger_ref`. New `rootpulse` domain (2 methods), 5th gossip event (`RootpulseCommit`), MCP tools registered. 1,865 tests, 223 source files, 55 JSON-RPC methods. **rootPulse item #10: loamSpine DONE (3/5 primals active).**
 
 - **August 10, 2026** — **Wave 157g: Deep Debt — Test File Refactoring**: `certificate_tests.rs` (807L) split into 409L + `certificate_tests_provenance.rs` (398L). `service_tests.rs` (827L) split into 654L + `service_tests_spine_status.rs` (172L). All files under 800L. Full deep debt audit: zero TODOs, zero unsafe, zero production mocks, all `let _ =` justified. 1,820 tests.
 

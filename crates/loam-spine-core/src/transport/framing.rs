@@ -433,6 +433,129 @@ mod tests {
         assert!(r.unwrap_err().to_string().contains("missing result"));
     }
 
+    #[test]
+    fn parse_jsonrpc_error_response() {
+        let response = serde_json::json!({
+            "jsonrpc": "2.0",
+            "error": {"code": -32600, "message": "Invalid Request"},
+            "id": 1
+        });
+        let result: Result<serde_json::Value, _> = parse_jsonrpc_result(&response, "test", "ctx");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("Invalid Request"));
+    }
+
+    #[test]
+    fn parse_jsonrpc_error_minimal() {
+        let response = serde_json::json!({"jsonrpc": "2.0", "error": {}, "id": 1});
+        let result: Result<serde_json::Value, _> = parse_jsonrpc_result(&response, "test", "ctx");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("unknown error"));
+    }
+
+    #[test]
+    fn parse_jsonrpc_result_deser_failure() {
+        let response = serde_json::json!({"jsonrpc": "2.0", "result": "not a number", "id": 1});
+        let result: Result<u64, _> = parse_jsonrpc_result(&response, "test", "ctx");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("deserialize"));
+    }
+
+    #[tokio::test]
+    async fn ndjson_read_timeout() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let _server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            tokio::time::sleep(Duration::from_secs(60)).await;
+            drop(stream);
+        });
+        let client = tokio::net::TcpStream::connect(addr).await.unwrap();
+        let (reader, _) = client.into_split();
+        let mut buf_reader = BufReader::new(reader);
+        let result: Result<serde_json::Value, _> = read_ndjson_response(
+            &mut buf_reader,
+            Duration::from_millis(50),
+            "test.method",
+            "timeout_test",
+        )
+        .await;
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("timeout"));
+    }
+
+    #[tokio::test]
+    async fn ndjson_response_invalid_json() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            stream.write_all(b"not valid json\n").await.unwrap();
+        });
+        let client = tokio::net::TcpStream::connect(addr).await.unwrap();
+        let (reader, _) = client.into_split();
+        let mut buf_reader = BufReader::new(reader);
+        let result: Result<serde_json::Value, _> =
+            read_ndjson_response(&mut buf_reader, Duration::from_secs(5), "test", "ctx").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("parse"));
+    }
+
+    #[tokio::test]
+    async fn read_length_prefixed_short_read() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            stream.write_all(&100u32.to_be_bytes()).await.unwrap();
+            stream.write_all(&[1, 2, 3, 4, 5]).await.unwrap();
+            drop(stream);
+        });
+        let mut client = tokio::net::TcpStream::connect(addr).await.unwrap();
+        let result = read_length_prefixed(&mut client, "short_read_test").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn length_prefixed_rpc_call_error_response() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut len_buf = [0u8; 4];
+            stream.read_exact(&mut len_buf).await.unwrap();
+            let len = u32::from_be_bytes(len_buf) as usize;
+            let mut buf = vec![0u8; len];
+            stream.read_exact(&mut buf).await.unwrap();
+            let resp = serde_json::json!({
+                "jsonrpc": "2.0",
+                "error": {"code": -32601, "message": "Method not found"},
+                "id": 1
+            });
+            let resp_bytes = serde_json::to_vec(&resp).unwrap();
+            #[expect(clippy::cast_possible_truncation, reason = "test payload is small")]
+            let len_header = (resp_bytes.len() as u32).to_be_bytes();
+            stream.write_all(&len_header).await.unwrap();
+            stream.write_all(&resp_bytes).await.unwrap();
+        });
+        let ep = super::super::TransportEndpoint::tcp("127.0.0.1", addr.port());
+        let mut stream = super::super::stream::connect_transport(&ep).await.unwrap();
+        let result = length_prefixed_rpc_call(
+            &mut stream,
+            "nonexistent.method",
+            serde_json::json!({}),
+            1,
+            "test_ctx",
+        )
+        .await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Method not found"));
+    }
+
     #[tokio::test]
     async fn length_prefixed_zero_length_frame() {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

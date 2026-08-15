@@ -33,6 +33,10 @@ pub mod keys {
     pub const LOAMSPINE_DISCOVERY_ENABLED: &str = "LOAMSPINE_DISCOVERY_ENABLED";
     /// Explicit discovery service endpoint URL.
     pub const DISCOVERY_ENDPOINT: &str = "DISCOVERY_ENDPOINT";
+    /// LoamSpine-scoped discovery service port override (development fallback).
+    pub const LOAMSPINE_DISCOVERY_PORT: &str = "LOAMSPINE_DISCOVERY_PORT";
+    /// Generic discovery service port override (development fallback).
+    pub const DISCOVERY_PORT: &str = "DISCOVERY_PORT";
     /// Explicit tarpc endpoint URL override.
     pub const TARPC_ENDPOINT: &str = "TARPC_ENDPOINT";
     /// Explicit JSON-RPC endpoint URL override.
@@ -92,6 +96,20 @@ pub fn tarpc_port() -> u16 {
     network::resolve_tarpc_port(
         env::var(keys::LOAMSPINE_TARPC_PORT).ok().as_deref(),
         env::var(keys::TARPC_PORT).ok().as_deref(),
+    )
+}
+
+/// Get discovery service port from environment or default.
+///
+/// Priority: `LOAMSPINE_DISCOVERY_PORT` > `DISCOVERY_PORT` > default (8082).
+///
+/// Used only by the debug/test development fallback when no `DISCOVERY_ENDPOINT`
+/// is configured. Production should set `DISCOVERY_ENDPOINT` explicitly.
+#[must_use]
+pub fn discovery_port() -> u16 {
+    network::resolve_discovery_port(
+        env::var(keys::LOAMSPINE_DISCOVERY_PORT).ok().as_deref(),
+        env::var(keys::DISCOVERY_PORT).ok().as_deref(),
     )
 }
 
@@ -322,6 +340,11 @@ mod tests {
     }
 
     #[test]
+    fn discovery_port_default_without_env() {
+        assert_eq!(discovery_port(), crate::constants::DEFAULT_DISCOVERY_PORT);
+    }
+
+    #[test]
     fn bind_address_default_without_env() {
         assert_eq!(bind_address().as_ref(), "0.0.0.0");
     }
@@ -468,6 +491,8 @@ mod tests {
             keys::JSONRPC_PORT,
             keys::LOAMSPINE_TARPC_PORT,
             keys::TARPC_PORT,
+            keys::LOAMSPINE_DISCOVERY_PORT,
+            keys::DISCOVERY_PORT,
             keys::LOAMSPINE_BIND_ADDRESS,
             keys::BIND_ADDRESS,
             keys::USE_OS_ASSIGNED_PORTS,

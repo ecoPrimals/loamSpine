@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.16] - 2026-04-08
 
+### Changed (August 15, 2026 — Wave 157k: rootPulse Step Handler Activation)
+
+- **rootPulse graph step handlers**: New `rootpulse.ledger_commit` and `rootpulse.query_commit` JSON-RPC methods — loamSpine's permanence step in the `rootpulse_commit` graph. Accepts graph-step-compatible inputs (`cas_ref` hex hash, `signed_provenance` object) from upstream steps (rhizoCrypt dehydration → bearDog signing). Auto-creates dedicated `rootpulse-provenance` spine. Returns composite `ledger_ref` (`spine_id:hash:index`) for downstream sweetGrass attribution braids.
+- **New `rootpulse` domain**: 2 methods registered in niche (METHODS, DOMAINS, SEMANTIC_MAPPINGS, OPERATION_COSTS). MCP tool definitions (`rootpulse_ledger_commit`, `rootpulse_query_commit`) with full JSON schemas.
+- **5th gossip event**: `GossipEvent::RootpulseCommit` emitted on each provenance commit — announces ledger head to swarmVine mesh for data availability.
+- **Wire alias**: `ledger.append` normalizes to `rootpulse.ledger_commit` (biomeOS graph step convention).
+- **45 new tests**: Wire-level integration tests (`tests_rootpulse.rs`) covering basic commit, explicit committer, invalid inputs, alias resolution, query on empty/populated spines, limit handling, index incrementing, niche presence.
+- **Metrics**: 1,865 tests, 223 source files, 55 JSON-RPC methods, 20 domains, 5 gossip events. All checks clean (fmt + clippy + doc + test).
+
 ### Changed (August 10, 2026 — Wave 157g: Deep Debt — Test File Refactoring)
 
 - **Test file splits (>800L → <800L)**: `certificate_tests.rs` (807L) split into core lifecycle tests (409L) + `certificate_tests_provenance.rs` (398L: provenance proofs, semantic verification, history, batch). `service_tests.rs` (827L) split into core operations (654L) + `service_tests_spine_status.rs` (172L: spine status RPC tests). All source files now under 800L soft limit. **1,820 tests (unchanged).**
