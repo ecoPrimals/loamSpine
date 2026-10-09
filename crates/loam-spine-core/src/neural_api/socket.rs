@@ -8,8 +8,52 @@
 //! - Legacy symlink: `permanence.sock → loamspine.sock` for backward compat.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::error::LoamSpineError;
+
+// ── Legacy socket deprecation tracking ──────────────────────────────
+//
+// Count connections arriving via `permanence.sock` (the legacy symlink).
+// When this counter stays at 0 long enough, the symlink can be removed.
+
+/// Connections received on the legacy `permanence.sock` symlink.
+pub static LEGACY_SOCKET_HITS: AtomicU64 = AtomicU64::new(0);
+
+/// Connections received on the primary `loamspine.sock` socket.
+pub static PRIMARY_SOCKET_HITS: AtomicU64 = AtomicU64::new(0);
+
+/// Record a hit on the legacy socket path.
+pub fn record_legacy_socket_hit() {
+    LEGACY_SOCKET_HITS.fetch_add(1, Ordering::Relaxed);
+}
+
+/// Record a hit on the primary socket path.
+pub fn record_primary_socket_hit() {
+    PRIMARY_SOCKET_HITS.fetch_add(1, Ordering::Relaxed);
+}
+
+/// Snapshot of socket deprecation metrics.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SocketDeprecationMetrics {
+    pub legacy_hits: u64,
+    pub primary_hits: u64,
+    pub legacy_socket_name: String,
+    pub can_remove_legacy: bool,
+}
+
+/// Get the current socket deprecation metrics.
+#[must_use]
+pub fn socket_deprecation_metrics(family_id: Option<&str>) -> SocketDeprecationMetrics {
+    let legacy = LEGACY_SOCKET_HITS.load(Ordering::Relaxed);
+    let primary = PRIMARY_SOCKET_HITS.load(Ordering::Relaxed);
+    SocketDeprecationMetrics {
+        legacy_hits: legacy,
+        primary_hits: primary,
+        legacy_socket_name: legacy_socket_name(family_id),
+        can_remove_legacy: legacy == 0 && primary > 0,
+    }
+}
 
 /// Resolve the socket path from explicit config values (pure, no env reads).
 ///
