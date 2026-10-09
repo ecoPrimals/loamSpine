@@ -246,3 +246,37 @@ fn validate_security_config_from_env_does_not_panic() {
     let result = super::validate_security_config_from_env();
     let _ = result;
 }
+
+// ── Socket deprecation tracking ─────────────────────────────────────
+
+#[test]
+fn record_legacy_socket_hit_increments() {
+    let before = socket::LEGACY_SOCKET_HITS.load(std::sync::atomic::Ordering::Relaxed);
+    record_legacy_socket_hit();
+    let after = socket::LEGACY_SOCKET_HITS.load(std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(after, before + 1);
+}
+
+#[test]
+fn record_primary_socket_hit_increments() {
+    let before = socket::PRIMARY_SOCKET_HITS.load(std::sync::atomic::Ordering::Relaxed);
+    record_primary_socket_hit();
+    let after = socket::PRIMARY_SOCKET_HITS.load(std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(after, before + 1);
+}
+
+#[test]
+fn socket_deprecation_metrics_serializes() {
+    let metrics = socket_deprecation_metrics(None);
+    let json = serde_json::to_string(&metrics).expect("serialize");
+    assert!(json.contains("legacy_hits"));
+    assert!(json.contains("primary_hits"));
+    assert!(json.contains("can_remove_legacy"));
+    assert!(json.contains("permanence.sock"));
+}
+
+#[test]
+fn socket_deprecation_metrics_with_family() {
+    let metrics = socket_deprecation_metrics(Some("prod"));
+    assert_eq!(metrics.legacy_socket_name, "permanence-prod.sock");
+}
