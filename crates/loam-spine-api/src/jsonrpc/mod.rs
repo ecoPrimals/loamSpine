@@ -45,20 +45,49 @@ use wire::{INVALID_PARAMS, LOAMSPINE_ERROR, METHOD_NOT_FOUND};
 #[must_use]
 pub fn normalize_method(method: &str) -> &str {
     match method {
-        "commit.session" | "provenance.commit" => "session.commit",
-        // Downstream Nest sweeps call session.create/session.state on the
-        // "ledger" capability — map to loamSpine's native spine methods.
-        "session.create" | "ledger.create" => "spine.create",
-        "session.state" | "ledger.state" | "session.get" | "ledger.get" => "spine.get",
-        "permanent-storage.commitSession" => "permanence.commit_session",
-        "permanent-storage.verifyCommit" => "permanence.verify_commit",
-        "permanent-storage.getCommit" => "permanence.get_commit",
-        "permanent-storage.healthCheck" => "permanence.health_check",
-        "ledger.append" => "rootpulse.ledger_commit",
-        "capability.list" | "primal.capabilities" => "capabilities.list",
+        "commit.session" | "provenance.commit" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "session.commit"
+        }
+        "session.create" | "ledger.create" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "spine.create"
+        }
+        "session.state" | "ledger.state" | "session.get" | "ledger.get" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "spine.get"
+        }
+        "permanent-storage.commitSession" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "permanence.commit_session"
+        }
+        "permanent-storage.verifyCommit" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "permanence.verify_commit"
+        }
+        "permanent-storage.getCommit" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "permanence.get_commit"
+        }
+        "permanent-storage.healthCheck" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "permanence.health_check"
+        }
+        "ledger.append" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "rootpulse.ledger_commit"
+        }
+        "capability.list" | "primal.capabilities" => {
+            LEGACY_PREFIX_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            "capabilities.list"
+        }
         other => other,
     }
 }
+
+/// Count of JSON-RPC calls that arrived with a legacy method name alias.
+pub static LEGACY_PREFIX_HITS: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
 
 // ============================================================================
 // JSON-RPC dispatch
